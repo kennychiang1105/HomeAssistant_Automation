@@ -62,11 +62,14 @@
       seconds: 13
       milliseconds: 0
     enabled: true
-  - data:
-      entity_id: media_player.guang_bo_qun_zu_tong_zhi
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       message: 智慧家庭通知，偵測到空氣品質變差，將自動啟動空氣清淨機。
-    action: tts.edge_tts_say
-  mode: single
 - id: '1634979045293'
   alias: 06空氣清淨機-濾網壽命
   description: ''
@@ -102,11 +105,15 @@
   trigger: []
   condition: []
   action:
-  - data:
-      entity_id: media_player.ke_ting_homepod
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.ke_ting_homepod
       message: 廣播測試 廣播測試
     enabled: true
-    action: tts.edge_tts_say
   - delay:
       hours: 0
       minutes: 0
@@ -160,13 +167,15 @@
       title: 通知系統
     enabled: false
     action: notify.line_notification_group
-  - data:
-      cache: false
-      entity_id: media_player.wu_lou
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.wu_lou
       message: 廣播系統測試
     enabled: false
-    action: tts.edge_tts_say
-  mode: single
 - id: '1644392087552'
   alias: 03苗栗天氣告知系統
   description: ''
@@ -262,12 +271,14 @@
       seconds: 13
       milliseconds: 0
     enabled: true
-  - data:
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
-      entity_id: media_player.guang_bo_qun_zu_tong_zhi
-    action: tts.edge_tts_say
-  mode: queued
-  max: 10
 - id: '1644394919500'
   alias: 01地震災害系統
   description: ''
@@ -457,11 +468,14 @@
       seconds: 10
       milliseconds: 0
     enabled: true
-  - data:
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
-      entity_id: media_player.guang_bo_qun_zu_tong_zhi
-    action: tts.edge_tts_say
-  mode: single
 - id: '1645028120962'
   alias: 02地震災害系統 (按鈕)
   description: ''
@@ -481,21 +495,22 @@
         }}\"\n      }\n  ]\n}\n"
     enabled: true
     action: notify.line_bot_chiangfamilygroup
-  - data:
-      entity_id: media_player.ke_ting_homepod
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.ke_ting_homepod
       message: '地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: {{ states(''sensor.earthquake'')
-        }}
-
-        發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
-    action: tts.edge_tts_say
-  - data:
-      entity_id: media_player.ding_lou_homepod
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.ding_lou_homepod
       message: '地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: {{ states(''sensor.earthquake'')
-        }}
-
-        發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
-    action: tts.edge_tts_say
-  mode: single
 - id: '1645805324997'
   alias: 100晚安情境
   description: ''
@@ -855,10 +870,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '保全系統通知 鐵門已開啟超過10分鐘，且車庫無人車移動，請注意。  鐵門已開啟超過10分鐘，且車庫無人車移動，請注意。 '
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -932,10 +951,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '保全系統通知 鐵門已開啟超過10分鐘，且車庫無人車移動，請注意。  鐵門已開啟超過10分鐘，且車庫無人車移動，請注意。 '
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -1034,11 +1057,14 @@
       seconds: 10
       milliseconds: 0
     enabled: true
-  - data:
-      entity_id: media_player.guang_bo_qun_zu_tong_zhi
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       message: 智慧家庭通知，請注意，偵測到空氣品質較差，將自動啟動空氣清淨機。
-    action: tts.edge_tts_say
-  mode: single
 - id: '1657279085716'
   alias: 07-3空氣嚴重通知 (嚴重)
   description: ''
@@ -1085,11 +1111,14 @@
       seconds: 10
       milliseconds: 0
     enabled: true
-  - data:
-      entity_id: media_player.guang_bo_qun_zu_tong_zhi
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       message: 智慧家庭通知，請注意，偵測到空氣品質非常差，空氣清淨機將加強運作。
-    action: tts.edge_tts_say
-  mode: single
 - id: '1657279263577'
   alias: 07空氣清淨機-自動啟動
   description: ''
@@ -1316,10 +1345,14 @@
       minutes: 0
       seconds: 10
       milliseconds: 0
-  - data:
-      entity_id: media_player.guang_bo_qun_zu_all
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_all
       message: 伺服器及網路系統通知： 伺服器及網路系統將在五分鐘後進行維護更新，接下來15至20分鐘將有連線不穩或斷線之情況。
-    action: tts.edge_tts_say
   - delay:
       hours: 0
       minutes: 0
@@ -1549,11 +1582,13 @@
                   - media_content_type: app
                     media_content_id: media-source://media_source
             enabled: false
-          - action: tts.edge_tts_say
+          - action: tts.speak
             metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
             data:
-              cache: false
-              entity_id: media_player.che_ku_she_ying_ji_speaker
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
               message: 車庫鐵門即將開啟
             enabled: true
           - action: tts.speak
@@ -1576,11 +1611,13 @@
           state: open
         sequence:
         - sequence:
-          - action: tts.edge_tts_say
+          - action: tts.speak
             metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
             data:
-              cache: false
-              entity_id: media_player.che_ku_she_ying_ji_speaker
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
               message: 車庫鐵門即將關閉，請注意安全。
             enabled: true
           - action: tts.speak
@@ -1609,11 +1646,13 @@
                   - media_content_type: app
                     media_content_id: media-source://media_source
             enabled: false
-          - action: tts.edge_tts_say
+          - action: tts.speak
             metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
             data:
-              cache: false
-              entity_id: media_player.che_ku_she_ying_ji_speaker
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
               message: 車庫鐵門即將關閉，請注意安全。
             enabled: true
           - action: tts.speak
@@ -1682,10 +1721,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -1755,10 +1798,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2658,11 +2705,15 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2682,15 +2733,15 @@
         seconds: 10
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '地震！地震！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-          即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2739,11 +2790,15 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2763,15 +2818,15 @@
         seconds: 10
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '地震！地震！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-          即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2853,11 +2908,15 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2877,15 +2936,15 @@
         seconds: 10
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '地震！地震！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-          即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2934,11 +2993,15 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -2958,15 +3021,15 @@
         seconds: 10
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: '地震！地震！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-          即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
       enabled: true
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -3141,10 +3204,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 五樓保全系統微未解除狀態有人闖入，請注意。  五樓保全系統微未解除狀態有人闖入，請注意。
-      action: tts.edge_tts_say
     - data:
         message: 五樓保全系統未解除狀態有人闖入，請注意。
         title: 保全狀態警告
@@ -3226,10 +3293,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 五樓保全系統微未解除狀態有人闖入，請注意。  五樓保全系統微未解除狀態有人闖入，請注意。
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -3319,10 +3390,14 @@
       seconds: 13
       milliseconds: 0
     enabled: true
-  - data:
-      entity_id: media_player.guang_bo_qun_zu_all
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      cache: true
+      media_player_entity_id: media_player.guang_bo_qun_zu_all
       message: 系統廣播 廣播測試中 Boardcasting Testing 廣播測試中
-    action: tts.edge_tts_say
   - data:
       message: 廣播中...廣播系統測試中
       title: 廣播系統測試中
@@ -3381,12 +3456,14 @@
     entity_id: input_boolean.wu_lou_bao_quan_xi_tong_kai_guan
     state: 'off'
   action:
-  - service: tts.edge_tts_say
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
     data:
-      entity_id: media_player.wu_lou_she_ying_ji_speaker
+      cache: true
+      media_player_entity_id: media_player.wu_lou_she_ying_ji_speaker
       message: 保全系統維解除狀態 歡迎通過
-  mode: parallel
-  max: 10
 - id: '1721444114348'
   alias: 21A客廳電風扇自動化
   description: ''
@@ -4932,14 +5009,22 @@
         milliseconds: 0
       enabled: true
     - parallel:
-      - data:
-          entity_id: media_player.guang_bo_qun_zu_tong_zhi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
-      - data:
-          entity_id: media_player.sonydian_shi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.sonydian_shi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -5010,14 +5095,22 @@
         milliseconds: 0
       enabled: true
     - parallel:
-      - data:
-          entity_id: media_player.guang_bo_qun_zu_tong_zhi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
-      - data:
-          entity_id: media_player.sonydian_shi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.sonydian_shi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -5570,11 +5663,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -5596,11 +5693,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -5726,11 +5827,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -5752,11 +5857,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -5893,11 +6002,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -5919,11 +6032,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6049,11 +6166,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6075,11 +6196,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6208,11 +6333,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6234,11 +6363,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6364,11 +6497,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: false
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6390,11 +6527,15 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！'
               enabled: true
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 0
@@ -6723,11 +6864,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -6747,11 +6892,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -6818,11 +6967,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -6842,11 +6995,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -6977,10 +7134,14 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: 智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 1
@@ -7039,10 +7200,14 @@
                 seconds: 13
                 milliseconds: 0
               enabled: true
-            - data:
-                entity_id: media_player.guang_bo_qun_zu_all
+            - action: tts.speak
+              metadata: {}
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                cache: true
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
                 message: 智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              action: tts.edge_tts_say
             - delay:
                 hours: 0
                 minutes: 1
@@ -7165,11 +7330,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7189,11 +7358,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7260,11 +7433,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7284,11 +7461,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7416,11 +7597,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7440,11 +7625,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7511,11 +7700,15 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -7535,11 +7728,15 @@
               seconds: 13
               milliseconds: 0
             enabled: true
-          - data:
-              entity_id: media_player.guang_bo_qun_zu_all
+          - action: tts.speak
+            metadata: {}
+            target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
+            data:
+              cache: true
+              media_player_entity_id: media_player.guang_bo_qun_zu_all
               message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
             enabled: true
-            action: tts.edge_tts_say
           - delay:
               hours: 0
               minutes: 0
@@ -8401,10 +8598,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 五樓保全系統微未解除狀態有人闖入，請注意。  五樓保全系統微未解除狀態有人闖入，請注意。
-      action: tts.edge_tts_say
     - data:
         message: 五樓保全系統未解除狀態有人闖入，請注意。
         title: 保全狀態警告
@@ -8488,10 +8689,14 @@
         seconds: 13
         milliseconds: 0
       enabled: true
-    - data:
-        entity_id: media_player.guang_bo_qun_zu_all
+    - action: tts.speak
+      metadata: {}
+      target:
+        device_id: c01a1336ef43795fd0679631c3e6ce62
+      data:
+        cache: true
+        media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: 保全系統通知 五樓保全系統微未解除狀態有人闖入，請注意。  五樓保全系統微未解除狀態有人闖入，請注意。
-      action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -9358,14 +9563,22 @@
         milliseconds: 0
       enabled: true
     - parallel:
-      - data:
-          entity_id: media_player.guang_bo_qun_zu_tong_zhi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
-      - data:
-          entity_id: media_player.sonydian_shi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.sonydian_shi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
@@ -9436,14 +9649,22 @@
         milliseconds: 0
       enabled: true
     - parallel:
-      - data:
-          entity_id: media_player.guang_bo_qun_zu_tong_zhi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
-      - data:
-          entity_id: media_player.sonydian_shi
+      - action: tts.speak
+        metadata: {}
+        target:
+          device_id: c01a1336ef43795fd0679631c3e6ce62
+        data:
+          cache: true
+          media_player_entity_id: media_player.sonydian_shi
           message: '智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！'
-        action: tts.edge_tts_say
     - delay:
         hours: 0
         minutes: 0
