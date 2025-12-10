@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────
-# 104-2車牌辨識AI_Beta (V1 Alpha 4)
-# 更新重點（相對 V3）：
-# 1) 版本號更新
-# 相容版本：Helpers V1 Beta 13
+# 104-2車牌辨識AI_Beta (V1 Beta 1)
+# 更新重點（相對 Ａlpha V3）：
+# 1) 版本號更新 (Alpha 4 → Beta 1)
+# 2) 啟用真實開門：LPR 偵測後將實際開門，不再只是發送通知。
+# 相容版本：Helpers V1 Beta 15
 # ─────────────────────────────────────────────
-alias: 104-2車牌辨識AI_Beta (V1 Alpha 4)
+alias: 104-2車牌辨識AI_Beta (V1 Beta 1)
 id: 104-2_lpr_ai_beta
 description: >
   兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -82,21 +83,40 @@ action:
             data:
               entity_id: input_select.lpr_last_plate
               option: "{{ '未偵測' if plate=='未知' else plate }}"
-          # Debug 通知（含「是否開門」預判）
+          # 根據預判，執行開門或僅通知
           - choose:
+              # 條件符合：關閉狀態下收到 LPR -> 開門
               - conditions:
                   - condition: template
-                    value_template: "{{ debug_on }}"
+                    value_template: "{{ should_open_now }}"
                 sequence:
+                  - service: cover.open_cover
+                    target:
+                      entity_id: cover.garage
                   - service: persistent_notification.create
                     data:
-                      title: "📸 LPR 車牌偵測 (Alpha 3)"
+                      title: "✅ LPR 開門指令已執行 (Beta 1)"
                       message: >-
                         時間：{{ event_time }}
                         車牌：{{ plate }}（{{ car_name }}）
-                        鐵門：{{ gate_state }}
-                        保全：{{ arm_away_text }}、人形：{{ nobody_text }}
-                        決策預告：{{ open_decision_text }}（目前僅通知，不實際開門）
+                        指令：開門 (因鐵門為關閉狀態)
+              # 條件不符：門已開 -> 僅通知
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not should_open_now }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ debug_on }}"
+                        sequence:
+                          - service: persistent_notification.create
+                            data:
+                              title: "ℹ️ LPR 事件通知 (Beta 1)"
+                              message: >-
+                                時間：{{ event_time }}
+                                車牌：{{ plate }}（{{ car_name }}）
+                                狀態：鐵門已開，不重複執行開門。
 
       # ② 鐵門開啟 → 進入「可取消」的延遲關門評估
       - conditions:
@@ -119,7 +139,7 @@ action:
                 sequence:
                   - service: persistent_notification.create
                     data:
-                      title: "🛗 鐵門已開啟（Alpha 3）"
+                      title: "🛗 鐵門已開啟（Beta 1）"
                       message: >-
                         開始 {{ delay_minutes }} 分鐘關門評估視窗。
                         若期間偵測到人或新 LPR 事件，將取消自動關門。
