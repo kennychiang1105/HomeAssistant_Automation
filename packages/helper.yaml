@@ -36,12 +36,12 @@ input_boolean:
     # 手動開啟但覺得冷時，可開啟此開關避免自動關閉
 
   # 頂樓進出情境（你另一套上/下樓自動化使用）
-  ding_lou_shang_lou_qing_jing_kenny:
-    name: Kenny 頂樓上樓情境
+  ding_lou_shang_lou_qing_jing:
+    name: 頂樓上樓情境
     icon: mdi:stairs-up
 
-  ding_lou_xia_lou_qing_jing_kenny:
-    name: Kenny 頂樓下樓情境
+  ding_lou_xia_lou_qing_jing:
+    name: 頂樓下樓情境
     icon: mdi:stairs-down
 
   debug_topfloor_kenny:

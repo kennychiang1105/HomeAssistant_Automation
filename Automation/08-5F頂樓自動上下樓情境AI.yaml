@@ -5,7 +5,7 @@
 # 更新重點（相對 V11）：
 #  1) Helper 相容性：更新至對應「Helpers (V1 Beta 13)」。
 #  2) 實體ID修正：配合新版 Helper，將所有 `ding_lou_shang/xia_lou_qing_jing`
-#     更新為 `ding_lou_shang/xia_lou_qing_jing_kenny`。
+#     更新為 `ding_lou_shang/xia_lou_qing_jing`。
 #  3) 版本號更新。
 #
 # Helpers 相容性：
@@ -160,10 +160,10 @@ actions:
         sequence:
           - action: input_boolean.turn_on
             target:
-              entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+              entity_id: input_boolean.ding_lou_xia_lou_qing_jing
           - action: input_boolean.turn_off
             target:
-              entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+              entity_id: input_boolean.ding_lou_shang_lou_qing_jing
           - action: timer.start
             target:
               entity_id: timer.topfloor_lock_after_down
@@ -205,10 +205,10 @@ actions:
         sequence:
           - action: input_boolean.turn_on
             target:
-              entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+              entity_id: input_boolean.ding_lou_shang_lou_qing_jing
           - action: input_boolean.turn_off
             target:
-              entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+              entity_id: input_boolean.ding_lou_xia_lou_qing_jing
           - action: timer.start
             target:
               entity_id: timer.topfloor_lock_after_up
@@ -272,10 +272,10 @@ actions:
                 sequence:
                   - action: input_boolean.turn_on
                     target:
-                      entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                   - action: input_boolean.turn_off
                     target:
-                      entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                      entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                   - action: timer.start
                     target:
                       entity_id: timer.topfloor_lock_after_down
@@ -351,10 +351,10 @@ actions:
                 sequence:
                   - action: input_boolean.turn_on
                     target:
-                      entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                   - action: input_boolean.turn_off
                     target:
-                      entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                      entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                   - action: timer.start
                     target:
                       entity_id: timer.topfloor_lock_after_down
@@ -419,10 +419,10 @@ actions:
                       sequence:
                         - action: input_boolean.turn_on
                           target:
-                            entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                            entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                         - action: input_boolean.turn_off
                           target:
-                            entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                            entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                         - action: timer.start
                           target:
                             entity_id: timer.topfloor_lock_after_up
@@ -491,10 +491,10 @@ actions:
                               sequence:
                                 - action: input_boolean.turn_on
                                   target:
-                                    entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                                    entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                                 - action: input_boolean.turn_off
                                   target:
-                                    entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                                    entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                                 - action: timer.start
                                   target:
                                     entity_id: timer.topfloor_lock_after_down
@@ -543,10 +543,10 @@ actions:
                         sequence:
                           - action: input_boolean.turn_on
                             target:
-                              entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                              entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                           - action: input_boolean.turn_off
                             target:
-                              entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                              entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                           - action: timer.start
                             target:
                               entity_id: timer.topfloor_lock_after_up
@@ -588,10 +588,10 @@ actions:
                         sequence:
                           - action: input_boolean.turn_on
                             target:
-                              entity_id: input_boolean.ding_lou_xia_lou_qing_jing_kenny
+                              entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                           - action: input_boolean.turn_off
                             target:
-                              entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+                              entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                           - action: timer.start
                             target:
                               entity_id: timer.topfloor_lock_after_down
