@@ -1,0 +1,157 @@
+# ─────────────────────────────────────────────────────────────
+# 100C客廳門鎖電量分級通知AI_Beta — V1 Beta 8
+# 相容版本：Helpers V1 Beta 10
+# 變更摘要（相較 V1 Beta 7）：
+# - 新增「通知等級記憶」：input_text.doorlock_batt_last_stage
+# - 僅在等級變化（OK / LT35 / LT15 / EQ0）時送出一次
+# - 不會因為 15% 之後再觸發 35% 而重覆通知
+# - 保留 unknown→-1 假觸發過濾與 LINE tojson 真實換行
+# ─────────────────────────────────────────────────────────────
+alias: 100C客廳門鎖電量分級通知AI_Beta (V1 Beta 8)
+description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
+mode: single
+
+triggers:
+  - id: t35
+    trigger: numeric_state
+    entity_id: sensor.ke_ting_men_suo_dian_liang_guo_lu
+    below: 35
+    for: "00:05:00"
+  - id: t15
+    trigger: numeric_state
+    entity_id: sensor.ke_ting_men_suo_dian_liang_guo_lu
+    below: 15
+    for: "00:03:00"
+  - id: t5
+    trigger: numeric_state
+    entity_id: sensor.ke_ting_men_suo_dian_liang_guo_lu
+    below: 5
+    for: "00:01:00"
+
+variables:
+  automation_version: V1 Beta 8
+  helpers_compat: Helpers V1 Beta 10
+
+  notif_title_base: 【AI電量告警系統 V1 Beta8】
+  notif_title_warn: |-
+    {{ notif_title_base }}
+    門鎖電量提醒 🚪🔋
+  notif_title_alarm: |-
+    {{ notif_title_base }}
+    門鎖電量告警 🚪🔋
+
+  doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
+  batt_valid: "{{ doorlock_batt >= 0 }}"
+  lvl: "{{ (doorlock_batt if batt_valid else 0)|round(1) }}"
+
+  # 依目前電量映射成「等級」
+  # OK: >=35 或資料無效; LT35: <35; LT15: <15; EQ0: 0% 完全沒電（<1% 視為 0）
+  stage_now: >-
+    {% if not batt_valid %}
+      OK
+    {% elif doorlock_batt < 1 %}
+      EQ0
+    {% elif doorlock_batt < 15 %}
+      LT15
+    {% elif doorlock_batt < 35 %}
+      LT35
+    {% else %}
+      OK
+    {% endif %}
+  stage_last: "{{ states('input_text.doorlock_batt_last_stage')|default('OK') }}"
+  stage_changed: "{{ stage_now != stage_last }}"
+
+  eta_days: >-
+    {% set s = states('sensor.doorlock_batt_days_left_last_model') %}
+    {% if s is number %}{{ s|float(0)|round(1) }}{% else %}unknown{% endif %}
+  model_now: "{{ states('input_text.doorlock_batt_model_current')|trim }}"
+  model_last: "{{ states('input_text.doorlock_batt_model_last_cycle')|trim }}"
+
+  batt_line_text: >-
+    {% if not batt_valid -%}
+    門鎖電量摘要：
+    • 電量：資料暫無（gateway 尚未回報）
+    {%- else -%}
+    門鎖電量摘要：
+    • 電量：{{ doorlock_batt|round(1) }}%
+    • 預估天數：{%- if eta_days != 'unknown' -%}約 {{ eta_days }} 天（同款電池）{%- else -%}—（不同款或資料不足）{%- endif -%}
+    • 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
+    {%- endif %}
+
+  line_payload_warn: >-
+    {{
+      {"messages":[
+        {"type":"text","text": notif_title_warn},
+        {"type":"text","text":"🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"},
+        {"type":"text","text": batt_line_text}
+      ]} | tojson
+    }}
+  line_payload_35: >-
+    {{
+      {"messages":[
+        {"type":"text","text": notif_title_warn},
+        {"type":"text","text":"🟨 門鎖電量 35% 以下，建議安排電池更換。"},
+        {"type":"text","text": batt_line_text}
+      ]} | tojson
+    }}
+  line_payload_alarm: >-
+    {{
+      {"messages":[
+        {"type":"text","text": notif_title_alarm},
+        {"type":"text","text":"🟥 門鎖電量完全沒電（0%）！\n請以行動電源供電後解鎖。\n此時「自動離家」與「網關保護」可能異常。"},
+        {"type":"text","text": batt_line_text}
+      ]} | tojson
+    }}
+
+actions:
+  # 先過濾 unknown → -1 的假觸發
+  - choose:
+      - conditions:
+          - condition: template
+            alias: 過濾 unknown → -1 假觸發
+            value_template: >-
+              {% set from = trigger.from_state.state if trigger.from_state is not none else 'unknown' %}
+              {% set to   = trigger.to_state.state   if trigger.to_state   is not none else 'unknown' %}
+              {% set invalids = ['unknown','unavailable','none','None'] %}
+              {{ not (from in invalids and to == '-1') }}
+        sequence:
+          # 僅在等級「變化」時才通知；否則直接停止
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ stage_changed }}"
+                sequence:
+                  - choose:
+                      - conditions:  # 0% 完全沒電（最優先）
+                          - condition: template
+                            value_template: "{{ stage_now == 'EQ0' }}"
+                        sequence:
+                          - service: notify.line_bot_chiangfamilygroup
+                            data:
+                              title: "{{ notif_title_alarm }}"
+                              message: "{{ line_payload_alarm }}"
+                      - conditions:  # <15%
+                          - condition: template
+                            value_template: "{{ stage_now == 'LT15' }}"
+                        sequence:
+                          - service: notify.line_bot_chiangfamilygroup
+                            data:
+                              title: "{{ notif_title_warn }}"
+                              message: "{{ line_payload_warn }}"
+                      - conditions:  # <35%
+                          - condition: template
+                            value_template: "{{ stage_now == 'LT35' }}"
+                        sequence:
+                          - service: notify.line_bot_chiangfamilygroup
+                            data:
+                              title: "{{ notif_title_warn }}"
+                              message: "{{ line_payload_35 }}"
+                  # 成功通知後，寫回已通知等級
+                  - service: input_text.set_value
+                    data:
+                      entity_id: input_text.doorlock_batt_last_stage
+                      value: "{{ stage_now }}"
+            default:
+              - stop: "等級未變化（stage={{ stage_now }}），不重覆通知"
+    default:
+      - stop: "忽略：unknown → -1 假觸發（未送出任何通知）"
