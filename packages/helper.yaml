@@ -278,6 +278,7 @@ input_select:
       - 未偵測
       - EAK8030
       - REA9519
+      - EBH8030
 template:
   - trigger:
       - platform: state
