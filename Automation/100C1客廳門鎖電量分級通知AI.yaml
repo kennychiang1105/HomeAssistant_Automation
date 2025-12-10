@@ -1,13 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 100C客廳門鎖電量分級通知AI_Beta — V1 Beta 8
-# 相容版本：Helpers V1 Beta 10
-# 變更摘要（相較 V1 Beta 7）：
-# - 新增「通知等級記憶」：input_text.doorlock_batt_last_stage
-# - 僅在等級變化（OK / LT35 / LT15 / EQ0）時送出一次
-# - 不會因為 15% 之後再觸發 35% 而重覆通知
-# - 保留 unknown→-1 假觸發過濾與 LINE tojson 真實換行
+# 100C客廳門鎖電量分級通知AI_Beta — V1 Beta 10
+# 相容版本：Helpers V1 Beta 13
+# 變更摘要（相較 V1 Beta 8）：
+# - 版本號更新，以對應最新 Helper。
 # ─────────────────────────────────────────────────────────────
-alias: 100C客廳門鎖電量分級通知AI_Beta (V1 Beta 8)
+alias: 100C客廳門鎖電量分級通知AI_Beta (V1 Beta 10)
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
 
@@ -29,10 +26,10 @@ triggers:
     for: "00:01:00"
 
 variables:
-  automation_version: V1 Beta 8
-  helpers_compat: Helpers V1 Beta 10
+  automation_version: V1 Beta 10
+  helpers_compat: Helpers V1 Beta 13
 
-  notif_title_base: 【AI電量告警系統 V1 Beta8】
+  notif_title_base: 【AI電量告警系統 V1 Beta10】
   notif_title_warn: |-
     {{ notif_title_base }}
     門鎖電量提醒 🚪🔋

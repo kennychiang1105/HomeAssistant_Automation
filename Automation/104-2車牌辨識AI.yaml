@@ -1,7 +1,10 @@
 # ─────────────────────────────────────────────
-# 104-2車牌辨識AI_Beta (V1 Alpha 2)
+# 104-2車牌辨識AI_Beta (V1 Alpha 4)
+# 更新重點（相對 V3）：
+# 1) 版本號更新
+# 相容版本：Helpers V1 Beta 13
 # ─────────────────────────────────────────────
-alias: 104-2車牌辨識AI_Beta (V1 Alpha 2)
+alias: 104-2車牌辨識AI_Beta (V1 Alpha 4)
 id: 104-2_lpr_ai_beta
 description: >
   兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -87,7 +90,7 @@ action:
                 sequence:
                   - service: persistent_notification.create
                     data:
-                      title: "📸 LPR 車牌偵測 (Alpha 2)"
+                      title: "📸 LPR 車牌偵測 (Alpha 3)"
                       message: >-
                         時間：{{ event_time }}
                         車牌：{{ plate }}（{{ car_name }}）
@@ -116,7 +119,7 @@ action:
                 sequence:
                   - service: persistent_notification.create
                     data:
-                      title: "🛗 鐵門已開啟（Alpha 2）"
+                      title: "🛗 鐵門已開啟（Alpha 3）"
                       message: >-
                         開始 {{ delay_minutes }} 分鐘關門評估視窗。
                         若期間偵測到人或新 LPR 事件，將取消自動關門。

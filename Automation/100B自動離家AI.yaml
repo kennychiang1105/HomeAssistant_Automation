@@ -1,13 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI — V1 Beta 7
-# 相容版本：Helpers V1 Beta 10
+# 100B自動離家AI — V1 Beta 9
+# 相容版本：Helpers V1 Beta 13
 # 變更摘要：
-# - 排除 Redmi 判斷
-# - 若尚未 armed_away → 執行離家情境 automation.101li_jia_qing_jing
-# - 等待 5 秒，若仍非 armed_away → 提醒「保全系統未成功設定外出模式」
+# - 版本號更新，以對應最新 Helper。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI_Beta (V1 Beta 7)"
-id: automation.100b_ai_leave_v1beta7
+alias: "100B自動離家AI_Beta (V1 Beta 9)"
+id: automation.100b_ai_leave_v1beta9
 description: ""
 mode: single
 
@@ -72,10 +70,10 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V1 Beta 7"
-  helpers_compat: "Helpers V1 Beta 10"
+  automation_version: "V1 Beta 9"
+  helpers_compat: "Helpers V1 Beta 13"
 
-  notif_title_base: "【AI離家系統 V1 Beta 7】"
+  notif_title_base: "【AI離家系統 V1 Beta 9】"
   notif_title_general: |-
     {{ notif_title_base }}
     一般 General 🪧
@@ -145,7 +143,7 @@ actions:
   - event: ai_leave_confirmed
     event_data:
       who: kenny
-      reason: "automation.100b_ai_leave_v1beta7 conditions passed — {{ automation_version }} / {{ helpers_compat }}"
+      reason: "automation.100b_ai_leave_v1beta9 conditions passed — {{ automation_version }} / {{ helpers_compat }}"
 
   # 若尚未 armed_away → 觸發離家情境
   - choose:

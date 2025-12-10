@@ -1,12 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 100C-2門鎖換電池偵測與校正寫回AI_Beta — V1 Beta 6
-# 相容版本：Helpers V1 Beta 12
-# 變更摘要（相較 V1 Beta 5）：
-# - 新增：換電池校正後，自動將 input_text.doorlock_batt_last_stage 重置為 "OK"
-# - 觸發來源：改用「過濾版」sensor.ke_ting_men_suo_dian_liang_guo_lu
-# - 保留：unknown/unavailable/-1 前值過濾、LINE tojson 輸出
+# 100C-2門鎖換電池偵測與校正寫回AI_Beta — V1 Beta 8
+# 相容版本：Helpers V1 Beta 13
+# 變更摘要（相較 V1 Beta 7）：
+# - 版本號更新
+# 變更摘要（相較 V1 Beta 6）：
+# - 版本號更新，以對應最新 Helper。
 # ─────────────────────────────────────────────────────────────
-alias: 100C-2門鎖換電池偵測與校正寫回AI_Beta (V1 Beta 6)
+alias: 100C-2門鎖換電池偵測與校正寫回AI_Beta (V1 Beta 8)
 description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
 mode: single
 
@@ -25,9 +25,9 @@ conditions:
       {{ prev not in invalids and prev|float(100) < 20 }}
 
 variables:
-  automation_version: V1 Beta 6
-  helpers_compat: Helpers V1 Beta 12
-  notif_title_base: 【AI電量計算系統V1 Beta6】
+  automation_version: V1 Beta 8
+  helpers_compat: Helpers V1 Beta 13
+  notif_title_base: 【AI電量計算系統V1 Beta8】
   notif_title_calib: |-
     {{ notif_title_base }}
     門鎖耗電率校正 ✅
