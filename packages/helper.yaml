@@ -1,13 +1,12 @@
 ###AI Automation help tools###
 # ──────────────────────────────────────────────
-# Helpers（V1 Beta 12）
+# Helpers（V1 Beta 13）
 # ──────────────────────────────────────────────
-# 新增：
-#   • input_number.sleep_silent_start_min  → 靜默時段開始分鐘數（預設 150 = 02:30）
-#   • input_number.sleep_silent_end_min    → 靜默時段結束分鐘數（預設 540 = 09:00）
-#   • Battery Unknown Bug fixed
-#   • Add 車牌辨識AI_Beta
-#   • Add 門鎖電量已通知等級
+# 新增與強化：
+#   • 緊急模式強化：新增多種觸發方式（實體/虛擬按鈕）與詳細通知，並加入自動復位。
+#   • 頂樓AI自動化：整合風扇智慧溫控、基於Wi-Fi與攝影機的上下樓情境判斷、以及夜燈亮度修正。
+#   • 車牌辨識 (LPR)：新增車牌辨識自動化，整合條件式關門邏輯。
+#   • 風扇與燈光：加入客廳風扇防關閉機制、廚房感應燈、以及多項樓梯燈光連動與修正。
 
 timer:
   topfloor_down_intent_guard:
