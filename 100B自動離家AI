@@ -1,0 +1,224 @@
+# ─────────────────────────────────────────────────────────────
+# 100B自動離家AI — V1 Beta 7
+# 相容版本：Helpers V1 Beta 10
+# 變更摘要：
+# - 排除 Redmi 判斷
+# - 若尚未 armed_away → 執行離家情境 automation.101li_jia_qing_jing
+# - 等待 5 秒，若仍非 armed_away → 提醒「保全系統未成功設定外出模式」
+# ─────────────────────────────────────────────────────────────
+alias: "100B自動離家AI_Beta (V1 Beta 7)"
+id: automation.100b_ai_leave_v1beta7
+description: ""
+mode: single
+
+triggers:
+  - entity_id: device_tracker.iphone_17_pro_max_kenny
+    to: not_home
+    for: {seconds: 10}
+    trigger: state
+  - entity_id: device_tracker.iphone_13_pro_max_iris_2
+    to: not_home
+    for: {seconds: 10}
+    trigger: state
+  - entity_id: device_tracker.iphone_16_jerry
+    to: not_home
+    for: {seconds: 10}
+    trigger: state
+  - entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+    to: not_home
+    for: {seconds: 10}
+    trigger: state
+
+conditions:
+  - condition: and
+    conditions:
+      - condition: state
+        entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+        state: not_home
+      - condition: state
+        entity_id: device_tracker.iphone_17_pro_max_kenny
+        state: not_home
+      - condition: state
+        entity_id: device_tracker.iphone_13_pro_max_iris_2
+        state: not_home
+      - condition: state
+        entity_id: device_tracker.iphone_16_jerry
+        state: not_home
+  - condition: or
+    conditions:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+            state: not_home
+            for: {minutes: 10}
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.iphone_17_pro_max_kenny
+            state: not_home
+            for: {minutes: 10}
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.iphone_13_pro_max_iris_2
+            state: not_home
+            for: {minutes: 10}
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.iphone_16_jerry
+            state: not_home
+            for: {minutes: 10}
+
+variables:
+  automation_version: "V1 Beta 7"
+  helpers_compat: "Helpers V1 Beta 10"
+
+  notif_title_base: "【AI離家系統 V1 Beta 7】"
+  notif_title_general: |-
+    {{ notif_title_base }}
+    一般 General 🪧
+  notif_title_urgent: |-
+    {{ notif_title_base }}
+    緊急 Urgent ‼️
+
+  debounce_sec: 120
+  debounce_ok: >-
+    {% set last = state_attr(this.entity_id, 'last_triggered') %}
+    {% set delta = (as_timestamp(now()) - as_timestamp(last)) if last else 999999 %}
+    {{ delta > debounce_sec }}
+
+  arm_away_timeout_sec: 5
+
+  doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
+  batt_valid: "{{ doorlock_batt >= 0 }}"
+  batt50: "{{ batt_valid and doorlock_batt < 50 }}"
+  batt10: "{{ batt_valid and doorlock_batt < 10 }}"
+  batt0: "{{ batt_valid and doorlock_batt < 1 }}"
+
+  batt_line_text: >-
+    {% if not batt_valid %}
+    門鎖電量摘要：
+    • 資料暫無（gateway 尚未回報）
+    {% else %}
+    {% set lines = [] %}
+    {% if batt50 %}{% set lines = lines + ['• 客廳門鎖電量：' ~ (doorlock_batt|round(0)) ~ '%'] %}{% endif %}
+    {% if batt10 %}{% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}{% endif %}
+    {% if batt0  %}{% set lines = lines + ['• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}{% endif %}
+    {% if lines|length > 0 %}
+    門鎖電量摘要：
+    {{ lines | join('\n') }}
+    {% else %}{{ '' }}{% endif %}
+    {% endif %}
+
+  line_payload_general: >-
+    {{
+      {
+        "messages": (
+          [ {"type":"text","text": notif_title_general},
+            {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"} ] +
+          ( [ {"type":"text","text": batt_line_text } ] if batt_line_text|trim else [] )
+        )
+      } | tojson
+    }}
+
+  line_payload_urgent: >-
+    {{
+      {
+        "messages": (
+          [ {"type":"text","text": notif_title_urgent},
+            {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"} ] +
+          ( [ {"type":"text","text": batt_line_text } ] if batt_line_text|trim else [] )
+        )
+      } | tojson
+    }}
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ not debounce_ok }}"
+        sequence:
+          - stop: "防抖中（{{ debounce_sec }} 秒內重複觸發）—已跳過通知"
+
+  - event: ai_leave_confirmed
+    event_data:
+      who: kenny
+      reason: "automation.100b_ai_leave_v1beta7 conditions passed — {{ automation_version }} / {{ helpers_compat }}"
+
+  # 若尚未 armed_away → 觸發離家情境
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('alarm_control_panel.54ef44cf58f9_alarm') != 'armed_away' }}
+        sequence:
+          - service: automation.trigger
+            target:
+              entity_id: automation.101li_jia_qing_jing
+            data: {skip_condition: true}
+          - wait_template: >
+              {{ states('alarm_control_panel.54ef44cf58f9_alarm') == 'armed_away' }}
+            timeout: "00:00:{{ arm_away_timeout_sec }}"
+            continue_on_timeout: true
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states('alarm_control_panel.54ef44cf58f9_alarm') != 'armed_away' }}
+                sequence:
+                  - service: notify.line_bot_chiangfamilygroup
+                    data:
+                      title: "{{ notif_title_urgent }}"
+                      message: >-
+                        {{
+                          {
+                            "messages": [
+                              {"type":"text","text": notif_title_urgent},
+                              {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
+                                                     ~ states('alarm_control_panel.54ef44cf58f9_alarm') ~ "）。"},
+                              {"type":"text","text": batt_line_text if batt_line_text|trim else "（無門鎖電量異常）"}
+                            ]
+                          } | tojson
+                        }}
+
+  - choose:
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: cover.garage
+                state: closed
+              - condition: or
+                conditions:
+                  - condition: state
+                    entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                    state: "off"
+                  - condition: template
+                    value_template: "{{ batt0 }}"
+              - condition: state
+                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                state: armed_away
+        sequence:
+          - service: notify.line_bot_chiangfamilygroup
+            data:
+              title: "{{ notif_title_general }}"
+              message: "{{ line_payload_general }}"
+
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: >-
+                  {% set garage_open = is_state('cover.garage','open') %}
+                  {% set lock_on = is_state('input_boolean.er_lou_men_suo_tong_bu_kai_guan','on') %}
+                  {{ garage_open or (lock_on and (not batt0)) }}
+              - condition: state
+                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                state: armed_away
+        sequence:
+          - service: notify.line_bot_chiangfamilygroup
+            data:
+              title: "{{ notif_title_urgent }}"
+              message: "{{ line_payload_urgent }}"
