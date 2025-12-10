@@ -13,13 +13,13 @@
 # 更新重點（相對 V10）：
 # 1) Helper 相容性：更新至對應「Helpers (V1 Beta 13)」。
 # 2) 實體ID修正：配合新版 Helper，將 `ding_lou_shang_lou_qing_jing`
-#    更新為 `ding_lou_shang_lou_qing_jing_kenny`。
+#    更新為 `ding_lou_shang_lou_qing_jing`。
 #
 # 需要的 Helpers（皆為 Helpers V1 Beta 14，無需新增/改名/initial）：
 # input_boolean.ding_lou_fan_debug_notify
 # input_boolean.ding_lou_fan_cold_off_memory   ← 不設定 initial
 # input_boolean.ding_lou_fan_manual_hold
-# input_boolean.ding_lou_shang_lou_qing_jing_kenny
+# input_boolean.ding_lou_shang_lou_qing_jing
 # input_number.enter_low_close_c
 # input_number.enter_high_open_c
 # input_number.night_cold_off_c
@@ -45,7 +45,7 @@ trigger:
     attribute: current_temperature
     for: "00:00:15"
   - platform: state
-    entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+    entity_id: input_boolean.ding_lou_shang_lou_qing_jing
     to: "on"
   - platform: state
     entity_id: fan.dmaker_p33_eabd_fan
@@ -262,7 +262,7 @@ action:
   - choose:
       - conditions:
           - condition: state
-            entity_id: input_boolean.ding_lou_shang_lou_qing_jing_kenny
+            entity_id: input_boolean.ding_lou_shang_lou_qing_jing
             state: "on"
           - condition: template
             value_template: "{{ t_eff_valid }}"
