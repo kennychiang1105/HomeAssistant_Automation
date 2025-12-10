@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────
+# 100C-2門鎖換電池偵測與校正寫回AI_Beta — V1 Beta 6
+# 相容版本：Helpers V1 Beta 12
+# 變更摘要（相較 V1 Beta 5）：
+# - 新增：換電池校正後，自動將 input_text.doorlock_batt_last_stage 重置為 "OK"
+# - 觸發來源：改用「過濾版」sensor.ke_ting_men_suo_dian_liang_guo_lu
+# - 保留：unknown/unavailable/-1 前值過濾、LINE tojson 輸出
+# ─────────────────────────────────────────────────────────────
+alias: 100C-2門鎖換電池偵測與校正寫回AI_Beta (V1 Beta 6)
+description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
+mode: single
+
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.ke_ting_men_suo_dian_liang_guo_lu
+    above: 80
+    for: "00:00:30"
+
+conditions:
+  - condition: template
+    alias: 過濾 unknown/unavailable/-1 等假觸發；且前值必須 <20%
+    value_template: >-
+      {% set prev = trigger.from_state.state if trigger is defined and trigger.from_state is not none else '100' %}
+      {% set invalids = ['unknown','unavailable','none','None','-1'] %}
+      {{ prev not in invalids and prev|float(100) < 20 }}
+
+variables:
+  automation_version: V1 Beta 6
+  helpers_compat: Helpers V1 Beta 12
+  notif_title_base: 【AI電量計算系統V1 Beta6】
+  notif_title_calib: |-
+    {{ notif_title_base }}
+    門鎖耗電率校正 ✅
+  mean_deriv: "{{ states('sensor.doorlock_battery_drop_mean_7d')|float(0) }}"
+  drop_last: >-
+    {% set val = 0 - (states('sensor.doorlock_battery_drop_mean_7d')|float(0)) %}
+    {% if val <= 0 or val > 30 %}
+      0
+    {% else %}
+      {{ val|round(2) }}
+    {% endif %}
+
+actions:
+  # 1) 寫回「上次校正款式」
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.doorlock_batt_model_last_cycle
+      value: "{{ states('input_text.doorlock_batt_model_current') }}"
+
+  # 2) 寫回「上次日耗電率（%/日）」
+  - action: input_number.set_value
+    data:
+      entity_id: input_number.doorlock_batt_drop_last_cycle
+      value: "{{ drop_last }}"
+
+  # 3) 重置通知等級為 OK（換電池後重新開始分級通知循環）
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.doorlock_batt_last_stage
+      value: "OK"
+
+  # 4) 發送 LINE（tojson 防亂碼）
+  - action: notify.line_bot_chiangfamilygroup
+    data:
+      title: "{{ notif_title_calib }}"
+      message: |-
+        {{
+          {
+            "messages": [
+              {"type":"text","text": notif_title_calib},
+              {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至 80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
+              {"type":"text","text":"狀態摘要：\n• 新電池款式：" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ "\n• 校正後日耗電率：" ~ (states('input_number.doorlock_batt_drop_last_cycle')) ~ " %/日"},
+              {"type":"text","text":"版本：" ~ automation_version ~ "｜相容：" ~ helpers_compat}
+            ]
+          } | tojson
+        }}
+
+  # 5) 永久通知（如你已改用 persistent_notification.create，可自行切換）
+  - action: notify.persistent_notification
+    data:
+      title: "{{ notif_title_calib }}"
+      message: >-
+        🛠️ 門鎖換電池偵測：已自動完成校正並將通知等級重置為 OK。
+        新電池款式＝「{{ states('input_text.doorlock_batt_model_current') or '未填寫' }}」；
+        校正日耗電率＝{{ states('input_number.doorlock_batt_drop_last_cycle') }} %/日。
+        （版本：{{ automation_version }}｜相容：{{ helpers_compat }}）
