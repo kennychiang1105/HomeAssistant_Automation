@@ -1,0 +1,557 @@
+### AI Configuration V1.0 ###
+
+homeassistant:
+  packages: !include_dir_named packages
+  
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+# Text to speech
+tts:
+  - platform: google_translate
+    language: 'zh-tw'
+#  - platform: edge_tts
+#    language: zh-TW # Default language or voice (Optional)
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+sensor: !include sensors.yaml
+frontend:
+  themes: !include_dir_merge_named themes
+
+    
+
+###AI Automation help tools###
+# ──────────────────────────────────────────────
+# Helpers（V1 Beta 12）
+# ──────────────────────────────────────────────
+# 新增：
+#   • input_number.sleep_silent_start_min  → 靜默時段開始分鐘數（預設 150 = 02:30）
+#   • input_number.sleep_silent_end_min    → 靜默時段結束分鐘數（預設 540 = 09:00）
+#   • Battery Unknown Bug fixed
+#   • Add 車牌辨識AI_Beta
+#   • Add 門鎖電量已通知等級
+
+timer:
+  topfloor_down_intent_guard:
+    name: 頂樓下樓意圖保護窗
+  topfloor_lock_after_up:
+    name: 頂樓「上樓後」黏著鎖（90秒）
+  topfloor_lock_after_down:
+    name: 頂樓「下樓後」黏著鎖（90秒）
+input_boolean:
+  # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
+  ding_lou_fan_debug_notify:
+    name: 頂樓風扇_通知Debug模式
+    icon: mdi:bug-outline
+    #initial: off
+
+  ding_lou_fan_cold_off_memory:
+    name: 頂樓風扇_夜間過冷記憶
+    icon: mdi:fan-off
+    initial: off
+
+  # 頂樓進出情境（你另一套上/下樓自動化使用）
+  ding_lou_shang_lou_qing_jing_kenny:
+    name: Kenny 頂樓上樓情境
+    icon: mdi:stairs-up
+
+  ding_lou_xia_lou_qing_jing_kenny:
+    name: Kenny 頂樓下樓情境
+    icon: mdi:stairs-down
+
+  debug_topfloor_kenny:
+    name: Kenny 頂樓自動化 Debug 模式
+    icon: mdi:bug
+    #initial: off
+
+  # 車牌辨識AI_Beta
+  lpr_debug_notify:
+    name: LPR偵測Debug通知
+    icon: mdi:car-connected
+  lpr_auto_close_enable:
+    name: LPR自動關門（啟用後才會真的關門）
+    icon: mdi:garage
+    initial: false   
+    
+input_number:
+  # 車牌辨識AI_Beta
+  lpr_auto_close_delay_min:
+    name: LPR關門延遲（分鐘）
+    min: 1
+    max: 15
+    step: 1
+    unit_of_measurement: min
+    icon: mdi:timer-sand
+    initial: 3
+  # 風扇 AI 自動化：門檻 & 權重參數
+  enter_low_close_c:
+    name: 上樓_不開門檻(°C)
+    min: 25
+    max: 30
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-off
+    initial: 26.9
+
+  enter_high_open_c:
+    name: 上樓_必開門檻(°C)（目前以動態值為主）
+    min: 26
+    max: 32
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-alert
+    initial: 29.0
+
+  night_cold_off_c:
+    name: 夜間_過冷關機(°C)
+    min: 25
+    max: 30
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake-off
+    initial: 26.5
+
+  morning_reopen_c:
+    name: 白天_回溫再開(°C)
+    min: 26
+    max: 32
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:weather-sunset-up
+    initial: 27.5
+
+  ac_weight_add_c:
+    name: AC加權(+°C)
+    min: 0
+    max: 2
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:plus-thick
+    initial: 1.0
+
+  ac_fast_rise_th_c:
+    name: AC快速升溫門檻(°C/次)
+    min: 0
+    max: 1
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:speedometer
+    initial: 0.4
+
+  ac_fast_rise_bonus_c:
+    name: AC快速升溫加權(+°C)
+    min: 0
+    max: 1
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "°C"
+    icon: mdi:trending-up
+    initial: 0.5
+
+  # 頂樓上下樓自動化：時間視窗參數
+  topfloor_cam_window_min_kenny:
+    name: Kenny 頂樓攝影機觸發監測視窗（分鐘）
+    min: 1
+    max: 30
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 6
+
+  topfloor_tail_grace_up_min_kenny:
+    name: Kenny 上樓尾隨寬限（分鐘）
+    min: 0
+    max: 15
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 3
+
+  topfloor_tail_grace_down_min_kenny:
+    name: Kenny 下樓尾隨寬限（分鐘）
+    min: 0
+    max: 15
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 3
+  topfloor_light_off_cooldown_sec_kenny:
+    name: Kenny 燈剛關冷卻（秒）
+    icon: mdi:timer-off
+    min: 0
+    max: 120
+    step: 5
+    unit_of_measurement: s
+    mode: box
+    initial: 30
+  topfloor_down_no_light_grace_sec_kenny:
+    name: Kenny 下樓無關燈光寬限（秒）
+    icon: mdi:timer-outline
+    min: 0
+    max: 900
+    step: 10
+    unit_of_measurement: s
+    mode: box
+    initial: 120
+  topfloor_down_assist_wait_sec_kenny:
+    name: Kenny 下樓 Assist 視窗（秒，用來等 iPhone 晚切 AP）
+    min: 0
+    max: 900
+    step: 10
+    unit_of_measurement: s
+    mode: box
+    initial: 180
+  topfloor_cam_ambiguous_sec_kenny:
+    name: Kenny 攝影機模糊期（秒：保護窗時長）
+    min: 10
+    max: 180
+    step: 5
+    unit_of_measurement: s
+    mode: box
+    initial: 45
+# 🕑 睡眠靜默時段（分鐘）
+  sleep_silent_start_min:
+    name: 靜默時段開始（分鐘；0=00:00）
+    icon: mdi:clock-start
+    min: 0
+    max: 1440
+    step: 5
+    mode: box
+    unit_of_measurement: min
+    initial: 150     # 02:30 AM
+  sleep_silent_end_min:
+    name: 靜默時段結束（分鐘；0=00:00）
+    icon: mdi:clock-end
+    min: 0
+    max: 1440
+    step: 5
+    mode: box
+    unit_of_measurement: min
+    initial: 540     # 09:00 AM
+  # 門鎖低電量通知 AI
+  doorlock_batt_drop_last_cycle:
+    name: 門鎖上次日耗電率（%/日）
+    icon: mdi:battery-clock
+    min: 0
+    max: 30
+    step: 0.01
+    mode: box
+    unit_of_measurement: "%/日"
+    initial: 0
+
+input_text:
+  # 門鎖低電量通知 AI
+  doorlock_batt_model_current:
+    name: 門鎖電池款式（當前）
+
+  doorlock_batt_model_last_cycle:
+    name: 門鎖電池款式（上次校正）
+    
+  doorlock_batt_last_stage:
+    name: 門鎖電量已通知等級
+    max: 20
+    initial: OK   # 可能值：OK / LT35 / LT15 / EQ0
+  # 頂樓裝置/追蹤器
+  topfloor_debug_last_json:
+    name: 頂樓偵測 Debug（最新快照 JSON）
+    icon: mdi:file-code
+    max: 255          # HA 限制：<=255
+  topfloor_debug_last_decision:
+    name: 頂樓偵測 Debug（最後決策）
+    icon: mdi:check-decagram
+    max: 120
+  topfloor_ap_macs_5f:
+    name: 5F 頂樓 AP MAC 清單（逗號分隔）
+    icon: mdi:wifi
+#    initial: 70:a7:41:e4:5a:bf
+    initial: 70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c
+  iphone_tracker_entity_kenny:
+    name: Kenny iPhone Tracker Entity
+    icon: mdi:cellphone-nfc
+    initial: device_tracker.iphone_17_pro_max_kenny
+  watch_tracker_entity_kenny:
+    name: Kenny Watch Tracker Entity
+    icon: mdi:watch-variant
+    initial: device_tracker.apple_watch_ultra_3_kenny
+  # 車牌辨識AI_Beta
+  lpr_last_event:
+    name: LPR最後事件紀錄
+    max: 255
+  allowed_plates_csv:
+    name: LPR白名單（CSV, 例：EAK8030,BBN6688）
+    max: 255
+   
+input_select:
+  # 車牌辨識AI_Beta
+  lpr_last_plate:
+    name: 最近車牌
+    options:
+      - 未偵測
+      - EAK8030
+      - REA9519
+template:
+  - trigger:
+      - platform: state
+        entity_id: sensor.0x54ef4410007ac23c_battery
+      - platform: time_pattern   # 保活：避免長時間沒回報時 UI 顯示舊態
+        minutes: "/15"
+    sensor:
+      - name: 客廳門鎖電量（過濾）
+        # entity_id 將會是 sensor.ke_ting_men_suo_dian_liang_guo_lu
+        unit_of_measurement: "%"
+        device_class: battery
+        state_class: measurement
+        icon: mdi:battery
+        # （可選）唯一 ID，方便在 UI 調整圖示/名稱
+        unique_id: doorlock_battery_filtered_main
+        state: >-
+          {% set new = states('sensor.0x54ef4410007ac23c_battery') %}
+          {% set old = states('sensor.ke_ting_men_suo_dian_liang_guo_lu') %}
+          {% set invalids = ['unknown','unavailable','None','none','','nan'] %}
+          {% if new in invalids %}
+            {{ old if old not in invalids else -1 }}
+          {% else %}
+            {% set v = new|float(0) %}
+            {# 合理範圍 0~100；超出則沿用舊值；若舊值也不可用則 -1 #}
+            {% if 0 <= v <= 100 %}
+              {{ v }}
+            {% else %}
+              {{ (old|float(-1)) if old not in invalids else -1 }}
+            {% endif %}
+          {% endif %}
+        attributes:
+          source_entity: sensor.0x54ef4410007ac23c_battery
+          last_raw: "{{ states('sensor.0x54ef4410007ac23c_battery') }}"
+
+###AI Automation help tools###
+
+
+google_assistant:
+  project_id: fluid-etching-332006
+  service_account: !include google_assistant.json
+  report_state: true
+  entity_config:
+    sensor.familyjia_ting_realfeel_temperature:
+      expose: false
+    sensor.sgp511_battery_temperature:
+      expose: false
+    cover.garage:
+      expose: false
+    media_player.netflixbo_fang_qi:
+      expose: false
+    media_player.tbcbo_fang_qi:
+      expose: false
+    media_player.android_tv_192_168_68_88:
+      expose: false
+    media_player.android_tv_192_168_68_104:
+      expose: false
+    media_player.tbcbo_fang_qi_2:
+      expose: false
+    light.mijia_group4_3249_light:
+      expose: false
+    light.mijia_group4_5664_light:
+      expose: false
+    light.mijia_group4_2144_light:
+      expose: false
+    light.mijia_group4_2545:
+      expose: false
+    media_player.sony_bravia_tv:
+      expose: false
+    remote.sony_bravia_tv:
+      expose: false
+    switch.zhu_deng_kai_guan:
+      expose: false
+    switch.si_lou_lou_ti_kai_guan_shang_2:
+      expose: false
+    switch.dc8e95fffe8d69a0_03:
+      expose: false
+    switch.wu_lou_kai_guan_xia_2:
+      expose: false
+    switch.dc8e95fffe8d6b8e_03:
+      expose: false
+    switch.dc8e95fffe957fe8_01:
+      expose: false
+    switch.dc8e95fffe957fe8_02:
+      expose: false
+    switch.dc8e95fffe957fe8_03:
+      expose: false
+    switch.e0798dfffeb3c1af_01:
+      expose: false
+    switch.dc8e95fffe83684d_02:
+      expose: false
+    switch.e0798dfffeb3c1af_03:
+      expose: false
+    switch.dc8e95fffe83684d_03:
+      expose: false
+    switch.chu_fang_kai_guan_2:
+      expose: false
+    switch.dc8e95fffe8d68f0_02:
+      expose: false
+    switch.chu_fang_kai_guan_3:
+      expose: false
+    switch.e0798dfffec10c5a_01:
+      expose: false
+    switch.e0798dfffec3163b_02:
+      expose: false
+    switch.e0798dfffec3163b_03:
+      expose: false
+    light.ke_ting_deng_zu_1_ha:
+      expose: false
+    light.ke_ting_deng_zu_2:
+      expose: false
+    light.ke_ting_deng_zu_3:
+      expose: false
+    light.ke_ting_deng_zu_quan:
+      expose: false
+    light.can_ting_deng_zu_1_ha:
+      expose: false
+    input_boolean.er_lou_men_suo_tong_bu_kai_guan:
+      expose: false
+    media_player.guang_bo_qun_zu_all:
+      expose: false
+    media_player.guang_bo_qun_zu_tong_zhi:
+      expose: false
+    input_button.di_zhen_xi_tong_guang_bo:
+      expose: false
+    input_button.tian_qi_jing_xun_guang_bo:
+      expose: false
+    input_boolean.aqara_zai_jia:
+      expose: false
+    input_boolean.aqara_li_jia:
+      expose: false
+    input_boolean.aqara_guan_bi:
+      expose: false
+    input_boolean.aqara_wan_an:
+      expose: false
+      
+#    switch.zhu_deng:
+#      expose: false
+#    switch.si_lou_lou_ti:
+#     expose: false
+#    switch.bi_deng:
+#      expose: false
+#    switch.shu_fang_deng:
+#      expose: false
+#    switch.lou_ti_deng:
+#      expose: false
+#    switch.lou_ti_deng_2:
+#      expose: false
+#    switch.yang_tai_deng:
+#      expose: false
+#    light.ding_lou_zhu_deng_1:
+#      expose: false
+#    light.ding_lou_zhu_deng_2:
+#      expose: false
+#    light.ding_lou_zhu_deng_3:
+#      expose: false
+#    light.ding_lou_zhu_deng_4:
+#      expose: false
+#    light.ding_lou_kan_deng:
+#      expose: false
+#    light.ding_lou_deng_zu_1:
+#      expose: false
+#    light.ding_lou_deng_zu_2:
+#      expose: false
+
+#homekit:
+#  - name: HA Family 3
+#    port: 21105
+#    ip_address: 192.168.68.73
+#    advertise_ip: 192.168.68.73
+#    filter:
+#      include_domains:
+#        - light
+#recorder:
+#	purge_interval: 
+#	purge_keep_days: 365
+#homeassistant:
+#  external_url: https://jnas916p.synology.me:8124
+#  internal_url: http://192.168.68.73:8123
+#http:
+#  ssl_certificate: /config/ssl/cert.pem
+#  ssl_key: /config/ssl/privkey.pem
+#  base_url: https://jnas916p.synology.me
+#  cors_allowed_origins:
+#    - https://jnas916p.synology.me
+ #   - http://192.168.68.73
+#  ssl_chain: /config/ssl/chain.pem
+delete:
+fan:
+  - platform: xiaomi_miio_fan
+    name: 客廳電風扇      #名稱
+    host: 192.168.68.60    #IP
+    token: 9854d3850030fe5d75eabce4f878cfd0  #自己的token
+    preset_modes_override: []     #讓homekit的按鍵顯示正常
+    model: zhimi.fan.sa1 #自己的電風扇model
+
+http:
+  use_x_forwarded_for: true
+  server_port: 8125
+  trusted_proxies:
+    - 127.30.32.0/24
+    - 127.17.0.0/24
+    - 192.168.68.0/24
+    - 127.0.0.1
+    - 192.168.68.73
+    - 127.30.32.1
+    - 127.17.0.1
+    - 192.168.68.1
+    - 211.79.170.9
+  ip_ban_enabled: true
+###
+###
+
+
+notify:                      #若已有設定其他notify組件則不須輸入此行
+  - name: line_notification_group  #可修改成你要的名稱 ＃不建議使用中文
+    platform: notify_line
+    access_token: 'a9L8vnbBdqbne74GbBq2MdKIgFFu686EzbXOCuSYnq6'  #將前面步驟取得的權杖輸入於此
+  - name: line_bot_chiangfamilygroup
+    platform: line_bot
+    client_id: 'C26ff4e9d30159ba5264a1676f46f8f86'
+    access_token: 'tVQIJ4UIbOsl5n5BAAQMpjYSMDg2jlb7brjoffYPeB8CU+MYYJxcPXA9x1Ka1ze+9XkmvahZMQtvV07NJCm7nBkGc8fzzUlY7uHvr8Gnc/2a/e8jqkdjUNwIsdCYD6skWqngM1GtbDxboIevIbN4OwdB04t89/1O/w1cDnyilFU='
+  
+  
+lovelace:
+  mode: storage #use ui-lovelace.yaml
+  resources: #hacs
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js
+      type: module
+    - url: /hacsfiles/lovelace-layout-card/layout-card.js
+      type: module
+    - url: /hacsfiles/swipe-card/swipe-card.js
+      type: module
+    - url: /hacsfiles/Homekit-panel-card/homekit-panel-card.js
+      type: module
+    - url: /browser_mod.js
+      type: module
+    - url: /hacsfiles/light-popup-card/light-popup-card.js
+      type: module
+    - url: /community_plugin/thermostat-popup-card/thermostat-popup-card.js
+      type: module
+    - url: /community_plugin/media_player-popup-card/media_player-popup-card.js
+      type: module
+    - url: /hacsfiles/sidebar-card/sidebar-card.js
+      type: module  
+    - url: /local/mini-graph-card-bundle.js?v=0.11.0
+      type: module
+    - url: /community_plugin/cover-popup-card/cover-popup-card.js
+      type: module
+    - url: /community_plugin/switch-popup-card/switch-popup-card.js
+      type: module  
+  dashboards:
+    lovelace-yaml:
+      mode: yaml
+      title: 家庭中心Beta
+      icon: mdi:home
+      show_in_sidebar: true    
+      filename: new-ui.yaml
