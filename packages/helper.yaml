@@ -1,8 +1,9 @@
 ###AI Automation help tools###
 # ──────────────────────────────────────────────
-# Helpers（V1 Beta 14）
+# Helpers（V1 Beta 15）
 # ──────────────────────────────────────────────
 # 新增與強化：
+#   • 頂樓風扇AI優化：風速曲線調整至「終極平滑模式」，實現最低30%至最高100%風量，且每階調整不超過2.5%，並更新相關溫度門檻。
 #   • 緊急模式強化：新增多種觸發方式（實體/虛擬按鈕）與詳細通知，並加入自動復位。
 #   • 頂樓AI自動化：整合風扇智慧溫控、基於Wi-Fi與攝影機的上下樓情境判斷、以及夜燈亮度修正。
 #   • 車牌辨識 (LPR)：新增車牌辨識自動化，整合條件式關門邏輯。
@@ -75,7 +76,7 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:thermometer-off
-    initial: 26.9
+    initial: 25.4
 
   enter_high_open_c:
     name: 上樓_必開門檻(°C)（目前以動態值為主）
@@ -95,7 +96,7 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:snowflake-off
-    initial: 26.5
+    initial: 25.4
 
   morning_reopen_c:
     name: 白天_回溫再開(°C)
