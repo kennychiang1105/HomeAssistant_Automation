@@ -1,0 +1,382 @@
+# ─────────────────────────────────────────────────────────────
+# 22頂樓電風扇自動化_AI_Beta (V1 Beta 10)   （Helpers V1 Beta 10 相容）
+# 更新重點（HP 低溫校正、清晨防悶版）：
+# 1) 當 HomePod 溫度偏低、但冷氣感溫較高 → t_eff 以「冷氣」為主
+#    • 規則A：若 AC on 且 ac_temp > 29.0°C，且（HomePod 無效 或 hp_temp < 28.0°C）
+#             → 直接用 AC 作為 t_eff（直到 HomePod 升到 ≥ 28.0°C 才恢復原本整合法）
+#    • 規則B：若 AC on 且（ac_temp + ac_weight_add_c）與 hp_temp 差異 ≥ 1.5°C 且 hp_temp < 28.0°C
+#             → 視為「HP 偏低」，t_eff 以 AC 為主（避免清晨 HP 升溫落後）
+# 2) 保留 V1 Beta 9 的睡眠曲線與 2.5% 階、夜間 -5%（最低 25%）、高溫保證（31.5→95%、≥32.0→100%）
+# 3) 保留凍結機制：HomePod 失效 ≤15 分內 → 凍結溫控（不做關/開/調速），避免 0.0°C 跳針
+# 4) 保留「過冷關機→本輪停止」「回溫再開（記憶=on）」「外部/手動關機清記憶」「上樓≥40% 起風」
+#
+# 需要的 Helpers（皆為 Helpers V1 Beta 10，無需新增/改名/initial）：
+# input_boolean.ding_lou_fan_debug_notify
+# input_boolean.ding_lou_fan_cold_off_memory   ← 不設定 initial
+# input_boolean.ding_lou_shang_lou_qing_jing
+# input_number.enter_low_close_c
+# input_number.enter_high_open_c
+# input_number.night_cold_off_c
+# input_number.morning_reopen_c
+# input_number.ac_weight_add_c
+# input_number.ac_fast_rise_th_c
+# input_number.ac_fast_rise_bonus_c
+# ─────────────────────────────────────────────────────────────
+
+alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 10)
+id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
+mode: restart
+max: 10
+
+trigger:
+  - platform: state
+    entity_id:
+      - climate.ding_lou_kong_diao
+      - sensor.5f_homepodmini_temperature
+    for: "00:00:15"
+  - platform: state
+    entity_id: climate.ding_lou_kong_diao
+    attribute: current_temperature
+    for: "00:00:15"
+  - platform: state
+    entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+    to: "on"
+  - platform: state
+    entity_id: fan.dmaker_p33_eabd_fan
+
+action:
+  - variables:
+      debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
+
+      # ---- Helpers ----
+      enter_low_close_c: "{{ states('input_number.enter_low_close_c') | float(26.9) }}"
+      enter_high_open_c_ui: "{{ states('input_number.enter_high_open_c') | float(29.0) }}"
+      night_cold_off_c: "{{ states('input_number.night_cold_off_c') | float(27.5) }}"
+      morning_reopen_c: "{{ states('input_number.morning_reopen_c') | float(28.8) }}"
+      ac_weight_add_c: "{{ states('input_number.ac_weight_add_c') | float(1.0) }}"
+      ac_fast_rise_th_c: "{{ states('input_number.ac_fast_rise_th_c') | float(0.4) }}"
+      ac_fast_rise_bonus_c: "{{ states('input_number.ac_fast_rise_bonus_c') | float(0.5) }}"
+
+      # ---- 狀態 ----
+      ac_state: "{{ states('climate.ding_lou_kong_diao') }}"
+      ac_temp: "{{ state_attr('climate.ding_lou_kong_diao','current_temperature') | float(0) }}"
+      fan_state: "{{ states('fan.dmaker_p33_eabd_fan') }}"
+      fan_pct_now: "{{ state_attr('fan.dmaker_p33_eabd_fan','percentage') | int(0) }}"
+      ac_on: "{{ ac_state == 'cool' }}"
+      hhmm: "{{ now().strftime('%H:%M') }}"
+
+      # ---- HomePod 安全取值 ----
+      hp_raw: "{{ states('sensor.5f_homepodmini_temperature') }}"
+      hp_temp: >
+        {% set s = states('sensor.5f_homepodmini_temperature') %}
+        {% if s not in ['unknown','unavailable','none',''] %}
+          {{ s | float }}
+        {% else %}
+          {{ -9999 }}
+        {% endif %}
+      hp_valid_now: >
+        {% set obj = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
+        {% set ts = as_timestamp(obj.last_changed) if obj and obj.last_changed else none %}
+        {% set age = (now().timestamp() - ts) | int if ts else 999999 %}
+        {{ (hp_temp != -9999) and (hp_temp > 10) and (hp_temp < 45) and (age < 3600) }}
+      # 15 分內短暫失效 → 凍結溫控
+      hp_soft_hold: >
+        {% set obj = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
+        {% set ts = as_timestamp(obj.last_changed) if obj and obj.last_changed else none %}
+        {% set age = (now().timestamp() - ts) | int if ts else 999999 %}
+        {{ (not hp_valid_now) and (age < 900) }}
+
+      # ---- 睡眠時段（夜間）：23:00–07:30 ----
+      is_sleep: >
+        {{ ('23:00' <= hhmm <= '23:59') or ('00:00' <= hhmm <= '07:30') }}
+
+      # ---- 上樓必開門檻（固定 26.1°C）----
+      enter_high_open_c_dyn: 26.1
+
+      # ---- 快速升溫加權（AC 感溫跳升）----
+      ac_rise_fast: >
+        {% set has = (trigger is defined and trigger.to_state is defined and trigger.from_state is defined) %}
+        {% if has and trigger.entity_id == 'climate.ding_lou_kong_diao' %}
+          {{ (trigger.to_state.attributes.current_temperature | float(0))
+             - (trigger.from_state.attributes.current_temperature | float(0)) >= ac_fast_rise_th_c }}
+        {% else %} false {% endif %}
+
+      # ---- AC 優先條件（HP 低、AC 高 的清晨保護）----
+      # 規則A：AC on 且 ac_temp > 29，且（HP 無效 或 HP < 28）→ 以 AC 為主，直到 HP≥28
+      ac_override_until_hp28: >
+        {{ ac_on and (ac_temp > 29.0) and ( (not hp_valid_now) or (hp_temp < 28.0) ) }}
+      # 規則B：AC on 且（AC+權重 - HP）≥ 1.5 且 HP<28 → 以 AC 為主（HP 偏低）
+      ac_hp_diff_override: >
+        {{ ac_on and hp_valid_now and ( (ac_temp + ac_weight_add_c) - hp_temp >= 1.5 ) and (hp_temp < 28.0) }}
+
+      # ---- 有效溫度 t_eff ----
+      # 優先序：凍結 none → 規則A → 規則B → 一般整合（AC: max(HP, AC+權重)+快速升溫；OFF: HP 或退 AC）
+      t_eff: >
+        {% if hp_soft_hold %}
+          none
+        {% else %}
+          {% if ac_override_until_hp28 %}
+            {{ (ac_temp + ac_weight_add_c + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
+          {% else %}
+            {% if ac_on %}
+              {% if ac_hp_diff_override %}
+                {{ (ac_temp + ac_weight_add_c + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
+              {% else %}
+                {% set hp_use = (hp_temp if hp_valid_now else none) %}
+                {% set base = [ (hp_use if hp_use is not none else -9999), ac_temp + ac_weight_add_c ] | max %}
+                {{ (base + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
+              {% endif %}
+            {% else %}
+              {{ hp_temp if hp_valid_now else ac_temp }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      t_eff_valid: "{{ t_eff is not none }}"
+
+      # ---- 風量曲線（日間基準；2.5% 級距；高溫保障）----
+      # ≤27.0→35；27.5→37.5；28.0→42.5；28.5→47.5；29.0→52.5；
+      # 29.5→57.5；30.0→65；30.5→72.5；31.0→85；31.5→95；≥32.0→100
+      pct_base_day: >
+        {% if not t_eff_valid %}
+          {{ fan_pct_now }}
+        {% else %}
+          {% set t = t_eff | float %}
+          {% if t >= 32.0 %} 100
+          {% elif t >= 31.5 %} 95
+          {% elif t >= 31.0 %} 85
+          {% elif t >= 30.5 %} 72.5
+          {% elif t >= 30.0 %} 65
+          {% elif t >= 29.5 %} 57.5
+          {% elif t >= 29.0 %} 52.5
+          {% elif t >= 28.5 %} 47.5
+          {% elif t >= 28.0 %} 42.5
+          {% elif t >= 27.5 %} 37.5
+          {% elif t >= 0 %} 35
+          {% else %} {{ fan_pct_now }} {% endif %}
+        {% endif %}
+      # 夜間 -5%，最低 25%
+      pct_sleep_tuned: >
+        {% if not t_eff_valid %}
+          {{ pct_base_day }}
+        {% else %}
+          {% set p = (pct_base_day | float) - (5 if is_sleep else 0) %}
+          {% set p2 = [p, 25] | max %}
+          {{ p2 }}
+        {% endif %}
+      # 對齊到 2.5%（最後依 HA 要求轉 int）
+      desired_pct_curve: >
+        {% set p = pct_sleep_tuned | float %}
+        {% set step = 2.5 %}
+        {% set snapped = ((p / step) | round(0) * step) %}
+        {{ [snapped, 100] | min }}
+
+  # 0) 外部/手動關機 → 清除回溫記憶（需 t_eff 有效且非過冷）
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (trigger is defined)
+                 and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                 and (trigger.to_state is defined and trigger.to_state.state == 'off')
+                 and (trigger.from_state is defined and trigger.from_state.state == 'on') }}
+          - condition: template
+            value_template: "{{ t_eff_valid and (t_eff | float >= night_cold_off_c) }}"
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ding_lou_fan_cold_off_memory
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "已偵測外部/手動關機 → 清除回溫記憶"
+                  message: >
+                    📴 t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ 過冷門檻 {{ night_cold_off_c }}°C
+
+  # 0.1) HP 短暫失效 → 凍結提示（僅 Debug）
+  - if:
+      - condition: template
+        value_template: "{{ debug_notify and hp_soft_hold }}"
+    then:
+      - service: notify.persistent_notification
+        data:
+          title: "HomePod 溫度短暫失效（≤15 分）— 已凍結溫控"
+          message: >
+            ⚠️ hp_raw={{ hp_raw }}；15 分內不依溫度做關/開與調速，避免誤判。
+
+  # 1) 上樓情境（t_eff 有效才判斷；介於門檻至少 40%）
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+            state: "on"
+          - condition: template
+            value_template: "{{ t_eff_valid }}"
+        sequence:
+          - variables:
+              t_enter: "{{ t_eff | float }}"
+              high_open_c: "{{ enter_high_open_c_dyn }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ t_enter >= high_open_c }}"
+                sequence:
+                  - service: fan.turn_on
+                    target:
+                      entity_id: fan.dmaker_p33_eabd_fan
+                  - if:
+                      - condition: template
+                        value_template: "{{ debug_notify }}"
+                    then:
+                      - service: notify.persistent_notification
+                        data:
+                          title: "頂樓風扇自動開啟（上樓）"
+                          message: >
+                            🚶‍♂️ t_eff={{ '%.1f'|format(t_enter) }}°C ≥ {{ high_open_c }}°C
+              - conditions:
+                  - condition: template
+                    value_template: "{{ t_enter <= enter_low_close_c }}"
+                sequence: []
+              - conditions: []
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: state
+                            entity_id: fan.dmaker_p33_eabd_fan
+                            state: "off"
+                        sequence:
+                          - service: fan.turn_on
+                            target:
+                              entity_id: fan.dmaker_p33_eabd_fan
+                          - service: fan.set_percentage
+                            target:
+                              entity_id: fan.dmaker_p33_eabd_fan
+                            data:
+                              percentage: >
+                                {% set p = [40, (desired_pct_curve|float)] | max %}
+                                {{ ((p / 2.5) | round(0) * 2.5) | int }}
+                          - if:
+                              - condition: template
+                                value_template: "{{ debug_notify }}"
+                            then:
+                              - service: notify.persistent_notification
+                                data:
+                                  title: "頂樓風扇微風開啟（上樓介於門檻）"
+                                  message: >
+                                    🌡 t_eff={{ '%.1f'|format(t_enter) }}°C；
+                                    風速≥40%，實際={{ desired_pct_curve }}%
+                      - conditions:
+                          - condition: state
+                            entity_id: fan.dmaker_p33_eabd_fan
+                            state: "on"
+                        sequence:
+                          - service: fan.set_percentage
+                            target:
+                              entity_id: fan.dmaker_p33_eabd_fan
+                            data:
+                              percentage: >
+                                {{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}
+
+  # 2) 任意時段「過冷關機」：需 t_eff 有效；執行後本輪 stop 防回彈
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: fan.dmaker_p33_eabd_fan
+            state: "on"
+          - condition: template
+            value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
+        sequence:
+          - service: fan.turn_off
+            target:
+              entity_id: fan.dmaker_p33_eabd_fan
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.ding_lou_fan_cold_off_memory
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "頂樓風扇自動關閉（過冷）"
+                  message: >
+                    🌙 t_eff={{ '%.1f'|format(t_eff|float) }}°C < 門檻 {{ night_cold_off_c }}°C（記憶=on）
+          - stop: "Stopped after cold_off to avoid immediate reopen in same run"
+
+  # 3) 任意時段「回溫再開」：記憶=on 且 t_eff ≥ 門檻
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: fan.dmaker_p33_eabd_fan
+            state: "off"
+          - condition: state
+            entity_id: input_boolean.ding_lou_fan_cold_off_memory
+            state: "on"
+          - condition: template
+            value_template: "{{ t_eff_valid and (t_eff | float >= morning_reopen_c) }}"
+        sequence:
+          - service: fan.turn_on
+            target:
+              entity_id: fan.dmaker_p33_eabd_fan
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ding_lou_fan_cold_off_memory
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "頂樓風扇自動開啟（回溫）"
+                  message: >
+                    ☀️ t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ {{ morning_reopen_c }}°C（清除記憶）
+
+  # 4) 冷氣開啟 → 風扇同步 on（凍結與否皆可執行）
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') }}"
+        sequence:
+          - service: fan.turn_on
+            target:
+              entity_id: fan.dmaker_p33_eabd_fan
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "頂樓風扇自動開啟（冷氣同步）"
+                  message: "❄️ 冷氣=COOL，ac_temp={{ ac_temp }}°C"
+
+  # 5) 自動調速（差≥5% 才調；凍結時不調）
+  - if:
+      - condition: state
+        entity_id: fan.dmaker_p33_eabd_fan
+        state: "on"
+      - condition: template
+        value_template: "{{ t_eff_valid }}"
+    then:
+      - variables:
+          desired_pct: "{{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}"
+          need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
+      - if:
+          - condition: template
+            value_template: "{{ need_update }}"
+        then:
+          - service: fan.set_percentage
+            target:
+              entity_id: fan.dmaker_p33_eabd_fan
+            data:
+              percentage: "{{ desired_pct }}"
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "頂樓風扇風速調整"
+                  message: >
+                    🔄 新風速={{ desired_pct }}%｜t_eff={{ '%.1f'|format(t_eff|float) }}°C
