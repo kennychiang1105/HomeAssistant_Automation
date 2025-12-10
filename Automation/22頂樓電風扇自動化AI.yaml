@@ -1,16 +1,20 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化_AI_Beta (V1 Beta 12)   （Helpers V1 Beta 13 相容）
+# 22頂樓電風扇自動化_AI_Beta (V1 Beta 13)   （Helpers V1 Beta 14 相容）
+# 更新重點（相對 V12）：
+# 1) 手動保留優化：任何時段手動開啟且低於門檻時，暫停自動關閉 1 小時，並支援超時自動解除與通知。
+# 2) Helper 更名同步：採用通用的 `ding_lou_fan_manual_hold` 命名，與 Helper V1 Beta 14 對應。
+# 3) 版本號更新。
 # 更新重點（相對 V11）：
 # 1) 版本號更新
 # 更新重點（相對 V10）：
 # 1) Helper 相容性：更新至對應「Helpers (V1 Beta 13)」。
 # 2) 實體ID修正：配合新版 Helper，將 `ding_lou_shang_lou_qing_jing`
 #    更新為 `ding_lou_shang_lou_qing_jing_kenny`。
-# 3) 版本號更新。
 #
-# 需要的 Helpers（皆為 Helpers V1 Beta 13，無需新增/改名/initial）：
+# 需要的 Helpers（皆為 Helpers V1 Beta 14，無需新增/改名/initial）：
 # input_boolean.ding_lou_fan_debug_notify
 # input_boolean.ding_lou_fan_cold_off_memory   ← 不設定 initial
+# input_boolean.ding_lou_fan_manual_hold
 # input_boolean.ding_lou_shang_lou_qing_jing_kenny
 # input_number.enter_low_close_c
 # input_number.enter_high_open_c
@@ -21,7 +25,7 @@
 # input_number.ac_fast_rise_bonus_c
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 12)
+alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 13)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -41,10 +45,15 @@ trigger:
     to: "on"
   - platform: state
     entity_id: fan.dmaker_p33_eabd_fan
+  - platform: state
+    entity_id: input_boolean.ding_lou_fan_manual_hold
+    to: "on"
+    for: "01:00:00"
 
 action:
   - variables:
       debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
+      manual_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
 
       # ---- Helpers ----
       enter_low_close_c: "{{ states('input_number.enter_low_close_c') | float(26.9) }}"
@@ -168,6 +177,28 @@ action:
         {% set snapped = ((p / step) | round(0) * step) %}
         {{ [snapped, 100] | min }}
 
+  # 0) 手動保留超時（1 小時）→ 恢復自動管理
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (trigger is defined)
+                 and (trigger.entity_id == 'input_boolean.ding_lou_fan_manual_hold')
+                 and (trigger.to_state is defined and trigger.to_state.state == 'on')
+                 and (states('input_boolean.ding_lou_fan_manual_hold') == 'on') }}
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ding_lou_fan_manual_hold
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "手動保留已自動解除（1 小時）"
+                  message: "⏱️ 手動保留超過 1 小時，已恢復溫控自動判斷。"
+
   # 0) 外部/手動關機 → 清除回溫記憶（需 t_eff 有效且非過冷）
   - choose:
       - conditions:
@@ -183,6 +214,9 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: input_boolean.ding_lou_fan_cold_off_memory
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ding_lou_fan_manual_hold
           - if:
               - condition: template
                 value_template: "{{ debug_notify }}"
@@ -277,7 +311,34 @@ action:
                               percentage: >
                                 {{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}
 
-  # 2) 任意時段「過冷關機」：需 t_eff 有效；執行後本輪 stop 防回彈
+  # 2) 手動開啟但低於門檻 → 暫停自動關閉 1 小時
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (trigger is defined)
+                 and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                 and (trigger.to_state is defined and trigger.to_state.state == 'on')
+                 and (trigger.from_state is defined and trigger.from_state.state == 'off') }}
+          - condition: template
+            value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
+          - condition: template
+            value_template: "{{ not manual_hold }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.ding_lou_fan_manual_hold
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "手動開啟 — 已啟用保留 1 小時"
+                  message: >
+                    🙋‍♂️ t_eff={{ '%.1f'|format(t_eff|float) }}°C 低於 {{ night_cold_off_c }}°C；為避免立即自動關閉，已暫時保留 1 小時。
+
+  # 3) 任意時段「過冷關機」：需 t_eff 有效；執行後本輪 stop 防回彈
   - choose:
       - conditions:
           - condition: state
@@ -285,6 +346,8 @@ action:
             state: "on"
           - condition: template
             value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
+          - condition: template
+            value_template: "{{ not manual_hold }}"
         sequence:
           - service: fan.turn_off
             target:
@@ -303,7 +366,7 @@ action:
                     🌙 t_eff={{ '%.1f'|format(t_eff|float) }}°C < 門檻 {{ night_cold_off_c }}°C（記憶=on）
           - stop: "Stopped after cold_off to avoid immediate reopen in same run"
 
-  # 3) 任意時段「回溫再開」：記憶=on 且 t_eff ≥ 門檻
+  # 4) 任意時段「回溫再開」：記憶=on 且 t_eff ≥ 門檻
   - choose:
       - conditions:
           - condition: state
