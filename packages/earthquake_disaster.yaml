@@ -1,0 +1,85 @@
+### V1 ###
+#############################################
+# 原始 REST Sensor（改名成 *_raw）
+#############################################
+sensor:
+  - platform: rest
+    name: disaster_raw
+    json_attributes_path: "$.['entry'][-1:]"
+    json_attributes:
+      - updated
+    resource: https://alerts.ncdr.nat.gov.tw/JSONAtomFeed.ashx?County=%e8%8b%97%e6%a0%97%e7%b8%a3
+    verify_ssl: false
+    value_template: "{{ value_json['entry'][-1]['summary']['#text'] }}"
+
+  - platform: rest
+    name: earthquake_raw
+    json_attributes_path: "$.['entry'][-1:]"
+    json_attributes:
+      - updated
+    resource: https://alerts.ncdr.nat.gov.tw/JSONAtomFeed.ashx?AlertType=6
+    verify_ssl: false
+    value_template: "{{ value_json['entry'][-1]['summary']['#text'] }}"
+
+#############################################
+# Trigger-based Stable Sensor（接手舊 entity_id）
+#############################################
+template:
+  - trigger:
+      - platform: state
+        entity_id:
+          - sensor.disaster_raw
+          - sensor.earthquake_raw
+      - platform: time_pattern
+        minutes: "/1"
+      - platform: homeassistant
+        event: start
+
+    sensor:
+      # ------------------ Disaster（覆蓋成原本 sensor.disaster） -------------------
+      - name: "Disaster"
+        default_entity_id: sensor.disaster
+        state: >
+          {% set cur = states('sensor.disaster_raw') %}
+          {% set old = states('sensor.disaster') %}
+          {% if cur not in ['unknown','unavailable',''] %}
+            {{ cur }}
+          {% else %}
+            {{ old }}
+          {% endif %}
+
+      - name: "Disaster Last Valid Update"
+        default_entity_id: sensor.disaster_last_valid_update
+        device_class: timestamp
+        state: >
+          {% set new = state_attr('sensor.disaster_raw','updated') %}
+          {% set old = states('sensor.disaster_last_valid_update') %}
+          {% if new not in ['',None,'unknown'] %}
+            {{ new }}
+          {% else %}
+            {{ old }}
+          {% endif %}
+
+      # ---------------- Earthquake（覆蓋成原本 sensor.earthquake） ---------------
+      - name: "Earthquake"
+        default_entity_id: sensor.earthquake
+        state: >
+          {% set cur = states('sensor.earthquake_raw') %}
+          {% set old = states('sensor.earthquake') %}
+          {% if cur not in ['unknown','unavailable',''] %}
+            {{ cur }}
+          {% else %}
+            {{ old }}
+          {% endif %}
+
+      - name: "Earthquake Last Valid Update"
+        default_entity_id: sensor.earthquake_last_valid_update
+        device_class: timestamp
+        state: >
+          {% set new = state_attr('sensor.earthquake_raw','updated') %}
+          {% set old = states('sensor.earthquake_last_valid_update') %}
+          {% if new not in ['',None,'unknown'] %}
+            {{ new }}
+          {% else %}
+            {{ old }}
+          {% endif %}
