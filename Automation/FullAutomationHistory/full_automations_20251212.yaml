@@ -277,7 +277,8 @@
     enabled: false
     action: notify.line_bot_chiangfamilygroup
   - data:
-      message: 天氣告知系統收到以下政府災害訊息 {{states('sensor.disaster') }}
+      message: >-
+        {{ "天氣告知系統收到以下政府災害訊息 " ~ states('sensor.disaster') }}
       media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       cache: true
     action: tts.speak
@@ -506,7 +507,8 @@
       milliseconds: 0
     enabled: true
   - data:
-      message: 天氣告知系統收到以下政府災害訊息 {{ states('sensor.disaster') }}
+      message: >-
+        {{ "天氣告知系統收到以下政府災害訊息 " ~ states('sensor.disaster') }}
       media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
       cache: true
     action: tts.speak
@@ -534,10 +536,10 @@
     enabled: true
     action: notify.line_bot_chiangfamilygroup
   - data:
-      message: '地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: {{ states(''sensor.earthquake'')
-        }}
-
-        發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
+      message: >-
+        {{ "地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: "
+           ~ states('sensor.earthquake')
+           ~ " 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。" }}
       media_player_entity_id: media_player.ke_ting_homepod
       cache: true
     action: tts.speak
@@ -545,10 +547,10 @@
     target:
       device_id: c01a1336ef43795fd0679631c3e6ce62
   - data:
-      message: '地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: {{ states(''sensor.earthquake'')
-        }}
-
-        發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
+      message: >-
+        {{ "地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: "
+           ~ states('sensor.earthquake')
+           ~ " 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。" }}
       media_player_entity_id: media_player.ding_lou_homepod
       cache: true
     action: tts.speak
