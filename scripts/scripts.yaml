@@ -123,11 +123,12 @@
         device_id: c01a1336ef43795fd0679631c3e6ce62
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: '{{level}}級地震！{{seconds}}秒到達！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+        message: >-
+          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達。
 
           即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
+          地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達，地震！地震！
         cache: true
       enabled: true
     - delay:
@@ -157,11 +158,12 @@
         device_id: c01a1336ef43795fd0679631c3e6ce62
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: '{{level}}級地震！{{level}}級地震！地震預警系統預估地震{{level}}級，
+        message: >-
+          {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
 
           發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{level}}級，發生地震，地震！地震！'
+          地震預警系統預估地震{{ level }}級，發生地震，地震！地震！
         cache: true
       enabled: true
     - delay:
@@ -323,11 +325,12 @@
         device_id: c01a1336ef43795fd0679631c3e6ce62
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: '{{level}}級地震！{{seconds}}秒到達！地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+        message: >-
+          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達。
 
           即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達，地震！地震！'
+          地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達，地震！地震！
         cache: true
       enabled: true
     - delay:
@@ -357,11 +360,12 @@
         device_id: c01a1336ef43795fd0679631c3e6ce62
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: '{{level}}級地震！{{level}}級地震！地震預警系統預估地震{{level}}級，
+        message: >-
+          {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
 
           發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{level}}級，發生地震，地震！地震！'
+          地震預警系統預估地震{{ level }}級，發生地震，地震！地震！
         cache: true
       enabled: true
     - delay:
