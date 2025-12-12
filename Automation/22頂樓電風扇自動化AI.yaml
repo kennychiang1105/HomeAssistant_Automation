@@ -229,7 +229,7 @@ action:
                  and (trigger.to_state is defined and trigger.to_state.state == 'off')
                  and (trigger.from_state is defined and trigger.from_state.state == 'on') }}
           - condition: template
-            value_template: "{{ t_eff_valid and (t_eff | float >= night_cold_off_c) }}"
+            value_template: "{{ t_eff_valid and (t_eff | float >= night_cold_off_c) and is_state('input_boolean.ding_lou_fan_cold_off_memory', 'off') }}"
         sequence:
           - service: input_boolean.turn_off
             target:
@@ -246,6 +246,31 @@ action:
                   title: "已偵測外部/手動關機 → 清除回溫記憶"
                   message: >
                     📴 t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ 過冷門檻 {{ night_cold_off_c }}°C
+
+  # 0.1) 手動保留期間關機 → 直接解除保留
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (trigger is defined)
+                 and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                 and (trigger.to_state is defined and trigger.to_state.state == 'off')
+                 and (trigger.from_state is defined and trigger.from_state.state == 'on') }}
+          - condition: state
+            entity_id: input_boolean.ding_lou_fan_manual_hold
+            state: 'on'
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ding_lou_fan_manual_hold
+          - if:
+              - condition: template
+                value_template: "{{ debug_notify }}"
+            then:
+              - service: notify.persistent_notification
+                data:
+                  title: "手動保留已提前解除"
+                  message: "🙋‍♂️ 在手動保留期間關閉風扇，已立即解除保留狀態。"
 
   # 0.1) HP 短暫失效 → 凍結提示（僅 Debug）
   - if:
