@@ -1,5 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化_AI_Beta (V1 Beta 14)   （Helpers V1 Beta 15 相容）
+# 22頂樓電風扇自動化_AI_Beta (V1 Beta 15)   （Helpers V1 Beta 15 相容）
+# 更新重點（相對 V14）：
+# 1) 導入體感溫度：整合 HomePod Mini 濕度，計算體感溫度 (Heat Index)，溫控更貼近人體感受。
+# 2) AC 優先權增強：當冷氣溫度顯著高於體感溫度 (≥1.5°C) 時，優先採用冷氣溫度，避免誤判。
+# 3) 手動保留修正：修正在手動保留期間，關閉再開啟風扇時，計時器不會重置的問題。
+#
 # 更新重點（相對 V13）：
 # 1) 風扇曲線「終極平滑」模式：導入全新風量曲線，最低30%、最高100%，每階升降不超過2.5%，提供極致平順的體感。
 # 2) 上樓開扇門檻：微調為 25.5°C，體感更靈敏。
@@ -29,7 +34,7 @@
 # input_number.ac_fast_rise_bonus_c
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 14)
+alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 15)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -39,6 +44,7 @@ trigger:
     entity_id:
       - climate.ding_lou_kong_diao
       - sensor.5f_homepodmini_temperature
+      - sensor.5f_homepodmini_humidity
     for: "00:00:15"
   - platform: state
     entity_id: climate.ding_lou_kong_diao
@@ -76,26 +82,52 @@ action:
       ac_on: "{{ ac_state == 'cool' }}"
       hhmm: "{{ now().strftime('%H:%M') }}"
 
-      # ---- HomePod 安全取值 ----
-      hp_raw: "{{ states('sensor.5f_homepodmini_temperature') }}"
-      hp_temp: >
+      # ---- HomePod 安全取值 (含濕度) ----
+      hp_raw_temp: "{{ states('sensor.5f_homepodmini_temperature') }}"
+      hp_temp_base: >
         {% set s = states('sensor.5f_homepodmini_temperature') %}
         {% if s not in ['unknown','unavailable','none',''] %}
           {{ s | float }}
         {% else %}
           {{ -9999 }}
         {% endif %}
+      hp_raw_humidity: "{{ states('sensor.5f_homepodmini_humidity') }}"
+      hp_humidity: >
+        {% set h = states('sensor.5f_homepodmini_humidity') %}
+        {% if h not in ['unknown','unavailable','none',''] %}
+          {{ h | float }}
+        {% else %}
+          {{ -9999 }}
+        {% endif %}
+
+      # ---- 體感溫度計算 (簡易加權) ----
+      # 濕度 > 75% -> +1.5°C; > 60% -> +1.0°C; > 50% -> +0.5°C
+      humidity_bonus_c: >
+        {% if hp_humidity > 75 %} 1.5
+        {% elif hp_humidity > 60 %} 1.0
+        {% elif hp_humidity > 50 %} 0.5
+        {% else %} 0 {% endif %}
+      hp_temp_feels_like: "{{ hp_temp_base + humidity_bonus_c }}"
+
       hp_valid_now: >
-        {% set obj = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
-        {% set ts = as_timestamp(obj.last_changed) if obj and obj.last_changed else none %}
-        {% set age = (now().timestamp() - ts) | int if ts else 999999 %}
-        {{ (hp_temp != -9999) and (hp_temp > 10) and (hp_temp < 45) and (age < 3600) }}
+        {% set obj_t = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
+        {% set ts_t = as_timestamp(obj_t.last_changed) if obj_t and obj_t.last_changed else none %}
+        {% set age_t = (now().timestamp() - ts_t) | int if ts_t else 999999 %}
+        {% set obj_h = states.sensor['5f_homepodmini_humidity'] if states.sensor is defined else none %}
+        {% set ts_h = as_timestamp(obj_h.last_changed) if obj_h and obj_h.last_changed else none %}
+        {% set age_h = (now().timestamp() - ts_h) | int if ts_h else 999999 %}
+        {{ (hp_temp_base != -9999) and (hp_temp_base > 10) and (hp_temp_base < 45) and (age_t < 3600) and
+           (hp_humidity != -9999) and (hp_humidity > 0) and (hp_humidity <= 100) and (age_h < 3600) }}
+
       # 15 分內短暫失效 → 凍結溫控
       hp_soft_hold: >
-        {% set obj = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
-        {% set ts = as_timestamp(obj.last_changed) if obj and obj.last_changed else none %}
-        {% set age = (now().timestamp() - ts) | int if ts else 999999 %}
-        {{ (not hp_valid_now) and (age < 900) }}
+        {% set obj_t = states.sensor['5f_homepodmini_temperature'] if states.sensor is defined else none %}
+        {% set ts_t = as_timestamp(obj_t.last_changed) if obj_t and obj_t.last_changed else none %}
+        {% set age_t = (now().timestamp() - ts_t) | int if ts_t else 999999 %}
+        {% set obj_h = states.sensor['5f_homepodmini_humidity'] if states.sensor is defined else none %}
+        {% set ts_h = as_timestamp(obj_h.last_changed) if obj_h and obj_h.last_changed else none %}
+        {% set age_h = (now().timestamp() - ts_h) | int if ts_h else 999999 %}
+        {{ (not hp_valid_now) and ((age_t < 900) or (age_h < 900)) }}
 
       # ---- 睡眠時段（夜間）：23:00–07:30 ----
       is_sleep: >
@@ -112,33 +144,34 @@ action:
              - (trigger.from_state.attributes.current_temperature | float(0)) >= ac_fast_rise_th_c }}
         {% else %} false {% endif %}
 
-      # ---- AC 優先條件（HP 低、AC 高 的清晨保護）----
-      # 規則A：AC on 且 ac_temp > 29，且（HP 無效 或 HP < 28）→ 以 AC 為主，直到 HP≥28
+      # ---- AC 優先條件 ----
+      # 規則A (新)：AC on 且 AC 溫度顯著高於體感溫度 (≥1.5°C) → 以 AC 為主
+      ac_prio_override: >
+        {{ ac_on and hp_valid_now and (ac_temp - hp_temp_feels_like >= 1.5) }}
+
+      # 規則B (舊/保護)：AC on 且 ac_temp > 29，且（HP 無效 或 體感 < 28）→ 以 AC 為主 (清晨保護)
       ac_override_until_hp28: >
-        {{ ac_on and (ac_temp > 29.0) and ( (not hp_valid_now) or (hp_temp < 28.0) ) }}
-      # 規則B：AC on 且（AC+權重 - HP）≥ 1.5 且 HP<28 → 以 AC 為主（HP 偏低）
+        {{ ac_on and (ac_temp > 29.0) and ( (not hp_valid_now) or (hp_temp_feels_like < 28.0) ) }}
+
+      # 規則C (舊/保護)：AC on 且（AC+權重 - 體感）≥ 1.5 且 體感<28 → 以 AC 為主（HP 偏低保護）
       ac_hp_diff_override: >
-        {{ ac_on and hp_valid_now and ( (ac_temp + ac_weight_add_c) - hp_temp >= 1.5 ) and (hp_temp < 28.0) }}
+        {{ ac_on and hp_valid_now and ( (ac_temp + ac_weight_add_c) - hp_temp_feels_like >= 1.5 ) and (hp_temp_feels_like < 28.0) }}
 
       # ---- 有效溫度 t_eff ----
-      # 優先序：凍結 none → 規則A → 規則B → 一般整合（AC: max(HP, AC+權重)+快速升溫；OFF: HP 或退 AC）
+      # 優先序：凍結 none → 規則A/B/C → 一般整合（AC: max(體感, AC+權重)+快速升溫；OFF: 體感 或退 AC）
       t_eff: >
         {% if hp_soft_hold %}
           none
         {% else %}
-          {% if ac_override_until_hp28 %}
+          {% if ac_prio_override or ac_override_until_hp28 or ac_hp_diff_override %}
             {{ (ac_temp + ac_weight_add_c + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
           {% else %}
             {% if ac_on %}
-              {% if ac_hp_diff_override %}
-                {{ (ac_temp + ac_weight_add_c + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
-              {% else %}
-                {% set hp_use = (hp_temp if hp_valid_now else none) %}
-                {% set base = [ (hp_use if hp_use is not none else -9999), ac_temp + ac_weight_add_c ] | max %}
-                {{ (base + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
-              {% endif %}
+              {% set hp_use = (hp_temp_feels_like if hp_valid_now else none) %}
+              {% set base = [ (hp_use if hp_use is not none else -9999), ac_temp + ac_weight_add_c ] | max %}
+              {{ (base + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
             {% else %}
-              {{ hp_temp if hp_valid_now else ac_temp }}
+              {{ hp_temp_feels_like if hp_valid_now else ac_temp }}
             {% endif %}
           {% endif %}
         {% endif %}
@@ -279,9 +312,9 @@ action:
     then:
       - service: notify.persistent_notification
         data:
-          title: "HomePod 溫度短暫失效（≤15 分）— 已凍結溫控"
+          title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
           message: >
-            ⚠️ hp_raw={{ hp_raw }}；15 分內不依溫度做關/開與調速，避免誤判。
+            ⚠️ hp_raw_temp={{ hp_raw_temp }}, hp_raw_humidity={{ hp_raw_humidity }}；15 分內不依溫/濕度做關/開與調速，避免誤判。
 
   # 1) 上樓情境（t_eff 有效才判斷；介於門檻至少 40%）
   - choose:
