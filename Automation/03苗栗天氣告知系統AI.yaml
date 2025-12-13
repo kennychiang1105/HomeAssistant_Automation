@@ -1,75 +1,53 @@
-# ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V1.4)   （Helpers V2.6 相容）
-# 更新重點（相對 V1.3）：
-# 1) 修正 LINE JSON payload 直接套用 sensor.disaster，避免訊息內容被原樣輸出。
-# 2) 更新 LINE user_id（保持固定 ID 供通知發送）。
-#
-# 前版更新（V1.2 → V1.3）：
-# 1) LINE 通知格式：改用 script.send_line_to_user 的 JSON payload 並引用 Helpers 標題，避免出現 Unknown。
-#
-# 前版更新（V1.1 → V1.2）：
-# 1) 新增早晨補報：若夜間有新訊息，會在早上 7:00 補報。
-# 2) 啟用 LINE 通知：啟用 LINE 通知並整合「一般通知」分類開關。
-# 3) 邏輯優化：將判斷邏輯移至 action 內，結構更清晰。
-#
-# 必要 Helpers (請自行建立):
-#   - input_datetime: last_disaster_broadcast
-#   - input_boolean: notify_line_general_enable
-# ─────────────────────────────────────────────────────────────
-
 alias: 03苗栗天氣告知系統AI (V1.4)
-description: "白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息"
+description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
 mode: queued
 max: 10
-
 triggers:
-  - platform: state
-    entity_id: sensor.disaster
+  - entity_id: sensor.disaster
     id: message_received
-  - platform: time
-    at: "07:00:05"
+    trigger: state
+  - at: "07:00:05"
     id: morning_catch_up
-
-action:
+    trigger: time
+actions:
   - variables:
-      # 檢查 sensor.disaster 的更新時間是否有效 (避免 HA 重啟時的舊資料)
       sensor_updated_recently: >-
-        {{ (now() - states.sensor.disaster.last_updated).total_seconds() < 300 }}
-      # 檢查訊息內容是否包含「苗栗」
+        {{ (now() - states.sensor.disaster.last_updated).total_seconds() < 300
+        }}
       is_miaoli_message: "{{ '苗栗' in states('sensor.disaster') }}"
-      # 播報時段為 07:00 - 22:00
       is_broadcast_time: "{{ 7 <= now().hour < 22 }}"
-      # 取得上次播報時間的 timestamp
       last_broadcast_ts: "{{ as_timestamp(states('input_datetime.last_disaster_broadcast'), 0) }}"
-      # 取得此訊息的 timestamp
       message_ts: "{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}"
-      # 如果訊息時間 > 上次播報時間，代表是新訊息
       is_new_message: "{{ message_ts > last_broadcast_ts }}"
-
   - choose:
-      # (1) 早晨補報：由 07:00:05 觸發
       - conditions:
           - condition: trigger
             id: morning_catch_up
           - condition: template
-            value_template: "{{ is_new_message and is_miaoli_message and sensor_updated_recently }}"
+            value_template: >-
+              {{ is_new_message and is_miaoli_message and
+              sensor_updated_recently }}
         sequence:
-          - service: media_player.volume_set
-            target: { entity_id: media_player.ke_ting_homepod }
-            data: { volume_level: 0.5 }
-          - service: notify.persistent_notification
+          - target:
+              entity_id: media_player.ke_ting_homepod
             data:
-              title: "天氣告知系統 (早晨補報)"
-              message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+              volume_level: 0.5
+            action: media_player.volume_set
+          - data:
+              title: 天氣告知系統 (早晨補報)
+              message: |-
+                天氣告知系統收到以下政府災害訊息: 
+
+                {{ states('sensor.disaster') }}
+            action: notify.persistent_notification
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_general_enable
-                state: 'on'
+                state: "on"
             then:
-              - service: script.send_line_to_user
-                data:
-                  user_id: U9eeaaf5d404dbde249039924567992d3
-                  payload: >-
+              - data:
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: |-
                     {{
                       [
                         {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
@@ -77,47 +55,57 @@ action:
                         {"type":"text", "text": states('sensor.disaster') }
                       ] | tojson
                     }}
-          - service: media_player.play_media
-            target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
+                action: script.send_line_to_user
+          - target:
+              entity_id: media_player.guang_bo_qun_zu_tong_zhi
             data:
               announce: true
-              media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-              media_content_type: music
+              media:
+                media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
+                media_content_type: music
+                metadata: {}
+            action: media_player.play_media
           - delay: "00:00:13"
-          - service: tts.speak
-            target: { device_id: c01a1336ef43795fd0679631c3e6ce62 }
+          - target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
             data:
               media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
               cache: true
               message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ states('sensor.disaster') }}"
-          - service: input_datetime.set_datetime
-            target: { entity_id: input_datetime.last_disaster_broadcast }
+            action: tts.speak
+          - target:
+              entity_id: input_datetime.last_disaster_broadcast
             data:
               datetime: "{{ now().isoformat() }}"
-
-      # (2) 即時播報：由 sensor.disaster 觸發
+            action: input_datetime.set_datetime
       - conditions:
           - condition: trigger
             id: message_received
           - condition: template
-            value_template: "{{ is_broadcast_time and is_new_message and is_miaoli_message and sensor_updated_recently }}"
+            value_template: >-
+              {{ is_broadcast_time and is_new_message and is_miaoli_message and
+              sensor_updated_recently }}
         sequence:
-          - service: media_player.volume_set
-            target: { entity_id: media_player.ke_ting_homepod }
-            data: { volume_level: 0.5 }
-          - service: notify.persistent_notification
+          - target:
+              entity_id: media_player.ke_ting_homepod
             data:
-              title: "天氣告知系統 (即時)"
-              message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+              volume_level: 0.5
+            action: media_player.volume_set
+          - data:
+              title: 天氣告知系統 (即時)
+              message: |-
+                天氣告知系統收到以下政府災害訊息: 
+
+                {{ states('sensor.disaster') }}
+            action: notify.persistent_notification
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_general_enable
-                state: 'on'
+                state: "on"
             then:
-              - service: script.send_line_to_user
-                data:
-                  user_id: U9eeaaf5d404dbde249039924567992d3
-                  payload: >-
+              - data:
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: |-
                     {{
                       [
                         {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
@@ -125,20 +113,26 @@ action:
                         {"type":"text", "text": states('sensor.disaster') }
                       ] | tojson
                     }}
-          - service: media_player.play_media
-            target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
+                action: script.send_line_to_user
+          - target:
+              entity_id: media_player.guang_bo_qun_zu_tong_zhi
             data:
               announce: true
-              media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-              media_content_type: music
+              media:
+                media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
+                media_content_type: music
+                metadata: {}
+            action: media_player.play_media
           - delay: "00:00:13"
-          - service: tts.speak
-            target: { device_id: c01a1336ef43795fd0679631c3e6ce62 }
+          - target:
+              device_id: c01a1336ef43795fd0679631c3e6ce62
             data:
               media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
               cache: true
               message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ states('sensor.disaster') }}"
-          - service: input_datetime.set_datetime
-            target: { entity_id: input_datetime.last_disaster_broadcast }
+            action: tts.speak
+          - target:
+              entity_id: input_datetime.last_disaster_broadcast
             data:
               datetime: "{{ now().isoformat() }}"
+            action: input_datetime.set_datetime
