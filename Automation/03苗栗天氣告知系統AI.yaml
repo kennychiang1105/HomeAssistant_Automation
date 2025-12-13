@@ -59,8 +59,9 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
+                  user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                   message: |
                     {
                       "messages":[
@@ -106,7 +107,9 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              data:
+                  user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+              - service: script.send_line_to_user
                 data:
                   message: |
                     {

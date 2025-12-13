@@ -139,8 +139,9 @@ actions:
                                 entity_id: input_boolean.notify_line_emergency_enable
                                 state: "on"
                             then:
-                              - service: notify.line_bot_chiangfamilygroup
+                              - service: script.send_line_to_user
                                 data:
+                                  user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                                   title: "{{ notif_title_alarm }}"
                                   message: "{{ line_payload_alarm }}"
                       - conditions:  # <5%
@@ -151,15 +152,16 @@ actions:
                             data:
                               title: "{{ notif_title_alarm }}"
                               message: "🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
-                          - if:
-                              - condition: state
-                                entity_id: input_boolean.notify_line_emergency_enable
-                                state: "on"
-                            then:
-                              - service: notify.line_bot_chiangfamilygroup
-                                data:
-                                  title: "{{ notif_title_alarm }}"
-                                  message: "{{ line_payload_alarm_5pct }}"
+                        - if:
+                            - condition: state
+                              entity_id: input_boolean.notify_line_emergency_enable
+                              state: "on"
+                        then:
+                          - service: script.send_line_to_user
+                            data:
+                              user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+                              title: "{{ notif_title_alarm }}"
+                              message: "{{ line_payload_alarm_5pct }}"
                       - conditions:  # <15%
                           - condition: template
                             value_template: "{{ stage_now == 'LT15' }}"
@@ -168,15 +170,16 @@ actions:
                             data:
                               title: "{{ notif_title_warn }}"
                               message: "🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
-                          - if:
-                              - condition: state
-                                entity_id: input_boolean.notify_line_important_enable
-                                state: "on"
-                            then:
-                              - service: notify.line_bot_chiangfamilygroup
-                                data:
-                                  title: "{{ notif_title_warn }}"
-                                  message: "{{ line_payload_warn }}"
+                        - if:
+                            - condition: state
+                              entity_id: input_boolean.notify_line_important_enable
+                              state: "on"
+                        then:
+                          - service: script.send_line_to_user
+                            data:
+                              user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+                              title: "{{ notif_title_warn }}"
+                              message: "{{ line_payload_warn }}"
                       - conditions:  # <35%
                           - condition: template
                             value_template: "{{ stage_now == 'LT35' }}"
@@ -185,15 +188,16 @@ actions:
                             data:
                               title: "{{ notif_title_warn }}"
                               message: "🟨 門鎖電量 35% 以下，建議安排電池更換。"
-                          - if:
-                              - condition: state
-                                entity_id: input_boolean.notify_line_important_enable
-                                state: "on"
-                            then:
-                              - service: notify.line_bot_chiangfamilygroup
-                                data:
-                                  title: "{{ notif_title_warn }}"
-                                  message: "{{ line_payload_35 }}"
+                        - if:
+                            - condition: state
+                              entity_id: input_boolean.notify_line_important_enable
+                              state: "on"
+                        then:
+                          - service: script.send_line_to_user
+                            data:
+                              user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+                              title: "{{ notif_title_warn }}"
+                              message: "{{ line_payload_35 }}"
                   # 成功通知後，寫回已通知等級
                   - service: input_text.set_value
                     data:

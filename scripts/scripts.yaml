@@ -64,8 +64,9 @@
               entity_id: input_boolean.helper_line_notification_urgent
               state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
+                  user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                   title: 智慧家庭通知
                   message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
                     \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
@@ -83,8 +84,9 @@
             entity_id: input_boolean.helper_line_notification_urgent
             state: 'on'
           then:
-            - service: notify.line_bot_chiangfamilygroup
+            - service: script.send_line_to_user
               data:
+                user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                 title: 智慧家庭通知
                 message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
                   \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
@@ -264,8 +266,9 @@
               entity_id: input_boolean.helper_line_notification_urgent
               state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
+                  user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                   title: 智慧家庭通知
                   message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
                     \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
@@ -283,8 +286,9 @@
             entity_id: input_boolean.helper_line_notification_urgent
             state: 'on'
           then:
-            - service: notify.line_bot_chiangfamilygroup
+            - service: script.send_line_to_user
               data:
+                user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
                 title: 智慧家庭通知
                 message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
                   \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
