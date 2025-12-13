@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# LINE Bot 套件 (V1)
+# LINE Bot 套件 (V1.1)
 # 更新重點（2025-02-24）：
-# 1) 初始版：新增 LINE Bot 連動的用量感測器、通知腳本與 REST 指令。
+# 1) 保留原本 Bot 輪播 Script
+# 2) 新增 RAW REST Command，可直接送 LINE JSON（多泡泡 / 災防）
 # ─────────────────────────────────────────────────────────────
 
 ###################################################################################
@@ -39,7 +40,7 @@ sensor:
     scan_interval: 180
 
 ###################################################################################
-## SCRIPT
+## SCRIPT（原樣保留）
 ###################################################################################
 script:
   send_line_to_user:
@@ -52,21 +53,17 @@ script:
         description: "要傳送的訊息內容"
     sequence:
       - variables:
-          # ───────── 基本設定 ─────────
           quota_limit: 200
           switch_limit: 198
 
-          # ───────── Bot Token ─────────
           bot1_token: !secret linebot_token1_bearer
           bot2_token: !secret linebot_token2_bearer
           bot3_token: !secret linebot_token3_bearer
 
-          # ───────── Bot 名稱（僅提醒用） ─────────
           bot1_name: "ChiangFamily 智慧家庭 B"
           bot2_name: "ChiangFamily 智慧家庭 C"
           bot3_name: "ChiangFamily 智慧家庭 D"
 
-          # ───────── 目前使用的 Bot（整數） ─────────
           current_bot: >
             {% set c1 = states('sensor.bot_msg_count1') %}
             {% set c2 = states('sensor.bot_msg_count2') %}
@@ -81,7 +78,6 @@ script:
               {{ 0 }}
             {% endif %}
 
-          # ───────── 使用 token（用整數判斷） ─────────
           use_token: >
             {% if current_bot|int == 1 %}
               {{ bot1_token }}
@@ -175,6 +171,7 @@ script:
             data:
               title: "LINE 主力 Bot 額度已滿"
               message: "B / C / D 今日推播額度已全數用盡"
+
   send_line_emergency:
     alias: Line 緊急通知 (Bot 4)
     mode: parallel
@@ -190,14 +187,11 @@ script:
             🚨【ChiangFamily 智慧家庭｜緊急通知】
             {{ message }}
 
-      - service: system_log.write
-        data:
-          level: error
-          message: "緊急 LINE Bot 已發送｜{{ message }}"
 ###################################################################################
 ## REST_COMMAND
 ###################################################################################
 rest_command:
+  # 原本：單則文字
   line_bot_push:
     url: "https://api.line.me/v2/bot/message/push"
     method: POST
@@ -208,9 +202,15 @@ rest_command:
       {
         "to": "{{ to }}",
         "messages": [
-          {
-            "type": "text",
-            "text": "{{ text }}"
-          }
+          { "type": "text", "text": "{{ text }}" }
         ]
       }
+
+  # 新增：RAW JSON（多泡泡 / 災防）
+  line_bot_push_raw:
+    url: "https://api.line.me/v2/bot/message/push"
+    method: POST
+    content_type: "application/json"
+    headers:
+      Authorization: "{{ token }}"
+    payload: "{{ payload }}"
