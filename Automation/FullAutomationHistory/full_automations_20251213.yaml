@@ -1357,10 +1357,9 @@
       device_id: fdcccfa405461070717b80a56a590960
   - service: remote.send_command
     data:
-        user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+      delay_secs: 0.4
       hold_secs: 0
       command: Num1
-      delay_secs: 0.4
     target:
       device_id: fdcccfa405461070717b80a56a590960
   mode: single
