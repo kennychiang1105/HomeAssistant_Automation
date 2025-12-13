@@ -1,4 +1,10 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.2)
+# 更新重點（V1.2）：
+# 1) 保留原本 Bot 輪播 Script
+# 2) 新增 RAW REST Command，可直接送 LINE JSON（多泡泡 / 災防）
+# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.1)
 # 更新重點（2025-02-24）：
 # 1) 保留原本 Bot 輪播 Script
@@ -38,19 +44,24 @@ sensor:
       Authorization: !secret linebot_token3_bearer
     value_template: "{{ value_json.totalUsage }}"
     scan_interval: 180
-
 ###################################################################################
 ## SCRIPT（原樣保留）
 ###################################################################################
 script:
   send_line_to_user:
-    alias: Line to Target User (Bot Auto)
+    alias: Line to Target User (Bot Auto, Text + JSON)
     mode: parallel
     fields:
       user_id:
-        description: "LINE 使用者 userId"
+        description: "LINE 使用者 / 群組 / Room ID"
+        required: true
       message:
-        description: "要傳送的訊息內容"
+        description: "一般純文字訊息（擇一）"
+        required: false
+      payload:
+        description: "LINE messages JSON（僅 messages，不含 to）"
+        required: false
+
     sequence:
       - variables:
           quota_limit: 200
@@ -64,129 +75,93 @@ script:
           bot2_name: "ChiangFamily 智慧家庭 C"
           bot3_name: "ChiangFamily 智慧家庭 D"
 
+          has_text: "{{ message is defined }}"
+          has_json: "{{ payload is defined }}"
+          valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
+
           current_bot: >
             {% set c1 = states('sensor.bot_msg_count1') %}
             {% set c2 = states('sensor.bot_msg_count2') %}
             {% set c3 = states('sensor.bot_msg_count3') %}
             {% if c1 not in ['unknown','unavailable'] and c1|int < switch_limit %}
-              {{ 1 }}
+              1
             {% elif c2 not in ['unknown','unavailable'] and c2|int < switch_limit %}
-              {{ 2 }}
+              2
             {% elif c3 not in ['unknown','unavailable'] and c3|int < switch_limit %}
-              {{ 3 }}
+              3
             {% else %}
-              {{ 0 }}
+              0
             {% endif %}
 
           use_token: >
-            {% if current_bot|int == 1 %}
-              {{ bot1_token }}
-            {% elif current_bot|int == 2 %}
-              {{ bot2_token }}
-            {% elif current_bot|int == 3 %}
-              {{ bot3_token }}
-            {% else %}
-              ""
-            {% endif %}
-
-          current_name: >
-            {% if current_bot|int == 1 %}
-              {{ bot1_name }}
-            {% elif current_bot|int == 2 %}
-              {{ bot2_name }}
-            {% elif current_bot|int == 3 %}
-              {{ bot3_name }}
-            {% else %}
-              ""
-            {% endif %}
-
-          next_name: >
-            {% if current_bot|int == 1 %}
-              {{ bot2_name }}
-            {% elif current_bot|int == 2 %}
-              {{ bot3_name }}
-            {% else %}
-              ""
-            {% endif %}
+            {% if current_bot|int == 1 %}{{ bot1_token }}
+            {% elif current_bot|int == 2 %}{{ bot2_token }}
+            {% elif current_bot|int == 3 %}{{ bot3_token }}
+            {% else %}""{% endif %}
 
           used_count: >
-            {% if current_bot|int == 1 %}
-              {{ states('sensor.bot_msg_count1')|int }}
-            {% elif current_bot|int == 2 %}
-              {{ states('sensor.bot_msg_count2')|int }}
-            {% elif current_bot|int == 3 %}
-              {{ states('sensor.bot_msg_count3')|int }}
-            {% else %}
-              999
-            {% endif %}
+            {% if current_bot|int == 1 %}{{ states('sensor.bot_msg_count1')|int }}
+            {% elif current_bot|int == 2 %}{{ states('sensor.bot_msg_count2')|int }}
+            {% elif current_bot|int == 3 %}{{ states('sensor.bot_msg_count3')|int }}
+            {% else %}999{% endif %}
 
           remain_count: "{{ quota_limit - used_count }}"
           need_countdown_notice: "{{ remain_count in [3,2,1] }}"
 
-          countdown_message: >
-            ⚠️【LINE Bot 額度提醒】
-            {{ current_name }} 尚可推播 {{ remain_count }} 次，
-            {% if remain_count > 1 %}
-            再送 {{ remain_count }} 次後將切換至 {{ next_name }}。
-            {% else %}
-            下一則訊息將立即切換至 {{ next_name }}。
+          # 🔑 自動補 to 的 RAW JSON
+          full_payload: >
+            {% if has_json %}
+            {
+              "to": "{{ user_id }}",
+              "messages": {{ payload }}
+            }
             {% endif %}
 
+      # ───── 防呆 ─────
+      - choose:
+          - conditions: "{{ not valid_input }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  level: error
+                  message: "send_line_to_user：message 與 payload 必須擇一"
+              - stop: "Invalid input"
+
+      # ───── 正常送出 ─────
       - choose:
           - conditions: "{{ use_token | length > 10 }}"
             sequence:
-              - service: rest_command.line_bot_push
-                data:
-                  token: "{{ use_token }}"
-                  to: "{{ user_id }}"
-                  text: "{{ message }}"
 
+              # JSON
               - choose:
-                  - conditions: "{{ need_countdown_notice }}"
+                  - conditions: "{{ has_json }}"
+                    sequence:
+                      - service: rest_command.line_bot_push_raw
+                        data:
+                          token: "{{ use_token }}"
+                          payload: "{{ full_payload }}"
+
+                  # 文字
+                  - conditions: "{{ has_text }}"
                     sequence:
                       - service: rest_command.line_bot_push
                         data:
                           token: "{{ use_token }}"
                           to: "{{ user_id }}"
-                          text: "{{ countdown_message }}"
+                          text: "{{ message }}"
 
+              # 額度倒數（管理者）
+              - choose:
+                  - conditions: "{{ need_countdown_notice }}"
+                    sequence:
                       - service: script.send_line_emergency
                         data:
-                          message: "{{ countdown_message }}"
-
-                      - service: persistent_notification.create
-                        data:
-                          title: "LINE Bot 額度倒數"
-                          message: "{{ countdown_message }}"
+                          message: "⚠️ {{ remain_count }} 次後將切換 Bot"
 
         default:
           - service: script.send_line_emergency
             data:
-              message: >
-                🚨【LINE 主力 Bot 額度已滿】
-                ChiangFamily 智慧家庭 B / C / D
-                今日已無可用推播額度
-
-          - service: persistent_notification.create
-            data:
-              title: "LINE 主力 Bot 額度已滿"
-              message: "B / C / D 今日推播額度已全數用盡"
-
-  send_line_emergency:
-    alias: Line 緊急通知 (Bot 4)
-    mode: parallel
-    fields:
-      message:
-        description: "緊急通知內容"
-    sequence:
-      - service: rest_command.line_bot_push
-        data:
-          token: !secret linebot_token_emergency_bearer
-          to: "U9eeaaf5d404dbde249039924567992d3"
-          text: >
-            🚨【ChiangFamily 智慧家庭｜緊急通知】
-            {{ message }}
-
+              message: "🚨 LINE 主力 Bot 額度已滿，訊息未送出"
 ###################################################################################
 ## REST_COMMAND
 ###################################################################################
