@@ -441,11 +441,10 @@
       action: script.send_line_to_user
     - repeat:
         sequence:
-        - data: {}
-            user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
-          target:
-            entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
-          action: input_boolean.turn_on
+          - data: {}
+            target:
+              entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+            action: input_boolean.turn_on
         count: 30
     - type: turn_on
       device_id: ace03a7c2c374894e6f67149137e1a5c
