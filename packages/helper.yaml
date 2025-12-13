@@ -327,6 +327,12 @@ input_text:
     name: 100C_LINEnotice_電量校正
     max: 120
     initial: "【AI電量計算系統 V2.0】"
+  line_eew_remote_level:
+    name: LINE_EEW遠端_預估震度
+    max: 10
+  line_eew_remote_seconds:
+    name: LINE_EEW遠端_預估到達秒數
+    max: 10
   # 頂樓裝置/追蹤器
   topfloor_debug_last_json:
     name: 頂樓偵測 Debug（最新快照 JSON）
