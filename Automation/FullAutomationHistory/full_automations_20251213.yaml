@@ -10774,35 +10774,35 @@
       and trigger.from_state is not none else ''100'' %} {% set invalids = [''unknown'',''unavailable'',''none'',''None'',''-1'']
       %} {{ prev not in invalids and prev|float(100) < 20 }}'
   actions:
-  - action: input_text.set_value
-    data:
-      entity_id: input_text.doorlock_batt_model_last_cycle
-      value: '{{ states(''input_text.doorlock_batt_model_current'') }}'
-  - action: input_number.set_value
-    data:
-      entity_id: input_number.doorlock_batt_drop_last_cycle
-      value: '{{ drop_last }}'
-  - action: input_text.set_value
-    data:
-      entity_id: input_text.doorlock_batt_last_stage
-      value: OK
+    - action: input_text.set_value
+      data:
+        entity_id: input_text.doorlock_batt_model_last_cycle
+        value: '{{ states(''input_text.doorlock_batt_model_current'') }}'
+    - action: input_number.set_value
+      data:
+        entity_id: input_number.doorlock_batt_drop_last_cycle
+        value: '{{ drop_last }}'
+    - action: input_text.set_value
+      data:
+        entity_id: input_text.doorlock_batt_last_stage
+        value: OK
     - if:
-      - condition: state
-        entity_id: input_boolean.notify_line_emergency_enable
-        state: 'on'
+        - condition: state
+          entity_id: input_boolean.notify_line_emergency_enable
+          state: 'on'
       then:
-      - data:
-          user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-              {"type":"text","text":"{{ states('input_text.notif_title_calib') }}"},
-              {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至\n80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
-              {"type":"text","text":"{{ '狀態摘要：\\n• 新電池款式：' ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ '\\n• 校正後日耗電率：' ~ states('input_number.doorlock_batt_drop_last_cycle') ~ ' %/日' }}"}
-            ]
-        action: script.send_line_to_user
-  - action: notify.persistent_notification
-    data:
-      title: '{{ notif_title_calib }}'
+        - action: script.send_line_to_user
+          data:
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                {"type":"text","text":"{{ states('input_text.notif_title_calib') }}"},
+                {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至\n80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
+                {"type":"text","text":"{{ '狀態摘要：\\n• 新電池款式：' ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ '\\n• 校正後日耗電率：' ~ states('input_number.doorlock_batt_drop_last_cycle') ~ ' %/日' }}"}
+              ]
+    - action: notify.persistent_notification
+      data:
+        title: '{{ notif_title_calib }}'
       message: "\U0001F6E0️ 門鎖換電池偵測：已自動完成校正並將通知等級重置為 OK。 新電池款式＝「{{ states('input_text.doorlock_batt_model_current')
         or '未填寫' }}」； 校正日耗電率＝{{ states('input_number.doorlock_batt_drop_last_cycle')
         }} %/日。"
