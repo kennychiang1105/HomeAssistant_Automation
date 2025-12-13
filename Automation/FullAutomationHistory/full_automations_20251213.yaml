@@ -43,21 +43,9 @@
     type: turn_on
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-          {
-              "type": "text",
-              "text": "【智慧家庭通知】一般 General 🪧"
-          },
-          {
-              "type": "text",
-              "text": "偵測到空氣品質變差🟡，\n將自動啟動空氣清淨機。"
-          },
-          {
-              "type": "text",
-              "text": "自動啟動空氣清淨機"
-          }
-        ]
+      payload: "[\n  {\n      \"type\": \"text\",\n      \"text\": \"【智慧家庭通知】一般 General
+        \U0001FAA7\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"偵測到空氣品質變差\U0001F7E1，\\n將自動啟動空氣清淨機。\"\n
+        \ },\n  {\n      \"type\": \"text\",\n      \"text\": \"自動啟動空氣清淨機\"\n  }\n]\n"
     enabled: false
     action: script.send_line_to_user
   - data:
@@ -100,21 +88,9 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-          {
-              "type": "text",
-              "text": "【智慧家庭通知】一般 General 🪧"
-          },
-          {
-              "type": "text",
-              "text": "小米空氣清淨機Pro，\n濾網壽命低於5%，\n請盡速更換!"
-          },
-          {
-              "type": "text",
-              "text": "空氣清淨機-濾網壽命低"
-          }
-        ]
+      payload: "[\n  {\n      \"type\": \"text\",\n      \"text\": \"【智慧家庭通知】一般 General
+        \U0001FAA7\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"小米空氣清淨機Pro，\\n濾網壽命低於5%，\\n請盡速更換!\"\n
+        \ },\n  {\n      \"type\": \"text\",\n      \"text\": \"空氣清淨機-濾網壽命低\"\n  }\n]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -292,23 +268,11 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 災防報告 Disaster Prevention Report"
-              },
-        
-               {
-                  "type":"text",
-                  "text":" 收到以下政府災害訊息:"
-        
-               },
-              {
-                  "type":"text",
-                  "text":"{{ states('sensor.disaster') }}"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+        \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
+        \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
+        \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
+        }}\"\n      }\n  ]\n"
     enabled: false
     action: script.send_line_to_user
   - data:
@@ -344,23 +308,11 @@
     - parallel:
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 地震報告 Earthquake Report"
-                  },
-                  {
-            
-                       "type":"text",
-                      "text":" 地震報告收到以下中央氣象局訊息:"
-            
-                   },
-                  {
-                      "type":"text",
-                      "text":"{{ states('sensor.earthquake') }}"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+            \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
+            \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+            states('sensor.earthquake') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -477,22 +429,10 @@
       action: switch.turn_on
     - data:
         user_id: C26ff4e9d30159ba5264a1676f46f8f86
-        payload: |
-          [
-                {
-                    "type":"text",
-                    "text":"【智慧家庭通知】緊急\nUrgent ‼️"
-                },
-                {
-                    "type":"text",
-                    "text":"🆘\n緊急模式已被啟動，\n所有照明開啟並關閉電源!"
-                },
-                {
-                    "type":"text",
-          
-                     "text":"【緊急 Urgent ‼️】🆘 緊急模式"
-                }
-            ]
+        payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】緊急\\nUrgent
+          ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198\\n緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
+          \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【緊急
+          Urgent ‼️】\U0001F198 緊急模式\"\n      }\n  ]\n"
       enabled: false
       action: script.send_line_to_user
     - repeat:
@@ -548,23 +488,11 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 災防報告 Disaster Prevention Report"
-              },
-        
-               {
-                  "type":"text",
-                  "text":" 收到以下政府災害訊息:"
-        
-               },
-              {
-                  "type":"text",
-                  "text":"{{ states('sensor.disaster') }}"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+        \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
+        \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
+        \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
+        }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -601,23 +529,10 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 地震報告 Earthquake Report"
-              },
-              {
-        
-                   "type":"text",
-                  "text":" 地震報告收到以下中央氣象局訊息:"
-              },
-        
-               {
-                  "type":"text",
-                  "text":"{{ states('sensor.earthquake') }}"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+        \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
+        \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+        \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -968,22 +883,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】一般\nGeneral 🪧"
-                  },
-                  {
-                      "type":"text",
-            
-                       "text":"鐵門狀態警告⚠️\n🚗 鐵門開啟超過10分鐘，\n且車庫無人車移動，\n請注意\n❗️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"🚗\n鐵門開啟超過10分鐘"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+            \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
+            鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
+            \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1060,22 +963,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】一般\nGeneral 🪧"
-                  },
-                  {
-                      "type":"text",
-            
-                       "text":"鐵門狀態警告⚠️\n🚗 鐵門開啟超過10分鐘，\n且車庫無人車移動，\n請注意\n❗️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"🚗\n鐵門開啟超過10分鐘"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+            \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
+            鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
+            \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1190,22 +1081,10 @@
     type: turn_on
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【智慧家庭通知】重要\nImportant ❗"
-              },
-              {
-                  "type":"text",
-                  "text":"請注意，\n偵測到空氣品質較差\n🟠，\n將自動啟動空氣清淨機。"
-              },
-              {
-                  "type":"text",
-        
-                   "text":"【重要 Important ❗】空氣品質異常"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】重要\\nImportant
+        ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質較差\\n\U0001F7E0，\\n將自動啟動空氣清淨機。\"\n
+        \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【重要
+        Important ❗】空氣品質異常\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -1257,22 +1136,10 @@
     type: turn_on
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【智慧家庭通知】重要\nImportant ❗"
-              },
-              {
-                  "type":"text",
-                  "text":"請注意，\n偵測到空氣品質非常差\n🔴，\n將自動啟動空氣清淨機，\n並加強運作❗。"
-              },
-              {
-                  "type":"text",
-        
-                   "text":"【重要 Important ❗】空氣品質異常差 🔴"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】重要\\nImportant
+        ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質非常差\\n\U0001F534，\\n將自動啟動空氣清淨機，\\n並加強運作❗。\"\n
+        \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【重要
+        Important ❗】空氣品質異常差 \U0001F534\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -1499,23 +1366,10 @@
       entity_id: media_player.ke_ting_homepod
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【智慧家庭通知】一般\nGeneral 🪧"
-              },
-              {
-                  "type":"text",
-                  "text":"伺服器及網路系統通知\n🖥️：\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\n接下來15至20分鐘，\n將有連線不穩或斷線之情況🛜。"
-        
-               },
-              {
-                  "type":"text",
-                  "text":"🖥️伺服器更新🛜⚠️。"
-        
-               }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\\nGeneral
+        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n\n
+        \      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -1884,22 +1738,10 @@
         action: media_player.volume_set
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】重要\nImportant ❗"
-                  },
-                  {
-                      "type":"text",
-                      "text":"二樓門鎖狀態警告，\n請注意⚠️，\n🚪二樓大門沒有完全關閉，\n目前為虛掩狀態。"
-            
-                   },
-                  {
-                      "type":"text",
-                      "text":"【重要\nImportant ❗】🚪二樓大門未完全關閉"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要\\nImportant
+            ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要\\nImportant
+            ❗】\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1974,22 +1816,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】重要\nImportant ❗"
-                  },
-                  {
-                      "type":"text",
-                      "text":"二樓門鎖狀態警告，\n請注意⚠️，\n🚪二樓大門沒有完全關閉，\n目前為虛掩狀態。"
-            
-                   },
-                  {
-                      "type":"text",
-                      "text":"【重要\nImportant ❗】🚪二樓大門未完全關閉"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要\\nImportant
+            ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要\\nImportant
+            ❗】\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -2099,23 +1929,10 @@
   actions:
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【智慧保全通知】一般\nGeneral 🪧"
-              },
-              {
-                  "type":"text",
-                  "text":"鐵門狀態警告⚠️\n，🚗鐵門連線狀態不穩🛜，\n請注意。"
-        
-               },
-              {
-                  "type":"text",
-                  "text":"⚠️鐵門連線狀態不穩🛜。"
-        
-               }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
+        \      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -2908,23 +2725,10 @@
         action: media_player.volume_set
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【災防系統通知】緊急\nUrgent ‼️\n🌍 疏散避難警報 Evacuation Alarm"
-                  },
-                  {
-            
-                       "type":"text",
-                      "text":" 政府發布疏散避難警報:"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"{{ states('sensor.disaster') }}"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -3135,23 +2939,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【災防系統通知】緊急\nUrgent ‼️\n🌍 疏散避難警報 Evacuation Alarm"
-                  },
-                  {
-            
-                       "type":"text",
-                      "text":" 政府發布疏散避難警報:"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"{{ states('sensor.disaster') }}"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -3456,22 +3247,10 @@
           - media_player.ding_lou_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】緊急\nUrgent ‼️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"五樓狀態警告\n‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"【緊急 Urgent\n‼️】\n五樓有人闖入⚠️"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急\\nUrgent
+            ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告\\n‼️，\\n五樓保全系統未解除狀態
+            \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -3552,22 +3331,10 @@
           - media_player.ding_lou_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】緊急\nUrgent ‼️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"五樓狀態警告\n‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"【緊急 Urgent\n‼️】\n五樓有人闖入⚠️"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急\\nUrgent
+            ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告\\n‼️，\\n五樓保全系統未解除狀態
+            \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -3671,22 +3438,10 @@
     action: media_player.volume_set
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【廣播系統】測試訊息\nTEST Message"
-              },
-              {
-                  "type":"text",
-                  "text":"測試訊息\nTEST Message。\n測試訊息 TEST Message。"
-              },
-              {
-                  "type":"text",
-        
-                   "text":"【廣播系統】測試訊息 TEST Message"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【廣播系統】測試訊息\\nTEST
+        Message\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"測試訊息\\nTEST
+        Message。\\n測試訊息 TEST Message。\"\n      },\n      {\n          \"type\":\"text\",\n\n
+        \          \"text\":\"【廣播系統】測試訊息 TEST Message\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -5278,22 +5033,10 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: |
-        [
-              {
-                  "type":"text",
-                  "text":"【智慧家庭通知】一般\nGeneral 🪧"
-              },
-              {
-                  "type":"text",
-                  "text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常\n🔴，\n請確認 ⚡ ⚠️"
-              },
-              {
-                  "type":"text",
-        
-                   "text":"🌬️客廳電風扇電源連線異常⚡⚠️"
-              }
-          ]
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\\nGeneral
+        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常\\n\U0001F534，\\n請確認
+        ⚡ ⚠️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\U0001F32C️客廳電風扇電源連線異常⚡⚠️\"\n
+        \     }\n  ]\n"
     enabled: false
     action: script.send_line_to_user
   - if:
@@ -5726,25 +5469,11 @@
             action: notify.persistent_notification
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】一般 General 🪧"
-                      },
-                      {
-                
-                           "type":"text",
-                          "text":"系統偵測所有人已離家，\n家電皆為關閉狀態，\n且門鎖皆已關閉上鎖，\n已啟動離家模式。"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"離家程序正常完成"
-                
-                       }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】一般
+                General \U0001FAA7\"\n      },\n      {\n\n           \"type\":\"text\",\n
+                \         \"text\":\"系統偵測所有人已離家，\\n家電皆為關閉狀態，\\n且門鎖皆已關閉上鎖，\\n已啟動離家模式。\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"離家程序正常完成\"\n\n
+                \      }\n  ]\n"
             enabled: true
             action: script.send_line_to_user
       - conditions:
@@ -5784,24 +5513,10 @@
               entity_id: automation.101li_jia_qing_jing
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】緊急 Urgent ‼️"
-                      },
-                      {
-                          "type":"text",
-                
-                           "text":"系統偵測所有人已離家，\n家電皆為關閉狀態但門鎖尚未上鎖，\n請確認鐵門及二樓門鎖狀況！\n(請手動將鐵門或門鎖關閉上鎖)"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"【緊急\nUrgent ‼️】\n請確認鐵門及二樓門鎖狀況！\n請手動將鐵門或門鎖關閉上鎖!"
-                      }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】緊急
+                Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"系統偵測所有人已離家，\\n家電皆為關閉狀態但門鎖尚未上鎖，\\n請確認鐵門及二樓門鎖狀況！\\n(請手動將鐵門或門鎖關閉上鎖)\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急\\nUrgent
+                ‼️】\\n請確認鐵門及二樓門鎖狀況！\\n請手動將鐵門或門鎖關閉上鎖!\"\n      }\n  ]\n"
             enabled: true
             action: script.send_line_to_user
       - conditions:
@@ -5839,48 +5554,20 @@
             action: notify.persistent_notification
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】一般 General 🪧"
-                      },
-                      {
-                
-                           "type":"text",
-                          "text":"系統偵測所有人已離家，\n門鎖皆已上鎖關閉，\n但家電未完全關閉，\n將自動啟動離家模式關閉電源。"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"將自動啟動離家模式並關閉電源。"
-                
-                       }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】一般
+                General \U0001FAA7\"\n      },\n      {\n\n           \"type\":\"text\",\n
+                \         \"text\":\"系統偵測所有人已離家，\\n門鎖皆已上鎖關閉，\\n但家電未完全關閉，\\n將自動啟動離家模式關閉電源。\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"將自動啟動離家模式並關閉電源。\"\n\n
+                \      }\n  ]\n"
             enabled: true
             action: script.send_line_to_user
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】一般 General 🪧"
-                      },
-                      {
-                
-                           "type":"text",
-                          "text":"系統偵測所有人已離家，\n門鎖皆已上鎖關閉，\n但家電未完全關閉，\n將自動啟動離家模式關閉電源。"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"將自動啟動離家模式並關閉電源。"
-                
-                       }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】一般
+                General \U0001FAA7\"\n      },\n      {\n\n           \"type\":\"text\",\n
+                \         \"text\":\"系統偵測所有人已離家，\\n門鎖皆已上鎖關閉，\\n但家電未完全關閉，\\n將自動啟動離家模式關閉電源。\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"將自動啟動離家模式並關閉電源。\"\n\n
+                \      }\n  ]\n"
               data:
                 profile: line_bot_Kenny
             enabled: false
@@ -5922,24 +5609,10 @@
             action: notify.persistent_notification
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】緊急 Urgent ‼️"
-                      },
-                      {
-                          "type":"text",
-                
-                           "text":"系統偵測所有人已離家，\n家電尚未完全關閉且門鎖尚未上鎖，\n將自動啟動離家模式關閉電源。\n請確認鐵門及二樓門鎖狀況！\n（請手動將鐵門或門鎖關閉上鎖）"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"【緊急\nUrgent ‼️】\n將自動啟動離家模式關閉電源，\n請手動將鐵門或門鎖關閉上鎖!"
-                      }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】緊急
+                Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"系統偵測所有人已離家，\\n家電尚未完全關閉且門鎖尚未上鎖，\\n將自動啟動離家模式關閉電源。\\n請確認鐵門及二樓門鎖狀況！\\n（請手動將鐵門或門鎖關閉上鎖）\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急\\nUrgent
+                ‼️】\\n將自動啟動離家模式關閉電源，\\n請手動將鐵門或門鎖關閉上鎖!\"\n      }\n  ]\n"
             enabled: true
             action: script.send_line_to_user
   mode: single
@@ -6004,25 +5677,10 @@
         - parallel:
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】緊急 Urgent ‼️"
-                      },
-                      {
-                          "type":"text",
-                
-                           "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但鐵門已打開！🚗\n⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，鐵門目前已打開🚗，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"【緊急\nUrgent ‼️】\n🚗鐵門於警戒期間打開 🔴，\n請確認安全狀況⚠️"
-                      }
-                
-                   ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】緊急
+                Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\U0001F534保全系統告警⚠️:\\n系統偵測所有人已離家\U0001F3E0，\\n且已啟動離家模式，\\n但鐵門已打開！\U0001F697\\n⚠️\\n\\n請確認⚠️\\n保全系統未解除狀態下\U0001F534，鐵門目前已打開\U0001F697，請確認⚠️\\n（請手動將鐵門或門鎖關閉上鎖）\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急\\nUrgent
+                ‼️】\\n\U0001F697鐵門於警戒期間打開 \U0001F534，\\n請確認安全狀況⚠️\"\n      }\n\n   ]\n"
             enabled: true
             action: script.send_line_to_user
           - data:
@@ -6355,25 +6013,11 @@
         - parallel:
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧保全通知】緊急 Urgent ‼️"
-                      },
-                      {
-                          "type":"text",
-                
-                           "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但二樓門鎖已打開！🚪\n⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，二樓門鎖目前已打開🚪，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"【緊急\nUrgent ‼️】\n🚪二樓門鎖於警戒期間打開 🔴，\n請確認安全狀況⚠️"
-                      }
-                
-                   ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧保全通知】緊急
+                Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\U0001F534保全系統告警⚠️:\\n系統偵測所有人已離家\U0001F3E0，\\n且已啟動離家模式，\\n但二樓門鎖已打開！\U0001F6AA\\n⚠️\\n\\n請確認⚠️\\n保全系統未解除狀態下\U0001F534，二樓門鎖目前已打開\U0001F6AA，請確認⚠️\\n（請手動將鐵門或門鎖關閉上鎖）\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急\\nUrgent
+                ‼️】\\n\U0001F6AA二樓門鎖於警戒期間打開 \U0001F534，\\n請確認安全狀況⚠️\"\n      }\n\n
+                \  ]\n"
             enabled: true
             action: script.send_line_to_user
           - data:
@@ -7230,34 +6874,13 @@
       - parallel:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                    {
-                        "type":"text",
-              
-                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
-                    },
-                    {
-              
-                         "type":"text",
-                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🔴緊急模式由家庭APP手動觸發📱，\n請確認是否誤觸‼️\n若為誤觸或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"【🆘\n緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
-                    }
-                ]
+            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
+              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
+              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
+              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由家庭APP手動觸發\U0001F4F1，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198\\n緊急
+              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
           enabled: true
           action: script.send_line_to_user
         - data:
@@ -7525,29 +7148,12 @@
         - parallel:
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: |
-                [
-                      {
-                          "type":"text",
-                
-                           "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
-                      },
-                
-                       {
-                          "type":"text",
-                          "text":"🆘\n緊急模式為啟動狀態🔴\n(所有照明開啟並關閉電源)\n\n🌍緊急模式由系統自動判定觸發\n(地震🫨,火災🔥,緊急情況等)\n\n🆘請確認實際狀況!"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"🟢緊急情況穩定後\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
-                
-                       },
-                      {
-                          "type":"text",
-                          "text":"【🆘\n緊急 Urgent ‼️】緊急模式啟動\n請確認緊急情況與檢查電源與照明設備。"
-                      }
-                  ]
+              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
+                緊急 Urgent ‼️\"\n      },\n\n       {\n          \"type\":\"text\",\n
+                \         \"text\":\"\U0001F198\\n緊急模式為啟動狀態\U0001F534\\n(所有照明開啟並關閉電源)\\n\\n\U0001F30D緊急模式由系統自動判定觸發\\n(地震\U0001FAE8,火災\U0001F525,緊急情況等)\\n\\n\U0001F198請確認實際狀況!\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況穩定後\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
+                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198\\n緊急
+                Urgent ‼️】緊急模式啟動\\n請確認緊急情況與檢查電源與照明設備。\"\n      }\n  ]\n"
             enabled: true
             action: script.send_line_to_user
           - data:
@@ -7735,34 +7341,13 @@
       - parallel:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                    {
-                        "type":"text",
-              
-                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
-                    },
-                    {
-              
-                         "type":"text",
-                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🔴緊急模式由系統手動觸發👉，\n請確認是否為測試或誤發‼️\n若為測試或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"【🆘\n緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
-                    }
-                ]
+            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
+              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
+              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
+              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由系統手動觸發\U0001F449，\\n請確認是否為測試或誤發‼️\\n若為測試或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198\\n緊急
+              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
           enabled: true
           action: script.send_line_to_user
         - data:
@@ -8024,34 +7609,13 @@
       - parallel:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                    {
-                        "type":"text",
-              
-                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
-                    },
-                    {
-              
-                         "type":"text",
-                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🔴緊急模式由實體按鈕按壓觸發🔘，\n請確認是否誤觸‼️\n若為誤觸或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
-              
-                     },
-                    {
-                        "type":"text",
-                        "text":"【🆘\n緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
-                    }
-                ]
+            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
+              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
+              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
+              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由實體按鈕按壓觸發\U0001F518，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
+              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198\\n緊急
+              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
           enabled: true
           action: script.send_line_to_user
         - data:
@@ -9045,22 +8609,10 @@
     - parallel:
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】重要\nImportant ❗"
-                  },
-                  {
-                      "type":"text",
-                      "text":"五樓狀態警告\n‼️，\n五樓保全系統偵測有人闖入 🆘，\n房間有人闖入‍☠️\n，請注意⚠️。\n請儘速離開"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"【重要 Important\n❗】\n五樓房間有人進入⚠️"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要\\nImportant
+            ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告\\n‼️，\\n五樓保全系統偵測有人闖入
+            \U0001F198，\\n房間有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"【重要 Important\\n❗】\\n五樓房間有人進入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -9084,22 +8636,10 @@
           - media_player.ding_lou_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】緊急\nUrgent ‼️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"五樓狀態警告\n‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"【緊急 Urgent\n‼️】\n五樓有人闖入⚠️"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急\\nUrgent
+            ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告\\n‼️，\\n五樓保全系統未解除狀態
+            \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -9182,22 +8722,10 @@
           - media_player.ding_lou_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: |
-            [
-                  {
-                      "type":"text",
-                      "text":"【智慧保全通知】緊急\nUrgent ‼️"
-                  },
-                  {
-                      "type":"text",
-                      "text":"五樓狀態警告\n‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
-                  },
-            
-                   {
-                      "type":"text",
-                      "text":"【緊急 Urgent\n‼️】\n五樓有人闖入⚠️"
-                  }
-              ]
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急\\nUrgent
+            ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告\\n‼️，\\n五樓保全系統未解除狀態
+            \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -10300,18 +9828,9 @@
   - sequence:
     - data:
         user_id: C26ff4e9d30159ba5264a1676f46f8f86
-        payload: |
-          [
-                {
-                    "type":"text",
-                    "text":"【智慧保全通知】重要\nImportant ❗（106B）"
-                },
-                {
-                    "type":"text",
-                    "text":"網關連線同步系統異常，\n請注意⚠️"
-          
-                 }
-            ]
+        payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要\\nImportant
+          ❗（106B）\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"網關連線同步系統異常，\\n請注意⚠️\"\n\n
+          \      }\n  ]\n"
       enabled: false
       action: script.send_line_to_user
     - data:
@@ -10759,7 +10278,7 @@
 - *id001
 - &id002
   id: automation.100C2_doorlock_batt_cycle_detect
-  alias: 100C2客廳門鎖電量分級通知AI (V2.1)
+  alias: 100C2客廳門鎖電量分級通知AI (V2.2)
   description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5%
     通知系統使用。
   triggers:
@@ -10774,41 +10293,42 @@
       and trigger.from_state is not none else ''100'' %} {% set invalids = [''unknown'',''unavailable'',''none'',''None'',''-1'']
       %} {{ prev not in invalids and prev|float(100) < 20 }}'
   actions:
-    - action: input_text.set_value
-      data:
-        entity_id: input_text.doorlock_batt_model_last_cycle
-        value: '{{ states(''input_text.doorlock_batt_model_current'') }}'
-    - action: input_number.set_value
-      data:
-        entity_id: input_number.doorlock_batt_drop_last_cycle
-        value: '{{ drop_last }}'
-    - action: input_text.set_value
-      data:
-        entity_id: input_text.doorlock_batt_last_stage
-        value: OK
-    - if:
-        - condition: state
-          entity_id: input_boolean.notify_line_emergency_enable
-          state: 'on'
-      then:
-        - action: script.send_line_to_user
-          data:
-            user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                {"type":"text","text":"{{ states('input_text.notif_title_calib') }}"},
-                {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至\n80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
-                {"type":"text","text":"{{ '狀態摘要：\\n• 新電池款式：' ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ '\\n• 校正後日耗電率：' ~ states('input_number.doorlock_batt_drop_last_cycle') ~ ' %/日' }}"}
-              ]
-    - action: notify.persistent_notification
-      data:
-        title: '{{ notif_title_calib }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.doorlock_batt_model_last_cycle
+      value: '{{ states(''input_text.doorlock_batt_model_current'') }}'
+  - action: input_number.set_value
+    data:
+      entity_id: input_number.doorlock_batt_drop_last_cycle
+      value: '{{ drop_last }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.doorlock_batt_last_stage
+      value: OK
+  - if:
+    - condition: state
+      entity_id: input_boolean.notify_line_emergency_enable
+      state: 'on'
+    then:
+    - data:
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100c_calib')
+          if states('input_text.notif_title_100c_calib')|trim and states('input_text.notif_title_100c_calib')|lower
+          not in ['unknown','unavailable','none'] else '【AI電量計算系統 V2.0】')},\n    {\"type\":\"text\",\"text\":\"\U0001F527
+          偵測到門鎖電量已由低回升至 80%以上，視為完成換電池。\\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。\"},\n    {\"type\":\"text\",\"text\":\"狀態摘要：\\n•
+          新電池款式：\" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~
+          \"\\n• 校正後日耗電率：\" ~ (states('input_number.doorlock_batt_drop_last_cycle'))
+          ~ \" %/日\"}\n  ] | tojson\n}}"
+      action: script.send_line_to_user
+  - action: notify.persistent_notification
+    data:
+      title: '{{ notif_title_calib }}'
       message: "\U0001F6E0️ 門鎖換電池偵測：已自動完成校正並將通知等級重置為 OK。 新電池款式＝「{{ states('input_text.doorlock_batt_model_current')
         or '未填寫' }}」； 校正日耗電率＝{{ states('input_number.doorlock_batt_drop_last_cycle')
         }} %/日。"
   mode: single
   variables:
-    notif_title_base: 【AI電量計算系統 V2.0】
+    notif_title_base: 【AI電量計算系統 V2.2】
     notif_title_calib: '{{ notif_title_base }}
 
       門鎖耗電率校正 ✅'
@@ -10829,7 +10349,7 @@
 - *id002
 - *id002
 - id: automation.100cmen_suo_di_dian_liang_tong_zhi_ai
-  alias: 100C1客廳門鎖電量分級通知AI (V2.0)
+  alias: 100C1客廳門鎖電量分級通知AI (V2.1)
   description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
   triggers:
   - id: t35
@@ -10876,15 +10396,16 @@
                   entity_id: input_boolean.notify_line_emergency_enable
                   state: 'on'
                 then:
-                  - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                          {"type":"text","text":"{{ states('input_text.notif_title_alarm') }}"},
-                          {"type":"text","text":"\U0001F7E5 門鎖電量完全沒電（0%）！\n請以行動電源供電後解鎖。\n此時「自動離家」與「網關保護」可能異常。"},
-                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
-                        ]
-                    action: script.send_line_to_user
+                - data:
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100c_alarm')
+                      if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower
+                      not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.0】')},\n
+                      \   {\"type\":\"text\",\"text\":\"\U0001F7E5 門鎖電量完全沒電（0%）！\\n請以行動電源供電後解鎖。\\n此時「自動離家」與「網關保護」可能異常。\"},\n
+                      \   {\"type\":\"text\",\"text\": (states('sensor.batt_line_text')
+                      if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}\n
+                      \ ] | tojson\n}}"
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT5'' }}'
@@ -10894,19 +10415,20 @@
                   message: "\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
                 action: notify.persistent_notification
               - if:
-                  - condition: state
-                    entity_id: input_boolean.notify_line_emergency_enable
-                    state: 'on'
+                - condition: state
+                  entity_id: input_boolean.notify_line_emergency_enable
+                  state: 'on'
                 then:
-                  - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                          {"type":"text","text":"{{ states('input_text.notif_title_alarm') }}"},
-                          {"type":"text","text":"\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"},
-                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
-                        ]
-                    action: script.send_line_to_user
+                - data:
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100c_alarm')
+                      if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower
+                      not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.0】')},\n
+                      \   {\"type\":\"text\",\"text\":\"\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！\"},\n
+                      \   {\"type\":\"text\",\"text\": (states('sensor.batt_line_text')
+                      if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}\n
+                      \ ] | tojson\n}}"
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT15'' }}'
@@ -10916,19 +10438,20 @@
                   message: "\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
                 action: notify.persistent_notification
               - if:
-                  - condition: state
-                    entity_id: input_boolean.notify_line_important_enable
-                    state: 'on'
+                - condition: state
+                  entity_id: input_boolean.notify_line_important_enable
+                  state: 'on'
                 then:
-                  - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                          {"type":"text","text":"{{ states('input_text.notif_title_warn') }}"},
-                          {"type":"text","text":"\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"},
-                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
-                        ]
-                    action: script.send_line_to_user
+                - data:
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100c_warn')
+                      if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower
+                      not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.0】')},\n
+                      \   {\"type\":\"text\",\"text\":\"\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。\"},\n
+                      \   {\"type\":\"text\",\"text\": (states('sensor.batt_line_text')
+                      if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}\n
+                      \ ] | tojson\n}}"
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT35'' }}'
@@ -10938,19 +10461,20 @@
                   message: "\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。"
                 action: notify.persistent_notification
               - if:
-                  - condition: state
-                    entity_id: input_boolean.notify_line_important_enable
-                    state: 'on'
+                - condition: state
+                  entity_id: input_boolean.notify_line_important_enable
+                  state: 'on'
                 then:
-                  - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                          {"type":"text","text":"{{ states('input_text.notif_title_warn') }}"},
-                          {"type":"text","text":"\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。"},
-                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
-                        ]
-                    action: script.send_line_to_user
+                - data:
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100c_warn')
+                      if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower
+                      not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.0】')},\n
+                      \   {\"type\":\"text\",\"text\":\"\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。\"},\n
+                      \   {\"type\":\"text\",\"text\": (states('sensor.batt_line_text')
+                      if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}\n
+                      \ ] | tojson\n}}"
+                  action: script.send_line_to_user
           - data:
               entity_id: input_text.doorlock_batt_last_stage
               value: '{{ stage_now }}'
@@ -10961,7 +10485,7 @@
     - stop: 忽略：unknown → -1 假觸發（未送出任何通知）
   mode: single
   variables:
-    notif_title_base: 【AI電量告警系統 V2.0】
+    notif_title_base: 【AI電量告警系統 V2.1】
     notif_title_warn: "{{ notif_title_base }}\n門鎖電量提醒 \U0001F6AA\U0001F50B"
     notif_title_alarm: "{{ notif_title_base }}\n門鎖電量告警 \U0001F6AA\U0001F50B"
     doorlock_batt: '{{ states(''sensor.ke_ting_men_suo_dian_liang_guo_lu'')|float(-1)
@@ -10974,27 +10498,8 @@
     stage_last: '{{ states(''input_text.doorlock_batt_last_stage'')|default(''OK'')
       }}'
     stage_changed: '{{ stage_now != stage_last }}'
-    eta_days: '{% set s = states(''sensor.doorlock_batt_days_left_last_model'') %}
-      {% if s is number %}{{ s|float(0)|round(1) }}{% else %}unknown{% endif %}'
     model_now: '{{ states(''input_text.doorlock_batt_model_current'')|trim }}'
     model_last: '{{ states(''input_text.doorlock_batt_model_last_cycle'')|trim }}'
-    batt_line_text: '{% if not batt_valid -%} 門鎖電量摘要： • 電量：資料暫無（gateway 尚未回報） {%-
-      else -%} 門鎖電量摘要： • 電量：{{ doorlock_batt|round(1) }}% • 預估天數：{%- if eta_days !=
-      ''unknown'' -%}約 {{ eta_days }} 天（同款電池）{%- else -%}—（不同款或資料不足）{%- endif -%}
-      • 當前/上次款式：{{ model_now or ''未填寫'' }} / {{ model_last or ''未校正'' }} {%- endif
-      %}'
-    line_payload_warn: "{{\n  {\"messages\":[\n    {\"type\":\"text\",\"text\": notif_title_warn},\n
-      \   {\"type\":\"text\",\"text\":\"\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。\"},\n
-      \   {\"type\":\"text\",\"text\": batt_line_text}\n  ]} | tojson\n}}"
-    line_payload_35: "{{\n  {\"messages\":[\n    {\"type\":\"text\",\"text\": notif_title_warn},\n
-      \   {\"type\":\"text\",\"text\":\"\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。\"},\n    {\"type\":\"text\",\"text\":
-      batt_line_text}\n  ]} | tojson\n}}"
-    line_payload_alarm_5pct: "{{\n  {\"messages\":[\n    {\"type\":\"text\",\"text\":
-      notif_title_alarm},\n    {\"type\":\"text\",\"text\":\"\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！\"},\n
-      \   {\"type\":\"text\",\"text\": batt_line_text}\n  ]} | tojson\n}}"
-    line_payload_alarm: "{{\n  {\"messages\":[\n    {\"type\":\"text\",\"text\": notif_title_alarm},\n
-      \   {\"type\":\"text\",\"text\":\"\U0001F7E5 門鎖電量完全沒電（0%）！\\n請以行動電源供電後解鎖。\\n此時「自動離家」與「網關保護」可能異常。\"},\n
-      \   {\"type\":\"text\",\"text\": batt_line_text}\n  ]} | tojson\n}}"
 - id: automation.08_5f_ding_lou_shang_xia_lou_qing_jing_ai
   alias: 08-5F頂樓自動上下樓情境AI (V2.0)
   description: 'V1 Beta 13 — Helper 相容性更新至 V1 Beta 13，修正實體 ID。其餘沿用：上樓需全黑且（黑≥15s 或非剛關燈）；保護窗僅擋上樓、不擋下樓。
@@ -11661,7 +11166,7 @@
     debug_on: '{{ is_state(''input_boolean.debug_topfloor_kenny'', ''on'') }}'
 - &id003
   id: automation.100b_ai_leave_v1beta9
-  alias: 100B自動離家AI (V2.0)
+  alias: 100B自動離家AI (V2.1)
   description: ''
   triggers:
   - entity_id: device_tracker.iphone_17_pro_max_kenny
@@ -11780,21 +11285,15 @@
             then:
             - data:
                 user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                payload: |
-                  [
-                    {
-                      "type": "text",
-                      "text": "{{ states('input_text.notif_title_urgent') }}"
-                    },
-                    {
-                      "type": "text",
-                      "text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態：{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}）。"
-                    },
-                    {
-                      "type": "text",
-                      "text": "{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"
-                    }
-                  ]
+                payload: "{{\n  [\n    {\"type\":\"text\",\"text\": (states('input_text.notif_title_100b_urgent')
+                  if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower
+                  not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},\n
+                  \   {\"type\":\"text\",\"text\": \"已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態：\"\n
+                  \                            ~ states('alarm_control_panel.54ef44cf58f9_alarm')
+                  ~ \"）。\"},\n    {\"type\":\"text\",\"text\": (states('sensor.batt_line_text')
+                  if states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower
+                  not in ['unknown','unavailable','none'] else \"（無門鎖電量異常）\")}\n  ]
+                  | tojson\n}}"
               action: script.send_line_to_user
   - choose:
     - conditions:
@@ -11825,12 +11324,14 @@
         then:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                {"type":"text","text":"{{ states('input_text.notif_title_general') }}"},
-                {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"},
-                {"type":"text","text":"{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"}
-              ]
+            payload: "{{\n  (\n    [\n      {\"type\":\"text\",\"text\": (states('input_text.notif_title_100b_general')
+              if states('input_text.notif_title_100b_general')|trim and states('input_text.notif_title_100b_general')|lower
+              not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},\n      {\"type\":\"text\",\"text\":\"一般
+              General \U0001FAA7\"},\n      {\"type\":\"text\",\"text\":\"\U0001F3E0
+              系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。\"}\n    ] +\n    ([{\"type\":\"text\",\"text\":
+              \"\U0001F50B \" ~ states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim
+              and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none'])
+              else [])\n  ) | tojson\n}}"
           action: script.send_line_to_user
     - conditions:
       - condition: and
@@ -11854,20 +11355,22 @@
         then:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                {"type":"text","text":"{{ states('input_text.notif_title_urgent') }}"},
-                {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"},
-                {"type":"text","text":"{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"}
-              ]
+            payload: "{{\n  (\n    [\n      {\"type\":\"text\",\"text\": (states('input_text.notif_title_100b_urgent')
+              if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower
+              not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},\n      {\"type\":\"text\",\"text\":\"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！\"}\n
+              \   ] +\n    ([{\"type\":\"text\",\"text\": states('sensor.batt_line_text')}]
+              if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower
+              not in ['unknown','unavailable','none']) else [])\n  ) | tojson\n}}"
           action: script.send_line_to_user
   mode: single
   variables:
-    notif_title_base: 【AI離家系統 V2.0】
-    notif_title_general: "{{ notif_title_base }}\n一般 General \U0001FAA7"
-    notif_title_urgent: '{{ notif_title_base }}
-
-      緊急 Urgent ‼️'
+    notif_title_base: 【AI離家系統 V2.1】
+    notif_title_general: '{% set title = states(''input_text.notif_title_100b_general'')
+      %} {{ title if title|trim and title|lower not in [''unknown'',''unavailable'',''none'']
+      else ''【AI離家系統 V2.1】'' }}'
+    notif_title_urgent: '{% set title = states(''input_text.notif_title_100b_urgent'')
+      %} {{ title if title|trim and title|lower not in [''unknown'',''unavailable'',''none'']
+      else ''【AI離家系統 V2.1】'' }}'
     debounce_sec: 120
     debounce_ok: '{% set last = state_attr(this.entity_id, ''last_triggered'') %}
       {% set delta = (as_timestamp(now()) - as_timestamp(last)) if last else 999999
@@ -11879,21 +11382,6 @@
     batt50: '{{ batt_valid and doorlock_batt < 50 }}'
     batt10: '{{ batt_valid and doorlock_batt < 10 }}'
     batt0: '{{ batt_valid and doorlock_batt < 1 }}'
-    batt_line_text: "{% if not batt_valid %} 門鎖電量摘要： • 資料暫無（gateway 尚未回報） {% else
-      %} {% set lines = [] %} {% if batt50 %}{% set lines = lines + ['• 客廳門鎖電量：' ~
-      (doorlock_batt|round(0)) ~ '%'] %}{% endif %} {% if batt10 %}{% set lines =
-      lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}{% endif %} {% if batt0  %}{% set
-      lines = lines + ['• \U0001F7E5 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}{% endif %}
-      {% if lines|length > 0 %} 門鎖電量摘要： {{ lines | join('\\n') }} {% else %}{{ ''
-      }}{% endif %} {% endif %}"
-    line_payload_general: "{{\n  {\n    \"messages\": (\n      [ {\"type\":\"text\",\"text\":
-      notif_title_general},\n        {\"type\":\"text\",\"text\":\"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。\"}
-      ] +\n      ( [ {\"type\":\"text\",\"text\": batt_line_text } ] if batt_line_text|trim
-      else [] )\n    )\n  } | tojson\n}}"
-    line_payload_urgent: "{{\n  {\n    \"messages\": (\n      [ {\"type\":\"text\",\"text\":
-      notif_title_urgent},\n        {\"type\":\"text\",\"text\":\"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！\"}
-      ] +\n      ( [ {\"type\":\"text\",\"text\": batt_line_text } ] if batt_line_text|trim
-      else [] )\n    )\n  } | tojson\n}}"
 - *id003
 - id: '1762266073613'
   alias: 08-5H樓梯燈座系統常開
@@ -12268,7 +11756,7 @@
       100 %}\n      {{ 100 }}\n    {% else %}\n      {{ [summer_pct - 5, 20] | max
       }}\n    {% endif %}\n  {% endif %}\n{% endif %}"
 - id: '1765620359682'
-  alias: 21B_客廳電風扇異常告警AI (V2 Beta 2)
+  alias: 21B_客廳電風扇異常告警AI (V2 Beta 3)
   description: 當風扇在自動模式下離線或關閉時發出警報
   triggers:
   - entity_id: fan.ke_ting_dian_feng_shan
@@ -12310,17 +11798,9 @@
     then:
     - data:
         user_id: C26ff4e9d30159ba5264a1676f46f8f86
-        payload: |
-          [
-                {
-                    "type":"text",
-                    "text":"【智慧家庭通知】重要\nImportant ❗"
-                },
-                {
-                    "type":"text",
-                    "text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常\n🔴，\n請確認 ⚡ ⚠️"
-                }
-            ]
+        payload: "{{\n  [\n    {\"type\":\"text\",\"text\":\"【智慧家庭通知】重要 Important
+          ❗\"},\n    {\"type\":\"text\",\"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常
+          \U0001F534，\\n請確認 ⚡ ⚠️\"}\n  ] | tojson\n}}"
       action: script.send_line_to_user
   - if:
     - condition: device
@@ -12522,7 +12002,7 @@
         entity_id: media_player.ke_ting_homepod
   mode: single
 - id: '1765621325587'
-  alias: 03苗栗天氣告知系統AI (V1.2)
+  alias: 03苗栗天氣告知系統AI (V1.4)
   description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
   triggers:
   - entity_id: sensor.disaster
@@ -12565,13 +12045,10 @@
         then:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                    {"type":"text", "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 災防報告 (早晨補報)"},
-                    {"type":"text",
-                "text":" 收到以下政府災害訊息:"},
-                    {"type":"text", "text":"{{ states('sensor.disaster') }}"}
-                ]
+            payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
+              \U0001FAA7\\n\U0001F30D 災防報告 (早晨補報)\"},\n    {\"type\":\"text\", \"text\":\"
+              收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": states('sensor.disaster')
+              }\n  ] | tojson\n}}"
           action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -12618,14 +12095,10 @@
         then:
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: |
-              [
-                    {"type":"text", "text":"【災防系統通知】一般\nGeneral 🪧\n🌍 災防報告 Disaster Prevention Report"},
-              
-                     {"type":"text", "text":" 收到以下政府災害訊息:"},
-                    {"type":"text",
-                "text":"{{ states('sensor.disaster') }}"}
-                ]
+            payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
+              \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"},\n    {\"type\":\"text\",
+              \"text\":\" 收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": states('sensor.disaster')
+              }\n  ] | tojson\n}}"
           action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
