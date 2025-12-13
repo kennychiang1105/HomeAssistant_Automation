@@ -1,0 +1,133 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 03苗栗天氣告知系統AI — V1
+# 更新重點（相對 V0）：
+#  1) 初始版本
+#
+# Helpers 相容性：
+#  • 已針對「Helpers（V1 Beta 13）」對應完成，可直接搭配使用。
+# ─────────────────────────────────────────────────────────────────────────────
+
+alias: 03苗栗天氣告知系統
+description: ""
+triggers:
+  - entity_id:
+      - sensor.disaster
+    trigger: state
+conditions:
+  - condition: template
+    value_template: >-
+      {{ (as_timestamp(now()) -
+      as_timestamp(states('sensor.disaster_last_valid_update'))) < 300 }}
+  - condition: time
+    after: "07:00:00"
+    before: "22:00:00"
+  - condition: template
+    value_template: "{{ '苗栗' in states.sensor.disaster.state }}"
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: paused
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: "off"
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: standby
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: "on"
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: standby
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+      - condition: state
+        entity_id: media_player.ke_ting_homepod
+        state: buffering
+        for:
+          hours: 0
+          minutes: 10
+          seconds: 0
+    enabled: false
+actions:
+  - data:
+      volume_level: 0.5
+    action: media_player.volume_set
+    target:
+      entity_id:
+        - media_player.ke_ting_homepod
+    enabled: true
+  - data:
+      title: 天氣告知系統
+      message: |-
+        天氣告知系統收到以下政府災害訊息: 
+
+        {{ states('sensor.disaster') }}
+    enabled: true
+    action: notify.persistent_notification
+  - data:
+      announce: true
+      media:
+        media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
+        media_content_type: music
+        metadata: {}
+    target:
+      entity_id: media_player.guang_bo_qun_zu_tong_zhi
+    enabled: true
+    action: media_player.play_media
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 13
+      milliseconds: 0
+    enabled: true
+  - data:
+      message: |
+        {
+          "messages":[
+              {
+                  "type":"text",
+                  "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"
+              },
+              {
+                  "type":"text",
+                  "text":" 收到以下政府災害訊息:"
+              },
+              {
+                  "type":"text",
+                  "text":"{{ states('sensor.disaster') }}"
+              }
+          ]
+        }
+    enabled: false
+    action: notify.line_bot_chiangfamilygroup
+  - data:
+      message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ states('sensor.disaster') }}"
+      media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
+      cache: true
+    action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    enabled: true
+mode: queued
+max: 10
