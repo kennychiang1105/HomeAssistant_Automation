@@ -1,6 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V1.2)   （Helpers V2.2 相容）
-# 更新重點（相對 V1.1）：
+# 03苗栗天氣告知系統AI (V1.4)   （Helpers V2.6 相容）
+# 更新重點（相對 V1.3）：
+# 1) 修正 LINE JSON payload 直接套用 sensor.disaster，避免訊息內容被原樣輸出。
+# 2) 更新 LINE user_id（保持固定 ID 供通知發送）。
+#
+# 前版更新（V1.2 → V1.3）：
+# 1) LINE 通知格式：改用 script.send_line_to_user 的 JSON payload 並引用 Helpers 標題，避免出現 Unknown。
+#
+# 前版更新（V1.1 → V1.2）：
 # 1) 新增早晨補報：若夜間有新訊息，會在早上 7:00 補報。
 # 2) 啟用 LINE 通知：啟用 LINE 通知並整合「一般通知」分類開關。
 # 3) 邏輯優化：將判斷邏輯移至 action 內，結構更清晰。
@@ -10,7 +17,7 @@
 #   - input_boolean: notify_line_general_enable
 # ─────────────────────────────────────────────────────────────
 
-alias: 03苗栗天氣告知系統AI (V1.2)
+alias: 03苗栗天氣告知系統AI (V1.4)
 description: "白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息"
 mode: queued
 max: 10
@@ -59,16 +66,17 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  message: |
-                    {
-                      "messages":[
-                          {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
-                          {"type":"text", "text":" 收到以下政府災害訊息:"},
-                          {"type":"text", "text":"{{ states('sensor.disaster') }}"}
-                      ]
-                    }
+                  user_id: U9eeaaf5d404dbde249039924567992d3
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
+                        {"type":"text", "text":" 收到以下政府災害訊息:"},
+                        {"type":"text", "text": states('sensor.disaster') }
+                      ] | tojson
+                    }}
           - service: media_player.play_media
             target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
             data:
@@ -106,16 +114,17 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  message: |
-                    {
-                      "messages":[
-                          {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
-                          {"type":"text", "text":" 收到以下政府災害訊息:"},
-                          {"type":"text", "text":"{{ states('sensor.disaster') }}"}
-                      ]
-                    }
+                  user_id: U9eeaaf5d404dbde249039924567992d3
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
+                        {"type":"text", "text":" 收到以下政府災害訊息:"},
+                        {"type":"text", "text": states('sensor.disaster') }
+                      ] | tojson
+                    }}
           - service: media_player.play_media
             target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
             data:

@@ -1,6 +1,15 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.3）
+# Helpers（V2.6）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.6):
+#   • 門鎖電量摘要：移除多餘結尾與修正 ETA 行內格式，確保 YAML 可正確解析並恢復電量摘要。
+#
+# 新增與強化 (V2.5):
+#   • 門鎖電量摘要縮排修正：修正 flow collection 縮排錯誤，避免 YAML 解析失敗並恢復電量摘要。
+#
+# 新增與強化 (V2.4):
+#   • 門鎖電量模板縮排修正：修正 template sensor 縮排錯誤，確保客廳門鎖電量與 LINE 電量摘要可正常生成。
+#
 # 新增與強化 (V2.3):
 #   • 體感溫度Helpers：新增 input_number.living_room_effective_apparent_temperature 與 input_number.rooftop_effective_apparent_temperature，用於顯示風扇AI的有效體感溫度。
 #
@@ -306,6 +315,33 @@ input_text:
   doorlock_batt_last_stage:
     name: 門鎖電量已通知等級
     max: 20
+  # LINE 通知標題（避免 Unknown）
+  notif_title_100b_general:
+    name: 100B_LINEnotice_一般
+    max: 120
+    initial: "【AI離家系統 V2.0】"
+  notif_title_100b_urgent:
+    name: 100B_LINEnotice_緊急
+    max: 120
+    initial: "【AI離家系統 V2.0】"
+  notif_title_100c_warn:
+    name: 100C_LINEnotice_電量提醒
+    max: 120
+    initial: "【AI電量告警系統 V2.0】"
+  notif_title_100c_alarm:
+    name: 100C_LINEnotice_電量告警
+    max: 120
+    initial: "【AI電量告警系統 V2.0】"
+  notif_title_100c_calib:
+    name: 100C_LINEnotice_電量校正
+    max: 120
+    initial: "【AI電量計算系統 V2.0】"
+  line_eew_remote_level:
+    name: LINE_EEW遠端_預估震度
+    max: 10
+  line_eew_remote_seconds:
+    name: LINE_EEW遠端_預估到達秒數
+    max: 10
   # 頂樓裝置/追蹤器
   topfloor_debug_last_json:
     name: 頂樓偵測 Debug（最新快照 JSON）
@@ -346,37 +382,60 @@ input_select:
       - REA9519
       - EBH8030
 template:
-  - trigger:
-      - platform: state
-        entity_id: sensor.0x54ef4410007ac23c_battery
-      - platform: time_pattern   # 保活：避免長時間沒回報時 UI 顯示舊態
-        minutes: "/15"
-    sensor:
-      - name: 客廳門鎖電量（過濾）
-        # entity_id 將會是 sensor.ke_ting_men_suo_dian_liang_guo_lu
-        unit_of_measurement: "%"
-        device_class: battery
-        state_class: measurement
-        icon: mdi:battery
-        # （可選）唯一 ID，方便在 UI 調整圖示/名稱
-        unique_id: doorlock_battery_filtered_main
-        state: >-
-          {% set new = states('sensor.0x54ef4410007ac23c_battery') %}
-          {% set old = states('sensor.ke_ting_men_suo_dian_liang_guo_lu') %}
-          {% set invalids = ['unknown','unavailable','None','none','','nan'] %}
-          {% if new in invalids %}
-            {{ old if old not in invalids else -1 }}
-          {% else %}
-            {% set v = new|float(0) %}
-            {# 合理範圍 0~100；超出則沿用舊值；若舊值也不可用則 -1 #}
-            {% if 0 <= v <= 100 %}
-              {{ v }}
+    - trigger:
+        - platform: state
+          entity_id:
+            - sensor.0x54ef4410007ac23c_battery
+            - sensor.doorlock_batt_days_left_last_model
+            - input_text.doorlock_batt_model_current
+            - input_text.doorlock_batt_model_last_cycle
+        - platform: time_pattern   # 保活：避免長時間沒回報時 UI 顯示舊態
+          minutes: "/15"
+      sensor:
+        - name: 客廳門鎖電量（過濾）
+          # entity_id 將會是 sensor.ke_ting_men_suo_dian_liang_guo_lu
+          unit_of_measurement: "%"
+          device_class: battery
+          state_class: measurement
+          icon: mdi:battery
+          # （可選）唯一 ID，方便在 UI 調整圖示/名稱
+          unique_id: doorlock_battery_filtered_main
+          state: >-
+            {% set new = states('sensor.0x54ef4410007ac23c_battery') %}
+            {% set old = states('sensor.ke_ting_men_suo_dian_liang_guo_lu') %}
+            {% set invalids = ['unknown','unavailable','None','none','','nan'] %}
+            {% if new in invalids %}
+              {{ old if old not in invalids else -1 }}
             {% else %}
-              {{ (old|float(-1)) if old not in invalids else -1 }}
+              {% set v = new|float(0) %}
+              {# 合理範圍 0~100；超出則沿用舊值；若舊值也不可用則 -1 #}
+              {% if 0 <= v <= 100 %}
+                {{ v }}
+              {% else %}
+                {{ (old|float(-1)) if old not in invalids else -1 }}
+              {% endif %}
             {% endif %}
-          {% endif %}
-        attributes:
-          source_entity: sensor.0x54ef4410007ac23c_battery
-          last_raw: "{{ states('sensor.0x54ef4410007ac23c_battery') }}"
+          attributes:
+            source_entity: sensor.0x54ef4410007ac23c_battery
+            last_raw: "{{ states('sensor.0x54ef4410007ac23c_battery') }}"
+        - name: batt_line_text
+          unique_id: doorlock_batt_line_text
+          icon: mdi:lock-alert
+          state: >-
+            {% set batt_raw = states('sensor.ke_ting_men_suo_dian_liang_guo_lu') %}
+            {% set eta_raw = states('sensor.doorlock_batt_days_left_last_model') %}
+            {% set model_now = states('input_text.doorlock_batt_model_current')|trim %}
+            {% set model_last = states('input_text.doorlock_batt_model_last_cycle')|trim %}
+            {% set invalids = ['unknown','unavailable','none','None','','nan'] %}
+
+            {% if batt_raw in invalids %}
+              門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）
+            {% else %}
+              {% set batt_val = batt_raw|float(0) %}
+              {% set eta_val = eta_raw|float(none) %}
+              {% set eta_valid = eta_val is not none %}
+
+              門鎖電量摘要：\n• 電量：{{ batt_val|round(1) }}%\n• 預估天數：{{ '約 ' ~ (eta_val|round(1)) ~ ' 天（同款電池）' if eta_valid else '—（不同款或資料不足）' }}\n• 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
+            {% endif %}
 
 ###AI Automation help tools###

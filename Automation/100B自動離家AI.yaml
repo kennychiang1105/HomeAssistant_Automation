@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.0)   （Helpers V2.2 相容）
+# 100B自動離家AI (V2.1)   （Helpers V2.6 相容）
 # 更新重點（相對 V1 Beta 9）：
-# 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
+# 1) 版本號升級：升級至 V2.1，與 Helper V2.6 同步，並統一更新日誌格式。
 # 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
+# 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.0)"
+alias: "100B自動離家AI (V2.1)"
 id: automation.100b_ai_leave_v1beta9
 description: ""
 mode: single
@@ -70,13 +71,13 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  notif_title_base: "【AI離家系統 V2.0】"
-  notif_title_general: |-
-    {{ notif_title_base }}
-    一般 General 🪧
-  notif_title_urgent: |-
-    {{ notif_title_base }}
-    緊急 Urgent ‼️
+  notif_title_base: "【AI離家系統 V2.1】"
+  notif_title_general: >-
+    {% set title = states('input_text.notif_title_100b_general') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】' }}
+  notif_title_urgent: >-
+    {% set title = states('input_text.notif_title_100b_urgent') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】' }}
 
   debounce_sec: 120
   debounce_ok: >-
@@ -91,43 +92,6 @@ variables:
   batt50: "{{ batt_valid and doorlock_batt < 50 }}"
   batt10: "{{ batt_valid and doorlock_batt < 10 }}"
   batt0: "{{ batt_valid and doorlock_batt < 1 }}"
-
-  batt_line_text: >-
-    {% if not batt_valid %}
-    門鎖電量摘要：
-    • 資料暫無（gateway 尚未回報）
-    {% else %}
-    {% set lines = [] %}
-    {% if batt50 %}{% set lines = lines + ['• 客廳門鎖電量：' ~ (doorlock_batt|round(0)) ~ '%'] %}{% endif %}
-    {% if batt10 %}{% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}{% endif %}
-    {% if batt0  %}{% set lines = lines + ['• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}{% endif %}
-    {% if lines|length > 0 %}
-    門鎖電量摘要：
-    {{ lines | join('\n') }}
-    {% else %}{{ '' }}{% endif %}
-    {% endif %}
-
-  line_payload_general: >-
-    {{
-      {
-        "messages": (
-          [ {"type":"text","text": notif_title_general},
-            {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"} ] +
-          ( [ {"type":"text","text": batt_line_text } ] if batt_line_text|trim else [] )
-        )
-      } | tojson
-    }}
-
-  line_payload_urgent: >-
-    {{
-      {
-        "messages": (
-          [ {"type":"text","text": notif_title_urgent},
-            {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"} ] +
-          ( [ {"type":"text","text": batt_line_text } ] if batt_line_text|trim else [] )
-        )
-      } | tojson
-    }}
 
 actions:
   - choose:
@@ -172,19 +136,17 @@ actions:
                         entity_id: input_boolean.notify_line_emergency_enable
                         state: "on"
                     then:
-                      - service: notify.line_bot_chiangfamilygroup
+                      - service: script.send_line_to_user
                         data:
-                          title: "{{ notif_title_urgent }}"
-                          message: >-
+                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          payload: >-
                             {{
-                              {
-                                "messages": [
-                                  {"type":"text","text": notif_title_urgent},
-                                  {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
+                              [
+                                {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},
+                                {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
                                                          ~ states('alarm_control_panel.54ef44cf58f9_alarm') ~ "）。"},
-                                  {"type":"text","text": batt_line_text if batt_line_text|trim else "（無門鎖電量異常）"}
-                                ]
-                              } | tojson
+                                {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none'] else "（無門鎖電量異常）")}
+                              ] | tojson
                             }}
 
   - choose:
@@ -214,10 +176,20 @@ actions:
                 entity_id: input_boolean.notify_line_important_enable
                 state: "on"
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  title: "{{ notif_title_general }}"
-                  message: "{{ line_payload_general }}"
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      (
+                        [
+                          {"type":"text","text": (states('input_text.notif_title_100b_general') if states('input_text.notif_title_100b_general')|trim and states('input_text.notif_title_100b_general')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},
+                          {"type":"text","text":"一般 General 🪧"},
+                          {"type":"text","text":"🏠 系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"}
+                        ] +
+                        ([{"type":"text","text": "🔋 " ~ states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else [])
+                      ) | tojson
+                    }}
 
       - conditions:
           - condition: and
@@ -240,7 +212,16 @@ actions:
                 entity_id: input_boolean.notify_line_emergency_enable
                 state: "on"
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  title: "{{ notif_title_urgent }}"
-                  message: "{{ line_payload_urgent }}"
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      (
+                        [
+                          {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.1】')},
+                          {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"}
+                        ] +
+                        ([{"type":"text","text": states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else [])
+                      ) | tojson
+                    }}
