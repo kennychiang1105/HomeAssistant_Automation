@@ -307,22 +307,26 @@ input_text:
     name: 門鎖電量已通知等級
     max: 20
   # LINE 通知標題（避免 Unknown）
-  notif_title_general:
-    name: LINE通知標題_一般
+  notif_title_100b_general:
+    name: 100B_LINEnotice_一般
     max: 120
     initial: "【AI離家系統 V2.0】"
-  notif_title_urgent:
-    name: LINE通知標題_緊急
+  notif_title_100b_urgent:
+    name: 100B_LINEnotice_緊急
     max: 120
     initial: "【AI離家系統 V2.0】"
-  notif_title_warn:
-    name: LINE通知標題_電量提醒
+  notif_title_100c_warn:
+    name: 100C_LINEnotice_電量提醒
     max: 120
     initial: "【AI電量告警系統 V2.0】"
-  notif_title_alarm:
-    name: LINE通知標題_電量告警
+  notif_title_100c_alarm:
+    name: 100C_LINEnotice_電量告警
     max: 120
     initial: "【AI電量告警系統 V2.0】"
+  notif_title_100c_calib:
+    name: 100C_LINEnotice_電量校正
+    max: 120
+    initial: "【AI電量計算系統 V2.0】"
   # 頂樓裝置/追蹤器
   topfloor_debug_last_json:
     name: 頂樓偵測 Debug（最新快照 JSON）

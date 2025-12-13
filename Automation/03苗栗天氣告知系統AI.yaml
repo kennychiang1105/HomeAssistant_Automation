@@ -59,16 +59,17 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  message: |
-                    {
-                      "messages":[
-                          {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
-                          {"type":"text", "text":" 收到以下政府災害訊息:"},
-                          {"type":"text", "text":"{{ states('sensor.disaster') }}"}
-                      ]
-                    }
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
+                        {"type":"text", "text":" 收到以下政府災害訊息:"},
+                        {"type":"text", "text":"{{ states('sensor.disaster') }}"}
+                      ] | tojson
+                    }}
           - service: media_player.play_media
             target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
             data:
@@ -106,16 +107,17 @@ action:
                 entity_id: input_boolean.notify_line_general_enable
                 state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  message: |
-                    {
-                      "messages":[
-                          {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
-                          {"type":"text", "text":" 收到以下政府災害訊息:"},
-                          {"type":"text", "text":"{{ states('sensor.disaster') }}"}
-                      ]
-                    }
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
+                        {"type":"text", "text":" 收到以下政府災害訊息:"},
+                        {"type":"text", "text":"{{ states('sensor.disaster') }}"}
+                      ] | tojson
+                    }}
           - service: media_player.play_media
             target: { entity_id: media_player.guang_bo_qun_zu_tong_zhi }
             data:

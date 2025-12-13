@@ -49,22 +49,16 @@ actions:
         entity_id: input_boolean.notify_line_important_enable
         state: "on"
     then:
-      - service: notify.line_bot_chiangfamilygroup
+      - service: script.send_line_to_user
         data:
-          title: 智慧家庭通知
-          message: |
-            {
-              "messages":[
-                  {
-                      "type":"text",
-                      "text":"【智慧家庭通知】重要 Important ❗"
-                  },
-                  {
-                      "type":"text",
-                      "text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常 🔴，\n請確認 ⚡ ⚠️"
-                  }
-              ]
-            }
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: >-
+            {{
+              [
+                {"type":"text","text":"【智慧家庭通知】重要 Important ❗"},
+                {"type":"text","text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常 🔴，\n請確認 ⚡ ⚠️"}
+              ] | tojson
+            }}
   - if:
       - condition: device
         type: is_on

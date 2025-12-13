@@ -60,18 +60,16 @@ actions:
         entity_id: input_boolean.notify_line_emergency_enable
         state: "on"
     then:
-      - service: notify.line_bot_chiangfamilygroup
+      - service: script.send_line_to_user
         data:
-          title: "{{ notif_title_calib }}"
-          message: |-
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: >-
             {{
-              {
-                "messages": [
-                  {"type":"text","text": notif_title_calib},
-                  {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至 80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
-                  {"type":"text","text":"狀態摘要：\n• 新電池款式：" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ "\n• 校正後日耗電率：" ~ (states('input_number.doorlock_batt_drop_last_cycle')) ~ " %/日"}
-                ]
-              } | tojson
+              [
+                {"type":"text","text": (states('input_text.notif_title_100c_calib') if states('input_text.notif_title_100c_calib')|trim and states('input_text.notif_title_100c_calib')|lower not in ['unknown','unavailable','none'] else '【AI電量計算系統 V2.0】')},
+                {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至 80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
+                {"type":"text","text":"狀態摘要：\n• 新電池款式：" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ "\n• 校正後日耗電率：" ~ (states('input_number.doorlock_batt_drop_last_cycle')) ~ " %/日"}
+              ] | tojson
             }}
 
   # 5) 永久通知（如你已改用 persistent_notification.create，可自行切換）

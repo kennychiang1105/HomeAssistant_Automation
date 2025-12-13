@@ -72,10 +72,10 @@ conditions:
 variables:
   notif_title_base: "【AI離家系統 V2.0】"
   notif_title_general: >-
-    {% set title = states('input_text.notif_title_general') %}
+    {% set title = states('input_text.notif_title_100b_general') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】' }}
   notif_title_urgent: >-
-    {% set title = states('input_text.notif_title_urgent') %}
+    {% set title = states('input_text.notif_title_100b_urgent') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】' }}
 
   debounce_sec: 120
@@ -141,7 +141,7 @@ actions:
                           payload: >-
                             {{
                               [
-                                {"type":"text","text": (states('input_text.notif_title_urgent') if states('input_text.notif_title_urgent')|trim and states('input_text.notif_title_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
+                                {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
                                 {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
                                                          ~ states('alarm_control_panel.54ef44cf58f9_alarm') ~ "）。"},
                                 {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none'] else "（無門鎖電量異常）")}
@@ -182,7 +182,7 @@ actions:
                     {{
                       (
                         [
-                          {"type":"text","text": (states('input_text.notif_title_general') if states('input_text.notif_title_general')|trim and states('input_text.notif_title_general')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
+                          {"type":"text","text": (states('input_text.notif_title_100b_general') if states('input_text.notif_title_100b_general')|trim and states('input_text.notif_title_100b_general')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
                           {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"}
                         ] +
                         ([{"type":"text","text": states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else [])
@@ -217,7 +217,7 @@ actions:
                     {{
                       (
                         [
-                          {"type":"text","text": (states('input_text.notif_title_urgent') if states('input_text.notif_title_urgent')|trim and states('input_text.notif_title_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
+                          {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.0】')},
                           {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"}
                         ] +
                         ([{"type":"text","text": states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else [])
