@@ -42,13 +42,27 @@
     entity_id: fan.kong_qi_qing_jing_ji
     type: turn_on
   - data:
-      title: 智慧家庭通知
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"偵測到空氣品質變差
-        \U0001F7E1，\\n將自動啟動空氣清淨機。\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"自動啟動空氣清淨機\"\n      }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】一般
+          General 🪧"
+              },
+              {
+                  "type":"text",
+                  "text":"偵測到空氣品質變差
+          🟡，\n將自動啟動空氣清淨機。"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"自動啟動空氣清淨機"
+              }
+          ]
     enabled: false
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
       media_content_type: music
@@ -88,13 +102,27 @@
       title: 空氣清淨機-濾網壽命低
     action: notify.persistent_notification
   - data:
-      title: 智慧家庭通知
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"小米空氣清淨機
-        Pro，\\n濾網壽命低於5%，\\n請盡速更換!\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"空氣清淨機-濾網壽命低\"\n      }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】一般
+          General 🪧"
+              },
+              {
+                  "type":"text",
+                  "text":"小米空氣清淨機
+          Pro，\n濾網壽命低於5%，\n請盡速更換!"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"空氣清淨機-濾網壽命低"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       message: 小米空氣清淨機Pro濾網壽命低於5%，請盡速更換!
       title: 空氣清淨機-濾網壽命低
@@ -269,13 +297,28 @@
       milliseconds: 0
     enabled: true
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n
-        \     {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n
-        \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-        }}\"\n      }\n  ]\n}\n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【災防系統通知】一般
+          General 🪧\n🌍 災防報告 Disaster Prevention Report"
+              },
+        
+               {
+                  "type":"text",
+                  "text":" 收到以下政府災害訊息:"
+        
+               },
+              {
+                  "type":"text",
+                  "text":"{{ states('sensor.disaster')
+          }}"
+              }
+          ]
     enabled: false
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ states(''sensor.disaster'') }}'
       media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -308,13 +351,28 @@
     then:
     - parallel:
       - data:
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-            General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n
-            \         \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n
-            \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
-            states('sensor.earthquake') }}\"\n      }\n  ]\n}\n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【災防系統通知】一般
+              General 🪧\n🌍 地震報告 Earthquake Report"
+                  },
+                  {
+            
+                       "type":"text",
+                      "text":" 地震報告收到以下中央氣象局訊息:"
+            
+                   },
+                  {
+                      "type":"text",
+                      "text":"{{
+              states('sensor.earthquake') }}"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: "地震報告收到以下中央氣象局訊息: \n(同步發送至廣播與LINE)\n{{ states('sensor.earthquake')
             }}"
@@ -428,12 +486,27 @@
         - switch.si_lou_lou_ti_deng
       action: switch.turn_on
     - data:
-        message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】緊急
-          Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198
-          緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n      },\n      {\n          \"type\":\"text\",\n
-          \         \"text\":\"【緊急 Urgent ‼️】\U0001F198 緊急模式\"\n      }\n  ]\n}  \n"
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: |
+          [
+                {
+                    "type":"text",
+                    "text":"【智慧家庭通知】緊急
+            Urgent ‼️"
+                },
+                {
+                    "type":"text",
+                    "text":"🆘
+            緊急模式已被啟動，\n所有照明開啟並關閉電源!"
+                },
+                {
+                    "type":"text",
+          
+                     "text":"【緊急 Urgent ‼️】🆘 緊急模式"
+                }
+            ]
       enabled: false
-      action: notify.line_bot_chiangfamilygroup
+      action: script.send_line_to_user
     - repeat:
         sequence:
         - data: {}
@@ -486,13 +559,28 @@
       message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
     action: notify.persistent_notification
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n
-        \     {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n
-        \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-        }}\"\n      }\n  ]\n}\n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【災防系統通知】一般
+          General 🪧\n🌍 災防報告 Disaster Prevention Report"
+              },
+        
+               {
+                  "type":"text",
+                  "text":" 收到以下政府災害訊息:"
+        
+               },
+              {
+                  "type":"text",
+                  "text":"{{ states('sensor.disaster')
+          }}"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
       media_content_type: music
@@ -526,13 +614,28 @@
       message: "地震災害系統收到以下中央氣象局訊息: \n\n{{ states('sensor.earthquake') }}\n\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
     action: notify.persistent_notification
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-        General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n
-        \         \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n
-        \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.earthquake')
-        }}\"\n      }\n  ]\n}\n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【災防系統通知】一般
+          General 🪧\n🌍 地震報告 Earthquake Report"
+              },
+              {
+        
+                   "type":"text",
+                  "text":" 地震報告收到以下中央氣象局訊息:"
+              },
+        
+               {
+                  "type":"text",
+                  "text":"{{ states('sensor.earthquake')
+          }}"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       message: "{{ \"地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: \"\n   ~ states('sensor.earthquake')\n
         \  ~ \" 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\" }}"
@@ -880,14 +983,28 @@
           entity_id:
           - media_player.ke_ting_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
-            General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n
-            \         \"text\":\"鐵門狀態警告⚠️\\n\U0001F697 鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意
-            ❗️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F697
-            鐵門開啟超過10分鐘\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】一般
+              General 🪧"
+                  },
+                  {
+                      "type":"text",
+            
+                       "text":"鐵門狀態警告⚠️\n🚗 鐵門開啟超過10分鐘，\n且車庫無人車移動，\n請注意
+              ❗️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"🚗
+              鐵門開啟超過10分鐘"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 鐵門開啟超過10分鐘，請注意。
           title: 鐵門狀態警告
@@ -961,14 +1078,28 @@
           entity_id:
           - media_player.ke_ting_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
-            General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n
-            \         \"text\":\"鐵門狀態警告⚠️\\n\U0001F697 鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意
-            ❗️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F697
-            鐵門開啟超過10分鐘\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】一般
+              General 🪧"
+                  },
+                  {
+                      "type":"text",
+            
+                       "text":"鐵門狀態警告⚠️\n🚗 鐵門開啟超過10分鐘，\n且車庫無人車移動，\n請注意
+              ❗️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"🚗
+              鐵門開啟超過10分鐘"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 鐵門開啟超過10分鐘，請注意。
           title: 鐵門狀態警告
@@ -1080,12 +1211,27 @@
     entity_id: fan.kong_qi_qing_jing_ji
     type: turn_on
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】重要
-        Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質較差
-        \U0001F7E0，\\n將自動啟動空氣清淨機。\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"【重要 Important ❗】空氣品質異常\"\n      }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】重要
+          Important ❗"
+              },
+              {
+                  "type":"text",
+                  "text":"請注意，\n偵測到空氣品質較差
+          🟠，\n將自動啟動空氣清淨機。"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"【重要 Important ❗】空氣品質異常"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
       media_content_type: music
@@ -1134,13 +1280,27 @@
     entity_id: fan.kong_qi_qing_jing_ji
     type: turn_on
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】重要
-        Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質非常差
-        \U0001F534，\\n將自動啟動空氣清淨機，\\n並加強運作❗。\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"【重要 Important ❗】空氣品質異常差 \U0001F534\"\n      }\n  ]\n}
-        \ \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】重要
+          Important ❗"
+              },
+              {
+                  "type":"text",
+                  "text":"請注意，\n偵測到空氣品質非常差
+          🔴，\n將自動啟動空氣清淨機，\n並加強運作❗。"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"【重要 Important ❗】空氣品質異常差 🔴"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
       media_content_type: music
@@ -1364,14 +1524,28 @@
     target:
       entity_id: media_player.ke_ting_homepod
   - data:
-      title: 智慧家庭通知
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知
-        \U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n
-        \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n
-        \     }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】一般
+          General 🪧"
+              },
+              {
+                  "type":"text",
+                  "text":"伺服器及網路系統通知
+          🖥️：\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\n接下來15至20分鐘，\n將有連線不穩或斷線之情況🛜。"
+        
+               },
+              {
+                  "type":"text",
+                  "text":"🖥️伺服器更新🛜⚠️。"
+        
+               }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       message: 伺服器及網路系統將在五分鐘後進行維護更新，接下來15至20分鐘將有連線不穩或斷線之情況。
       title: 伺服器及網路系統通知
@@ -1737,12 +1911,27 @@
           - media_player.ke_ting_homepod
         action: media_player.volume_set
       - data:
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
-            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n
-            \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
-            Important ❗】\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】重要
+              Important ❗"
+                  },
+                  {
+                      "type":"text",
+                      "text":"二樓門鎖狀態警告，\n請注意⚠️，\n🚪二樓大門沒有完全關閉，\n目前為虛掩狀態。"
+            
+                   },
+                  {
+                      "type":"text",
+                      "text":"【重要
+              Important ❗】🚪二樓大門未完全關閉"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
@@ -1814,12 +2003,27 @@
           entity_id:
           - media_player.ke_ting_homepod
       - data:
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
-            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n
-            \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
-            Important ❗】\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】重要
+              Important ❗"
+                  },
+                  {
+                      "type":"text",
+                      "text":"二樓門鎖狀態警告，\n請注意⚠️，\n🚪二樓大門沒有完全關閉，\n目前為虛掩狀態。"
+            
+                   },
+                  {
+                      "type":"text",
+                      "text":"【重要
+              Important ❗】🚪二樓大門未完全關閉"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
@@ -1926,13 +2130,27 @@
   conditions: []
   actions:
   - data:
-      title: 智慧家庭通知
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n
-        \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n
-        \     }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧保全通知】一般
+          General 🪧"
+              },
+              {
+                  "type":"text",
+                  "text":"鐵門狀態警告⚠️\n，🚗鐵門連線狀態不穩🛜，\n請注意。"
+        
+               },
+              {
+                  "type":"text",
+                  "text":"⚠️鐵門連線狀態不穩🛜。"
+        
+               }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       message: 鐵門連線狀態不穩，請注意。
       title: 鐵門狀態警告
@@ -2722,13 +2940,28 @@
           - media_player.ding_lou_homepod
         action: media_player.volume_set
       - data:
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急
-            Urgent ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n
-            \         \"type\":\"text\",\n          \"text\":\" 政府發布疏散避難警報:\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-            }}\"\n      }\n  ]\n}\n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【災防系統通知】緊急
+              Urgent ‼️\n🌍 疏散避難警報 Evacuation Alarm"
+                  },
+                  {
+            
+                       "type":"text",
+                      "text":" 政府發布疏散避難警報:"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"{{ states('sensor.disaster')
+              }}"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
@@ -2936,13 +3169,28 @@
           - media_player.ding_lou_homepod
           - media_player.ke_ting_homepod
       - data:
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急
-            Urgent ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n
-            \         \"type\":\"text\",\n          \"text\":\" 政府發布疏散避難警報:\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-            }}\"\n      }\n  ]\n}\n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【災防系統通知】緊急
+              Urgent ‼️\n🌍 疏散避難警報 Evacuation Alarm"
+                  },
+                  {
+            
+                       "type":"text",
+                      "text":" 政府發布疏散避難警報:"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"{{ states('sensor.disaster')
+              }}"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
@@ -3244,14 +3492,28 @@
           - media_player.ke_ting_homepod
           - media_player.ding_lou_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急
-            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告
-            ‼️，\\n五樓保全系統未解除狀態 \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"【緊急 Urgent
-            ‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】緊急
+              Urgent ‼️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"五樓狀態警告
+              ‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"【緊急 Urgent
+              ‼️】\n五樓有人闖入⚠️"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           volume_level: 0.15
         target:
@@ -3329,14 +3591,28 @@
           - media_player.ke_ting_homepod
           - media_player.ding_lou_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急
-            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告
-            ‼️，\\n五樓保全系統未解除狀態 \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"【緊急 Urgent
-            ‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】緊急
+              Urgent ‼️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"五樓狀態警告
+              ‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"【緊急 Urgent
+              ‼️】\n五樓有人闖入⚠️"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
@@ -3437,12 +3713,27 @@
       entity_id: media_player.can_ting
     action: media_player.volume_set
   - data:
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【廣播系統】測試訊息
-        TEST Message\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"測試訊息
-        TEST Message。\\n測試訊息 TEST Message。\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"【廣播系統】測試訊息 TEST Message\"\n      }\n  ]\n}\n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【廣播系統】測試訊息
+          TEST Message"
+              },
+              {
+                  "type":"text",
+                  "text":"測試訊息
+          TEST Message。\n測試訊息 TEST Message。"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"【廣播系統】測試訊息 TEST Message"
+              }
+          ]
     enabled: true
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - data:
       media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
       media_content_type: music
@@ -5031,13 +5322,27 @@
     action: notify.persistent_notification
     enabled: true
   - data:
-      title: 智慧家庭通知
-      message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常
-        \U0001F534，\\n請確認 ⚡ ⚠️\"\n      },\n      {\n          \"type\":\"text\",\n
-        \         \"text\":\"\U0001F32C️客廳電風扇電源連線異常⚡⚠️\"\n      }\n  ]\n}  \n"
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: |
+        [
+              {
+                  "type":"text",
+                  "text":"【智慧家庭通知】一般
+          General 🪧"
+              },
+              {
+                  "type":"text",
+                  "text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常
+          🔴，\n請確認 ⚡ ⚠️"
+              },
+              {
+                  "type":"text",
+        
+                   "text":"🌬️客廳電風扇電源連線異常⚡⚠️"
+              }
+          ]
     enabled: false
-    action: notify.line_bot_chiangfamilygroup
+    action: script.send_line_to_user
   - if:
     - condition: device
       type: is_on
@@ -5467,14 +5772,28 @@
               title: 智慧家庭通知
             action: notify.persistent_notification
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】一般 General \U0001FAA7\"\n      },\n      {\n
-                \         \"type\":\"text\",\n          \"text\":\"系統偵測所有人已離家，\\n家電皆為關閉狀態，\\n且門鎖皆已關閉上鎖，\\n已啟動離家模式。\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"離家程序正常完成\"\n
-                \     }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】一般 General 🪧"
+                      },
+                      {
+                
+                           "type":"text",
+                          "text":"系統偵測所有人已離家，\n家電皆為關閉狀態，\n且門鎖皆已關閉上鎖，\n已啟動離家模式。"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"離家程序正常完成"
+                
+                       }
+                  ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
       - conditions:
         - condition: and
           conditions:
@@ -5511,14 +5830,28 @@
             target:
               entity_id: automation.101li_jia_qing_jing
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】緊急 Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"系統偵測所有人已離家，\\n家電皆為關閉狀態但門鎖尚未上鎖，\\n請確認鐵門及二樓門鎖狀況！\\n(請手動將鐵門或門鎖關閉上鎖)\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\\n請確認鐵門及二樓門鎖狀況！\\n請手動將鐵門或門鎖關閉上鎖!\"\n      }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】緊急 Urgent ‼️"
+                      },
+                      {
+                          "type":"text",
+                
+                           "text":"系統偵測所有人已離家，\n家電皆為關閉狀態但門鎖尚未上鎖，\n請確認鐵門及二樓門鎖狀況！\n(請手動將鐵門或門鎖關閉上鎖)"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"【緊急
+                  Urgent ‼️】\n請確認鐵門及二樓門鎖狀況！\n請手動將鐵門或門鎖關閉上鎖!"
+                      }
+                  ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
       - conditions:
         - condition: and
           conditions:
@@ -5553,25 +5886,53 @@
               title: 智慧家庭通知
             action: notify.persistent_notification
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】一般 General \U0001FAA7\"\n      },\n      {\n
-                \         \"type\":\"text\",\n          \"text\":\"系統偵測所有人已離家，\\n門鎖皆已上鎖關閉，\\n但家電未完全關閉，\\n將自動啟動離家模式關閉電源。\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"將自動啟動離家模式並關閉電源。\"\n
-                \     }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】一般 General 🪧"
+                      },
+                      {
+                
+                           "type":"text",
+                          "text":"系統偵測所有人已離家，\n門鎖皆已上鎖關閉，\n但家電未完全關閉，\n將自動啟動離家模式關閉電源。"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"將自動啟動離家模式並關閉電源。"
+                
+                       }
+                  ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】一般 General \U0001FAA7\"\n      },\n      {\n
-                \         \"type\":\"text\",\n          \"text\":\"系統偵測所有人已離家，\\n門鎖皆已上鎖關閉，\\n但家電未完全關閉，\\n將自動啟動離家模式關閉電源。\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"將自動啟動離家模式並關閉電源。\"\n
-                \     }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】一般 General 🪧"
+                      },
+                      {
+                
+                           "type":"text",
+                          "text":"系統偵測所有人已離家，\n門鎖皆已上鎖關閉，\n但家電未完全關閉，\n將自動啟動離家模式關閉電源。"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"將自動啟動離家模式並關閉電源。"
+                
+                       }
+                  ]
               data:
                 profile: line_bot_Kenny
             enabled: false
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
       - conditions:
         - condition: and
           conditions:
@@ -5608,14 +5969,28 @@
               title: 智慧家庭通知
             action: notify.persistent_notification
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】緊急 Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"系統偵測所有人已離家，\\n家電尚未完全關閉且門鎖尚未上鎖，\\n將自動啟動離家模式關閉電源。\\n請確認鐵門及二樓門鎖狀況！\\n（請手動將鐵門或門鎖關閉上鎖）\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\\n將自動啟動離家模式關閉電源，\\n請手動將鐵門或門鎖關閉上鎖!\"\n      }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】緊急 Urgent ‼️"
+                      },
+                      {
+                          "type":"text",
+                
+                           "text":"系統偵測所有人已離家，\n家電尚未完全關閉且門鎖尚未上鎖，\n將自動啟動離家模式關閉電源。\n請確認鐵門及二樓門鎖狀況！\n（請手動將鐵門或門鎖關閉上鎖）"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"【緊急
+                  Urgent ‼️】\n將自動啟動離家模式關閉電源，\n請手動將鐵門或門鎖關閉上鎖!"
+                      }
+                  ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
   mode: single
 - id: '1726328391798'
   alias: 08-6離家保全系統Beta
@@ -5677,16 +6052,30 @@
         sequence:
         - parallel:
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】緊急 Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"\U0001F534保全系統告警⚠️:\\n系統偵測所有人已離家\U0001F3E0，\\n且已啟動離家模式，\\n但鐵門已打開！\U0001F697
-                ⚠️\\n\\n請確認⚠️\\n保全系統未解除狀態下\U0001F534，鐵門目前已打開\U0001F697，請確認⚠️\\n（請手動將鐵門或門鎖關閉上鎖）\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\\n\U0001F697鐵門於警戒期間打開 \U0001F534，\\n請確認安全狀況⚠️\"\n      }\n
-                \ ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】緊急 Urgent ‼️"
+                      },
+                      {
+                          "type":"text",
+                
+                           "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但鐵門已打開！🚗
+                  ⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，鐵門目前已打開🚗，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"【緊急
+                  Urgent ‼️】\n🚗鐵門於警戒期間打開 🔴，\n請確認安全狀況⚠️"
+                      }
+                
+                   ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
           - data:
               message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！'
               title: 保全告警系統
@@ -6016,16 +6405,30 @@
         sequence:
         - parallel:
           - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧保全通知】緊急 Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"\U0001F534保全系統告警⚠️:\\n系統偵測所有人已離家\U0001F3E0，\\n且已啟動離家模式，\\n但二樓門鎖已打開！\U0001F6AA
-                ⚠️\\n\\n請確認⚠️\\n保全系統未解除狀態下\U0001F534，二樓門鎖目前已打開\U0001F6AA，請確認⚠️\\n（請手動將鐵門或門鎖關閉上鎖）\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\\n\U0001F6AA二樓門鎖於警戒期間打開 \U0001F534，\\n請確認安全狀況⚠️\"\n      }\n
-                \ ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧保全通知】緊急 Urgent ‼️"
+                      },
+                      {
+                          "type":"text",
+                
+                           "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但二樓門鎖已打開！🚪
+                  ⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，二樓門鎖目前已打開🚪，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"【緊急
+                  Urgent ‼️】\n🚪二樓門鎖於警戒期間打開 🔴，\n請確認安全狀況⚠️"
+                      }
+                
+                   ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
           - data:
               message: '保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！'
               title: 保全告警系統
@@ -6879,15 +7282,38 @@
       sequence:
       - parallel:
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由家庭APP手動觸發\U0001F4F1，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                    {
+                        "type":"text",
+              
+                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
+                    },
+                    {
+              
+                         "type":"text",
+                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🔴緊急模式由家庭APP手動觸發📱，\n請確認是否誤觸‼️\n若為誤觸或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"【🆘
+                緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
+                    }
+                ]
           enabled: true
-          action: notify.line_bot_chiangfamilygroup
+          action: script.send_line_to_user
         - data:
             message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
               \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
@@ -7152,15 +7578,34 @@
             milliseconds: 0
         - parallel:
           - data:
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n
-                \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198
-                緊急模式為啟動狀態\U0001F534\\n(所有照明開啟並關閉電源)\\n\\n\U0001F30D緊急模式由系統自動判定觸發\\n(地震\U0001FAE8,火災\U0001F525,緊急情況等)\\n\\n\U0001F198請確認實際狀況!\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況穩定後\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-                緊急 Urgent ‼️】緊急模式啟動\\n請確認緊急情況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+              user_id: C26ff4e9d30159ba5264a1676f46f8f86
+              payload: |
+                [
+                      {
+                          "type":"text",
+                
+                           "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
+                      },
+                
+                       {
+                          "type":"text",
+                          "text":"🆘
+                  緊急模式為啟動狀態🔴\n(所有照明開啟並關閉電源)\n\n🌍緊急模式由系統自動判定觸發\n(地震🫨,火災🔥,緊急情況等)\n\n🆘請確認實際狀況!"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"🟢緊急情況穩定後\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
+                
+                       },
+                      {
+                          "type":"text",
+                          "text":"【🆘
+                  緊急 Urgent ‼️】緊急模式啟動\n請確認緊急情況與檢查電源與照明設備。"
+                      }
+                  ]
             enabled: true
-            action: notify.line_bot_chiangfamilygroup
+            action: script.send_line_to_user
           - data:
               message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
                 \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n
@@ -7345,15 +7790,38 @@
       sequence:
       - parallel:
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由系統手動觸發\U0001F449，\\n請確認是否為測試或誤發‼️\\n若為測試或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                    {
+                        "type":"text",
+              
+                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
+                    },
+                    {
+              
+                         "type":"text",
+                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🔴緊急模式由系統手動觸發👉，\n請確認是否為測試或誤發‼️\n若為測試或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"【🆘
+                緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
+                    }
+                ]
           enabled: true
-          action: notify.line_bot_chiangfamilygroup
+          action: script.send_line_to_user
         - data:
             message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
               \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
@@ -7612,15 +8080,38 @@
       sequence:
       - parallel:
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由實體按鈕按壓觸發\U0001F518，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                    {
+                        "type":"text",
+              
+                         "text":"【智慧家庭通知】🆘 緊急 Urgent ‼️"
+                    },
+                    {
+              
+                         "type":"text",
+                        "text":"🆘 緊急模式已被啟動，\n所有照明開啟並關閉電源!"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🔴緊急模式由實體按鈕按壓觸發🔘，\n請確認是否誤觸‼️\n若為誤觸或誤發命令，\n請復原所有電源與照明設備狀態。\n(於家庭APP中直接調整電源與照明or執行離家模式)"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"🟢緊急情況結束後，\n請確認所有電源與照明設備開關狀態!\n根據情況開關電源與照明。\n\n復原方式:\n於家庭APP中直接調整電源與照明or執行離家模式"
+              
+                     },
+                    {
+                        "type":"text",
+                        "text":"【🆘
+                緊急 Urgent ‼️】緊急模式啟動\n請確認狀況與檢查電源與照明設備。"
+                    }
+                ]
           enabled: true
-          action: notify.line_bot_chiangfamilygroup
+          action: script.send_line_to_user
         - data:
             message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
               \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
@@ -8611,14 +9102,28 @@
   - sequence:
     - parallel:
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
-            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告
-            ‼️，\\n五樓保全系統偵測有人闖入 \U0001F198，\\n房間有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"【重要 Important
-            ❗】\\n五樓房間有人進入⚠️\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】重要
+              Important ❗"
+                  },
+                  {
+                      "type":"text",
+                      "text":"五樓狀態警告
+              ‼️，\n五樓保全系統偵測有人闖入 🆘，\n房間有人闖入‍☠️\n，請注意⚠️。\n請儘速離開"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"【重要 Important
+              ❗】\n五樓房間有人進入⚠️"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
@@ -8639,14 +9144,28 @@
           - media_player.ke_ting_homepod
           - media_player.ding_lou_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急
-            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告
-            ‼️，\\n五樓保全系統未解除狀態 \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"【緊急 Urgent
-            ‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】緊急
+              Urgent ‼️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"五樓狀態警告
+              ‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"【緊急 Urgent
+              ‼️】\n五樓有人闖入⚠️"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           volume_level: 0.15
         target:
@@ -8726,14 +9245,28 @@
           - media_player.ke_ting_homepod
           - media_player.ding_lou_homepod
       - data:
-          title: 智慧家庭通知
-          message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】緊急
-            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"五樓狀態警告
-            ‼️，\\n五樓保全系統未解除狀態 \U0001F198，\\n有人闖入‍☠️\\n，請注意⚠️。\\n請儘速離開）\"\n      },\n
-            \     {\n          \"type\":\"text\",\n          \"text\":\"【緊急 Urgent
-            ‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n}  \n"
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+                  {
+                      "type":"text",
+                      "text":"【智慧保全通知】緊急
+              Urgent ‼️"
+                  },
+                  {
+                      "type":"text",
+                      "text":"五樓狀態警告
+              ‼️，\n五樓保全系統未解除狀態 🆘，\n有人闖入‍☠️\n，請注意⚠️。\n請儘速離開）"
+                  },
+            
+                   {
+                      "type":"text",
+                      "text":"【緊急 Urgent
+              ‼️】\n五樓有人闖入⚠️"
+                  }
+              ]
         enabled: true
-        action: notify.line_bot_chiangfamilygroup
+        action: script.send_line_to_user
       - data:
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
@@ -9833,11 +10366,22 @@
   actions:
   - sequence:
     - data:
-        message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
-          Important ❗（106B）\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"網關連線同步系統異常，\\n請注意⚠️\"\n
-          \     }\n  ]\n}  \n"
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: |
+          [
+                {
+                    "type":"text",
+                    "text":"【智慧保全通知】重要
+            Important ❗（106B）"
+                },
+                {
+                    "type":"text",
+                    "text":"網關連線同步系統異常，\n請注意⚠️"
+          
+                 }
+            ]
       enabled: false
-      action: notify.line_bot_chiangfamilygroup
+      action: script.send_line_to_user
     - data:
         message: 網關連線同步系統異常，\n請注意⚠️
         title: 網關狀態警告
@@ -10316,14 +10860,19 @@
       state: 'on'
     then:
     - data:
-        title: '{{ notif_title_calib }}'
-        message: "{{\n  {\n    \"messages\": [\n      {\"type\":\"text\",\"text\":
-          notif_title_calib},\n      {\"type\":\"text\",\"text\":\"\U0001F527 偵測到門鎖電量已由低回升至
-          80%以上，視為完成換電池。\\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。\"},\n      {\"type\":\"text\",\"text\":\"狀態摘要：\\n•
-          新電池款式：\" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~
-          \"\\n• 校正後日耗電率：\" ~ (states('input_number.doorlock_batt_drop_last_cycle'))
-          ~ \" %/日\"}\n    ]\n  } | tojson\n}}"
-      action: notify.line_bot_chiangfamilygroup
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: |
+          [
+                {"type":"text","text":
+            notif_title_calib},
+                {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至
+            80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
+                {"type":"text","text":"狀態摘要：\n•
+            新電池款式：" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~
+            "\n• 校正後日耗電率：" ~ (states('input_number.doorlock_batt_drop_last_cycle'))
+            ~ " %/日"}
+              ]
+      action: script.send_line_to_user
   - action: notify.persistent_notification
     data:
       title: '{{ notif_title_calib }}'
@@ -10401,9 +10950,10 @@
                   state: 'on'
                 then:
                 - data:
-                    title: '{{ notif_title_alarm }}'
-                    message: '{{ line_payload_alarm }}'
-                  action: notify.line_bot_chiangfamilygroup
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: |
+                      '{{ line_payload_alarm }}'
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT5'' }}'
@@ -10418,9 +10968,10 @@
                   state: 'on'
                 then:
                 - data:
-                    title: '{{ notif_title_alarm }}'
-                    message: '{{ line_payload_alarm_5pct }}'
-                  action: notify.line_bot_chiangfamilygroup
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: |
+                      '{{ line_payload_alarm_5pct }}'
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT15'' }}'
@@ -10435,9 +10986,10 @@
                   state: 'on'
                 then:
                 - data:
-                    title: '{{ notif_title_warn }}'
-                    message: '{{ line_payload_warn }}'
-                  action: notify.line_bot_chiangfamilygroup
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: |
+                      '{{ line_payload_warn }}'
+                  action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT35'' }}'
@@ -10452,9 +11004,10 @@
                   state: 'on'
                 then:
                 - data:
-                    title: '{{ notif_title_warn }}'
-                    message: '{{ line_payload_35 }}'
-                  action: notify.line_bot_chiangfamilygroup
+                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                    payload: |
+                      '{{ line_payload_35 }}'
+                  action: script.send_line_to_user
           - data:
               entity_id: input_text.doorlock_batt_last_stage
               value: '{{ stage_now }}'
@@ -11283,13 +11836,19 @@
               state: 'on'
             then:
             - data:
-                title: '{{ notif_title_urgent }}'
-                message: "{{\n  {\n    \"messages\": [\n      {\"type\":\"text\",\"text\":
-                  notif_title_urgent},\n      {\"type\":\"text\",\"text\": \"已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態：\"\n
-                  \                            ~ states('alarm_control_panel.54ef44cf58f9_alarm')
-                  ~ \"）。\"},\n      {\"type\":\"text\",\"text\": batt_line_text if
-                  batt_line_text|trim else \"（無門鎖電量異常）\"}\n    ]\n  } | tojson\n}}"
-              action: notify.line_bot_chiangfamilygroup
+                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                payload: |
+                  [
+                        {"type":"text","text":
+                    notif_title_urgent},
+                        {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
+                  
+                                                ~ states('alarm_control_panel.54ef44cf58f9_alarm')
+                    ~ "）。"},
+                        {"type":"text","text": batt_line_text if
+                    batt_line_text|trim else "（無門鎖電量異常）"}
+                      ]
+              action: script.send_line_to_user
   - choose:
     - conditions:
       - condition: and
@@ -11318,9 +11877,10 @@
           state: 'on'
         then:
         - data:
-            title: '{{ notif_title_general }}'
-            message: '{{ line_payload_general }}'
-          action: notify.line_bot_chiangfamilygroup
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              '{{ line_payload_general }}'
+          action: script.send_line_to_user
     - conditions:
       - condition: and
         conditions:
@@ -11342,9 +11902,10 @@
           state: 'on'
         then:
         - data:
-            title: '{{ notif_title_urgent }}'
-            message: '{{ line_payload_urgent }}'
-          action: notify.line_bot_chiangfamilygroup
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              '{{ line_payload_urgent }}'
+          action: script.send_line_to_user
   mode: single
   variables:
     notif_title_base: 【AI離家系統 V2.0】
@@ -11793,11 +12354,21 @@
       state: 'on'
     then:
     - data:
-        title: 智慧家庭通知
-        message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】重要
-          Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常
-          \U0001F534，\\n請確認 ⚡ ⚠️\"\n      }\n  ]\n}\n"
-      action: notify.line_bot_chiangfamilygroup
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: |
+          [
+                {
+                    "type":"text",
+                    "text":"【智慧家庭通知】重要
+            Important ❗"
+                },
+                {
+                    "type":"text",
+                    "text":"⚠️智慧家庭告警:\n🛜客廳電風扇電源連線異常
+            🔴，\n請確認 ⚡ ⚠️"
+                }
+            ]
+      action: script.send_line_to_user
   - if:
     - condition: device
       type: is_on
@@ -12040,11 +12611,17 @@
           state: 'on'
         then:
         - data:
-            message: "{\n  \"messages\":[\n      {\"type\":\"text\", \"text\":\"【災防系統通知】一般
-              General \U0001FAA7\\n\U0001F30D 災防報告 (早晨補報)\"},\n      {\"type\":\"text\",
-              \"text\":\" 收到以下政府災害訊息:\"},\n      {\"type\":\"text\", \"text\":\"{{
-              states('sensor.disaster') }}\"}\n  ]\n}\n"
-          action: notify.line_bot_chiangfamilygroup
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                    {"type":"text", "text":"【災防系統通知】一般
+                General 🪧\n🌍 災防報告 (早晨補報)"},
+                    {"type":"text",
+                "text":" 收到以下政府災害訊息:"},
+                    {"type":"text", "text":"{{
+                states('sensor.disaster') }}"}
+                ]
+          action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
         data:
@@ -12089,11 +12666,17 @@
           state: 'on'
         then:
         - data:
-            message: "{\n  \"messages\":[\n      {\"type\":\"text\", \"text\":\"【災防系統通知】一般
-              General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"},\n
-              \     {\"type\":\"text\", \"text\":\" 收到以下政府災害訊息:\"},\n      {\"type\":\"text\",
-              \"text\":\"{{ states('sensor.disaster') }}\"}\n  ]\n}\n"
-          action: notify.line_bot_chiangfamilygroup
+            user_id: C26ff4e9d30159ba5264a1676f46f8f86
+            payload: |
+              [
+                    {"type":"text", "text":"【災防系統通知】一般
+                General 🪧\n🌍 災防報告 Disaster Prevention Report"},
+              
+                     {"type":"text", "text":" 收到以下政府災害訊息:"},
+                    {"type":"text",
+                "text":"{{ states('sensor.disaster') }}"}
+                ]
+          action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
         data:
