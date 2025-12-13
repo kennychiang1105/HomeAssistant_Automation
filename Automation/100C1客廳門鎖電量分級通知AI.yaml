@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 100C客廳門鎖電量分級通知AI_Beta — V1 Beta 10
-# 相容版本：Helpers V1 Beta 13
-# 變更摘要（相較 V1 Beta 8）：
-# - 版本號更新，以對應最新 Helper。
+# 100C1客廳門鎖電量分級通知AI (V2.0)   （Helpers V2.2 相容）
+# 更新重點（相對 V1 Beta 10）：
+# 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
+# 2) 通知優化：新增「低於5%」的緊急 LINE 通知等級，並確保所有等級皆有 HA 系統通知。
 # ─────────────────────────────────────────────────────────────
-alias: 100C客廳門鎖電量分級通知AI_Beta (V1 Beta 10)
+alias: 100C1客廳門鎖電量分級通知AI (V2.0)
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
 
@@ -26,10 +26,7 @@ triggers:
     for: "00:01:00"
 
 variables:
-  automation_version: V1 Beta 10
-  helpers_compat: Helpers V1 Beta 13
-
-  notif_title_base: 【AI電量告警系統 V1 Beta10】
+  notif_title_base: 【AI電量告警系統 V2.0】
   notif_title_warn: |-
     {{ notif_title_base }}
     門鎖電量提醒 🚪🔋
@@ -42,12 +39,14 @@ variables:
   lvl: "{{ (doorlock_batt if batt_valid else 0)|round(1) }}"
 
   # 依目前電量映射成「等級」
-  # OK: >=35 或資料無效; LT35: <35; LT15: <15; EQ0: 0% 完全沒電（<1% 視為 0）
+  # OK: >=35 或資料無效; LT35: <35; LT15: <15; LT5: <5; EQ0: 0% 完全沒電（<1% 視為 0）
   stage_now: >-
     {% if not batt_valid %}
       OK
     {% elif doorlock_batt < 1 %}
       EQ0
+    {% elif doorlock_batt < 5 %}
+      LT5
     {% elif doorlock_batt < 15 %}
       LT15
     {% elif doorlock_batt < 35 %}
@@ -91,6 +90,14 @@ variables:
         {"type":"text","text": batt_line_text}
       ]} | tojson
     }}
+  line_payload_alarm_5pct: >-
+    {{
+      {"messages":[
+        {"type":"text","text": notif_title_alarm},
+        {"type":"text","text":"🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"},
+        {"type":"text","text": batt_line_text}
+      ]} | tojson
+    }}
   line_payload_alarm: >-
     {{
       {"messages":[
@@ -123,26 +130,70 @@ actions:
                           - condition: template
                             value_template: "{{ stage_now == 'EQ0' }}"
                         sequence:
-                          - service: notify.line_bot_chiangfamilygroup
+                          - service: notify.persistent_notification
                             data:
                               title: "{{ notif_title_alarm }}"
-                              message: "{{ line_payload_alarm }}"
+                              message: "🟥 門鎖電量完全沒電（0%）！請以行動電源供電後解鎖。此時「自動離家」與「網關保護」可能異常。"
+                          - if:
+                              - condition: state
+                                entity_id: input_boolean.notify_line_emergency_enable
+                                state: "on"
+                            then:
+                              - service: notify.line_bot_chiangfamilygroup
+                                data:
+                                  title: "{{ notif_title_alarm }}"
+                                  message: "{{ line_payload_alarm }}"
+                      - conditions:  # <5%
+                          - condition: template
+                            value_template: "{{ stage_now == 'LT5' }}"
+                        sequence:
+                          - service: notify.persistent_notification
+                            data:
+                              title: "{{ notif_title_alarm }}"
+                              message: "🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
+                          - if:
+                              - condition: state
+                                entity_id: input_boolean.notify_line_emergency_enable
+                                state: "on"
+                            then:
+                              - service: notify.line_bot_chiangfamilygroup
+                                data:
+                                  title: "{{ notif_title_alarm }}"
+                                  message: "{{ line_payload_alarm_5pct }}"
                       - conditions:  # <15%
                           - condition: template
                             value_template: "{{ stage_now == 'LT15' }}"
                         sequence:
-                          - service: notify.line_bot_chiangfamilygroup
+                          - service: notify.persistent_notification
                             data:
                               title: "{{ notif_title_warn }}"
-                              message: "{{ line_payload_warn }}"
+                              message: "🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
+                          - if:
+                              - condition: state
+                                entity_id: input_boolean.notify_line_important_enable
+                                state: "on"
+                            then:
+                              - service: notify.line_bot_chiangfamilygroup
+                                data:
+                                  title: "{{ notif_title_warn }}"
+                                  message: "{{ line_payload_warn }}"
                       - conditions:  # <35%
                           - condition: template
                             value_template: "{{ stage_now == 'LT35' }}"
                         sequence:
-                          - service: notify.line_bot_chiangfamilygroup
+                          - service: notify.persistent_notification
                             data:
                               title: "{{ notif_title_warn }}"
-                              message: "{{ line_payload_35 }}"
+                              message: "🟨 門鎖電量 35% 以下，建議安排電池更換。"
+                          - if:
+                              - condition: state
+                                entity_id: input_boolean.notify_line_important_enable
+                                state: "on"
+                            then:
+                              - service: notify.line_bot_chiangfamilygroup
+                                data:
+                                  title: "{{ notif_title_warn }}"
+                                  message: "{{ line_payload_35 }}"
                   # 成功通知後，寫回已通知等級
                   - service: input_text.set_value
                     data:

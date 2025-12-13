@@ -1,15 +1,15 @@
-###AI Automation help tools###
 # ──────────────────────────────────────────────
-# Helpers（V1 Beta 16）
+# Helpers（V2.2）
 # ──────────────────────────────────────────────
 # 新增與強化：
-#   • 門鎖電量通知：修復因 initial: OK 導致重啟後重複通知的問題。
-#   • 頂樓風扇AI優化：風速曲線調整至「終極平滑模式」，實現最低30%至最高100%風量，且每階調整不超過2.5%，並更新相關溫度門檻。
-#   • 緊急模式強化：新增多種觸發方式（實體/虛擬按鈕）與詳細通知，並加入自動復位。
-#   • 頂樓AI自動化：整合風扇智慧溫控、基於Wi-Fi與攝影機的上下樓情境判斷、以及夜燈亮度修正。
-#   • 車牌辨識 (LPR)：新增車牌辨識自動化，整合條件式關門邏輯。
-#   • 風扇與燈光：加入客廳風扇防關閉機制、廚房感應燈、以及多項樓梯燈光連動與修正。
-#   • 頂樓風扇：手動保留（暫停自動關閉）名稱統一，並可在任何時段使用 1 小時暫停。
+#   • LINE 通知開關：新增 input_boolean.notify_line_general_enable, input_boolean.notify_line_important_enable, input_boolean.notify_line_emergency_enable，用於分級控制 LINE 通知。
+#   • 客廳/頂樓風扇模式：分離客廳(21A)與頂樓(22)風扇的「防關閉」和「自動風速」模式，並為客廳風扇新增「夏季模式」與「Debug模式」。
+#   • 門鎖電量通知：修復重啟後重複通知問題。
+#   • 頂樓風扇AI優化：風速曲線調整，實現更平滑的風量控制。
+#   • 緊急模式強化：新增多種觸發方式與自動復位。
+#   • 頂樓AI自動化：整合溫控、情境判斷、夜燈修正。
+#   • 車牌辨識 (LPR)：新增車牌辨識自動化與相關設定。
+# ──────────────────────────────────────────────
 
 timer:
   topfloor_down_intent_guard:
@@ -18,6 +18,9 @@ timer:
     name: 頂樓「上樓後」黏著鎖（90秒）
   topfloor_lock_after_down:
     name: 頂樓「下樓後」黏著鎖（90秒）
+  living_room_fan_light_sync_snooze:
+    name: 客廳風扇_燈光連動暫停
+    duration: "01:00:00"
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
@@ -34,6 +37,30 @@ input_boolean:
     name: 頂樓風扇_手動保留（暫停自動關閉）
     icon: mdi:hand-heart
     # 手動開啟但覺得冷時，可開啟此開關避免自動關閉
+
+  top_floor_fan_auto_mode:
+    name: 頂樓電風扇_自動模式
+    icon: mdi:fan-auto
+    initial: on
+
+  living_room_fan_auto_speed_mode:
+    name: 客廳風扇_自動風速模式
+    icon: mdi:fan-auto
+    initial: on
+
+  living_room_fan_prevent_off_mode:
+    name: 客廳風扇_防關閉模式
+    icon: mdi:fan-off
+    initial: off
+
+  living_room_fan_debug_notify:
+    name: 客廳風扇_通知Debug模式
+    icon: mdi:bug-outline
+
+  living_room_fan_summer_mode:
+    name: 客廳風扇_夏季模式
+    icon: mdi:weather-sunny
+    initial: off
 
   # 頂樓進出情境（你另一套上/下樓自動化使用）
   ding_lou_shang_lou_qing_jing:
@@ -56,7 +83,19 @@ input_boolean:
   lpr_auto_close_enable:
     name: LPR自動關門（啟用後才會真的關門）
     icon: mdi:garage
-    initial: false   
+    initial: false
+  notify_line_general_enable:
+    name: LINE通知啟用_一般
+    icon: mdi:bell-outline
+    initial: on
+  notify_line_important_enable:
+    name: LINE通知啟用_重要
+    icon: mdi:bell-alert-outline
+    initial: on
+  notify_line_emergency_enable:
+    name: LINE通知啟用_緊急
+    icon: mdi:bell-badge-outline
+    initial: on
     
 input_number:
   # 車牌辨識AI_Beta

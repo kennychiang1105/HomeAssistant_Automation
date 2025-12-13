@@ -1,3 +1,11 @@
+# ─────────────────────────────────────────────────────────────
+# Scripts (V2.1)   （Helpers V2.2 相容）
+# 更新重點：
+# 1) 版本號升級：升級至 V2.1，與 Helper V2.2 同步。
+# 2) LINE 通知優化：地震預警系統的 LINE 通知已設定為「緊急」等級。
+# 3) Helper 整合：新增 input_boolean.helper_line_notification_urgent 開關，可控制是否發送 LINE 緊急通知。
+# ─────────────────────────────────────────────────────────────
+
 '99999999999999':
   alias: 地震預警系統(遠端)
   variables:
@@ -51,31 +59,39 @@
             target:
               entity_id: automation.jin_ji_mo_shi
             action: automation.trigger
-          - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
-                \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
-            enabled: true
-            action: notify.line_bot_chiangfamilygroup
+          - if:
+            - condition: state
+              entity_id: input_boolean.helper_line_notification_urgent
+              state: 'on'
+            then:
+              - service: notify.line_bot_chiangfamilygroup
+                data:
+                  title: 智慧家庭通知
+                  message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
+                    \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
+                    \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
+                    \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
+                    Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
           - action: input_boolean.turn_on
             metadata: {}
             data: {}
             target:
               entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
         else:
-        - data:
-            title: 智慧家庭通知
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
-              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-              Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
-              \ \n"
-          enabled: true
-          action: notify.line_bot_chiangfamilygroup
+        - if:
+          - condition: state
+            entity_id: input_boolean.helper_line_notification_urgent
+            state: 'on'
+          then:
+            - service: notify.line_bot_chiangfamilygroup
+              data:
+                title: 智慧家庭通知
+                message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
+                  \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
+                  \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
+                  \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
+                  Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
+                  \ \n"
       - data:
           volume_level: 0.65
         action: media_player.volume_set
@@ -243,31 +259,39 @@
             target:
               entity_id: automation.jin_ji_mo_shi
             action: automation.trigger
-          - data:
-              title: 智慧家庭通知
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
-                \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
-            enabled: true
-            action: notify.line_bot_chiangfamilygroup
+          - if:
+            - condition: state
+              entity_id: input_boolean.helper_line_notification_urgent
+              state: 'on'
+            then:
+              - service: notify.line_bot_chiangfamilygroup
+                data:
+                  title: 智慧家庭通知
+                  message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
+                    \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
+                    \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
+                    \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
+                    Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
           - action: input_boolean.turn_on
             metadata: {}
             data: {}
             target:
               entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
         else:
-        - data:
-            title: 智慧家庭通知
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
-              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-              Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
-              \ \n"
-          enabled: true
-          action: notify.line_bot_chiangfamilygroup
+        - if:
+          - condition: state
+            entity_id: input_boolean.helper_line_notification_urgent
+            state: 'on'
+          then:
+            - service: notify.line_bot_chiangfamilygroup
+              data:
+                title: 智慧家庭通知
+                message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
+                  \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
+                  \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
+                  \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
+                  Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
+                  \ \n"
       - type: turn_on
         device_id: fdcccfa405461070717b80a56a590960
         entity_id: 61eaa5fb8386221ba077bcb884e74573

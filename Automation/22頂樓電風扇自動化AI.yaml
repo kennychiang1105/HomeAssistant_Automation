@@ -1,40 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化_AI_Beta (V1 Beta 15)   （Helpers V1 Beta 15 相容）
-# 更新重點（相對 V14）：
-# 1) 導入體感溫度：整合 HomePod Mini 濕度，計算體感溫度 (Heat Index)，溫控更貼近人體感受。
-# 2) AC 優先權增強：當冷氣溫度顯著高於體感溫度 (≥1.5°C) 時，優先採用冷氣溫度，避免誤判。
-# 3) 手動保留修正：修正在手動保留期間，關閉再開啟風扇時，計時器不會重置的問題。
-#
-# 更新重點（相對 V13）：
-# 1) 風扇曲線「終極平滑」模式：導入全新風量曲線，最低30%、最高100%，每階升降不超過2.5%，提供極致平順的體感。
-# 2) 上樓開扇門檻：微調為 25.5°C，體感更靈敏。
-#
-# 更新重點（相對 V12）：
-# 1) 手動保留優化：任何時段手動開啟且低於門檻時，暫停自動關閉 1 小時，並支援超時自動解除與通知。
-# 2) Helper 更名同步：採用通用的 `ding_lou_fan_manual_hold` 命名，與 Helper V1 Beta 14 對應。
-# 3) 版本號更新。
-# 更新重點（相對 V11）：
-# 1) 版本號更新
-# 更新重點（相對 V10）：
-# 1) Helper 相容性：更新至對應「Helpers (V1 Beta 13)」。
-# 2) 實體ID修正：配合新版 Helper，將 `ding_lou_shang_lou_qing_jing`
-#    更新為 `ding_lou_shang_lou_qing_jing`。
-#
-# 需要的 Helpers（皆為 Helpers V1 Beta 14，無需新增/改名/initial）：
-# input_boolean.ding_lou_fan_debug_notify
-# input_boolean.ding_lou_fan_cold_off_memory   ← 不設定 initial
-# input_boolean.ding_lou_fan_manual_hold
-# input_boolean.ding_lou_shang_lou_qing_jing
-# input_number.enter_low_close_c
-# input_number.enter_high_open_c
-# input_number.night_cold_off_c
-# input_number.morning_reopen_c
-# input_number.ac_weight_add_c
-# input_number.ac_fast_rise_th_c
-# input_number.ac_fast_rise_bonus_c
+# 22頂樓電風扇自動化AI (V2.0)   （Helpers V2.2 相容）
+# 更新重點（相對 V1 Beta 16）：
+# 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
+# 2) 程式碼優化：移除舊版 Helpers 清單，使程式碼更簡潔。
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化_AI_Beta (V1 Beta 15)
+alias: 22頂樓電風扇自動化AI (V2.0)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -59,6 +30,11 @@ trigger:
     entity_id: input_boolean.ding_lou_fan_manual_hold
     to: "on"
     for: "01:00:00"
+
+condition:
+  - condition: state
+    entity_id: input_boolean.top_floor_fan_auto_mode
+    state: "on"
 
 action:
   - variables:
