@@ -1,6 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# Scripts (V2.1)   （Helpers V2.2 相容）
-# 更新重點：
+# Scripts (V2.2)   （Helpers V2.6 相容）
+# 更新重點（相對 V2.1）：
+# 1) EEW 變數安全：將遠端地震等級與秒數寫入 Helpers 後再建構 LINE JSON payload，避免 Unknown。
+#
+# 前版更新：
 # 1) 版本號升級：升級至 V2.1，與 Helper V2.2 同步。
 # 2) LINE 通知優化：地震預警系統的 LINE 通知已設定為「緊急」等級。
 # 3) Helper 整合：新增 input_boolean.helper_line_notification_urgent 開關，可控制是否發送 LINE 緊急通知。
@@ -11,6 +14,14 @@
   variables:
     lv: '{{ level[:1] | int }}'
   sequence:
+  - service: input_text.set_value
+    data:
+      entity_id: input_text.line_eew_remote_level
+      value: "{{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
+  - service: input_text.set_value
+    data:
+      entity_id: input_text.line_eew_remote_seconds
+      value: "{{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
   - if:
     - condition: device
       type: is_on
@@ -64,14 +75,17 @@
               entity_id: input_boolean.helper_line_notification_urgent
               state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  title: 智慧家庭通知
-                  message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                    \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
-                    \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                    \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                    Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
+                        {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                        {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
+                      ] | tojson
+                    }}
           - action: input_boolean.turn_on
             metadata: {}
             data: {}
@@ -83,15 +97,17 @@
             entity_id: input_boolean.helper_line_notification_urgent
             state: 'on'
           then:
-            - service: notify.line_bot_chiangfamilygroup
+            - service: script.send_line_to_user
               data:
-                title: 智慧家庭通知
-                message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                  \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
-                  \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                  \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                  Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
-                  \ \n"
+                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                payload: >-
+                  {{
+                    [
+                      {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
+                      {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                      {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
+                    ] | tojson
+                  }}
       - data:
           volume_level: 0.65
         action: media_player.volume_set
@@ -112,7 +128,7 @@
             即將發生地震，
 
 
-            地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+            地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達
 
 
             發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
@@ -140,11 +156,11 @@
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: >-
-          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達。
+          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
 
           即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達，地震！地震！
+          地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達，地震！地震！
         cache: true
       enabled: true
     - delay:
@@ -264,14 +280,17 @@
               entity_id: input_boolean.helper_line_notification_urgent
               state: 'on'
             then:
-              - service: notify.line_bot_chiangfamilygroup
+              - service: script.send_line_to_user
                 data:
-                  title: 智慧家庭通知
-                  message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                    \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統作動⚠️\"\n      },\n
-                    \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001FAE8，\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                    \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                    Urgent ‼️】\U0001FAE8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"\n      }\n  ]\n}  \n"
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
+                        {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                        {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
+                      ] | tojson
+                    }}
           - action: input_boolean.turn_on
             metadata: {}
             data: {}
@@ -283,15 +302,17 @@
             entity_id: input_boolean.helper_line_notification_urgent
             state: 'on'
           then:
-            - service: notify.line_bot_chiangfamilygroup
+            - service: script.send_line_to_user
               data:
-                title: 智慧家庭通知
-                message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                  \         \"text\":\"【災防系統通知】緊急 Urgent ‼️\\n地震預警系統 ⚠️\"\n      },\n
-                  \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震\U0001FAE8，\\n\\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"\n
-                  \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急
-                  Urgent ‼️】\U0001FAE8\\n地震{{level}}級，{{seconds}}秒後到達\"\n      }\n  ]\n}
-                  \ \n"
+                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                payload: >-
+                  {{
+                    [
+                      {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
+                      {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                      {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
+                    ] | tojson
+                  }}
       - type: turn_on
         device_id: fdcccfa405461070717b80a56a590960
         entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -312,7 +333,7 @@
         action: media_player.volume_set
       - data:
           title: 地震預警系統
-          message: "地震預警系統收到訊息: \n\n即將發生地震\n\n地震預警系統預估地震{{level}}級，{{seconds}}秒後到達\n\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
+          message: "地震預警系統收到訊息: \n\n即將發生地震\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達\n\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
         enabled: false
         action: notify.line_notification_group
       - data:
@@ -322,7 +343,7 @@
             即將發生地震，
 
 
-            地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+            地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達
 
 
             發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
@@ -350,11 +371,11 @@
       data:
         media_player_entity_id: media_player.guang_bo_qun_zu_all
         message: >-
-          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達。
+          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
 
           即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{ level }}級，{{ seconds }}秒後到達，地震！地震！
+          地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達，地震！地震！
         cache: true
       enabled: true
     - delay:
