@@ -9854,7 +9854,7 @@
   mode: single
 - &id001
   id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
-  alias: 22頂樓電風扇自動化AI (V2.0)
+  alias: 22頂樓電風扇自動化AI (V2.1)
   triggers:
   - entity_id:
     - climate.ding_lou_kong_diao
@@ -9991,6 +9991,18 @@
         min }}
 
         '
+  - if:
+    - condition: template
+      value_template: '{{ t_eff_valid }}'
+    - condition: template
+      value_template: '{{ t_eff != states(''input_number.rooftop_effective_apparent_temperature'')
+        | float(0) }}'
+    then:
+    - target:
+        entity_id: input_number.rooftop_effective_apparent_temperature
+      data:
+        value: '{{ t_eff }}'
+      action: input_number.set_value
   - choose:
     - conditions:
       - condition: template
@@ -11559,7 +11571,7 @@
       }}'
 - *id004
 - id: '1765620344053'
-  alias: 21A_客廳電風扇整合控制AI (V2 Beta 2)
+  alias: 21A_客廳電風扇整合控制AI (V2.1)
   description: 整合溫控、防關閉、夏季模式的雙模式自動化
   triggers:
   - entity_id:
@@ -11660,6 +11672,16 @@
       - '{{ is_state(''fan.ke_ting_dian_feng_shan'', ''on'') }}'
       - '{{ t_eff_valid }}'
       sequence:
+      - if:
+        - condition: template
+          value_template: '{{ t_eff != states(''input_number.living_room_effective_apparent_temperature'')
+            | float(0) }}'
+        then:
+        - target:
+            entity_id: input_number.living_room_effective_apparent_temperature
+          data:
+            value: '{{ t_eff }}'
+          action: input_number.set_value
       - variables:
           desired_pct: '{{ desired_pct_curve | int }}'
           need_update: '{{ (desired_pct - fan_pct_now) | abs >= 5 }}'
@@ -11719,11 +11741,16 @@
       }}\n{% else %}\n  none\n{% endif %}"
     t_eff_valid: '{{ t_eff is not none }}'
     desired_pct_curve: "{% if not t_eff_valid %} {{ fan_pct_now }} {% else %}\n  {%
-      set t = t_eff | float %}\n  {% if t >= 31.3 %} 100 {% elif t >= 30.9 %} 95 {%
-      elif t >= 30.5 %} 90\n  {% elif t >= 30.1 %} 85 {% elif t >= 29.7 %} 80 {% elif
-      t >= 29.3 %} 75\n  {% elif t >= 28.9 %} 70 {% elif t >= 28.5 %} 65 {% elif t
-      >= 28.1 %} 60\n  {% elif t >= 27.7 %} 55 {% elif t >= 27.3 %} 50 {% else %}
-      40 {% endif %}\n{% endif %}"
+      set t = t_eff | float %}\n  {% set summer_pct = 0 %}\n  {% if t > 29.0 %}      {%
+      set summer_pct = 100 %}\n  {% elif t > 28.5 %}    {% set summer_pct = 90 %}\n
+      \ {% elif t > 28.0 %}    {% set summer_pct = 80 %}\n  {% elif t > 27.5 %}    {%
+      set summer_pct = 70 %}\n  {% elif t > 27.0 %}    {% set summer_pct = 60 %}\n
+      \ {% elif t > 26.5 %}    {% set summer_pct = 50 %}\n  {% elif t > 26.0 %}    {%
+      set summer_pct = 40 %}\n  {% elif t > 25.5 %}    {% set summer_pct = 30 %}\n
+      \ {% else %}              {% set summer_pct = 20 %}\n  {% endif %}\n\n  {% if
+      summer_mode %}\n    {{ summer_pct }}\n  {% else %}\n    {% if summer_pct ==
+      100 %}\n      {{ 100 }}\n    {% else %}\n      {{ [summer_pct - 5, 20] | max
+      }}\n    {% endif %}\n  {% endif %}\n{% endif %}"
 - id: '1765620359682'
   alias: 21B_客廳電風扇異常告警AI (V2 Beta 2)
   description: 當風扇在自動模式下離線或關閉時發出警報
