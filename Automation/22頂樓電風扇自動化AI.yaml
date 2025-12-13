@@ -1,11 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V2.0)   （Helpers V2.2 相容）
-# 更新重點（相對 V1 Beta 16）：
+# 22頂樓電風扇自動化AI (V2.1)   （Helpers V2.2 相容）
+# 更新重點（2025-12-13）:
+# 1) 修正縮排：修正先前版本中一處 if/then 的 YAML 縮排錯誤問題。
+#
+# ----- 上次更新紀錄 -----
+# V2.0：
 # 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 程式碼優化：移除舊版 Helpers 清單，使程式碼更簡潔。
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化AI (V2.0)
+alias: 22頂樓電風扇自動化AI (V2.1)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -211,12 +215,12 @@ action:
         value_template: "{{ t_eff_valid }}"
       - condition: template
         value_template: "{{ t_eff != states('input_number.rooftop_effective_apparent_temperature') | float(0) }}"
-      then:
-        - service: input_number.set_value
-          target:
-            entity_id: input_number.rooftop_effective_apparent_temperature
-          data:
-            value: "{{ t_eff }}"
+    then:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.rooftop_effective_apparent_temperature
+        data:
+          value: "{{ t_eff }}"
 
   # 0) 手動保留超時（1 小時）→ 恢復自動管理
   - choose:
