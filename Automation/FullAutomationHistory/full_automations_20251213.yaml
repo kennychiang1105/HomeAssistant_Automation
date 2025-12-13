@@ -11766,18 +11766,22 @@
               state: 'on'
             then:
             - data:
-                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                user_id: U9eeaaf5d404dbde249039924567992d3
                 payload: |
                   [
-                        {"type":"text","text":
-                    notif_title_urgent},
-                        {"type":"text","text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態："
-                  
-                                                ~ states('alarm_control_panel.54ef44cf58f9_alarm')
-                    ~ "）。"},
-                        {"type":"text","text": batt_line_text if
-                    batt_line_text|trim else "（無門鎖電量異常）"}
-                      ]
+                    {
+                      "type": "text",
+                      "text": "{{ notif_title_urgent }}"
+                    },
+                    {
+                      "type": "text",
+                      "text": "已判定離家，已執行離家情境，但保全系統未成功設定外出模式（目前狀態：{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}）。"
+                    },
+                    {
+                      "type": "text",
+                      "text": "{{ batt_line_text | trim if batt_line_text | trim else '（無門鎖電量異常）' }}"
+                    }
+                  ]
               action: script.send_line_to_user
   - choose:
     - conditions:
