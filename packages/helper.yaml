@@ -1,7 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.2）
+# Helpers（V2.3）
 # ──────────────────────────────────────────────
-# 新增與強化：
+# 新增與強化 (V2.3):
+#   • 體感溫度Helpers：新增 input_number.living_room_effective_apparent_temperature 與 input_number.rooftop_effective_apparent_temperature，用於顯示風扇AI的有效體感溫度。
+#
+# 新增與強化 (V2.2):
 #   • LINE 通知開關：新增 input_boolean.notify_line_general_enable, input_boolean.notify_line_important_enable, input_boolean.notify_line_emergency_enable，用於分級控制 LINE 通知。
 #   • 客廳/頂樓風扇模式：分離客廳(21A)與頂樓(22)風扇的「防關閉」和「自動風速」模式，並為客廳風扇新增「夏季模式」與「Debug模式」。
 #   • 門鎖電量通知：修復重啟後重複通知問題。
@@ -274,6 +277,23 @@ input_number:
     mode: box
     unit_of_measurement: "%/日"
     initial: 0
+
+  living_room_effective_apparent_temperature:
+    name: 客廳有效體感溫度
+    mode: box
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+    min: 10
+    max: 50
+    step: 0.1
+  rooftop_effective_apparent_temperature:
+    name: 頂樓有效體感溫度
+    mode: box
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+    min: 10
+    max: 50
+    step: 0.1
 
 input_text:
   # 門鎖低電量通知 AI

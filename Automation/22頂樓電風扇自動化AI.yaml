@@ -206,6 +206,18 @@ action:
         {% set snapped = ((p / step) | round(0) * step) %}
         {{ [snapped, 100] | min }}
 
+  - if:
+      - condition: template
+        value_template: "{{ t_eff_valid }}"
+      - condition: template
+        value_template: "{{ t_eff != states('input_number.rooftop_effective_apparent_temperature') | float(0) }}"
+      then:
+        - service: input_number.set_value
+          target:
+            entity_id: input_number.rooftop_effective_apparent_temperature
+          data:
+            value: "{{ t_eff }}"
+
   # 0) 手動保留超時（1 小時）→ 恢復自動管理
   - choose:
       - conditions:
