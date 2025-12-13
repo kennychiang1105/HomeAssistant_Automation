@@ -122,16 +122,14 @@
           - media_player.sony_bravia_tv
         action: media_player.volume_set
       - data:
-          message: '地震預警系統收到訊息:
-
+          message: |-
+            地震預警系統收到訊息:
 
             即將發生地震，
 
-
             地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達
 
-
-            發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
+            發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
         enabled: true
         action: persistent_notification.create
     - data:
