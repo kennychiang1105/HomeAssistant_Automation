@@ -1,9 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 100C2客廳門鎖電量分級通知AI (V2.1)   （Helpers V2.2 相容）
-# 更新重點（相對 V2.0）：
+# 100C2客廳門鎖電量分級通知AI (V2.2)   （Helpers V2.6 相容）
+# 更新重點（相對 V2.1）：
+# 1) LINE 校正通知：改用 script.send_line_to_user JSON payload 並使用 Helpers 變數，避免 Unknown。
+#
+# 前版更新（V2.0 → V2.1）：
 # 1) 命名修正：修正 alias 以符合檔案名稱格式。
 # ─────────────────────────────────────────────────────────────
-alias: 100C2客廳門鎖電量分級通知AI (V2.1)
+alias: 100C2客廳門鎖電量分級通知AI (V2.2)
 description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
 mode: single
 
@@ -22,7 +25,7 @@ conditions:
       {{ prev not in invalids and prev|float(100) < 20 }}
 
 variables:
-  notif_title_base: 【AI電量計算系統 V2.0】
+  notif_title_base: 【AI電量計算系統 V2.2】
   notif_title_calib: |-
     {{ notif_title_base }}
     門鎖耗電率校正 ✅

@@ -1,11 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 21B_客廳電風扇異常告警AI (V2 Beta 2)   （Helpers V2.2 相容）
-# 更新重點（相對 V1 Beta 2）：
+# 21B_客廳電風扇異常告警AI (V2 Beta 3)   （Helpers V2.6 相容）
+# 更新重點（相對 V2 Beta 2）：
+# 1) LINE 通知格式：改用 script.send_line_to_user 的 JSON payload 並引用 Helpers 標題，避免 Unknown。
+#
+# 前版更新（V1 Beta 2 → V2 Beta 2）：
 # 1) 版本號升級：升級至 V2 Beta 2，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 命名修正：修正 alias 以符合檔案名稱格式。
 # ─────────────────────────────────────────────────────────────
 
-alias: 21B_客廳電風扇異常告警AI (V2 Beta 2)
+alias: 21B_客廳電風扇異常告警AI (V2 Beta 3)
 description: "當風扇在自動模式下離線或關閉時發出警報"
 triggers:
   - platform: state
