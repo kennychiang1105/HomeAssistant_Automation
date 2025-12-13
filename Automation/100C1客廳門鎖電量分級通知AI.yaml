@@ -57,22 +57,8 @@ variables:
   stage_last: "{{ states('input_text.doorlock_batt_last_stage')|default('OK') }}"
   stage_changed: "{{ stage_now != stage_last }}"
 
-  eta_days: >-
-    {% set s = states('sensor.doorlock_batt_days_left_last_model') %}
-    {% if s is number %}{{ s|float(0)|round(1) }}{% else %}unknown{% endif %}
   model_now: "{{ states('input_text.doorlock_batt_model_current')|trim }}"
   model_last: "{{ states('input_text.doorlock_batt_model_last_cycle')|trim }}"
-
-  batt_line_text: >-
-    {% if not batt_valid -%}
-    門鎖電量摘要：
-    • 電量：資料暫無（gateway 尚未回報）
-    {%- else -%}
-    門鎖電量摘要：
-    • 電量：{{ doorlock_batt|round(1) }}%
-    • 預估天數：{%- if eta_days != 'unknown' -%}約 {{ eta_days }} 天（同款電池）{%- else -%}—（不同款或資料不足）{%- endif -%}
-    • 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
-    {%- endif %}
 
 actions:
   # 先過濾 unknown → -1 的假觸發

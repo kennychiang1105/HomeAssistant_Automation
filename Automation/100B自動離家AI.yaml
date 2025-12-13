@@ -92,21 +92,6 @@ variables:
   batt10: "{{ batt_valid and doorlock_batt < 10 }}"
   batt0: "{{ batt_valid and doorlock_batt < 1 }}"
 
-  batt_line_text: >-
-    {% if not batt_valid %}
-    門鎖電量摘要：
-    • 資料暫無（gateway 尚未回報）
-    {% else %}
-    {% set lines = [] %}
-    {% if batt50 %}{% set lines = lines + ['• 客廳門鎖電量：' ~ (doorlock_batt|round(0)) ~ '%'] %}{% endif %}
-    {% if batt10 %}{% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}{% endif %}
-    {% if batt0  %}{% set lines = lines + ['• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}{% endif %}
-    {% if lines|length > 0 %}
-    門鎖電量摘要：
-    {{ lines | join('\n') }}
-    {% else %}{{ '' }}{% endif %}
-    {% endif %}
-
 actions:
   - choose:
       - conditions:

@@ -306,6 +306,23 @@ input_text:
   doorlock_batt_last_stage:
     name: 門鎖電量已通知等級
     max: 20
+  # LINE 通知標題（避免 Unknown）
+  notif_title_general:
+    name: LINE通知標題_一般
+    max: 120
+    initial: "【AI離家系統 V2.0】"
+  notif_title_urgent:
+    name: LINE通知標題_緊急
+    max: 120
+    initial: "【AI離家系統 V2.0】"
+  notif_title_warn:
+    name: LINE通知標題_電量提醒
+    max: 120
+    initial: "【AI電量告警系統 V2.0】"
+  notif_title_alarm:
+    name: LINE通知標題_電量告警
+    max: 120
+    initial: "【AI電量告警系統 V2.0】"
   # 頂樓裝置/追蹤器
   topfloor_debug_last_json:
     name: 頂樓偵測 Debug（最新快照 JSON）
@@ -346,11 +363,15 @@ input_select:
       - REA9519
       - EBH8030
 template:
-  - trigger:
-      - platform: state
-        entity_id: sensor.0x54ef4410007ac23c_battery
-      - platform: time_pattern   # 保活：避免長時間沒回報時 UI 顯示舊態
-        minutes: "/15"
+    - trigger:
+        - platform: state
+          entity_id:
+            - sensor.0x54ef4410007ac23c_battery
+            - sensor.doorlock_batt_days_left_last_model
+            - input_text.doorlock_batt_model_current
+            - input_text.doorlock_batt_model_last_cycle
+        - platform: time_pattern   # 保活：避免長時間沒回報時 UI 顯示舊態
+          minutes: "/15"
     sensor:
       - name: 客廳門鎖電量（過濾）
         # entity_id 將會是 sensor.ke_ting_men_suo_dian_liang_guo_lu
@@ -378,5 +399,24 @@ template:
         attributes:
           source_entity: sensor.0x54ef4410007ac23c_battery
           last_raw: "{{ states('sensor.0x54ef4410007ac23c_battery') }}"
+      - name: batt_line_text
+        unique_id: doorlock_batt_line_text
+        icon: mdi:lock-alert
+        state: >-
+          {% set batt_raw = states('sensor.ke_ting_men_suo_dian_liang_guo_lu') %}
+          {% set eta_raw = states('sensor.doorlock_batt_days_left_last_model') %}
+          {% set model_now = states('input_text.doorlock_batt_model_current')|trim %}
+          {% set model_last = states('input_text.doorlock_batt_model_last_cycle')|trim %}
+          {% set invalids = ['unknown','unavailable','none','None','','nan'] %}
+
+          {% if batt_raw in invalids %}
+            門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）
+          {% else %}
+            {% set batt_val = batt_raw|float(0) %}
+            {% set eta_val = eta_raw|float(none) %}
+            {% set eta_valid = eta_val is not none %}
+
+            門鎖電量摘要：\n• 電量：{{ batt_val|round(1) }}%\n• 預估天數：{{ '約 ' ~ (eta_val|round(1)) ~ ' 天（同款電池）' if eta_valid else '—（不同款或資料不足）' }}\n• 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
+          {% endif %}
 
 ###AI Automation help tools###
