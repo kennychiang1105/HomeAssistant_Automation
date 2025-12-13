@@ -10786,23 +10786,20 @@
     data:
       entity_id: input_text.doorlock_batt_last_stage
       value: OK
-  - if:
-    - condition: state
-      entity_id: input_boolean.notify_line_emergency_enable
-      state: 'on'
-    then:
-    - data:
-        user_id: C26ff4e9d30159ba5264a1676f46f8f86
-        payload: |
-          [
-                {"type":"text","text":
-            notif_title_calib},
-                {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至\n80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
-                {"type":"text","text":"狀態摘要：\n•\n新電池款式：" ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~
-            "\n• 校正後日耗電率：" ~ (states('input_number.doorlock_batt_drop_last_cycle'))
-            ~ " %/日"}
-              ]
-      action: script.send_line_to_user
+    - if:
+      - condition: state
+        entity_id: input_boolean.notify_line_emergency_enable
+        state: 'on'
+      then:
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: |
+            [
+              {"type":"text","text":"{{ states('input_text.notif_title_calib') }}"},
+              {"type":"text","text":"🔧 偵測到門鎖電量已由低回升至\n80%以上，視為完成換電池。\n已更新『上次校正款式』與『上次日耗電率』，並重置通知等級（OK）。"},
+              {"type":"text","text":"{{ '狀態摘要：\\n• 新電池款式：' ~ (states('input_text.doorlock_batt_model_current') or '未填寫') ~ '\\n• 校正後日耗電率：' ~ states('input_number.doorlock_batt_drop_last_cycle') ~ ' %/日' }}"}
+            ]
+        action: script.send_line_to_user
   - action: notify.persistent_notification
     data:
       title: '{{ notif_title_calib }}'
@@ -10882,7 +10879,11 @@
                 - data:
                     user_id: C26ff4e9d30159ba5264a1676f46f8f86
                     payload: |
-                      '{{ line_payload_alarm }}'
+                      [
+                        {"type":"text","text":"{{ states('input_text.notif_title_alarm') }}"},
+                        {"type":"text","text":"\U0001F7E5 門鎖電量完全沒電（0%）！\n請以行動電源供電後解鎖。\n此時「自動離家」與「網關保護」可能異常。"},
+                        {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
+                      ]
                   action: script.send_line_to_user
             - conditions:
               - condition: template
@@ -10892,16 +10893,20 @@
                   title: '{{ notif_title_alarm }}'
                   message: "\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
                 action: notify.persistent_notification
-              - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_emergency_enable
-                  state: 'on'
-                then:
-                - data:
-                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                    payload: |
-                      '{{ line_payload_alarm_5pct }}'
-                  action: script.send_line_to_user
+                - if:
+                  - condition: state
+                    entity_id: input_boolean.notify_line_emergency_enable
+                    state: 'on'
+                  then:
+                  - data:
+                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                      payload: |
+                        [
+                          {"type":"text","text":"{{ states('input_text.notif_title_alarm') }}"},
+                          {"type":"text","text":"\U0001F7E5 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"},
+                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
+                        ]
+                    action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT15'' }}'
@@ -10910,16 +10915,20 @@
                   title: '{{ notif_title_warn }}'
                   message: "\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
                 action: notify.persistent_notification
-              - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_important_enable
-                  state: 'on'
-                then:
-                - data:
-                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                    payload: |
-                      '{{ line_payload_warn }}'
-                  action: script.send_line_to_user
+                - if:
+                  - condition: state
+                    entity_id: input_boolean.notify_line_important_enable
+                    state: 'on'
+                  then:
+                  - data:
+                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                      payload: |
+                        [
+                          {"type":"text","text":"{{ states('input_text.notif_title_warn') }}"},
+                          {"type":"text","text":"\U0001F7E7 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"},
+                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
+                        ]
+                    action: script.send_line_to_user
             - conditions:
               - condition: template
                 value_template: '{{ stage_now == ''LT35'' }}'
@@ -10928,16 +10937,20 @@
                   title: '{{ notif_title_warn }}'
                   message: "\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。"
                 action: notify.persistent_notification
-              - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_important_enable
-                  state: 'on'
-                then:
-                - data:
-                    user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                    payload: |
-                      '{{ line_payload_35 }}'
-                  action: script.send_line_to_user
+                - if:
+                  - condition: state
+                    entity_id: input_boolean.notify_line_important_enable
+                    state: 'on'
+                  then:
+                  - data:
+                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                      payload: |
+                        [
+                          {"type":"text","text":"{{ states('input_text.notif_title_warn') }}"},
+                          {"type":"text","text":"\U0001F7E8 門鎖電量 35% 以下，建議安排電池更換。"},
+                          {"type":"text","text":"{{ states('sensor.batt_line_text') }}"}
+                        ]
+                    action: script.send_line_to_user
           - data:
               entity_id: input_text.doorlock_batt_last_stage
               value: '{{ stage_now }}'
@@ -11771,7 +11784,7 @@
                   [
                     {
                       "type": "text",
-                      "text": "{{ notif_title_urgent }}"
+                      "text": "{{ states('input_text.notif_title_urgent') }}"
                     },
                     {
                       "type": "text",
@@ -11779,7 +11792,7 @@
                     },
                     {
                       "type": "text",
-                      "text": "{{ batt_line_text | trim if batt_line_text | trim else '（無門鎖電量異常）' }}"
+                      "text": "{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"
                     }
                   ]
               action: script.send_line_to_user
@@ -11813,7 +11826,11 @@
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
             payload: |
-              '{{ line_payload_general }}'
+              [
+                {"type":"text","text":"{{ states('input_text.notif_title_general') }}"},
+                {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"},
+                {"type":"text","text":"{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"}
+              ]
           action: script.send_line_to_user
     - conditions:
       - condition: and
@@ -11838,7 +11855,11 @@
         - data:
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
             payload: |
-              '{{ line_payload_urgent }}'
+              [
+                {"type":"text","text":"{{ states('input_text.notif_title_urgent') }}"},
+                {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"},
+                {"type":"text","text":"{{ states('sensor.batt_line_text') | trim if states('sensor.batt_line_text') | trim else '（無門鎖電量異常）' }}"}
+              ]
           action: script.send_line_to_user
   mode: single
   variables:
