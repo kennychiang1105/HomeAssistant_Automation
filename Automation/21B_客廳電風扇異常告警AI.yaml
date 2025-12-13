@@ -49,8 +49,9 @@ actions:
         entity_id: input_boolean.notify_line_important_enable
         state: "on"
     then:
-      - service: notify.line_bot_chiangfamilygroup
+      - service: script.send_line_to_user
         data:
+          user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
           title: 智慧家庭通知
           message: |
             {

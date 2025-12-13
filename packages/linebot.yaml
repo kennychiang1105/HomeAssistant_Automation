@@ -1,0 +1,216 @@
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1)
+# 更新重點（2025-02-24）：
+# 1) 初始版：新增 LINE Bot 連動的用量感測器、通知腳本與 REST 指令。
+# ─────────────────────────────────────────────────────────────
+
+###################################################################################
+## SENSOR
+###################################################################################
+sensor:
+  - platform: rest
+    unique_id: bot_msg_count1
+    name: bot_msg_count1
+    resource: https://api.line.me/v2/bot/message/quota/consumption
+    method: GET
+    headers:
+      Authorization: !secret linebot_token1_bearer
+    value_template: "{{ value_json.totalUsage }}"
+    scan_interval: 180
+
+  - platform: rest
+    unique_id: bot_msg_count2
+    name: bot_msg_count2
+    resource: https://api.line.me/v2/bot/message/quota/consumption
+    method: GET
+    headers:
+      Authorization: !secret linebot_token2_bearer
+    value_template: "{{ value_json.totalUsage }}"
+    scan_interval: 180
+
+  - platform: rest
+    unique_id: bot_msg_count3
+    name: bot_msg_count3
+    resource: https://api.line.me/v2/bot/message/quota/consumption
+    method: GET
+    headers:
+      Authorization: !secret linebot_token3_bearer
+    value_template: "{{ value_json.totalUsage }}"
+    scan_interval: 180
+
+###################################################################################
+## SCRIPT
+###################################################################################
+script:
+  send_line_to_user:
+    alias: Line to Target User (Bot Auto)
+    mode: parallel
+    fields:
+      user_id:
+        description: "LINE 使用者 userId"
+      message:
+        description: "要傳送的訊息內容"
+    sequence:
+      - variables:
+          # ───────── 基本設定 ─────────
+          quota_limit: 200
+          switch_limit: 198
+
+          # ───────── Bot Token ─────────
+          bot1_token: !secret linebot_token1_bearer
+          bot2_token: !secret linebot_token2_bearer
+          bot3_token: !secret linebot_token3_bearer
+
+          # ───────── Bot 名稱（僅提醒用） ─────────
+          bot1_name: "ChiangFamily 智慧家庭 B"
+          bot2_name: "ChiangFamily 智慧家庭 C"
+          bot3_name: "ChiangFamily 智慧家庭 D"
+
+          # ───────── 目前使用的 Bot（整數） ─────────
+          current_bot: >
+            {% set c1 = states('sensor.bot_msg_count1') %}
+            {% set c2 = states('sensor.bot_msg_count2') %}
+            {% set c3 = states('sensor.bot_msg_count3') %}
+            {% if c1 not in ['unknown','unavailable'] and c1|int < switch_limit %}
+              {{ 1 }}
+            {% elif c2 not in ['unknown','unavailable'] and c2|int < switch_limit %}
+              {{ 2 }}
+            {% elif c3 not in ['unknown','unavailable'] and c3|int < switch_limit %}
+              {{ 3 }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+
+          # ───────── 使用 token（用整數判斷） ─────────
+          use_token: >
+            {% if current_bot|int == 1 %}
+              {{ bot1_token }}
+            {% elif current_bot|int == 2 %}
+              {{ bot2_token }}
+            {% elif current_bot|int == 3 %}
+              {{ bot3_token }}
+            {% else %}
+              ""
+            {% endif %}
+
+          current_name: >
+            {% if current_bot|int == 1 %}
+              {{ bot1_name }}
+            {% elif current_bot|int == 2 %}
+              {{ bot2_name }}
+            {% elif current_bot|int == 3 %}
+              {{ bot3_name }}
+            {% else %}
+              ""
+            {% endif %}
+
+          next_name: >
+            {% if current_bot|int == 1 %}
+              {{ bot2_name }}
+            {% elif current_bot|int == 2 %}
+              {{ bot3_name }}
+            {% else %}
+              ""
+            {% endif %}
+
+          used_count: >
+            {% if current_bot|int == 1 %}
+              {{ states('sensor.bot_msg_count1')|int }}
+            {% elif current_bot|int == 2 %}
+              {{ states('sensor.bot_msg_count2')|int }}
+            {% elif current_bot|int == 3 %}
+              {{ states('sensor.bot_msg_count3')|int }}
+            {% else %}
+              999
+            {% endif %}
+
+          remain_count: "{{ quota_limit - used_count }}"
+          need_countdown_notice: "{{ remain_count in [3,2,1] }}"
+
+          countdown_message: >
+            ⚠️【LINE Bot 額度提醒】
+            {{ current_name }} 尚可推播 {{ remain_count }} 次，
+            {% if remain_count > 1 %}
+            再送 {{ remain_count }} 次後將切換至 {{ next_name }}。
+            {% else %}
+            下一則訊息將立即切換至 {{ next_name }}。
+            {% endif %}
+
+      - choose:
+          - conditions: "{{ use_token | length > 10 }}"
+            sequence:
+              - service: rest_command.line_bot_push
+                data:
+                  token: "{{ use_token }}"
+                  to: "{{ user_id }}"
+                  text: "{{ message }}"
+
+              - choose:
+                  - conditions: "{{ need_countdown_notice }}"
+                    sequence:
+                      - service: rest_command.line_bot_push
+                        data:
+                          token: "{{ use_token }}"
+                          to: "{{ user_id }}"
+                          text: "{{ countdown_message }}"
+
+                      - service: script.send_line_emergency
+                        data:
+                          message: "{{ countdown_message }}"
+
+                      - service: persistent_notification.create
+                        data:
+                          title: "LINE Bot 額度倒數"
+                          message: "{{ countdown_message }}"
+
+        default:
+          - service: script.send_line_emergency
+            data:
+              message: >
+                🚨【LINE 主力 Bot 額度已滿】
+                ChiangFamily 智慧家庭 B / C / D
+                今日已無可用推播額度
+
+          - service: persistent_notification.create
+            data:
+              title: "LINE 主力 Bot 額度已滿"
+              message: "B / C / D 今日推播額度已全數用盡"
+  send_line_emergency:
+    alias: Line 緊急通知 (Bot 4)
+    mode: parallel
+    fields:
+      message:
+        description: "緊急通知內容"
+    sequence:
+      - service: rest_command.line_bot_push
+        data:
+          token: !secret linebot_token_emergency_bearer
+          to: "U9eeaaf5d404dbde249039924567992d3"
+          text: >
+            🚨【ChiangFamily 智慧家庭｜緊急通知】
+            {{ message }}
+
+      - service: system_log.write
+        data:
+          level: error
+          message: "緊急 LINE Bot 已發送｜{{ message }}"
+###################################################################################
+## REST_COMMAND
+###################################################################################
+rest_command:
+  line_bot_push:
+    url: "https://api.line.me/v2/bot/message/push"
+    method: POST
+    content_type: "application/json"
+    headers:
+      Authorization: "{{ token }}"
+    payload: >
+      {
+        "to": "{{ to }}",
+        "messages": [
+          {
+            "type": "text",
+            "text": "{{ text }}"
+          }
+        ]
+      }
