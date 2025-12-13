@@ -1,6 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V1.3)   （Helpers V2.6 相容）
-# 更新重點（相對 V1.2）：
+# 03苗栗天氣告知系統AI (V1.4)   （Helpers V2.6 相容）
+# 更新重點（相對 V1.3）：
+# 1) 修正 LINE JSON payload 直接套用 sensor.disaster，避免訊息內容被原樣輸出。
+# 2) 更新 LINE user_id（保持固定 ID 供通知發送）。
+#
+# 前版更新（V1.2 → V1.3）：
 # 1) LINE 通知格式：改用 script.send_line_to_user 的 JSON payload 並引用 Helpers 標題，避免出現 Unknown。
 #
 # 前版更新（V1.1 → V1.2）：
@@ -13,7 +17,7 @@
 #   - input_boolean: notify_line_general_enable
 # ─────────────────────────────────────────────────────────────
 
-alias: 03苗栗天氣告知系統AI (V1.3)
+alias: 03苗栗天氣告知系統AI (V1.4)
 description: "白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息"
 mode: queued
 max: 10
@@ -64,13 +68,13 @@ action:
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: U9eeaaf5d404dbde249039924567992d3
                   payload: >-
                     {{
                       [
                         {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
                         {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text":"{{ states('sensor.disaster') }}"}
+                        {"type":"text", "text": states('sensor.disaster') }
                       ] | tojson
                     }}
           - service: media_player.play_media
@@ -112,13 +116,13 @@ action:
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: U9eeaaf5d404dbde249039924567992d3
                   payload: >-
                     {{
                       [
                         {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
                         {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text":"{{ states('sensor.disaster') }}"}
+                        {"type":"text", "text": states('sensor.disaster') }
                       ] | tojson
                     }}
           - service: media_player.play_media
