@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.5）
+# Helpers（V2.6）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.6):
+#   • 門鎖電量摘要：移除多餘結尾與修正 ETA 行內格式，確保 YAML 可正確解析並恢復電量摘要。
+#
 # 新增與強化 (V2.5):
 #   • 門鎖電量摘要縮排修正：修正 flow collection 縮排錯誤，避免 YAML 解析失敗並恢復電量摘要。
 #
@@ -432,9 +435,7 @@ template:
               {% set eta_val = eta_raw|float(none) %}
               {% set eta_valid = eta_val is not none %}
 
-              門鎖電量摘要：\n• 電量：{{ batt_val|round(1) }}%\n• 預估天數：{{ '約 ' ~ (eta_val|round(1)) ~ ' 天（同款電池' if eta_valid else '—（不同款或資料不足）' }}\n• 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
+              門鎖電量摘要：\n• 電量：{{ batt_val|round(1) }}%\n• 預估天數：{{ '約 ' ~ (eta_val|round(1)) ~ ' 天（同款電池）' if eta_valid else '—（不同款或資料不足）' }}\n• 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
             {% endif %}
-
-          {% endif %}
 
 ###AI Automation help tools###
