@@ -36,7 +36,7 @@ variables:
   # ---- Modes ----
   auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
   prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
-  summer_mode: "{{ is_state('input_boolean.living_room_fan_summer_mode','on') }}"
+  summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
   snooze_active: "{{ is_state('timer.living_room_fan_light_sync_snooze', 'active') }}"
   light_is_on: "{{ is_state('light.yeelink_color5_4181_light', 'on') }}"
 

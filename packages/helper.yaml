@@ -21,6 +21,12 @@ timer:
   living_room_fan_light_sync_snooze:
     name: 客廳風扇_燈光連動暫停
     duration: "01:00:00"
+
+input_datetime:
+  last_disaster_broadcast:
+    name: Last Disaster Broadcast
+    has_date: true
+    has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
@@ -57,8 +63,8 @@ input_boolean:
     name: 客廳風扇_通知Debug模式
     icon: mdi:bug-outline
 
-  living_room_fan_summer_mode:
-    name: 客廳風扇_夏季模式
+  summer_mode:
+    name: 夏季模式
     icon: mdi:weather-sunny
     initial: off
 
