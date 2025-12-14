@@ -1,9 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V2.2)   （Helpers V2.2 相容）
+# 22頂樓電風扇自動化AI (V2.3)   （Helpers V2.2 相容）
 # 更新重點:
-# 1) 體感溫度修正：即使自動模式關閉，只要感測值有效也會寫回體感溫度 Helper，避免卡在 10°C。
+# 1) 夏季模式調速：加入 helper 偵測，非夏季時風速（90% 以下）統一 -5%，高於 90% 不變。
+# 2) 手動保留修正：手動開啟時不會被自動判斷立即關閉，保留操作空間。
 #
 # ----- 上次更新紀錄 -----
+# V2.2：
+# 1) 體感溫度修正：即使自動模式關閉，只要感測值有效也會寫回體感溫度 Helper，避免卡在 10°C。
 # V2.1：
 # 1) 修正縮排：修正先前版本中一處 if/then 的 YAML 縮排錯誤問題。
 # V2.0：
@@ -11,7 +14,7 @@
 # 2) 程式碼優化：移除舊版 Helpers 清單，使程式碼更簡潔。
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化AI (V2.2)
+alias: 22頂樓電風扇自動化AI (V2.3)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -41,6 +44,7 @@ action:
   - variables:
       debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
       manual_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
+      summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
 
       # ---- Helpers ----
       enter_low_close_c: "{{ states('input_number.enter_low_close_c') | float(26.9) }}"
@@ -200,9 +204,21 @@ action:
           {% set p2 = [p, 25] | max %}
           {{ p2 }}
         {% endif %}
+      # 非夏季模式：除>90% 外統一 -5%
+      pct_summer_tuned: >
+        {% if not summer_mode %}
+          {% set p = pct_sleep_tuned | float %}
+          {% if p > 90 %}
+            {{ p }}
+          {% else %}
+            {{ [p - 5, 0] | max }}
+          {% endif %}
+        {% else %}
+          {{ pct_sleep_tuned }}
+        {% endif %}
       # 對齊到 2.5%（最後依 HA 要求轉 int）
       desired_pct_curve: >
-        {% set p = pct_sleep_tuned | float %}
+        {% set p = pct_summer_tuned | float %}
         {% set step = 2.5 %}
         {% set snapped = ((p / step) | round(0) * step) %}
         {{ [snapped, 100] | min }}
@@ -398,7 +414,7 @@ action:
           - condition: template
             value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
           - condition: template
-            value_template: "{{ not manual_hold }}"
+            value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
         sequence:
           - service: input_boolean.turn_on
             target:
@@ -422,7 +438,7 @@ action:
           - condition: template
             value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
           - condition: template
-            value_template: "{{ not manual_hold }}"
+            value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
         sequence:
           - service: fan.turn_off
             target:
