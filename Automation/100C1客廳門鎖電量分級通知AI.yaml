@@ -67,6 +67,18 @@ variables:
   model_now: "{{ states('input_text.doorlock_batt_model_current')|trim }}"
   model_last: "{{ states('input_text.doorlock_batt_model_last_cycle')|trim }}"
 
+  batt_line_text: >-
+    {% set txt = states('sensor.batt_line_text') %}
+    {% set invalids = ['unknown','unavailable','none','None'] %}
+    {{ txt if txt|trim and txt|lower not in invalids else '門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）' }}
+  batt_line_text_line: "{{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}"
+  batt_line_text_line_safe: "{{ batt_line_text_line|default('', true)|string }}"
+
+  notif_title_100c_warn_safe: >-
+    {{ states('input_text.notif_title_100c_warn') if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】' }}
+  notif_title_100c_alarm_safe: >-
+    {{ states('input_text.notif_title_100c_alarm') if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】' }}
+
 actions:
   # 先過濾 unknown → -1 的假觸發
   - choose:
@@ -105,9 +117,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": (states('input_text.notif_title_100c_alarm') if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】')},
+                                        {"type":"text","text": (notif_title_100c_alarm_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟥 門鎖電量完全沒電（0%）！\n請以行動電源供電後解鎖。\n此時「自動離家」與「網關保護」可能異常。"},
-                                        {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <5%
@@ -129,9 +141,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": (states('input_text.notif_title_100c_alarm') if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】')},
+                                        {"type":"text","text": (notif_title_100c_alarm_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"},
-                                        {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <15%
@@ -153,9 +165,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": (states('input_text.notif_title_100c_warn') if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】')},
+                                        {"type":"text","text": (notif_title_100c_warn_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"},
-                                        {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <35%
@@ -177,9 +189,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": (states('input_text.notif_title_100c_warn') if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】')},
+                                        {"type":"text","text": (notif_title_100c_warn_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟨 門鎖電量 35% 以下，建議安排電池更換。"},
-                                        {"type":"text","text": (states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim else '（無門鎖電量摘要）')}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                   # 成功通知後，寫回已通知等級

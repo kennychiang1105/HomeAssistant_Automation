@@ -74,6 +74,8 @@ conditions:
             for: {minutes: 10}
 
 variables:
+  automation_version: "V2.3"
+  helpers_compat: "Helpers V2.10"
   notif_title_base: "【AI離家系統 V2.3】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
@@ -81,6 +83,20 @@ variables:
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】' }}
+  notif_title_only_general: >-
+    {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
+  notif_title_only_urgent: >-
+    {{ (notif_title_urgent if notif_title_urgent|trim else notif_title_base) }}
+  notif_heading_general: >-
+    {% set heading = notif_title_general if notif_title_general|trim else notif_title_base %}
+    {{ heading ~ '\n一般 General 🪧' }}
+  notif_heading_urgent: >-
+    {% set heading = notif_title_urgent if notif_title_urgent|trim else notif_title_base %}
+    {{ heading ~ '\n緊急 Urgent ‼️' }}
+  notif_title_only_general_safe: >-
+    {{ notif_title_only_general|default(notif_title_base, true)|string }}
+  notif_title_only_urgent_safe: >-
+    {{ notif_title_only_urgent|default(notif_title_base, true)|string }}
 
   debounce_sec: 120
   debounce_ok: >-
@@ -95,6 +111,15 @@ variables:
   batt50: "{{ batt_valid and doorlock_batt < 50 }}"
   batt10: "{{ batt_valid and doorlock_batt < 10 }}"
   batt0: "{{ batt_valid and doorlock_batt < 1 }}"
+  batt_line_text: >-
+    {% set txt = states('sensor.batt_line_text') %}
+    {% set invalids = ['unknown','unavailable','none','None'] %}
+    {{ txt if txt|trim and txt|lower not in invalids else '門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）' }}
+  batt_line_text_line: >-
+    {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
+  batt_line_text_line_safe: >-
+    {{ batt_line_text_line|default('', true)|string }}
+  title_fallback_line: "【AI離家系統 V2.3】"
 
 actions:
   - choose:
@@ -130,44 +155,50 @@ actions:
                     value_template: >
                       {{ states('alarm_control_panel.54ef44cf58f9_alarm') != 'armed_away' }}
                 sequence:
-                  - service: notify.persistent_notification
-                    data:
-                      title: "{{ notif_title_urgent }}"
-                      message: |-
-                        ⚠️ 已判定離家，但保全系統未成功設定外出模式。
-                        目前狀態：{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.notify_line_emergency_enable
-                        state: "on"
-                    then:
-                      - service: script.send_line_to_user
-                        data:
-                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                          payload: >-
-                            {% set alarm_state = states('alarm_control_panel.54ef44cf58f9_alarm') %}
-                            {% set alarm_labels = {
-                              'armed_away': '外出模式',
-                              'armed_home': '在家模式',
-                              'armed_night': '夜間模式',
-                              'armed_custom_bypass': '自訂模式',
-                              'pending': '待啟用',
-                              'triggered': '已觸發',
-                              'disarmed': '未設防'
-                            } %}
-                            {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
-                            {{
-                              [
-                                {"type":"text","text": (
-                                  (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')
-                                  ~ "\n緊急 Alert 🛡️"
-                                  ~ "\n\n⚠️ 已判定離家並執行離家情境，"
-                                  ~ "\n但保全系統未成功設定外出模式。"
-                                  ~ "\n保全狀態：" ~ alarm_label ~ (('（' ~ alarm_state ~ '）') if alarm_state|trim else '')
-                                  ~ ("\n\n" ~ states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none'] else '')
-                                )}
-                              ] | tojson
-                            }}
+          - service: notify.persistent_notification
+            data:
+              title: "{{ notif_title_urgent }}"
+              message: |-
+                ⚠️ 已判定離家，但保全系統未成功設定外出模式。
+                目前狀態：{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}
+          - if:
+              - condition: state
+                entity_id: input_boolean.notify_line_emergency_enable
+                state: "on"
+            then:
+              - service: script.send_line_to_user
+                data:
+                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  payload: >-
+                    {% set alarm_state = states('alarm_control_panel.54ef44cf58f9_alarm') %}
+                    {% set alarm_labels = {
+                      'armed_away': '外出模式',
+                      'armed_home': '在家模式',
+                      'armed_night': '夜間模式',
+                      'armed_custom_bypass': '自訂模式',
+                      'pending': '待啟用',
+                      'triggered': '已觸發',
+                      'disarmed': '未設防'
+                    } %}
+                    {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set messages = [
+                      {"type":"text","text": title_safe},
+                      {"type":"text","text": '緊急 Urgent ‼️'},
+                      {"type":"text","text": (
+                        '⚠️ 已判定離家並執行離家情境，'
+                        ~ "\n但保全系統未成功設定外出模式。"
+                        ~ "\n保全狀態：" ~ alarm_label ~ (('（' ~ alarm_state ~ '）') if alarm_state|trim else '')
+                      )}
+                    ] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                    {% endif %}
+                    {{ messages | tojson }}
 
   - choose:
       - conditions:
@@ -189,11 +220,13 @@ actions:
         sequence:
           - service: notify.persistent_notification
             data:
-              title: "{{ notif_title_general }}"
+              title: "{{ notif_title_general|default(notif_title_base, true) }}"
               message: |-
-                🏠 系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。
-                
-                {{ states('sensor.batt_line_text') if states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none'] else '（無門鎖電量摘要）' }}
+                🏠 系統偵測所有人已離家。
+                • 家電皆為關閉，門鎖皆已上鎖。
+                • 已啟動離家模式。
+
+                {{ batt_line_text_line }}
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_important_enable
@@ -203,18 +236,24 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
-                    {{
-                      (
-                        [
-                          {"type":"text","text": (
-                            (states('input_text.notif_title_100b_general') if states('input_text.notif_title_100b_general')|trim and states('input_text.notif_title_100b_general')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')
-                            ~ "\n一般 General 🪧"
-                            ~ "\n\n🏠 系統偵測所有人已離家，家電皆為關閉狀態，且門鎖皆已上鎖，已啟動離家模式。"
-                            ~ ("\n\n" ~ states('sensor.batt_line_text') if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else '')
-                          )}
-                        ]
-                      ) | tojson
-                    }}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_general') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set messages = [
+                      {"type":"text","text": title_safe},
+                      {"type":"text","text": '一般 General 🪧'},
+                      {"type":"text","text": (
+                        '🏠 系統偵測所有人已離家。'
+                        ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
+                        ~ "\n• 已啟動離家模式。"
+                      )}
+                    ] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                    {% endif %}
+                    {{ messages | tojson }}
 
       - conditions:
           - condition: and
@@ -230,8 +269,10 @@ actions:
         sequence:
           - service: notify.persistent_notification
             data:
-              title: "{{ notif_title_urgent }}"
-              message: "系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"
+              title: "{{ notif_title_urgent|default(notif_title_base, true) }}"
+              message: |-
+                ⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。
+                請確認鐵門與二樓門鎖狀況！
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_emergency_enable
@@ -241,12 +282,20 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
-                    {{
-                      (
-                        [
-                          {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')},
-                          {"type":"text","text":"系統偵測所有人已離家，家電皆為關閉狀態但門鎖尚未上鎖！請確認鐵門及二樓門鎖狀況！"}
-                        ] +
-                        ([{"type":"text","text": states('sensor.batt_line_text')}] if (states('sensor.batt_line_text')|trim and states('sensor.batt_line_text')|lower not in ['unknown','unavailable','none']) else [])
-                      ) | tojson
-                    }}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set messages = [
+                      {"type":"text","text": title_safe},
+                      {"type":"text","text": '緊急 Urgent ‼️'},
+                      {"type":"text","text": (
+                        '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
+                        ~ "\n請確認鐵門與二樓門鎖狀況！"
+                      )}
+                    ] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                    {% endif %}
+                    {{ messages | tojson }}

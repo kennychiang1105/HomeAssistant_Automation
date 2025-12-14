@@ -114,15 +114,12 @@ input_boolean:
   notify_line_general_enable:
     name: LINE通知啟用_一般
     icon: mdi:bell-outline
-    initial: on
   notify_line_important_enable:
     name: LINE通知啟用_重要
     icon: mdi:bell-alert-outline
-    initial: on
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
-    initial: on
     
 input_number:
   # 車牌辨識AI_Beta
@@ -440,27 +437,39 @@ template:
             {% set eta_raw = states('sensor.doorlock_batt_days_left_last_model') %}
             {% set model_now = states('input_text.doorlock_batt_model_current')|trim %}
             {% set model_last = states('input_text.doorlock_batt_model_last_cycle')|trim %}
-            {% set invalids = ['unknown','unavailable','none','None','','nan'] %}
+            {% set invalids = ['unknown','unavailable','none','None','','nan','-1'] %}
             {% set header = '門鎖電量摘要：' %}
 
+            {% set eta_val = eta_raw|float(none) %}
+            {% set eta_valid = eta_val is not none and eta_val >= 0 %}
+            {% set eta_text = (eta_val|round(0)|int|string ~ ' 天') if eta_valid else '—（不同款或資料不足）' %}
+            {% set model_curr = model_now if model_now not in invalids else '—' %}
+            {% set model_prev = model_last if model_last not in invalids else '—' %}
+
             {% if batt_raw in invalids %}
-              {{ header }}
-              • 資料暫無（gateway 尚未回報）
+              {{ [
+                header,
+                '• 資料暫無（gateway 尚未回報）',
+                '• 預估天數：' ~ eta_text,
+                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev
+              ] | join('\n') }}
             {% else %}
               {% set batt_val = batt_raw|float(0) %}
-              {% set eta_val = eta_raw|float(none) %}
-              {% set eta_valid = eta_val is not none and eta_val >= 0 %}
-              {% set eta_text = (eta_val|round(0)|int|string ~ ' 天') if eta_valid else '—（不同款或資料不足）' %}
-              {% set model_curr = model_now if model_now not in invalids else '—' %}
-              {% set model_prev = model_last if model_last not in invalids else '—' %}
               {% set lines = [
                 header,
-                '• 客廳門鎖電量：' ~ (batt_val|round(1)) ~ '%',
+                '• 客廳門鎖電量：' ~ (batt_val|round(0)|int) ~ '%',
                 '• 預估天數：' ~ eta_text,
-                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev,
-                '• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常',
-                '• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'
+                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev
               ] %}
+
+              {% if batt_val < 10 %}
+                {% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}
+              {% endif %}
+
+              {% if batt_val < 1 %}
+                {% set lines = lines + ['• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}
+              {% endif %}
+
               {{ lines | join('\n') }}
             {% endif %}
 
