@@ -83,18 +83,20 @@ variables:
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】' }}
+  notif_title_only_general: >-
+    {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
+  notif_title_only_urgent: >-
+    {{ (notif_title_urgent if notif_title_urgent|trim else notif_title_base) }}
   notif_heading_general: >-
     {% set heading = notif_title_general if notif_title_general|trim else notif_title_base %}
     {{ heading ~ '\n一般 General 🪧' }}
   notif_heading_urgent: >-
     {% set heading = notif_title_urgent if notif_title_urgent|trim else notif_title_base %}
     {{ heading ~ '\n緊急 Urgent ‼️' }}
-  notif_title_only_general: >-
-    {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
-  notif_title_only_urgent: >-
-    {{ (notif_title_urgent if notif_title_urgent|trim else notif_title_base) }}
-  notif_title_only_general_safe: "{{ notif_title_only_general|default(notif_title_base, true)|string }}"
-  notif_title_only_urgent_safe: "{{ notif_title_only_urgent|default(notif_title_base, true)|string }}"
+  notif_title_only_general_safe: >-
+    {{ notif_title_only_general|default(notif_title_base, true)|string }}
+  notif_title_only_urgent_safe: >-
+    {{ notif_title_only_urgent|default(notif_title_base, true)|string }}
 
   debounce_sec: 120
   debounce_ok: >-
@@ -113,8 +115,10 @@ variables:
     {% set txt = states('sensor.batt_line_text') %}
     {% set invalids = ['unknown','unavailable','none','None'] %}
     {{ txt if txt|trim and txt|lower not in invalids else '門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）' }}
-  batt_line_text_line: "{{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}"
-  batt_line_text_line_safe: "{{ batt_line_text_line|default('', true)|string }}"
+  batt_line_text_line: >-
+    {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
+  batt_line_text_line_safe: >-
+    {{ batt_line_text_line|default('', true)|string }}
 
 actions:
   - choose:
@@ -190,7 +194,7 @@ actions:
                     {% if batt_safe|trim %}
                       {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
-                    {{ {'messages': messages} | tojson }}
+                    {{ messages | tojson }}
 
   - choose:
       - conditions:
@@ -242,7 +246,7 @@ actions:
                     {% if batt_safe|trim %}
                       {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
-                    {{ {'messages': messages} | tojson }}
+                    {{ messages | tojson }}
 
       - conditions:
           - condition: and
@@ -284,4 +288,4 @@ actions:
                     {% if batt_safe|trim %}
                       {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
-                    {{ {'messages': messages} | tojson }}
+                    {{ messages | tojson }}
