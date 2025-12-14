@@ -1,15 +1,18 @@
 # ─────────────────────────────────────────────────────────────
-# 21A_客廳電風扇整合控制AI (V2.1)   （Helpers V2.3 相容）
-# 更新重點（相對 V2 Beta 2）：
+# 21A_客廳電風扇整合控制AI (V2.2)   （Helpers V2.3 相容）
+# 更新重點（2025-02-24）：
+# 1) 體感溫度修正：即使非自動風速模式，偵測到有效感測值也會寫回體感溫度 Helper，避免卡在 10°C。
+#
+# ----- 上次更新紀錄 -----
+# V2.1：
 # 1) 風速曲線調整：改為20%~100%風速，29°C以上為100%，並區分夏季/非夏季模式(-5%)。
 # 2) 體感溫度實體：新增 input_number Helper，用於顯示目前有效體感溫度。
-#
-# 更新重點（相對 V3 Beta 1）：
+# V2.0：
 # 1) 版本號升級：升級至 V2 Beta 2，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 命名修正：修正 alias 以符合檔案名稱格式。
 # ─────────────────────────────────────────────────────────────
 
-alias: 21A_客廳電風扇整合控制AI (V2.1)
+alias: 21A_客廳電風扇整合控制AI (V2.2)
 description: "整合溫控、防關閉、夏季模式的雙模式自動化"
 mode: queued
 max: 10
@@ -188,8 +191,6 @@ action:
       - conditions:
           - condition: trigger
             id: sensor_change
-          - "{{ auto_speed_mode }}"
-          - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
           - "{{ t_eff_valid }}"
         sequence:
           - if:
@@ -201,23 +202,27 @@ action:
                   entity_id: input_number.living_room_effective_apparent_temperature
                 data:
                   value: "{{ t_eff }}"
-          - variables:
-              desired_pct: "{{ desired_pct_curve | int }}"
-              need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
           - if:
-              - "{{ need_update }}"
+              - "{{ auto_speed_mode }}"
+              - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
             then:
-              - service: fan.set_percentage
-                target:
-                  entity_id: fan.ke_ting_dian_feng_shan
-                data:
-                  percentage: "{{ desired_pct }}"
+              - variables:
+                  desired_pct: "{{ desired_pct_curve | int }}"
+                  need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
               - if:
-                  - "{{ debug_notify }}"
+                  - "{{ need_update }}"
                 then:
-                  - service: notify.persistent_notification
+                  - service: fan.set_percentage
+                    target:
+                      entity_id: fan.ke_ting_dian_feng_shan
                     data:
-                      title: "客廳風扇風速調整 (Debug)"
-                      message: >
-                        🔄 新風速={{ desired_pct }}%｜體感t_eff={{ '%.1f'|format(t_eff|float) }}°C
-                        (來源: {{ active_sensor_name }}｜T={{ '%.1f'|format(active_temp|float) }}°C, H={{ '%.1f'|format(active_humidity|float) }}%)
+                      percentage: "{{ desired_pct }}"
+                  - if:
+                      - "{{ debug_notify }}"
+                    then:
+                      - service: notify.persistent_notification
+                        data:
+                          title: "客廳風扇風速調整 (Debug)"
+                          message: >
+                            🔄 新風速={{ desired_pct }}%｜體感t_eff={{ '%.1f'|format(t_eff|float) }}°C
+                            (來源: {{ active_sensor_name }}｜T={{ '%.1f'|format(active_temp|float) }}°C, H={{ '%.1f'|format(active_humidity|float) }}%)

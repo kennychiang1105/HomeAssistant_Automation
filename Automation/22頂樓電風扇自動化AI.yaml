@@ -1,15 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V2.1)   （Helpers V2.2 相容）
-# 更新重點（2025-12-13）:
-# 1) 修正縮排：修正先前版本中一處 if/then 的 YAML 縮排錯誤問題。
+# 22頂樓電風扇自動化AI (V2.2)   （Helpers V2.2 相容）
+# 更新重點（2025-02-24）:
+# 1) 體感溫度修正：即使自動模式關閉，只要感測值有效也會寫回體感溫度 Helper，避免卡在 10°C。
 #
 # ----- 上次更新紀錄 -----
+# V2.1：
+# 1) 修正縮排：修正先前版本中一處 if/then 的 YAML 縮排錯誤問題。
 # V2.0：
 # 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 程式碼優化：移除舊版 Helpers 清單，使程式碼更簡潔。
 # ─────────────────────────────────────────────────────────────
 
-alias: 22頂樓電風扇自動化AI (V2.1)
+alias: 22頂樓電風扇自動化AI (V2.2)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
 mode: restart
 max: 10
@@ -34,11 +36,6 @@ trigger:
     entity_id: input_boolean.ding_lou_fan_manual_hold
     to: "on"
     for: "01:00:00"
-
-condition:
-  - condition: state
-    entity_id: input_boolean.top_floor_fan_auto_mode
-    state: "on"
 
 action:
   - variables:
@@ -221,6 +218,14 @@ action:
           entity_id: input_number.rooftop_effective_apparent_temperature
         data:
           value: "{{ t_eff }}"
+
+  # 若自動模式關閉：只更新 Helper，不做後續控制
+  - if:
+      - condition: state
+        entity_id: input_boolean.top_floor_fan_auto_mode
+        state: "off"
+    then:
+      - stop: "Top-floor fan auto mode is off; skip control actions"
 
   # 0) 手動保留超時（1 小時）→ 恢復自動管理
   - choose:
