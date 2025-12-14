@@ -117,9 +117,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": notif_title_100c_alarm_safe|string},
+                                        {"type":"text","text": (notif_title_100c_alarm_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟥 門鎖電量完全沒電（0%）！\n請以行動電源供電後解鎖。\n此時「自動離家」與「網關保護」可能異常。"},
-                                        {"type":"text","text": batt_line_text_line_safe}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <5%
@@ -141,9 +141,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": notif_title_100c_alarm_safe|string},
+                                        {"type":"text","text": (notif_title_100c_alarm_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"},
-                                        {"type":"text","text": batt_line_text_line_safe}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <15%
@@ -165,9 +165,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": notif_title_100c_warn_safe|string},
+                                        {"type":"text","text": (notif_title_100c_warn_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"},
-                                        {"type":"text","text": batt_line_text_line_safe}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                       - conditions:  # <35%
@@ -189,9 +189,9 @@ actions:
                                   payload: >-
                                     {{
                                       [
-                                        {"type":"text","text": notif_title_100c_warn_safe|string},
+                                        {"type":"text","text": (notif_title_100c_warn_safe|default(notif_title_base, true)|string)},
                                         {"type":"text","text":"🟨 門鎖電量 35% 以下，建議安排電池更換。"},
-                                        {"type":"text","text": batt_line_text_line_safe}
+                                        {"type":"text","text": batt_line_text_line_safe|default('', true)|string}
                                       ] | tojson
                                     }}
                   # 成功通知後，寫回已通知等級

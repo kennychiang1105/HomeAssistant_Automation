@@ -176,8 +176,10 @@ actions:
                       'disarmed': '未設防'
                     } %}
                     {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
+                    {% set title_safe = notif_title_only_urgent_safe|default(notif_title_base, true)|string %}
+                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
                     {% set messages = [
-                      {"type":"text","text": notif_title_only_urgent_safe},
+                      {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
@@ -185,8 +187,8 @@ actions:
                         ~ "\n保全狀態：" ~ alarm_label ~ (('（' ~ alarm_state ~ '）') if alarm_state|trim else '')
                       )}
                     ] %}
-                    {% if batt_line_text_line_safe|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text_line_safe}] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
                     {{ {'messages': messages} | tojson }}
 
@@ -226,8 +228,10 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
+                    {% set title_safe = notif_title_only_general_safe|default(notif_title_base, true)|string %}
+                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
                     {% set messages = [
-                      {"type":"text","text": notif_title_only_general_safe},
+                      {"type":"text","text": title_safe},
                       {"type":"text","text": '一般 General 🪧'},
                       {"type":"text","text": (
                         '🏠 系統偵測所有人已離家。'
@@ -235,8 +239,8 @@ actions:
                         ~ "\n• 已啟動離家模式。"
                       )}
                     ] %}
-                    {% if batt_line_text_line_safe|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text_line_safe}] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
                     {{ {'messages': messages} | tojson }}
 
@@ -267,15 +271,17 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
+                    {% set title_safe = notif_title_only_urgent_safe|default(notif_title_base, true)|string %}
+                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
                     {% set messages = [
-                      {"type":"text","text": notif_title_only_urgent_safe},
+                      {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
                       {"type":"text","text": (
                         '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
                         ~ "\n請確認鐵門與二樓門鎖狀況！"
                       )}
                     ] %}
-                    {% if batt_line_text_line_safe|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text_line_safe}] %}
+                    {% if batt_safe|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                     {% endif %}
                     {{ {'messages': messages} | tojson }}
