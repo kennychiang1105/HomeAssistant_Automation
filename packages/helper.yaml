@@ -114,15 +114,12 @@ input_boolean:
   notify_line_general_enable:
     name: LINE通知啟用_一般
     icon: mdi:bell-outline
-    initial: on
   notify_line_important_enable:
     name: LINE通知啟用_重要
     icon: mdi:bell-alert-outline
-    initial: on
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
-    initial: on
     
 input_number:
   # 車牌辨識AI_Beta
