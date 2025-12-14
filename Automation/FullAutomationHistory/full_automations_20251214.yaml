@@ -9849,7 +9849,7 @@
   mode: single
 - &id001
   id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
-  alias: 22頂樓電風扇自動化AI (V2.2)
+  alias: 22頂樓電風扇自動化AI (V2.3)
   triggers:
   - entity_id:
     - climate.ding_lou_kong_diao
@@ -9876,6 +9876,7 @@
         }}'
       manual_hold: '{{ is_state(''input_boolean.ding_lou_fan_manual_hold'',''on'')
         }}'
+      summer_mode: '{{ is_state(''input_boolean.summer_mode'',''on'') }}'
       enter_low_close_c: '{{ states(''input_number.enter_low_close_c'') | float(26.9)
         }}'
       enter_high_open_c_ui: '{{ states(''input_number.enter_high_open_c'') | float(29.0)
@@ -9977,7 +9978,10 @@
       pct_sleep_tuned: "{% if not t_eff_valid %}\n  {{ pct_base_day }}\n{% else %}\n
         \ {% set p = (pct_base_day | float) - (5 if is_sleep else 0) %}\n  {% set
         p2 = [p, 25] | max %}\n  {{ p2 }}\n{% endif %}\n"
-      desired_pct_curve: '{% set p = pct_sleep_tuned | float %} {% set step = 2.5
+      pct_summer_tuned: "{% if not summer_mode %}\n  {% set p = pct_sleep_tuned |
+        float %}\n  {% if p > 90 %}\n    {{ p }}\n  {% else %}\n    {{ [p - 5, 0]
+        | max }}\n  {% endif %}\n{% else %}\n  {{ pct_sleep_tuned }}\n{% endif %}\n"
+      desired_pct_curve: '{% set p = pct_summer_tuned | float %} {% set step = 2.5
         %} {% set snapped = ((p / step) | round(0) * step) %} {{ [snapped, 100] |
         min }}
 
@@ -10160,7 +10164,8 @@
       - condition: template
         value_template: '{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}'
       - condition: template
-        value_template: '{{ not manual_hold }}'
+        value_template: '{{ not is_state(''input_boolean.ding_lou_fan_manual_hold'',''on'')
+          }}'
       sequence:
       - target:
           entity_id: input_boolean.ding_lou_fan_manual_hold
@@ -10182,7 +10187,8 @@
       - condition: template
         value_template: '{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}'
       - condition: template
-        value_template: '{{ not manual_hold }}'
+        value_template: '{{ not is_state(''input_boolean.ding_lou_fan_manual_hold'',''on'')
+          }}'
       sequence:
       - target:
           entity_id: fan.dmaker_p33_eabd_fan
@@ -10559,7 +10565,7 @@
 
       '
     trigger: template
-    enabled: false
+    enabled: true
   conditions:
   - condition: state
     entity_id: device_tracker.iphone_17_pro_max_kenny
@@ -12048,7 +12054,7 @@
         entity_id: media_player.ke_ting_homepod
   mode: single
 - id: '1765621325587'
-  alias: 03苗栗天氣告知系統AI (V1.4)
+  alias: 03苗栗天氣告知系統AI (V1.6)
   description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
   triggers:
   - entity_id: sensor.disaster
@@ -12059,21 +12065,24 @@
     trigger: time
   actions:
   - variables:
+      current_message: '{{ states(''sensor.disaster'') }}'
       sensor_updated_recently: '{{ (now() - states.sensor.disaster.last_updated).total_seconds()
         < 300 }}'
-      is_miaoli_message: '{{ ''苗栗'' in states(''sensor.disaster'') }}'
+      is_miaoli_message: '{{ ''苗栗'' in current_message }}'
       is_broadcast_time: '{{ 7 <= now().hour < 22 }}'
       last_broadcast_ts: '{{ as_timestamp(states(''input_datetime.last_disaster_broadcast''),
         0) }}'
+      last_broadcast_message: '{{ states(''input_text.disaster_last_message'') }}'
       message_ts: '{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}'
       is_new_message: '{{ message_ts > last_broadcast_ts }}'
+      is_new_content: '{{ current_message != last_broadcast_message }}'
   - choose:
     - conditions:
       - condition: trigger
         id: morning_catch_up
       - condition: template
-        value_template: '{{ is_new_message and is_miaoli_message and sensor_updated_recently
-          }}'
+        value_template: '{{ is_new_message and is_new_content and is_miaoli_message
+          and sensor_updated_recently }}'
       sequence:
       - target:
           entity_id: media_player.ke_ting_homepod
@@ -12082,7 +12091,10 @@
         action: media_player.volume_set
       - data:
           title: 天氣告知系統 (早晨補報)
-          message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+          message: '天氣告知系統收到以下政府災害訊息:
+
+
+            {{ current_message }}'
         action: notify.persistent_notification
       - if:
         - condition: state
@@ -12093,8 +12105,8 @@
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
             payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
               \U0001FAA7\\n\U0001F30D 災防報告 (早晨補報)\"},\n    {\"type\":\"text\", \"text\":\"
-              收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": states('sensor.disaster')
-              }\n  ] | tojson\n}}"
+              收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": current_message }\n
+              \ ] | tojson\n}}"
           action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -12111,19 +12123,24 @@
         data:
           media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           cache: true
-          message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ states(''sensor.disaster'') }}'
+          message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ current_message }}'
         action: tts.speak
       - target:
           entity_id: input_datetime.last_disaster_broadcast
         data:
           datetime: '{{ now().isoformat() }}'
         action: input_datetime.set_datetime
+      - target:
+          entity_id: input_text.disaster_last_message
+        data:
+          value: '{{ current_message }}'
+        action: input_text.set_value
     - conditions:
       - condition: trigger
         id: message_received
       - condition: template
-        value_template: '{{ is_broadcast_time and is_new_message and is_miaoli_message
-          and sensor_updated_recently }}'
+        value_template: '{{ is_broadcast_time and is_new_message and is_new_content
+          and is_miaoli_message and sensor_updated_recently }}'
       sequence:
       - target:
           entity_id: media_player.ke_ting_homepod
@@ -12132,7 +12149,10 @@
         action: media_player.volume_set
       - data:
           title: 天氣告知系統 (即時)
-          message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+          message: '天氣告知系統收到以下政府災害訊息:
+
+
+            {{ current_message }}'
         action: notify.persistent_notification
       - if:
         - condition: state
@@ -12143,7 +12163,7 @@
             user_id: C26ff4e9d30159ba5264a1676f46f8f86
             payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
               \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"},\n    {\"type\":\"text\",
-              \"text\":\" 收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": states('sensor.disaster')
+              \"text\":\" 收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": current_message
               }\n  ] | tojson\n}}"
           action: script.send_line_to_user
       - target:
@@ -12161,13 +12181,18 @@
         data:
           media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
           cache: true
-          message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ states(''sensor.disaster'') }}'
+          message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ current_message }}'
         action: tts.speak
       - target:
           entity_id: input_datetime.last_disaster_broadcast
         data:
           datetime: '{{ now().isoformat() }}'
         action: input_datetime.set_datetime
+      - target:
+          entity_id: input_text.disaster_last_message
+        data:
+          value: '{{ current_message }}'
+        action: input_text.set_value
   mode: queued
   max: 10
 - *id003
