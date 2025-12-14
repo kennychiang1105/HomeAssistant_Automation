@@ -83,6 +83,12 @@ variables:
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】' }}
+  notif_heading_general: >-
+    {% set heading = notif_title_general if notif_title_general|trim else notif_title_base %}
+    {{ heading ~ '\n一般 General 🪧' }}
+  notif_heading_urgent: >-
+    {% set heading = notif_title_urgent if notif_title_urgent|trim else notif_title_base %}
+    {{ heading ~ '\n緊急 Urgent ‼️' }}
 
   debounce_sec: 120
   debounce_ok: >-
@@ -163,10 +169,7 @@ actions:
                     } %}
                     {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
                     {% set messages = [
-                      {"type":"text","text": (
-                        (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')
-                        ~ "\n緊急 Alert 🛡️"
-                      )},
+                      {"type":"text","text": notif_heading_urgent},
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
                         ~ "\n但保全系統未成功設定外出模式。"
@@ -215,10 +218,7 @@ actions:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
                     {% set messages = [
-                      {"type":"text","text": (
-                        (states('input_text.notif_title_100b_general') if states('input_text.notif_title_100b_general')|trim and states('input_text.notif_title_100b_general')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')
-                        ~ "\n一般 General 🪧"
-                      )},
+                      {"type":"text","text": notif_heading_general},
                       {"type":"text","text": (
                         '🏠 系統偵測所有人已離家。'
                         ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
@@ -258,7 +258,7 @@ actions:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
                     {% set messages = [
-                      {"type":"text","text": (states('input_text.notif_title_100b_urgent') if states('input_text.notif_title_100b_urgent')|trim and states('input_text.notif_title_100b_urgent')|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.3】')},
+                      {"type":"text","text": notif_heading_urgent},
                       {"type":"text","text": (
                         '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
                         ~ "\n請確認鐵門與二樓門鎖狀況！"

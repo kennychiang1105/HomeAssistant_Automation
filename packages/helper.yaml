@@ -443,28 +443,27 @@ template:
             {% set invalids = ['unknown','unavailable','none','None','','nan'] %}
             {% set header = '門鎖電量摘要：' %}
 
+            {% set eta_val = eta_raw|float(none) %}
+            {% set eta_valid = eta_val is not none and eta_val >= 0 %}
+            {% set eta_text = (eta_val|round(0)|int|string ~ ' 天') if eta_valid else '—（不同款或資料不足）' %}
+            {% set model_curr = model_now if model_now not in invalids else '—' %}
+            {% set model_prev = model_last if model_last not in invalids else '—' %}
+
             {% if batt_raw in invalids %}
-              {{ [header, '• 資料暫無（gateway 尚未回報）'] | join('\n') }}
+              {{ [
+                header,
+                '• 資料暫無（gateway 尚未回報）',
+                '• 預估天數：' ~ eta_text,
+                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev
+              ] | join('\n') }}
             {% else %}
               {% set batt_val = batt_raw|float(0) %}
-              {% set eta_val = eta_raw|float(none) %}
-              {% set eta_valid = eta_val is not none and eta_val >= 0 %}
-              {% set eta_text = (eta_val|round(0)|int|string ~ ' 天') if eta_valid else '—（不同款或資料不足）' %}
-              {% set model_curr = model_now if model_now not in invalids else '—' %}
-              {% set model_prev = model_last if model_last not in invalids else '—' %}
-
               {% set lines = [
                 header,
-                '• 客廳門鎖電量：' ~ (batt_val|round(0)) ~ '%'
+                '• 客廳門鎖電量：' ~ (batt_val|round(0)) ~ '%',
+                '• 預估天數：' ~ eta_text,
+                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev
               ] %}
-
-              {% if eta_raw not in invalids %}
-                {% set lines = lines + ['• 預估天數：' ~ eta_text] %}
-              {% endif %}
-
-              {% if model_now not in invalids or model_last not in invalids %}
-                {% set lines = lines + ['• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev] %}
-              {% endif %}
 
               {% if batt_val < 10 %}
                 {% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}
