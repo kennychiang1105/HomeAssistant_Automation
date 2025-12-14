@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.6）
+# Helpers（V2.8）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.8):
+#   • 體感溫度 HomeKit 橋接修正：確保橋接溫度即使來源暫無更新也維持最近有效值，避免 HomeKit 顯示 unknown。
+# 新增與強化 (V2.7):
+#   • 體感溫度 HomeKit 橋接：新增 template sensors 將客廳/頂樓體感溫度 input_number 映射為溫度感測器，便於 HomeKit 匯入。
 # 新增與強化 (V2.6):
 #   • 門鎖電量摘要：移除多餘結尾與修正 ETA 行內格式，確保 YAML 可正確解析並恢復電量摘要。
 #
@@ -437,5 +441,45 @@ template:
 
               門鎖電量摘要：\n• 電量：{{ batt_val|round(1) }}%\n• 預估天數：{{ '約 ' ~ (eta_val|round(1)) ~ ' 天（同款電池）' if eta_valid else '—（不同款或資料不足）' }}\n• 當前/上次款式：{{ model_now or '未填寫' }} / {{ model_last or '未校正' }}
             {% endif %}
+
+    - trigger:
+        - platform: state
+          entity_id:
+            - input_number.living_room_effective_apparent_temperature
+            - input_number.rooftop_effective_apparent_temperature
+        - platform: time_pattern   # 保活：避免長時間無狀態更新時 HomeKit 仍能同步
+          minutes: "/10"
+      sensor:
+        - name: 客廳有效體感溫度（HomeKit橋接）
+          unique_id: living_room_effective_apparent_temperature_homekit
+          unit_of_measurement: "°C"
+          device_class: temperature
+          state_class: measurement
+          state: >-
+            {% set current = states('input_number.living_room_effective_apparent_temperature') %}
+            {% set invalids = ['unknown','unavailable','none','None',''] %}
+            {% if current in invalids %}
+              {{ this.state if this.state not in invalids else 0 }}
+            {% else %}
+              {{ current | float(0) }}
+            {% endif %}
+          attributes:
+            source_entity: input_number.living_room_effective_apparent_temperature
+
+        - name: 頂樓有效體感溫度（HomeKit橋接）
+          unique_id: rooftop_effective_apparent_temperature_homekit
+          unit_of_measurement: "°C"
+          device_class: temperature
+          state_class: measurement
+          state: >-
+            {% set current = states('input_number.rooftop_effective_apparent_temperature') %}
+            {% set invalids = ['unknown','unavailable','none','None',''] %}
+            {% if current in invalids %}
+              {{ this.state if this.state not in invalids else 0 }}
+            {% else %}
+              {{ current | float(0) }}
+            {% endif %}
+          attributes:
+            source_entity: input_number.rooftop_effective_apparent_temperature
 
 ###AI Automation help tools###
