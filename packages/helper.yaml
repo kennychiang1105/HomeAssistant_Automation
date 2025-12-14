@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.10）
+# Helpers（V2.11）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.11):
+#   • 災害通知去重：新增 last_disaster_broadcast 與 disaster_last_message helpers，供天氣告知系統記錄上次播報時間與內容，避免重複播報。
 # 新增與強化 (V2.10):
 #   • LINE 標題自動同步：新增通知標題同步器，開機/自動化重載時自動寫入最新版本字串，避免 initial 版本舊化。
 #   • 版本日誌保留：保留 V2.9 以前的歷史更新紀錄供追溯。
@@ -311,6 +313,13 @@ input_number:
     step: 0.1
 
 input_text:
+  # 天氣告知系統
+  disaster_last_message:
+    name: 天氣告知系統_上一則訊息內容
+    icon: mdi:weather-cloudy-alert
+    max: 255
+    initial: ""
+
   # 門鎖低電量通知 AI
   doorlock_batt_model_current:
     name: 門鎖電池款式（當前）
