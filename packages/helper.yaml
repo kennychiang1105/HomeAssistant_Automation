@@ -440,7 +440,7 @@ template:
             {% set eta_raw = states('sensor.doorlock_batt_days_left_last_model') %}
             {% set model_now = states('input_text.doorlock_batt_model_current')|trim %}
             {% set model_last = states('input_text.doorlock_batt_model_last_cycle')|trim %}
-            {% set invalids = ['unknown','unavailable','none','None','','nan'] %}
+            {% set invalids = ['unknown','unavailable','none','None','','nan','-1'] %}
             {% set header = '門鎖電量摘要：' %}
 
             {% set eta_val = eta_raw|float(none) %}
@@ -460,7 +460,7 @@ template:
               {% set batt_val = batt_raw|float(0) %}
               {% set lines = [
                 header,
-                '• 客廳門鎖電量：' ~ (batt_val|round(0)) ~ '%',
+                '• 客廳門鎖電量：' ~ (batt_val|round(0)|int) ~ '%',
                 '• 預估天數：' ~ eta_text,
                 '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev
               ] %}

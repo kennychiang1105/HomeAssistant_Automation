@@ -107,6 +107,7 @@ variables:
     {% set txt = states('sensor.batt_line_text') %}
     {% set invalids = ['unknown','unavailable','none','None'] %}
     {{ txt if txt|trim and txt|lower not in invalids else '門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）' }}
+  batt_line_text_line: "{{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}"
 
 actions:
   - choose:
@@ -169,15 +170,15 @@ actions:
                     } %}
                     {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
                     {% set messages = [
-                      {"type":"text","text": notif_heading_urgent},
+                      {"type":"text","text": notif_heading_urgent|default(notif_title_base ~ '\n緊急 Urgent ‼️', true)},
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
                         ~ "\n但保全系統未成功設定外出模式。"
                         ~ "\n保全狀態：" ~ alarm_label ~ (('（' ~ alarm_state ~ '）') if alarm_state|trim else '')
                       )}
                     ] %}
-                    {% if batt_line_text|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text|replace('\\n','\n')}] %}
+                    {% if batt_line_text_line|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_line_text_line}] %}
                     {% endif %}
                     {{ messages | tojson }}
 
@@ -201,13 +202,13 @@ actions:
         sequence:
           - service: notify.persistent_notification
             data:
-              title: "{{ notif_title_general }}"
+              title: "{{ notif_title_general|default(notif_title_base, true) }}"
               message: |-
                 🏠 系統偵測所有人已離家。
                 • 家電皆為關閉，門鎖皆已上鎖。
                 • 已啟動離家模式。
 
-                {{ batt_line_text|replace('\\n','\n') }}
+                {{ batt_line_text_line }}
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_important_enable
@@ -218,15 +219,15 @@ actions:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
                     {% set messages = [
-                      {"type":"text","text": notif_heading_general},
+                      {"type":"text","text": notif_heading_general|default(notif_title_base ~ '\n一般 General 🪧', true)},
                       {"type":"text","text": (
                         '🏠 系統偵測所有人已離家。'
                         ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
                         ~ "\n• 已啟動離家模式。"
                       )}
                     ] %}
-                    {% if batt_line_text|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text|replace('\\n','\n')}] %}
+                    {% if batt_line_text_line|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_line_text_line}] %}
                     {% endif %}
                     {{ messages | tojson }}
 
@@ -244,7 +245,7 @@ actions:
         sequence:
           - service: notify.persistent_notification
             data:
-              title: "{{ notif_title_urgent }}"
+              title: "{{ notif_title_urgent|default(notif_title_base, true) }}"
               message: |-
                 ⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。
                 請確認鐵門與二樓門鎖狀況！
@@ -258,13 +259,13 @@ actions:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
                     {% set messages = [
-                      {"type":"text","text": notif_heading_urgent},
+                      {"type":"text","text": notif_heading_urgent|default(notif_title_base ~ '\n緊急 Urgent ‼️', true)},
                       {"type":"text","text": (
                         '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
                         ~ "\n請確認鐵門與二樓門鎖狀況！"
                       )}
                     ] %}
-                    {% if batt_line_text|trim %}
-                      {% set messages = messages + [{"type":"text","text": batt_line_text|replace('\\n','\n')}] %}
+                    {% if batt_line_text_line|trim %}
+                      {% set messages = messages + [{"type":"text","text": batt_line_text_line}] %}
                     {% endif %}
                     {{ messages | tojson }}
