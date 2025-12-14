@@ -444,8 +444,7 @@ template:
             {% set header = '門鎖電量摘要：' %}
 
             {% if batt_raw in invalids %}
-              {{ header }}
-              • 資料暫無（gateway 尚未回報）
+              {{ [header, '• 資料暫無（gateway 尚未回報）'] | join('\n') }}
             {% else %}
               {% set batt_val = batt_raw|float(0) %}
               {% set eta_val = eta_raw|float(none) %}
@@ -453,14 +452,28 @@ template:
               {% set eta_text = (eta_val|round(0)|int|string ~ ' 天') if eta_valid else '—（不同款或資料不足）' %}
               {% set model_curr = model_now if model_now not in invalids else '—' %}
               {% set model_prev = model_last if model_last not in invalids else '—' %}
+
               {% set lines = [
                 header,
-                '• 客廳門鎖電量：' ~ (batt_val|round(1)) ~ '%',
-                '• 預估天數：' ~ eta_text,
-                '• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev,
-                '• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常',
-                '• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'
+                '• 客廳門鎖電量：' ~ (batt_val|round(0)) ~ '%'
               ] %}
+
+              {% if eta_raw not in invalids %}
+                {% set lines = lines + ['• 預估天數：' ~ eta_text] %}
+              {% endif %}
+
+              {% if model_now not in invalids or model_last not in invalids %}
+                {% set lines = lines + ['• 當前/上次款式：' ~ model_curr ~ ' / ' ~ model_prev] %}
+              {% endif %}
+
+              {% if batt_val < 10 %}
+                {% set lines = lines + ['• ⚠️ 電量<10%：「自動離家」與「網關系統」可能異常'] %}
+              {% endif %}
+
+              {% if batt_val < 1 %}
+                {% set lines = lines + ['• 🟥 完全沒電（0%）：已排除客廳門鎖狀態檢查，請儘速更換電池'] %}
+              {% endif %}
+
               {{ lines | join('\n') }}
             {% endif %}
 
