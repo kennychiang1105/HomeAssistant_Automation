@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.7）
+# Helpers（V2.8）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.8):
+#   • 體感溫度 HomeKit 橋接修正：確保橋接溫度即使來源暫無更新也維持最近有效值，避免 HomeKit 顯示 unknown。
 # 新增與強化 (V2.7):
 #   • 體感溫度 HomeKit 橋接：新增 template sensors 將客廳/頂樓體感溫度 input_number 映射為溫度感測器，便於 HomeKit 匯入。
 # 新增與強化 (V2.6):
@@ -453,10 +455,14 @@ template:
           unit_of_measurement: "°C"
           device_class: temperature
           state_class: measurement
-          availability: >-
-            {{ states('input_number.living_room_effective_apparent_temperature') not in ['unknown','unavailable','none','None',''] }}
           state: >-
-            {{ states('input_number.living_room_effective_apparent_temperature') | float(0) }}
+            {% set current = states('input_number.living_room_effective_apparent_temperature') %}
+            {% set invalids = ['unknown','unavailable','none','None',''] %}
+            {% if current in invalids %}
+              {{ this.state if this.state not in invalids else 0 }}
+            {% else %}
+              {{ current | float(0) }}
+            {% endif %}
           attributes:
             source_entity: input_number.living_room_effective_apparent_temperature
 
@@ -465,10 +471,14 @@ template:
           unit_of_measurement: "°C"
           device_class: temperature
           state_class: measurement
-          availability: >-
-            {{ states('input_number.rooftop_effective_apparent_temperature') not in ['unknown','unavailable','none','None',''] }}
           state: >-
-            {{ states('input_number.rooftop_effective_apparent_temperature') | float(0) }}
+            {% set current = states('input_number.rooftop_effective_apparent_temperature') %}
+            {% set invalids = ['unknown','unavailable','none','None',''] %}
+            {% if current in invalids %}
+              {{ this.state if this.state not in invalids else 0 }}
+            {% else %}
+              {{ current | float(0) }}
+            {% endif %}
           attributes:
             source_entity: input_number.rooftop_effective_apparent_temperature
 
