@@ -188,8 +188,6 @@ action:
       - conditions:
           - condition: trigger
             id: sensor_change
-          - "{{ auto_speed_mode }}"
-          - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
           - "{{ t_eff_valid }}"
         sequence:
           - if:
@@ -201,23 +199,27 @@ action:
                   entity_id: input_number.living_room_effective_apparent_temperature
                 data:
                   value: "{{ t_eff }}"
-          - variables:
-              desired_pct: "{{ desired_pct_curve | int }}"
-              need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
           - if:
-              - "{{ need_update }}"
+              - "{{ auto_speed_mode }}"
+              - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
             then:
-              - service: fan.set_percentage
-                target:
-                  entity_id: fan.ke_ting_dian_feng_shan
-                data:
-                  percentage: "{{ desired_pct }}"
+              - variables:
+                  desired_pct: "{{ desired_pct_curve | int }}"
+                  need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
               - if:
-                  - "{{ debug_notify }}"
+                  - "{{ need_update }}"
                 then:
-                  - service: notify.persistent_notification
+                  - service: fan.set_percentage
+                    target:
+                      entity_id: fan.ke_ting_dian_feng_shan
                     data:
-                      title: "客廳風扇風速調整 (Debug)"
-                      message: >
-                        🔄 新風速={{ desired_pct }}%｜體感t_eff={{ '%.1f'|format(t_eff|float) }}°C
-                        (來源: {{ active_sensor_name }}｜T={{ '%.1f'|format(active_temp|float) }}°C, H={{ '%.1f'|format(active_humidity|float) }}%)
+                      percentage: "{{ desired_pct }}"
+                  - if:
+                      - "{{ debug_notify }}"
+                    then:
+                      - service: notify.persistent_notification
+                        data:
+                          title: "客廳風扇風速調整 (Debug)"
+                          message: >
+                            🔄 新風速={{ desired_pct }}%｜體感t_eff={{ '%.1f'|format(t_eff|float) }}°C
+                            (來源: {{ active_sensor_name }}｜T={{ '%.1f'|format(active_temp|float) }}°C, H={{ '%.1f'|format(active_humidity|float) }}%)
