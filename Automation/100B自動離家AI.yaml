@@ -119,6 +119,7 @@ variables:
     {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
   batt_line_text_line_safe: >-
     {{ batt_line_text_line|default('', true)|string }}
+  title_fallback_line: "【AI離家系統 V2.3】"
 
 actions:
   - choose:
@@ -180,8 +181,11 @@ actions:
                       'disarmed': '未設防'
                     } %}
                     {% set alarm_label = alarm_labels.get(alarm_state, alarm_state) %}
-                    {% set title_safe = notif_title_only_urgent_safe|default(notif_title_base, true)|string %}
-                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
@@ -232,8 +236,11 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
-                    {% set title_safe = notif_title_only_general_safe|default(notif_title_base, true)|string %}
-                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_general') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '一般 General 🪧'},
@@ -275,8 +282,11 @@ actions:
                 data:
                   user_id: C26ff4e9d30159ba5264a1676f46f8f86
                   payload: >-
-                    {% set title_safe = notif_title_only_urgent_safe|default(notif_title_base, true)|string %}
-                    {% set batt_safe = batt_line_text_line_safe|default('', true)|string %}
+                    {% set base = title_fallback_line %}
+                    {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                    {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                    {% set batt_txt = states('sensor.batt_line_text') %}
+                    {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
