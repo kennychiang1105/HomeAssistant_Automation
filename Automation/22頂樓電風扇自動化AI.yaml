@@ -41,6 +41,7 @@ action:
   - variables:
       debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
       manual_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
+      summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
 
       # ---- Helpers ----
       enter_low_close_c: "{{ states('input_number.enter_low_close_c') | float(26.9) }}"
@@ -200,9 +201,21 @@ action:
           {% set p2 = [p, 25] | max %}
           {{ p2 }}
         {% endif %}
+      # 非夏季模式：除>90% 外統一 -5%
+      pct_summer_tuned: >
+        {% if not summer_mode %}
+          {% set p = pct_sleep_tuned | float %}
+          {% if p > 90 %}
+            {{ p }}
+          {% else %}
+            {{ [p - 5, 0] | max }}
+          {% endif %}
+        {% else %}
+          {{ pct_sleep_tuned }}
+        {% endif %}
       # 對齊到 2.5%（最後依 HA 要求轉 int）
       desired_pct_curve: >
-        {% set p = pct_sleep_tuned | float %}
+        {% set p = pct_summer_tuned | float %}
         {% set step = 2.5 %}
         {% set snapped = ((p / step) | round(0) * step) %}
         {{ [snapped, 100] | min }}
@@ -398,7 +411,7 @@ action:
           - condition: template
             value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
           - condition: template
-            value_template: "{{ not manual_hold }}"
+            value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
         sequence:
           - service: input_boolean.turn_on
             target:
@@ -422,7 +435,7 @@ action:
           - condition: template
             value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
           - condition: template
-            value_template: "{{ not manual_hold }}"
+            value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
         sequence:
           - service: fan.turn_off
             target:
