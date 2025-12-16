@@ -1,11 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.1)   （Helpers V2.14 相容）
-# 更新重點（相對 V1.0）：
+# 106B網關異常警告AI (V1.2)   （Helpers V2.14 相容）
+# 更新重點（相對 V1.1）：
+# 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
+# 2) 狀態判斷安全：情境布林改為明確布林與去空白，異常訊息能正確呈現當前狀態。
+# 前版更新（V1.0 → V1.1）：
 # 1) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣。
 # 2) 情境健檢：偵測五個 input_boolean 有兩個以上同時開啟即判定異常。
 # 3) 自動修復：自動切換為「在家情境」、關閉其他情境並同步伺服器網關為 arm_home，並回報 HA/LINE。
 # ─────────────────────────────────────────────────────────────
-alias: 106B網關異常警告AI (V1.1)
+alias: 106B網關異常警告AI (V1.2)
 id: automation.gateway_anomaly_guard_ai
 description: 保全情境重置與異常告警
 mode: single
@@ -24,30 +27,48 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.1"
+  automation_version: "V1.2"
   helpers_compat: "Helpers V2.14"
   notif_title_base: "【保全告警系統 V1.0】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
-  aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') }}"
-  aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') }}"
-  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
-  aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') }}"
-  aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') }}"
+  aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
+  aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
+  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
+  aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
+  aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|trim }}"
   aqara_scene_label_helper: >-
-    {% set label = states('sensor.aqara_dang_qian_qing_jing') %}
-    {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
-    {{ label if label not in invalids else '情境未知' }}
-  aqara_scene_label_safe: "{{ aqara_scene_label_helper|default('情境未知', true) }}"
+    {% set label = aqara_scene_label_helper_raw %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+    {% if label is string %}
+      {% set label = label.strip() %}
+    {% endif %}
+    {% if label|lower in invalids or not label %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
+    {% endif %}
+  aqara_state_label: >-
+    {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
+    {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+    {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+    {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+    {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+    {% else %}情境未知{% endif %}
   aqara_active_labels: >-
     {% set labels = [] %}
-    {% if aqara_zai_jia_on %}{% set _ = labels.append('在家情境') %}{% endif %}
-    {% if aqara_wan_an_on %}{% set _ = labels.append('晚安情境') %}{% endif %}
-    {% if aqara_li_jia_on %}{% set _ = labels.append('離家情境') %}{% endif %}
-    {% if aqara_guan_bi_on %}{% set _ = labels.append('網關解除情境') %}{% endif %}
-    {% if aqara_chu_fa_on %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
-    {{ labels|join('、') if labels else '無（全關）' }}
+    {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set _ = labels.append('在家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_wan_an','on') %}{% set _ = labels.append('晚安情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_li_jia','on') %}{% set _ = labels.append('離家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set _ = labels.append('網關解除情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
+    {{ labels|join('、') if labels else '' }}
+  aqara_scene_label_safe: >-
+    {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+    {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
+    {% else %}{{ aqara_state_label }}{% endif %}
   anomaly_detected: >-
     {{
       (

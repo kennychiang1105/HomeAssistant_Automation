@@ -1,6 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.4)   （Helpers V2.14 相容）
-# 更新重點（相對 V2.3）：
+# 100B自動離家AI (V2.5)   （Helpers V2.14 相容）
+# 更新重點（相對 V2.4）：
+# 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
+# 2) 狀態判斷安全：模板判斷改用布林值與去除空白，確保 LINE/HA 文字能正確帶出情境。
+# 前版更新（V2.3 → V2.4）：
 # 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
 # 2) 通知同步：LINE 標題同步至 V2.4，訊息仍沿用 AI 離家格式並補充情境狀態說明。
 # 前版更新（V1 Beta 9 → V2.3）：
@@ -8,9 +11,9 @@
 # 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
 # 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.4)"
+alias: "100B自動離家AI (V2.5)"
 id: automation.100b_ai_leave_v1beta9
-description: "AI離家 v2.4"
+description: "AI離家 v2.5"
 mode: single
 
 triggers:
@@ -74,15 +77,15 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.4"
+  automation_version: "V2.5"
   helpers_compat: "Helpers V2.14"
-  notif_title_base: "【AI離家系統 V2.4】"
+  notif_title_base: "【AI離家系統 V2.5】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.4】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.5】' }}
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.4】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.5】' }}
   notif_title_only_general: >-
     {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
   notif_title_only_urgent: >-
@@ -106,32 +109,43 @@ variables:
 
   arm_away_timeout_sec: 5
 
-  aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') }}"
-  aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') }}"
-  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
-  aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') }}"
-  aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') }}"
-  aqara_state_label: >-
-    {% if aqara_li_jia_on %}離家情境
-    {% elif aqara_wan_an_on %}晚安情境
-    {% elif aqara_zai_jia_on %}在家情境
-    {% elif aqara_guan_bi_on %}網關解除情境
-    {% elif aqara_chu_fa_on %}網關觸發情境
-    {% else %}無情境（全關）{% endif %}
+  aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
+  aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
+  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
+  aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
+  aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|trim }}"
   aqara_scene_label_helper: >-
-    {% set label = states('sensor.aqara_dang_qian_qing_jing') %}
-    {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
-    {{ label if label not in invalids else aqara_state_label }}
-  aqara_scene_label_safe: "{{ aqara_scene_label_helper|default(aqara_state_label, true) }}"
-  aqara_is_away: "{{ aqara_li_jia_on }}"
+    {% set label = aqara_scene_label_helper_raw %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+    {% if label is string %}
+      {% set label = label.strip() %}
+    {% endif %}
+    {% if label|lower in invalids or not label %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
+    {% endif %}
+  aqara_state_label: >-
+    {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
+    {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+    {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+    {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+    {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+    {% else %}情境未知{% endif %}
   aqara_active_labels: >-
     {% set labels = [] %}
-    {% if aqara_zai_jia_on %}{% set _ = labels.append('在家情境') %}{% endif %}
-    {% if aqara_wan_an_on %}{% set _ = labels.append('晚安情境') %}{% endif %}
-    {% if aqara_li_jia_on %}{% set _ = labels.append('離家情境') %}{% endif %}
-    {% if aqara_guan_bi_on %}{% set _ = labels.append('網關解除情境') %}{% endif %}
-    {% if aqara_chu_fa_on %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
-    {{ labels|join('、') if labels else '無（全關）' }}
+    {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set _ = labels.append('在家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_wan_an','on') %}{% set _ = labels.append('晚安情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_li_jia','on') %}{% set _ = labels.append('離家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set _ = labels.append('網關解除情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
+    {{ labels|join('、') if labels else '' }}
+  aqara_scene_label_safe: >-
+    {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+    {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
+    {% else %}{{ aqara_state_label }}{% endif %}
+  aqara_is_away: "{{ aqara_li_jia_on }}"
 
   doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
   batt_valid: "{{ doorlock_batt >= 0 }}"
@@ -146,7 +160,7 @@ variables:
     {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
   batt_line_text_line_safe: >-
     {{ batt_line_text_line|default('', true)|string }}
-  title_fallback_line: "【AI離家系統 V2.4】"
+  title_fallback_line: "【AI離家系統 V2.5】"
 
 actions:
   - choose:
