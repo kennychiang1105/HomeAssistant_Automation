@@ -492,20 +492,20 @@ actions:
                         data:
                           user_id: C26ff4e9d30159ba5264a1676f46f8f86
                           payload: >-
-                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
-                    {% set scene = scene_raw|trim %}
-                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-                    {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
-                    {% set messages = [
-                      {"type":"text","text": notif_title_emergency},
-                      {"type":"text","text": '緊急 Urgent ‼️'},
-                      {"type":"text","text": (
-                        '🚪 二樓門鎖於離家情境中開啟。'
-                        ~ "\n請立即鎖上門鎖並確認鐵門狀態。"
-                        ~ "\n目前情境：" ~ scene_safe
-                      )}
-                    ] %}
-                    {{ messages | tojson }}
+                            {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                            {% set scene = scene_raw|trim %}
+                            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                            {% set messages = [
+                              {"type":"text","text": notif_title_emergency},
+                              {"type":"text","text": '緊急 Urgent ‼️'},
+                              {"type":"text","text": (
+                                '🚪 二樓門鎖於離家情境中開啟。'
+                                ~ "\n請立即鎖上門鎖並確認鐵門狀態。"
+                                ~ "\n目前情境：" ~ scene_safe
+                              )}
+                            ] %}
+                            {{ messages | tojson }}
                   - data:
                       message: |-
                         保全系統警告（離家保全 {{ automation_version }}）:
@@ -850,20 +850,20 @@ actions:
                         data:
                           user_id: C26ff4e9d30159ba5264a1676f46f8f86
                           payload: >-
-                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
-                    {% set scene = scene_raw|trim %}
-                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-                    {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
-                    {% set messages = [
-                      {"type":"text","text": notif_title_emergency},
-                      {"type":"text","text": '緊急 Urgent ‼️'},
-                      {"type":"text","text": (
-                        '🚗 鐵門與 🚪 二樓門鎖於離家情境中同時開啟。'
-                        ~ "\n請立即確認現場安全並關閉鐵門與門鎖。"
-                        ~ "\n目前情境：" ~ scene_safe
-                      )}
-                    ] %}
-                    {{ messages | tojson }}
+                            {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                            {% set scene = scene_raw|trim %}
+                            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                            {% set messages = [
+                              {"type":"text","text": notif_title_emergency},
+                              {"type":"text","text": '緊急 Urgent ‼️'},
+                              {"type":"text","text": (
+                                '🚗 鐵門與 🚪 二樓門鎖於離家情境中同時開啟。'
+                                ~ "\n請立即確認現場安全並關閉鐵門與門鎖。"
+                                ~ "\n目前情境：" ~ scene_safe
+                              )}
+                            ] %}
+                            {{ messages | tojson }}
                   - data:
                       message: |-
                         保全系統警告（離家保全 {{ automation_version }}）:
