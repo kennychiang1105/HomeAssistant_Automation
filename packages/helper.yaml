@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.14）
+# Helpers（V2.15）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.15):
+#   • Aqara 情境標籤強化：確保 helper 感測器永遠回傳有效文字（無情境/多情境），供通知穩定取值。
 # 新增與強化 (V2.14):
 #   • Aqara 情境標籤：新增 template sensor 同步目前情境文字，讓通知可共用一致的情境描述。
 #   • 保全告警系統：將網關守護相關標題改為「保全告警系統」，名稱去除 Aqara 字樣。
@@ -443,9 +445,13 @@ template:
               ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
             ] %}
             {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
-            {% if active|length == 0 %}未設定情境
-            {% elif active|length == 1 %}{{ active[0] }}
-            {% else %}多個情境衝突：{{ active|join('、') }}{% endif %}
+            {% if active|length == 0 %}
+              未設定情境
+            {% elif active|length == 1 %}
+              {{ active[0] }}
+            {% else %}
+              多個情境衝突：{{ active|join('、') }}
+            {% endif %}
           attributes:
             active_labels: >-
               {% set pairs = [
@@ -456,7 +462,13 @@ template:
                 ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
               ] %}
               {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
-              {{ active | join('、') if active else '無' }}
+              {% if active|length == 0 %}
+                未設定情境
+              {% elif active|length == 1 %}
+                {{ active[0] }}
+              {% else %}
+                多個情境衝突：{{ active|join('、') }}
+              {% endif %}
 
     - trigger:
         - platform: state

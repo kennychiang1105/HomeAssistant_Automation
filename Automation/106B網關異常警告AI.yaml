@@ -1,14 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.2)   （Helpers V2.14 相容）
-# 更新重點（相對 V1.1）：
+# 106B網關異常警告AI (V1.3)   （Helpers V2.15 相容）
+# 更新重點（相對 V1.2）：
+# 1) 情境標籤再強化：以 helper state/attribute 雙重 fallback，避免通知情境空白。
+# 2) 版本同步：對應 Helpers V2.15 情境標籤更新。
+# 前版更新（V1.0 → V1.2）：
 # 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
 # 2) 狀態判斷安全：情境布林改為明確布林與去空白，異常訊息能正確呈現當前狀態。
-# 前版更新（V1.0 → V1.1）：
-# 1) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣。
-# 2) 情境健檢：偵測五個 input_boolean 有兩個以上同時開啟即判定異常。
-# 3) 自動修復：自動切換為「在家情境」、關閉其他情境並同步伺服器網關為 arm_home，並回報 HA/LINE。
+# 3) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣；情境健檢+自動修復同步。
 # ─────────────────────────────────────────────────────────────
-alias: 106B網關異常警告AI (V1.2)
+alias: 106B網關異常警告AI (V1.3)
 id: automation.gateway_anomaly_guard_ai
 description: 保全情境重置與異常告警
 mode: single
@@ -27,8 +27,8 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.2"
-  helpers_compat: "Helpers V2.14"
+  automation_version: "V1.3"
+  helpers_compat: "Helpers V2.15"
   notif_title_base: "【保全告警系統 V1.0】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
@@ -38,14 +38,20 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|trim }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqara_dang_qian_qing_jing','active_labels')|string }}"
   aqara_scene_label_helper: >-
-    {% set label = aqara_scene_label_helper_raw %}
-    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-    {% if label is string %}
-      {% set label = label.strip() %}
+    {% set label = aqara_scene_label_helper_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
+    {% if label|lower in invalids %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
     {% endif %}
-    {% if label|lower in invalids or not label %}
+  aqara_scene_label_attr: >-
+    {% set label = aqara_scene_label_attr_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+    {% if label|lower in invalids %}
       {{ '' }}
     {% else %}
       {{ label }}
@@ -67,6 +73,7 @@ variables:
     {{ labels|join('、') if labels else '' }}
   aqara_scene_label_safe: >-
     {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+    {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
     {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
     {% else %}{{ aqara_state_label }}{% endif %}
   anomaly_detected: >-
@@ -140,7 +147,7 @@ actions:
         {% if is_state('input_boolean.aqara_li_jia','on') %}{% set _ = labels.append('離家情境') %}{% endif %}
         {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set _ = labels.append('網關解除情境') %}{% endif %}
         {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
-        {{ labels|join('、') if labels else '無（全關）' }}
+        {{ labels|join('、') if labels else '' }}
       resolved_count: >-
         {% set labels = [] %}
         {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set _ = labels.append(1) %}{% endif %}

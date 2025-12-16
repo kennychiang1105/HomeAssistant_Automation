@@ -1,8 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.5)   （Helpers V2.14 相容）
-# 更新重點（相對 V2.4）：
-# 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
-# 2) 狀態判斷安全：模板判斷改用布林值與去除空白，確保 LINE/HA 文字能正確帶出情境。
+# 100B自動離家AI (V2.6)   （Helpers V2.15 相容）
+# 更新重點（相對 V2.5）：
+# 1) 情境標籤再強化：以 helper state/attribute 雙重 fallback，確保通知永不空白。
+# 2) 版本同步：對應 Helpers V2.15 情境標籤更新。
+# 前版更新（V2.3 → V2.5）：
+# 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
+# 2) 通知同步：LINE 標題同步至 V2.5，訊息仍沿用 AI 離家格式並補充情境狀態說明。
 # 前版更新（V2.3 → V2.4）：
 # 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
 # 2) 通知同步：LINE 標題同步至 V2.4，訊息仍沿用 AI 離家格式並補充情境狀態說明。
@@ -11,9 +14,9 @@
 # 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
 # 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.5)"
+alias: "100B自動離家AI (V2.6)"
 id: automation.100b_ai_leave_v1beta9
-description: "AI離家 v2.5"
+description: "AI離家 v2.6"
 mode: single
 
 triggers:
@@ -77,15 +80,15 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.5"
-  helpers_compat: "Helpers V2.14"
-  notif_title_base: "【AI離家系統 V2.5】"
+  automation_version: "V2.6"
+  helpers_compat: "Helpers V2.15"
+  notif_title_base: "【AI離家系統 V2.6】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.5】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.6】' }}
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.5】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.6】' }}
   notif_title_only_general: >-
     {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
   notif_title_only_urgent: >-
@@ -114,14 +117,20 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|trim }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqara_dang_qian_qing_jing','active_labels')|string }}"
   aqara_scene_label_helper: >-
-    {% set label = aqara_scene_label_helper_raw %}
-    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-    {% if label is string %}
-      {% set label = label.strip() %}
+    {% set label = aqara_scene_label_helper_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
+    {% if label|lower in invalids %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
     {% endif %}
-    {% if label|lower in invalids or not label %}
+  aqara_scene_label_attr: >-
+    {% set label = aqara_scene_label_attr_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+    {% if label|lower in invalids %}
       {{ '' }}
     {% else %}
       {{ label }}
@@ -143,6 +152,7 @@ variables:
     {{ labels|join('、') if labels else '' }}
   aqara_scene_label_safe: >-
     {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+    {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
     {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
     {% else %}{{ aqara_state_label }}{% endif %}
   aqara_is_away: "{{ aqara_li_jia_on }}"
@@ -160,7 +170,7 @@ variables:
     {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
   batt_line_text_line_safe: >-
     {{ batt_line_text_line|default('', true)|string }}
-  title_fallback_line: "【AI離家系統 V2.5】"
+  title_fallback_line: "【AI離家系統 V2.6】"
 
 actions:
   - choose:
