@@ -224,13 +224,17 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene = scene_raw|trim %}
+                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                    {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
                         ~ "\n但 Aqara 網關未成功設定離家模式。"
-                        ~ "\n目前情境：" ~ aqara_scene_label_safe
+                        ~ "\n目前情境：" ~ scene_safe
                       )}
                     ] %}
                     {% if batt_safe|trim %}
@@ -279,6 +283,10 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene = scene_raw|trim %}
+                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                    {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '一般 General 🪧'},
@@ -286,6 +294,7 @@ actions:
                         '🏠 系統偵測所有人已離家。'
                         ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
                         ~ "\n• 已啟動離家模式。"
+                        ~ "\n目前情境：" ~ scene_safe
                       )}
                     ] %}
                     {% if batt_safe|trim %}
@@ -325,12 +334,17 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene = scene_raw|trim %}
+                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                    {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
                     {% set messages = [
                       {"type":"text","text": title_safe},
                       {"type":"text","text": '緊急 Urgent ‼️'},
                       {"type":"text","text": (
                         '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
                         ~ "\n請確認鐵門與二樓門鎖狀況！"
+                        ~ "\n目前情境：" ~ scene_safe
                       )}
                     ] %}
                     {% if batt_safe|trim %}

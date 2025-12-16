@@ -109,12 +109,16 @@ actions:
         data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
           payload: >-
+            {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+            {% set scene = scene_raw|trim %}
+            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
             {% set messages = [
               {"type":"text","text": notif_title_alert},
               {"type":"text","text": '緊急 Urgent ‼️'},
               {"type":"text","text": (
                 '⚠️ 保全系統偵測到多個情境同時開啟。'
-                ~ "\n目前狀態：" ~ aqara_scene_label_safe
+                ~ "\n目前狀態：" ~ scene_safe
                 ~ "\n將自動切換為在家情境並同步伺服器網關。"
               )}
             ] %}
@@ -174,12 +178,16 @@ actions:
         data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
           payload: >-
+            {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+            {% set scene = scene_raw|trim %}
+            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
             {% set messages = [
               {"type":"text","text": notif_title_alert},
               {"type":"text","text": '緊急 Urgent ‼️'},
               {"type":"text","text": (
                 '✅ 保全情境異常已自動排除。'
-                ~ "\n目前啟用：" ~ aqara_scene_label_safe
+                ~ "\n目前啟用：" ~ scene_safe
                 ~ "\n伺服器網關已同步為 arm_home。"
               )}
             ] %}
