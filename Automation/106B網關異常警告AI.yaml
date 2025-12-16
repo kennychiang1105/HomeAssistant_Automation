@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.1)   （Helpers V2.13 相容）
+# 106B網關異常警告AI (V1.1)   （Helpers V2.14 相容）
 # 更新重點（相對 V1.0）：
 # 1) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣。
 # 2) 情境健檢：偵測五個 input_boolean 有兩個以上同時開啟即判定異常。
@@ -25,7 +25,7 @@ triggers:
 
 variables:
   automation_version: "V1.1"
-  helpers_compat: "Helpers V2.13"
+  helpers_compat: "Helpers V2.14"
   notif_title_base: "【保全告警系統 V1.0】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
@@ -35,6 +35,11 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') }}"
+  aqara_scene_label_helper: >-
+    {% set label = states('sensor.aqara_dang_qian_qing_jing') %}
+    {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
+    {{ label if label not in invalids else '情境未知' }}
+  aqara_scene_label_safe: "{{ aqara_scene_label_helper|default('情境未知', true) }}"
   aqara_active_labels: >-
     {% set labels = [] %}
     {% if aqara_zai_jia_on %}{% set _ = labels.append('在家情境') %}{% endif %}
@@ -64,7 +69,7 @@ actions:
       title: "{{ notif_title_alert }}"
       message: |-
         保全情境異常（{{ automation_version }}）
-        目前同時開啟：{{ aqara_active_labels }}
+        目前同時開啟：{{ aqara_scene_label_safe }}
         將自動切換為「在家情境」，並同步伺服器網關為 arm_home。
 
   - if:
@@ -81,7 +86,7 @@ actions:
               {"type":"text","text": '緊急 Urgent ‼️'},
               {"type":"text","text": (
                 '⚠️ 保全系統偵測到多個情境同時開啟。'
-                ~ "\n目前狀態：" ~ aqara_active_labels
+                ~ "\n目前狀態：" ~ aqara_scene_label_safe
                 ~ "\n將自動切換為在家情境並同步伺服器網關。"
               )}
             ] %}
@@ -129,7 +134,7 @@ actions:
       title: "{{ notif_title_alert }}"
       message: |-
         保全情境異常已自動排除。
-        目前啟用：{{ resolved_labels }}
+        目前啟用：{{ aqara_scene_label_safe }}
         伺服器網關已同步為 arm_home。
 
   - if:
@@ -146,7 +151,7 @@ actions:
               {"type":"text","text": '緊急 Urgent ‼️'},
               {"type":"text","text": (
                 '✅ 保全情境異常已自動排除。'
-                ~ "\n目前啟用：" ~ resolved_labels
+                ~ "\n目前啟用：" ~ aqara_scene_label_safe
                 ~ "\n伺服器網關已同步為 arm_home。"
               )}
             ] %}

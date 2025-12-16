@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.4)   （Helpers V2.13 相容）
+# 100B自動離家AI (V2.4)   （Helpers V2.14 相容）
 # 更新重點（相對 V2.3）：
 # 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
 # 2) 通知同步：LINE 標題同步至 V2.4，訊息仍沿用 AI 離家格式並補充情境狀態說明。
@@ -75,7 +75,7 @@ conditions:
 
 variables:
   automation_version: "V2.4"
-  helpers_compat: "Helpers V2.13"
+  helpers_compat: "Helpers V2.14"
   notif_title_base: "【AI離家系統 V2.4】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
@@ -118,6 +118,11 @@ variables:
     {% elif aqara_guan_bi_on %}網關解除情境
     {% elif aqara_chu_fa_on %}網關觸發情境
     {% else %}無情境（全關）{% endif %}
+  aqara_scene_label_helper: >-
+    {% set label = states('sensor.aqara_dang_qian_qing_jing') %}
+    {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
+    {{ label if label not in invalids else aqara_state_label }}
+  aqara_scene_label_safe: "{{ aqara_scene_label_helper|default(aqara_state_label, true) }}"
   aqara_is_away: "{{ aqara_li_jia_on }}"
   aqara_active_labels: >-
     {% set labels = [] %}
@@ -180,7 +185,7 @@ actions:
               title: "{{ notif_title_urgent }}"
               message: |-
                 ⚠️ 已判定離家，但保全系統未成功設定外出模式。
-                目前情境：{{ aqara_state_label|default('情境未知', true) }}
+                目前情境：{{ aqara_scene_label_safe }}
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_emergency_enable
@@ -201,7 +206,7 @@ actions:
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
                         ~ "\n但 Aqara 網關未成功設定離家模式。"
-                        ~ "\n目前情境：" ~ (aqara_state_label|default('情境未知', true))
+                        ~ "\n目前情境：" ~ aqara_scene_label_safe
                       )}
                     ] %}
                     {% if batt_safe|trim %}

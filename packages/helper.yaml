@@ -1,7 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.13）
+# Helpers（V2.14）
 # ──────────────────────────────────────────────
-# 新增與強化 (V2.13):
+# 新增與強化 (V2.14):
+#   • Aqara 情境標籤：新增 template sensor 同步目前情境文字，讓通知可共用一致的情境描述。
 #   • 保全告警系統：將網關守護相關標題改為「保全告警系統」，名稱去除 Aqara 字樣。
 #   • LPR 關門延遲：預設與步進改為 1.5 分鐘、0.5 分鐘步進，方便細調。
 # 新增與強化 (V2.12):
@@ -421,6 +422,42 @@ input_select:
       - REA9519
       - EBH8030
 template:
+    - trigger:
+        - platform: state
+          entity_id:
+            - input_boolean.aqara_zai_jia
+            - input_boolean.aqara_wan_an
+            - input_boolean.aqara_li_jia
+            - input_boolean.aqara_guan_bi
+            - input_boolean.aqara_chu_fa
+      sensor:
+        - name: Aqara當前情境
+          unique_id: aqara_current_scene_label
+          icon: mdi:shield-home
+          state: >-
+            {% set pairs = [
+              ('在家情境', is_state('input_boolean.aqara_zai_jia','on')),
+              ('晚安情境', is_state('input_boolean.aqara_wan_an','on')),
+              ('離家情境', is_state('input_boolean.aqara_li_jia','on')),
+              ('網關解除情境', is_state('input_boolean.aqara_guan_bi','on')),
+              ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
+            ] %}
+            {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
+            {% if active|length == 0 %}未設定情境
+            {% elif active|length == 1 %}{{ active[0] }}
+            {% else %}多個情境衝突：{{ active|join('、') }}{% endif %}
+          attributes:
+            active_labels: >-
+              {% set pairs = [
+                ('在家情境', is_state('input_boolean.aqara_zai_jia','on')),
+                ('晚安情境', is_state('input_boolean.aqara_wan_an','on')),
+                ('離家情境', is_state('input_boolean.aqara_li_jia','on')),
+                ('網關解除情境', is_state('input_boolean.aqara_guan_bi','on')),
+                ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
+              ] %}
+              {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
+              {{ active | join('、') if active else '無' }}
+
     - trigger:
         - platform: state
           entity_id:
