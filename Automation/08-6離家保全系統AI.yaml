@@ -33,14 +33,6 @@ variables:
     {% elif aqara_guan_bi_on %}網關解除情境
     {% elif aqara_chu_fa_on %}網關觸發情境
     {% else %}無情境（全關）{% endif %}
-  aqara_active_count: >-
-    {{
-      (1 if aqara_zai_jia_on else 0)
-      + (1 if aqara_wan_an_on else 0)
-      + (1 if aqara_li_jia_on else 0)
-      + (1 if aqara_guan_bi_on else 0)
-      + (1 if aqara_chu_fa_on else 0)
-    }}
   aqara_active_labels: >-
     {% set labels = [] %}
     {% if aqara_zai_jia_on %}{% set _ = labels.append('在家情境') %}{% endif %}
@@ -120,7 +112,7 @@ actions:
                               {"type":"text","text": (
                                 '🚗 鐵門於離家情境中保持開啟。'
                                 ~ "\n請盡速確認並關閉鐵門，避免警報誤觸發。"
-                                ~ "\n目前情境：" ~ aqara_state_label ~ "（" ~ (aqara_active_count|string) ~ " 個開啟：" ~ aqara_active_labels ~ "）"
+                                ~ "\n目前情境：" ~ (aqara_state_label|default('情境未知', true))
                               )}
                             ] %}
                             {{ messages | tojson }}
@@ -128,7 +120,7 @@ actions:
                       message: |-
                         保全系統警告（離家保全 {{ automation_version }}）:
                         系統偵測所有人未在家且離家情境已啟用，但鐵門已打開。
-                        目前情境：{{ aqara_state_label }}（{{ aqara_active_count }} 個開啟：{{ aqara_active_labels }}）
+                        目前情境：{{ aqara_state_label|default('情境未知', true) }}
                         請盡速確認鐵門狀態。
                       title: "{{ notif_title_important }}"
                     action: notify.persistent_notification
@@ -476,7 +468,7 @@ actions:
                               {"type":"text","text": (
                                 '🚪 二樓門鎖於離家情境中開啟。'
                                 ~ "\n請立即鎖上門鎖並確認鐵門狀態。"
-                                ~ "\n目前情境：" ~ aqara_state_label ~ "（" ~ (aqara_active_count|string) ~ " 個開啟：" ~ aqara_active_labels ~ "）"
+                                ~ "\n目前情境：" ~ (aqara_state_label|default('情境未知', true))
                               )}
                             ] %}
                             {{ messages | tojson }}
@@ -484,7 +476,7 @@ actions:
                       message: |-
                         保全系統警告（離家保全 {{ automation_version }}）:
                         系統偵測所有人未在家且離家情境已啟用，但二樓門鎖已打開。
-                        目前情境：{{ aqara_state_label }}（{{ aqara_active_count }} 個開啟：{{ aqara_active_labels }}）
+                        目前情境：{{ aqara_state_label|default('情境未知', true) }}
                         請立即鎖上門鎖並確認鐵門狀態。
                       title: "{{ notif_title_emergency }}"
                     action: notify.persistent_notification
@@ -830,7 +822,7 @@ actions:
                               {"type":"text","text": (
                                 '🚗 鐵門與 🚪 二樓門鎖於離家情境中同時開啟。'
                                 ~ "\n請立即確認現場安全並關閉鐵門與門鎖。"
-                                ~ "\n目前情境：" ~ aqara_state_label ~ "（" ~ (aqara_active_count|string) ~ " 個開啟：" ~ aqara_active_labels ~ "）"
+                                ~ "\n目前情境：" ~ (aqara_state_label|default('情境未知', true))
                               )}
                             ] %}
                             {{ messages | tojson }}
@@ -838,7 +830,7 @@ actions:
                       message: |-
                         保全系統警告（離家保全 {{ automation_version }}）:
                         系統偵測所有人未在家且離家情境已啟用，但鐵門與門鎖皆已打開。
-                        目前情境：{{ aqara_state_label }}（{{ aqara_active_count }} 個開啟：{{ aqara_active_labels }}）
+                        目前情境：{{ aqara_state_label|default('情境未知', true) }}
                         請立即確認並關閉鐵門與門鎖。
                       title: "{{ notif_title_emergency }}"
                     action: notify.persistent_notification

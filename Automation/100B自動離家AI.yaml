@@ -119,14 +119,6 @@ variables:
     {% elif aqara_chu_fa_on %}網關觸發情境
     {% else %}無情境（全關）{% endif %}
   aqara_is_away: "{{ aqara_li_jia_on }}"
-  aqara_active_count: >-
-    {{
-      (1 if aqara_zai_jia_on else 0)
-      + (1 if aqara_wan_an_on else 0)
-      + (1 if aqara_li_jia_on else 0)
-      + (1 if aqara_guan_bi_on else 0)
-      + (1 if aqara_chu_fa_on else 0)
-    }}
   aqara_active_labels: >-
     {% set labels = [] %}
     {% if aqara_zai_jia_on %}{% set _ = labels.append('在家情境') %}{% endif %}
@@ -188,7 +180,7 @@ actions:
               title: "{{ notif_title_urgent }}"
               message: |-
                 ⚠️ 已判定離家，但保全系統未成功設定外出模式。
-                目前情境：{{ aqara_state_label }}（{{ aqara_active_count }} 個開啟：{{ aqara_active_labels }}）
+                目前情境：{{ aqara_state_label|default('情境未知', true) }}
           - if:
               - condition: state
                 entity_id: input_boolean.notify_line_emergency_enable
@@ -209,7 +201,7 @@ actions:
                       {"type":"text","text": (
                         '⚠️ 已判定離家並執行離家情境，'
                         ~ "\n但 Aqara 網關未成功設定離家模式。"
-                        ~ "\n目前情境：" ~ aqara_state_label ~ "（" ~ (aqara_active_count|string) ~ " 個開啟：" ~ aqara_active_labels ~ "）"
+                        ~ "\n目前情境：" ~ (aqara_state_label|default('情境未知', true))
                       )}
                     ] %}
                     {% if batt_safe|trim %}
