@@ -1,6 +1,18 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.11）
+# Helpers（V2.16）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.16):
+#   • Aqara 情境標籤命名：調整情境 helper 的 entity_id 為 sensor.aqaradang_qian_qing_jing，避免錯字導致通知空白。
+# 新增與強化 (V2.15):
+#   • Aqara 情境標籤強化：確保 helper 感測器永遠回傳有效文字（無情境/多情境），供通知穩定取值。
+# 新增與強化 (V2.14):
+#   • Aqara 情境標籤：新增 template sensor 同步目前情境文字，讓通知可共用一致的情境描述。
+#   • 保全告警系統：將網關守護相關標題改為「保全告警系統」，名稱去除 Aqara 字樣。
+#   • LPR 關門延遲：預設與步進改為 1.5 分鐘、0.5 分鐘步進，方便細調。
+# 新增與強化 (V2.12):
+#   • Aqara 網關情境通知：新增離家保全/網關異常的 LINE 標題 helpers，並同步至最新版本字串。
+#   • LINE 分級調整：離家保全的鐵門/門鎖告警改為使用重要/緊急開關，可依 Helper 控制是否推播。
+#   • 版本同步：AI 離家系統版本同步至 V2.4，標題同步器一併更新。
 # 新增與強化 (V2.11):
 #   • 災害通知去重：新增 last_disaster_broadcast 與 disaster_last_message helpers，供天氣告知系統記錄上次播報時間與內容，避免重複播報。
 # 新增與強化 (V2.10):
@@ -127,12 +139,12 @@ input_number:
   # 車牌辨識AI_Beta
   lpr_auto_close_delay_min:
     name: LPR關門延遲（分鐘）
-    min: 1
+    min: 0.5
     max: 15
-    step: 1
+    step: 0.5
     unit_of_measurement: min
     icon: mdi:timer-sand
-    initial: 3
+    initial: 1.5
   # 風扇 AI 自動化：門檻 & 權重參數
   enter_low_close_c:
     name: 上樓_不開門檻(°C)
@@ -334,11 +346,23 @@ input_text:
   notif_title_100b_general:
     name: 100B_LINEnotice_一般
     max: 120
-    initial: "【AI離家系統 V2.3】"
+    initial: "【AI離家系統 V2.7】"
   notif_title_100b_urgent:
     name: 100B_LINEnotice_緊急
     max: 120
-    initial: "【AI離家系統 V2.3】"
+    initial: "【AI離家系統 V2.7】"
+  notif_title_086_important:
+    name: 08-6_LINEnotice_重要
+    max: 120
+    initial: "【離家保全系統 V1.4】"
+  notif_title_086_emergency:
+    name: 08-6_LINEnotice_緊急
+    max: 120
+    initial: "【離家保全系統 V1.4】"
+  notif_title_gateway_alert:
+    name: 保全告警系統_通知標題
+    max: 120
+    initial: "【保全告警系統 V1.4】"
   notif_title_100c_warn:
     name: 100C_LINEnotice_電量提醒
     max: 120
@@ -390,7 +414,7 @@ input_text:
     name: AI離家版本字串
     icon: mdi:home-export-outline
     max: 120
-    initial: "AI離家 v2.3"
+    initial: "AI離家 v2.4"
    
 input_select:
   # 車牌辨識AI_Beta
@@ -402,6 +426,53 @@ input_select:
       - REA9519
       - EBH8030
 template:
+    - trigger:
+        - platform: state
+          entity_id:
+            - input_boolean.aqara_zai_jia
+            - input_boolean.aqara_wan_an
+            - input_boolean.aqara_li_jia
+            - input_boolean.aqara_guan_bi
+            - input_boolean.aqara_chu_fa
+      sensor:
+        - name: aqaradang_qian_qing_jing
+          unique_id: aqaradang_qian_qing_jing
+          icon: mdi:shield-home
+          state: >-
+            {% set pairs = [
+              ('在家情境', is_state('input_boolean.aqara_zai_jia','on')),
+              ('晚安情境', is_state('input_boolean.aqara_wan_an','on')),
+              ('離家情境', is_state('input_boolean.aqara_li_jia','on')),
+              ('網關解除情境', is_state('input_boolean.aqara_guan_bi','on')),
+              ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
+            ] %}
+            {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
+            {% if active|length == 0 %}
+              未設定情境
+            {% elif active|length == 1 %}
+              {{ active[0] }}
+            {% else %}
+              多個情境衝突：{{ active|join('、') }}
+            {% endif %}
+          attributes:
+            friendly_name: Aqara當前情境
+            active_labels: >-
+              {% set pairs = [
+                ('在家情境', is_state('input_boolean.aqara_zai_jia','on')),
+                ('晚安情境', is_state('input_boolean.aqara_wan_an','on')),
+                ('離家情境', is_state('input_boolean.aqara_li_jia','on')),
+                ('網關解除情境', is_state('input_boolean.aqara_guan_bi','on')),
+                ('網關觸發情境', is_state('input_boolean.aqara_chu_fa','on'))
+              ] %}
+              {% set active = pairs | selectattr('1') | map(attribute='0') | list %}
+              {% if active|length == 0 %}
+                未設定情境
+              {% elif active|length == 1 %}
+                {{ active[0] }}
+              {% else %}
+                多個情境衝突：{{ active|join('、') }}
+              {% endif %}
+
     - trigger:
         - platform: state
           entity_id:
@@ -537,13 +608,13 @@ template:
           state: >-
             {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
             {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 v2.3' }}
+            {{ friendly if friendly not in invalids else 'AI離家 v2.7' }}
           attributes:
             source_automation: automation.100b_ai_leave_v1beta9
 
 automation:
   - id: automation.ai_leave_version_sync
-    alias: AI離家版本同步器 v2.3
+    alias: AI離家版本同步器 v2.7
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
     mode: single
     trigger:
@@ -559,7 +630,7 @@ automation:
           current_version: >-
             {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
             {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 v2.3' }}
+            {{ friendly if friendly not in invalids else 'AI離家 v2.7' }}
       - service: input_text.set_value
         target:
           entity_id: input_text.ai_leave_version_text
@@ -570,7 +641,7 @@ automation:
           entity_id: sensor.ai_li_jia_ban_ben_template
 
   - id: automation.line_notif_title_refresh
-    alias: LINE通知標題同步器 v2.3
+    alias: LINE通知標題同步器 v2.7
     description: 開機/自動化重載時同步 LINE 標題 helpers，避免 initial 版本舊化
     mode: single
     trigger:
@@ -587,10 +658,12 @@ automation:
         {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
         {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
         {% set version = friendly if friendly not in invalids else states('sensor.ai_li_jia_ban_ben_template') %}
-        {{ version if version not in invalids else 'AI離家 v2.3' }}
+        {{ version if version not in invalids else 'AI離家 v2.7' }}
       ai_leave_title: "【{{ ai_leave_version.replace('AI離家', 'AI離家系統') }}】"
       batt_warn_title: "【AI電量告警系統 V2.2】"
       batt_calib_title: "【AI電量計算系統 V2.3】"
+      leave_guard_title: "【離家保全系統 V1.4】"
+      gateway_alert_title: "【保全告警系統 V1.4】"
     action:
       - service: input_text.set_value
         data:
@@ -609,5 +682,16 @@ automation:
           entity_id: input_text.notif_title_100c_calib
         data:
           value: "{{ batt_calib_title }}"
+      - service: input_text.set_value
+        data:
+          entity_id:
+            - input_text.notif_title_086_important
+            - input_text.notif_title_086_emergency
+          value: "{{ leave_guard_title }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.notif_title_gateway_alert
+        data:
+          value: "{{ gateway_alert_title }}"
 
 ###AI Automation help tools###

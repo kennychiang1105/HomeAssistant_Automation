@@ -1,9 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V1 Beta 2)   （Helpers V2.2 相容）
-# 更新重點（相對 V1 Beta 1）：
-# 1) 版本號升級：升級至 V1 Beta 2，與 Helper V2.2 同步，並統一更新日誌格式。
+# 104-2車牌辨識AI (V1 Beta 4)   （Helpers V2.13 相容）
+# 更新重點（相對 V1 Beta 3）：
+# 1) 離家關門等待：將延遲關門預設改為 1.5 分鐘並支援 0.5 分鐘步進。
+# 2) Aqara 離家判斷：沿用 input_boolean.aqara_li_jia 判斷離家狀態，淘汰舊 alarm_control_panel 實體。
 # ─────────────────────────────────────────────────────────────
-alias: 104-2車牌辨識AI (V1 Beta 2)
+alias: 104-2車牌辨識AI (V1 Beta 4)
 id: 104-2_lpr_ai_beta
 description: >
   兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -46,14 +47,14 @@ variables:
   gate_state: "{{ states('cover.garage') }}"
   debug_on: "{{ is_state('input_boolean.lpr_debug_notify','on') }}"
   auto_close_enabled: "{{ is_state('input_boolean.lpr_auto_close_enable','on') }}"
-  delay_minutes: "{{ states('input_number.lpr_auto_close_delay_min') | int(3) }}"
+  delay_minutes: "{{ states('input_number.lpr_auto_close_delay_min') | float(1.5) }}"
 
   # 安防與人形
-  alarm_entity: alarm_control_panel.home
+  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
   person_sensor: binary_sensor.che_ku_she_ying_ji_person_detected
-  arm_away_now: "{{ is_state(alarm_entity, 'armed_away') }}"
+  arm_away_now: "{{ aqara_li_jia_on }}"
   nobody_now: "{{ is_state(person_sensor, 'off') }}"
-  arm_away_text: "{{ 'Arm Away' if arm_away_now else '非 Arm Away' }}"
+  arm_away_text: "{{ '離家情境' if arm_away_now else '非離家情境' }}"
   nobody_text: "{{ '無人' if nobody_now else '有人' }}"
 
   # LPR 當下「開門」預判（仍不實作動）
@@ -152,7 +153,7 @@ action:
               - platform: webhook
                 webhook_id: lpr_gate_rea9519
             timeout:
-              seconds: "{{ delay_minutes | int(3) * 60 }}"
+              seconds: "{{ (delay_minutes | float(1.5)) * 60 }}"
             continue_on_timeout: true
 
           # 有事件發生 ⇒ 取消自動關門
@@ -176,7 +177,7 @@ action:
 
           # 視窗結束且「沒有」取消 ⇒ 做條件式判斷
           - variables:
-              arm_away_later: "{{ is_state(alarm_entity, 'armed_away') }}"
+              arm_away_later: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
               nobody_later: "{{ is_state(person_sensor, 'off') }}"
               gate_still_open: "{{ is_state('cover.garage','open') }}"
           - choose:

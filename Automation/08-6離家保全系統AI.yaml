@@ -1,10 +1,72 @@
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V1.0)   （Helpers V2.9 相容）
-# 更新重點（相對 V\0）：
-# 1) 初始版本號
+# 08-6離家保全系統AI (V1.4)   （Helpers V2.16 相容）
+# 更新重點（相對 V1.3）：
+# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
+# 2) 版本同步：對應 Helpers V2.16。
+# 前版更新（V1.0 → V1.1）：
+# 1) Aqara 情境判斷：改用 input_boolean.aqara_* 辨識離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
+# 2) LINE 通知升級：採用 AI 離家訊息格式並套用 Helper 分級，鐵門告警歸類為「重要」、門鎖/全開告警歸類為「緊急」。
+# 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
-alias: 08-6離家保全系統Beta
+alias: 08-6離家保全系統AI (V1.4)
 description: ""
+mode: single
+
+variables:
+  automation_version: "V1.4"
+  helpers_compat: "Helpers V2.16"
+  notif_title_base: "【離家保全系統 V1.4】"
+  notif_title_important: >-
+    {% set title = states('input_text.notif_title_086_important') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+  notif_title_emergency: >-
+    {% set title = states('input_text.notif_title_086_emergency') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+  notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
+  notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
+  aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
+  aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
+  aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
+  aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
+  aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
+  aqara_scene_label_helper: >-
+    {% set label = aqara_scene_label_helper_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
+    {% if label|lower in invalids %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
+    {% endif %}
+  aqara_scene_label_attr: >-
+    {% set label = aqara_scene_label_attr_raw|trim %}
+    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+    {% if label|lower in invalids %}
+      {{ '' }}
+    {% else %}
+      {{ label }}
+    {% endif %}
+  aqara_state_label: >-
+    {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
+    {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+    {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+    {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+    {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+    {% else %}情境未知{% endif %}
+  aqara_active_labels: >-
+    {% set labels = [] %}
+    {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set _ = labels.append('在家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_wan_an','on') %}{% set _ = labels.append('晚安情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_li_jia','on') %}{% set _ = labels.append('離家情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set _ = labels.append('網關解除情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
+    {{ labels|join('、') if labels else '' }}
+  aqara_scene_label_safe: >-
+    {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+    {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
+    {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
+    {% else %}{{ aqara_state_label }}{% endif %}
 triggers:
   - entity_id:
       - cover.garage
@@ -53,42 +115,44 @@ actions:
                     entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
                     state: "off"
                   - condition: state
-                    entity_id: alarm_control_panel.54ef44cf58f9_alarm
-                    state: armed_away
+                    entity_id: input_boolean.aqara_li_jia
+                    state: "on"
                     for:
                       hours: 0
                       minutes: 5
                       seconds: 0
             sequence:
               - parallel:
+                  - if:
+                      - condition: state
+                        entity_id: input_boolean.notify_line_important_enable
+                        state: "on"
+                    then:
+                      - service: script.send_line_to_user
+                        data:
+                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          payload: >-
+                            {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                            {% set scene = scene_raw|trim %}
+                            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                            {% set messages = [
+                              {"type":"text","text": notif_title_important},
+                              {"type":"text","text": '重要 Important ⚠️'},
+                              {"type":"text","text": (
+                                '🚗 鐵門於離家情境中保持開啟。'
+                                ~ "\n請盡速確認並關閉鐵門，避免警報誤觸發。"
+                                ~ "\n目前情境：" ~ scene_safe
+                              )}
+                            ] %}
+                            {{ messages | tojson }}
                   - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                              {
-                                  "type":"text",
-
-                                   "text":"【智慧保全通知】緊急 Urgent ‼️"
-                              },
-                              {
-                                  "type":"text",
-
-                                   "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但鐵門已打開！🚗\n⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，鐵門目前已打開🚗，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
-
-                               },
-                              {
-                                  "type":"text",
-                                  "text":"【緊急\nUrgent ‼️】\n🚗鐵門於警戒期間打開 🔴，\n請確認安全狀況⚠️"
-                              }
-
-                           ]
-                    enabled: true
-                    action: script.send_line_to_user
-                  - data:
-                      message: >-
-                        保全系統警告:
-                        系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
-                      title: 保全告警系統
+                      message: |-
+                        保全系統警告（離家保全 {{ automation_version }}）:
+                        系統偵測所有人未在家且離家情境已啟用，但鐵門已打開。
+                        目前情境：{{ aqara_scene_label_safe }}
+                        請盡速確認鐵門狀態。
+                      title: "{{ notif_title_important }}"
                     action: notify.persistent_notification
                   - action: alarm_control_panel.alarm_trigger
                     target:
@@ -411,42 +475,44 @@ actions:
                     entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
                     state: "on"
                   - condition: state
-                    entity_id: alarm_control_panel.54ef44cf58f9_alarm
-                    state: armed_away
+                    entity_id: input_boolean.aqara_li_jia
+                    state: "on"
                     for:
                       hours: 0
                       minutes: 5
                       seconds: 0
             sequence:
               - parallel:
+                  - if:
+                      - condition: state
+                        entity_id: input_boolean.notify_line_emergency_enable
+                        state: "on"
+                    then:
+                      - service: script.send_line_to_user
+                        data:
+                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          payload: >-
+                            {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                            {% set scene = scene_raw|trim %}
+                            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                            {% set messages = [
+                              {"type":"text","text": notif_title_emergency},
+                              {"type":"text","text": '緊急 Urgent ‼️'},
+                              {"type":"text","text": (
+                                '🚪 二樓門鎖於離家情境中開啟。'
+                                ~ "\n請立即鎖上門鎖並確認鐵門狀態。"
+                                ~ "\n目前情境：" ~ scene_safe
+                              )}
+                            ] %}
+                            {{ messages | tojson }}
                   - data:
-                      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-                      payload: |
-                        [
-                              {
-                                  "type":"text",
-
-                                   "text":"【智慧保全通知】緊急 Urgent ‼️"
-                              },
-                              {
-                                  "type":"text",
-
-                                   "text":"🔴保全系統告警⚠️:\n系統偵測所有人已離家🏠，\n且已啟動離家模式，\n但二樓門鎖已打開！🚪\n⚠️\n\n請確認⚠️\n保全系統未解除狀態下🔴，二樓門鎖目前已打開🚪，請確認⚠️\n（請手動將鐵門或門鎖關閉上鎖）"
-
-                               },
-                              {
-                                  "type":"text",
-                                  "text":"【緊急\nUrgent ‼️】\n🚪二樓門鎖於警戒期間打開 🔴，\n請確認安全狀況⚠️"
-                              }
-
-                           ]
-                    enabled: true
-                    action: script.send_line_to_user
-                  - data:
-                      message: >-
-                        保全系統警告:
-                        系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
-                      title: 保全告警系統
+                      message: |-
+                        保全系統警告（離家保全 {{ automation_version }}）:
+                        系統偵測所有人未在家且離家情境已啟用，但二樓門鎖已打開。
+                        目前情境：{{ aqara_scene_label_safe }}
+                        請立即鎖上門鎖並確認鐵門狀態。
+                      title: "{{ notif_title_emergency }}"
                     action: notify.persistent_notification
                   - action: alarm_control_panel.alarm_trigger
                     target:
@@ -767,26 +833,44 @@ actions:
                     entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
                     state: "on"
                   - condition: state
-                    entity_id: alarm_control_panel.54ef44cf58f9_alarm
-                    state: armed_away
+                    entity_id: input_boolean.aqara_li_jia
+                    state: "on"
                     for:
                       hours: 0
                       minutes: 5
                       seconds: 0
             sequence:
               - parallel:
+                  - if:
+                      - condition: state
+                        entity_id: input_boolean.notify_line_emergency_enable
+                        state: "on"
+                    then:
+                      - service: script.send_line_to_user
+                        data:
+                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          payload: >-
+                            {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                            {% set scene = scene_raw|trim %}
+                            {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                            {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                            {% set messages = [
+                              {"type":"text","text": notif_title_emergency},
+                              {"type":"text","text": '緊急 Urgent ‼️'},
+                              {"type":"text","text": (
+                                '🚗 鐵門與 🚪 二樓門鎖於離家情境中同時開啟。'
+                                ~ "\n請立即確認現場安全並關閉鐵門與門鎖。"
+                                ~ "\n目前情境：" ~ scene_safe
+                              )}
+                            ] %}
+                            {{ messages | tojson }}
                   - data:
-                      title: 保全告警系統
-                      message: >-
-                        保全系統警告:
-                        系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                    enabled: true
-                    action: notify.line_notification_group
-                  - data:
-                      message: >-
-                        保全系統警告:
-                        系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                      title: 保全告警系統
+                      message: |-
+                        保全系統警告（離家保全 {{ automation_version }}）:
+                        系統偵測所有人未在家且離家情境已啟用，但鐵門與門鎖皆已打開。
+                        目前情境：{{ aqara_scene_label_safe }}
+                        請立即確認並關閉鐵門與門鎖。
+                      title: "{{ notif_title_emergency }}"
                     action: notify.persistent_notification
                   - action: alarm_control_panel.alarm_trigger
                     target:
@@ -1093,4 +1177,3 @@ actions:
                               device_id: fdcccfa405461070717b80a56a590960
                               entity_id: 61eaa5fb8386221ba077bcb884e74573
                               domain: remote
-mode: single
