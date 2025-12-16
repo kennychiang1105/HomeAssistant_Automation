@@ -1,0 +1,216 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2BLINE推播AI (V1.1)
+# 功能：實體化 LINE Bot 剩餘用量、每日摘要、額度不足緊急推播
+# 更新重點（V1.1）：
+# 1) 每日配額摘要僅顯示於 HA 內建通知，不再推送 LINE。
+# 2) 額度警告與最終告警各自有開關，並改推播至指定使用者 ID。
+# 3) 新增實體顯示目前輪播 Bot。
+# 前版（V1.0）：新增剩餘訊息數 template 感測器告警，低於門檻自動推播緊急提醒。
+# ─────────────────────────────────────────────────────────────
+alias: 00-2BLINE推播AI (V1.1)
+id: automation.line_bot_quota_guard
+description: LINE Bot 額度監控與緊急推播
+mode: single
+
+triggers:
+  - id: bot1_low
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining1
+    below: 3
+    for: "00:05:00"
+
+  - id: bot2_low
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining2
+    below: 3
+    for: "00:05:00"
+
+  - id: bot3_low
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining3
+    below: 3
+    for: "00:05:00"
+
+  - id: final_low
+    trigger: template
+    value_template: >-
+      {{ states('sensor.line_bot_rotation_target')|int(0) == 0 }}
+    for: "00:05:00"
+
+  - id: daily_update
+    trigger: time
+    at: "09:00:00"
+
+  - id: startup
+    trigger: homeassistant
+    event: start
+
+  - id: reload
+    trigger: event
+    event_type: automation_reloaded
+
+variables:
+  automation_version: "V1.1"
+  limit: 200
+  switch_limit: 198
+  notif_title: "【LINE Bot 配額監控 V1.0】"
+
+  quota_user_id: U9eeaaf5d404dbde249039924567992d3
+
+  bot1_name: "ChiangFamily 智慧家庭 B"
+  bot2_name: "ChiangFamily 智慧家庭 C"
+  bot3_name: "ChiangFamily 智慧家庭 D"
+
+  invalids: ["unknown", "unavailable", "none", "None"]
+
+  bot1_used: >-
+    {% set val = states('sensor.bot_msg_count1') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+  bot2_used: >-
+    {% set val = states('sensor.bot_msg_count2') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+  bot3_used: >-
+    {% set val = states('sensor.bot_msg_count3') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+
+  bot1_remain: >-
+    {% set val = states('sensor.bot_msg_remaining1') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+  bot2_remain: >-
+    {% set val = states('sensor.bot_msg_remaining2') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+  bot3_remain: >-
+    {% set val = states('sensor.bot_msg_remaining3') %}
+    {{ val|int(0) if val|lower not in invalids else -1 }}
+
+  active_bot_idx: >-
+    {% set c1 = states('sensor.bot_msg_count1') %}
+    {% set c2 = states('sensor.bot_msg_count2') %}
+    {% set c3 = states('sensor.bot_msg_count3') %}
+    {% if c1|lower not in invalids and c1|int < switch_limit %}
+      1
+    {% elif c2|lower not in invalids and c2|int < switch_limit %}
+      2
+    {% elif c3|lower not in invalids and c3|int < switch_limit %}
+      3
+    {% else %}
+      0
+    {% endif %}
+
+  active_bot_label: >-
+    {% set sensor_label = states('sensor.line_bot_in_use') %}
+    {% set invalids = ['unknown','unavailable','none','None'] %}
+    {% if sensor_label|lower not in invalids %}
+      {{ sensor_label }} (輪播中)
+    {% elif active_bot_idx == 1 %}{{ bot1_name }} (輪播中)
+    {% elif active_bot_idx == 2 %}{{ bot2_name }} (輪播中)
+    {% elif active_bot_idx == 3 %}{{ bot3_name }} (輪播中)
+    {% else %}無可用 Bot，請立即更換{% endif %}
+
+  bot_overview_text: >-
+    {% set lines = [] %}
+    {% set _ = lines.append('• ' ~ bot1_name ~ '：已用 ' ~ (bot1_used if bot1_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot1_remain if bot1_remain >= 0 else '未知')|string) %}
+    {% set _ = lines.append('• ' ~ bot2_name ~ '：已用 ' ~ (bot2_used if bot2_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot2_remain if bot2_remain >= 0 else '未知')|string) %}
+    {% set _ = lines.append('• ' ~ bot3_name ~ '：已用 ' ~ (bot3_used if bot3_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot3_remain if bot3_remain >= 0 else '未知')|string) %}
+    {{ lines | join('\n') }}
+
+  triggered_bot_name: >-
+    {% set mapping = {'bot1_low': bot1_name, 'bot2_low': bot2_name, 'bot3_low': bot3_name, 'final_low': 'LINE Bot'} %}
+    {{ mapping.get(trigger.id, 'LINE Bot') }}
+  triggered_remaining: >-
+    {% set mapping = {'bot1_low': bot1_remain, 'bot2_low': bot2_remain, 'bot3_low': bot3_remain} %}
+    {{ mapping.get(trigger.id, -1) }}
+  triggered_used: >-
+    {% set mapping = {'bot1_low': bot1_used, 'bot2_low': bot2_used, 'bot3_low': bot3_used} %}
+    {{ mapping.get(trigger.id, -1) }}
+
+  triggered_remaining_text: >-
+    {{ triggered_remaining if triggered_remaining >= 0 else '未知' }}
+  triggered_used_text: >-
+    {{ triggered_used if triggered_used >= 0 else '未知' }}
+
+  allow_line_warn: >-
+    {{ is_state('input_boolean.notify_line_quota_warn_enable','on') }}
+  allow_line_final: >-
+    {{ is_state('input_boolean.notify_line_quota_final_enable','on') }}
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id in ['bot1_low','bot2_low','bot3_low'] }}"
+        sequence:
+          - service: notify.persistent_notification
+            data:
+              title: "{{ notif_title }}"
+              message: |-
+                Bot {{ triggered_bot_name }} 剩餘 {{ triggered_remaining_text }} / {{ limit }} 次（已用 {{ triggered_used_text }}）。
+                目前輪播：{{ active_bot_label }}
+                
+                {{ bot_overview_text }}
+                
+                （{{ automation_version }}｜switch_limit={{ switch_limit }}）
+
+          - if:
+              - condition: template
+                value_template: "{{ allow_line_warn }}"
+            then:
+              - service: script.send_line_to_user
+                data:
+                  user_id: "{{ quota_user_id }}"
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text","text": notif_title},
+                        {"type":"text","text": "緊急 Urgent ‼️\nLINE Bot 配額即將用罄，請切換或補充主力 Bot。"},
+                        {"type":"text","text": (
+                          '• ' ~ triggered_bot_name ~ ' 剩餘 ' ~ triggered_remaining_text ~ ' / ' ~ limit|string ~ '（已用 ' ~ triggered_used_text ~ '）'
+                          ~ '\n• 目前輪播：' ~ active_bot_label
+                          ~ '\n\n用量摘要：\n' ~ bot_overview_text
+                        )}
+                      ] | tojson
+                    }}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id in ['daily_update','startup','reload'] }}"
+        sequence:
+          - service: notify.persistent_notification
+            data:
+              title: "{{ notif_title }}"
+              message: |-
+                每日配額摘要（{{ automation_version }}）
+                目前輪播：{{ active_bot_label }}
+                {{ bot_overview_text }}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'final_low' }}"
+        sequence:
+          - service: notify.persistent_notification
+            data:
+              title: "{{ notif_title }}"
+              message: |-
+                所有 Bot 配額已用盡或輪播無可用 Bot，請立即更換 Token。
+                目前輪播：{{ active_bot_label }}
+                {{ bot_overview_text }}
+                （{{ automation_version }}｜switch_limit={{ switch_limit }}）
+
+          - if:
+              - condition: template
+                value_template: "{{ allow_line_final }}"
+            then:
+              - service: script.send_line_to_user
+                data:
+                  user_id: "{{ quota_user_id }}"
+                  payload: >-
+                    {{
+                      [
+                        {"type":"text","text": notif_title},
+                        {"type":"text","text": "最終告警 ‼️ 所有 Bot 配額已用盡或無可用 Bot，請立即更換主力 Token。"},
+                        {"type":"text","text": (
+                          '• 目前輪播：' ~ active_bot_label
+                          ~ '\n• 用量摘要：\n' ~ bot_overview_text
+                        )}
+                      ] | tojson
+                    }}

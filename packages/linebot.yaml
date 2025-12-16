@@ -44,6 +44,129 @@ sensor:
       Authorization: !secret linebot_token3_bearer
     value_template: "{{ value_json.totalUsage }}"
     scan_interval: 180
+
+###################################################################################
+## TEMPLATE SENSOR
+###################################################################################
+template:
+  - sensor:
+      - name: bot_msg_remaining1
+        unique_id: bot_msg_remaining1
+        unit_of_measurement: "msg"
+        icon: mdi:counter
+        state: >-
+          {% set limit = 200 %}
+          {% set usage = states('sensor.bot_msg_count1') %}
+          {% set invalids = ['unknown','unavailable','none','None'] %}
+          {% if usage|lower in invalids %}
+            unknown
+          {% else %}
+            {% set remain = [limit - usage|int(0), 0]|max %}
+            {{ remain }}
+          {% endif %}
+        availability: >-
+          {% set usage = states('sensor.bot_msg_count1') %}
+          {{ usage|lower not in ['unknown','unavailable','none','None'] }}
+        attributes:
+          limit: 200
+          usage: "{{ states('sensor.bot_msg_count1')|int(0) }}"
+          used_ratio: >-
+            {% set used = states('sensor.bot_msg_count1')|int(0) %}
+            {{ ((used / 200) * 100)|round(1) }}
+
+      - name: bot_msg_remaining2
+        unique_id: bot_msg_remaining2
+        unit_of_measurement: "msg"
+        icon: mdi:counter
+        state: >-
+          {% set limit = 200 %}
+          {% set usage = states('sensor.bot_msg_count2') %}
+          {% set invalids = ['unknown','unavailable','none','None'] %}
+          {% if usage|lower in invalids %}
+            unknown
+          {% else %}
+            {% set remain = [limit - usage|int(0), 0]|max %}
+            {{ remain }}
+          {% endif %}
+        availability: >-
+          {% set usage = states('sensor.bot_msg_count2') %}
+          {{ usage|lower not in ['unknown','unavailable','none','None'] }}
+        attributes:
+          limit: 200
+          usage: "{{ states('sensor.bot_msg_count2')|int(0) }}"
+          used_ratio: >-
+            {% set used = states('sensor.bot_msg_count2')|int(0) %}
+            {{ ((used / 200) * 100)|round(1) }}
+
+      - name: bot_msg_remaining3
+        unique_id: bot_msg_remaining3
+        unit_of_measurement: "msg"
+        icon: mdi:counter
+        state: >-
+          {% set limit = 200 %}
+          {% set usage = states('sensor.bot_msg_count3') %}
+          {% set invalids = ['unknown','unavailable','none','None'] %}
+          {% if usage|lower in invalids %}
+            unknown
+          {% else %}
+            {% set remain = [limit - usage|int(0), 0]|max %}
+            {{ remain }}
+          {% endif %}
+        availability: >-
+          {% set usage = states('sensor.bot_msg_count3') %}
+          {{ usage|lower not in ['unknown','unavailable','none','None'] }}
+        attributes:
+          limit: 200
+          usage: "{{ states('sensor.bot_msg_count3')|int(0) }}"
+          used_ratio: >-
+            {% set used = states('sensor.bot_msg_count3')|int(0) %}
+            {{ ((used / 200) * 100)|round(1) }}
+
+      - name: line_bot_rotation_target
+        unique_id: line_bot_rotation_target
+        icon: mdi:repeat-variant
+        state: >-
+          {% set switch_limit = 198 %}
+          {% set c1 = states('sensor.bot_msg_count1') %}
+          {% set c2 = states('sensor.bot_msg_count2') %}
+          {% set c3 = states('sensor.bot_msg_count3') %}
+          {% set invalids = ['unknown','unavailable','none','None'] %}
+          {% if c1|lower not in invalids and c1|int < switch_limit %}
+            1
+          {% elif c2|lower not in invalids and c2|int < switch_limit %}
+            2
+          {% elif c3|lower not in invalids and c3|int < switch_limit %}
+            3
+          {% else %}
+            0
+          {% endif %}
+        attributes:
+          switch_limit: 198
+          bot1_remaining: "{{ states('sensor.bot_msg_remaining1') }}"
+          bot2_remaining: "{{ states('sensor.bot_msg_remaining2') }}"
+          bot3_remaining: "{{ states('sensor.bot_msg_remaining3') }}"
+          bot1_name: "ChiangFamily 智慧家庭 B"
+          bot2_name: "ChiangFamily 智慧家庭 C"
+          bot3_name: "ChiangFamily 智慧家庭 D"
+          selected_name: >-
+            {% set selected = this.state|int(0) %}
+            {% if selected == 1 %}ChiangFamily 智慧家庭 B
+            {% elif selected == 2 %}ChiangFamily 智慧家庭 C
+            {% elif selected == 3 %}ChiangFamily 智慧家庭 D
+            {% else %}無可用 Bot{% endif %}
+
+      - name: line_bot_in_use
+        unique_id: line_bot_in_use
+        icon: mdi:robot-excited
+        state: >-
+          {% set target = states('sensor.line_bot_rotation_target')|int(0) %}
+          {% if target == 1 %}ChiangFamily 智慧家庭 B
+          {% elif target == 2 %}ChiangFamily 智慧家庭 C
+          {% elif target == 3 %}ChiangFamily 智慧家庭 D
+          {% else %}無可用 Bot{% endif %}
+        attributes:
+          target_index: "{{ states('sensor.line_bot_rotation_target') }}"
+          rotation_switch_limit: 198
 ###################################################################################
 ## SCRIPT（原樣保留）
 ###################################################################################

@@ -134,6 +134,14 @@ input_boolean:
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
+  notify_line_quota_warn_enable:
+    name: LINE通知啟用_Bot配額提醒
+    icon: mdi:counter
+    initial: on
+  notify_line_quota_final_enable:
+    name: LINE通知啟用_Bot配額最終告警
+    icon: mdi:counter-alert
+    initial: on
     
 input_number:
   # 車牌辨識AI_Beta
