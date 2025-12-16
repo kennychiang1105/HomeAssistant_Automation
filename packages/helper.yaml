@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.15）
+# Helpers（V2.16）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.16):
+#   • Aqara 情境標籤命名：調整情境 helper 的 entity_id 為 sensor.aqaradang_qian_qing_jing，避免錯字導致通知空白。
 # 新增與強化 (V2.15):
 #   • Aqara 情境標籤強化：確保 helper 感測器永遠回傳有效文字（無情境/多情境），供通知穩定取值。
 # 新增與強化 (V2.14):
@@ -433,8 +435,8 @@ template:
             - input_boolean.aqara_guan_bi
             - input_boolean.aqara_chu_fa
       sensor:
-        - name: Aqara當前情境
-          unique_id: aqara_current_scene_label
+        - name: aqaradang_qian_qing_jing
+          unique_id: aqaradang_qian_qing_jing
           icon: mdi:shield-home
           state: >-
             {% set pairs = [
@@ -453,6 +455,7 @@ template:
               多個情境衝突：{{ active|join('、') }}
             {% endif %}
           attributes:
+            friendly_name: Aqara當前情境
             active_labels: >-
               {% set pairs = [
                 ('在家情境', is_state('input_boolean.aqara_zai_jia','on')),

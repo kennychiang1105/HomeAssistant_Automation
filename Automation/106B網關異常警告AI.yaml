@@ -1,14 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.3)   （Helpers V2.15 相容）
-# 更新重點（相對 V1.2）：
-# 1) 情境標籤再強化：以 helper state/attribute 雙重 fallback，避免通知情境空白。
-# 2) 版本同步：對應 Helpers V2.15 情境標籤更新。
-# 前版更新（V1.0 → V1.2）：
+# 106B網關異常警告AI (V1.4)   （Helpers V2.16 相容）
+# 更新重點（相對 V1.3）：
+# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
+# 2) 版本同步：對應 Helpers V2.16。
+# 前版更新（V1.0 → V1.3）：
 # 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
 # 2) 狀態判斷安全：情境布林改為明確布林與去空白，異常訊息能正確呈現當前狀態。
 # 3) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣；情境健檢+自動修復同步。
 # ─────────────────────────────────────────────────────────────
-alias: 106B網關異常警告AI (V1.3)
+alias: 106B網關異常警告AI (V1.4)
 id: automation.gateway_anomaly_guard_ai
 description: 保全情境重置與異常告警
 mode: single
@@ -27,8 +27,8 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.3"
-  helpers_compat: "Helpers V2.15"
+  automation_version: "V1.4"
+  helpers_compat: "Helpers V2.16"
   notif_title_base: "【保全告警系統 V1.0】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
@@ -38,8 +38,8 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|string }}"
-  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqara_dang_qian_qing_jing','active_labels')|string }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
   aqara_scene_label_helper: >-
     {% set label = aqara_scene_label_helper_raw|trim %}
     {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}

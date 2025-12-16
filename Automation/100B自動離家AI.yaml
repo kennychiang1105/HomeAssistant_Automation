@@ -1,8 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.6)   （Helpers V2.15 相容）
-# 更新重點（相對 V2.5）：
-# 1) 情境標籤再強化：以 helper state/attribute 雙重 fallback，確保通知永不空白。
-# 2) 版本同步：對應 Helpers V2.15 情境標籤更新。
+# 100B自動離家AI (V2.7)   （Helpers V2.16 相容）
+# 更新重點（相對 V2.6）：
+# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
+# 2) 版本同步：對應 Helpers V2.16。
 # 前版更新（V2.3 → V2.5）：
 # 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
 # 2) 通知同步：LINE 標題同步至 V2.5，訊息仍沿用 AI 離家格式並補充情境狀態說明。
@@ -14,9 +14,9 @@
 # 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
 # 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.6)"
+alias: "100B自動離家AI (V2.7)"
 id: automation.100b_ai_leave_v1beta9
-description: "AI離家 v2.6"
+description: "AI離家 v2.7"
 mode: single
 
 triggers:
@@ -80,15 +80,15 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.6"
-  helpers_compat: "Helpers V2.15"
-  notif_title_base: "【AI離家系統 V2.6】"
+  automation_version: "V2.7"
+  helpers_compat: "Helpers V2.16"
+  notif_title_base: "【AI離家系統 V2.7】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.6】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.7】' }}
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.6】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.7】' }}
   notif_title_only_general: >-
     {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
   notif_title_only_urgent: >-
@@ -117,8 +117,8 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|string }}"
-  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqara_dang_qian_qing_jing','active_labels')|string }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
   aqara_scene_label_helper: >-
     {% set label = aqara_scene_label_helper_raw|trim %}
     {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
@@ -170,7 +170,7 @@ variables:
     {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
   batt_line_text_line_safe: >-
     {{ batt_line_text_line|default('', true)|string }}
-  title_fallback_line: "【AI離家系統 V2.6】"
+  title_fallback_line: "【AI離家系統 V2.7】"
 
 actions:
   - choose:
@@ -224,7 +224,7 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
@@ -283,7 +283,7 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
@@ -334,7 +334,7 @@ actions:
                     {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
                     {% set batt_txt = states('sensor.batt_line_text') %}
                     {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}

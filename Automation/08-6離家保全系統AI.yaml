@@ -1,21 +1,21 @@
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V1.3)   （Helpers V2.15 相容）
-# 更新重點（相對 V1.2）：
-# 1) 情境標籤再強化：以 helper state/attribute 雙重 fallback，避免通知情境空白。
-# 2) 版本同步：對應 Helpers V2.15 情境標籤更新。
+# 08-6離家保全系統AI (V1.4)   （Helpers V2.16 相容）
+# 更新重點（相對 V1.3）：
+# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
+# 2) 版本同步：對應 Helpers V2.16。
 # 前版更新（V1.0 → V1.1）：
 # 1) Aqara 情境判斷：改用 input_boolean.aqara_* 辨識離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
 # 2) LINE 通知升級：採用 AI 離家訊息格式並套用 Helper 分級，鐵門告警歸類為「重要」、門鎖/全開告警歸類為「緊急」。
 # 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
-alias: 08-6離家保全系統AI (V1.3)
+alias: 08-6離家保全系統AI (V1.4)
 description: ""
 mode: single
 
 variables:
-  automation_version: "V1.3"
-  helpers_compat: "Helpers V2.15"
-  notif_title_base: "【離家保全系統 V1.3】"
+  automation_version: "V1.4"
+  helpers_compat: "Helpers V2.16"
+  notif_title_base: "【離家保全系統 V1.4】"
   notif_title_important: >-
     {% set title = states('input_text.notif_title_086_important') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
@@ -29,8 +29,8 @@ variables:
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
   aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
   aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-  aqara_scene_label_helper_raw: "{{ states('sensor.aqara_dang_qian_qing_jing')|string }}"
-  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqara_dang_qian_qing_jing','active_labels')|string }}"
+  aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+  aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
   aqara_scene_label_helper: >-
     {% set label = aqara_scene_label_helper_raw|trim %}
     {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
@@ -132,7 +132,7 @@ actions:
                         data:
                           user_id: C26ff4e9d30159ba5264a1676f46f8f86
                           payload: >-
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
@@ -492,7 +492,7 @@ actions:
                         data:
                           user_id: C26ff4e9d30159ba5264a1676f46f8f86
                           payload: >-
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
@@ -850,7 +850,7 @@ actions:
                         data:
                           user_id: C26ff4e9d30159ba5264a1676f46f8f86
                           payload: >-
-                    {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
+                    {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                     {% set scene = scene_raw|trim %}
                     {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
                     {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
