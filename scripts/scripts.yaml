@@ -97,13 +97,13 @@
               entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
         else:
         - if:
-          - condition: state
-            entity_id: input_boolean.helper_line_notification_urgent
-            state: 'on'
-          then:
-            - service: script.send_line_to_user
-              data:
-                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+            - condition: state
+              entity_id: input_boolean.helper_line_notification_urgent
+              state: 'on'
+            then:
+              - service: script.send_line_to_user
+                data:
+                  user_id: "{{ states('sensor.line_bot_target_user_id') }}"
                   payload: >-
                     {{
                       [
