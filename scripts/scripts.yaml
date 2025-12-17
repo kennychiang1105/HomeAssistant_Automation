@@ -457,19 +457,19 @@
       seconds: 30
       milliseconds: 0
     enabled: true
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          state: 'off'
-        sequence:
-        - type: turn_off
-          device_id: fdcccfa405461070717b80a56a590960
-          entity_id: 61eaa5fb8386221ba077bcb884e74573
-          domain: remote
+  - type: turn_off
+    device_id: fdcccfa405461070717b80a56a590960
+    entity_id: 61eaa5fb8386221ba077bcb884e74573
+    domain: remote
+  - repeat:
+      until:
+      - condition: state
+        entity_id: media_player.sony_bravia_tv
+        state: 'off'
+      sequence:
+      - type: turn_off
+        device_id: fdcccfa405461070717b80a56a590960
+        entity_id: 61eaa5fb8386221ba077bcb884e74573
+        domain: remote
   mode: single
   icon: mdi:earth
