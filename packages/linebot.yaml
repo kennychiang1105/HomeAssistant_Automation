@@ -242,7 +242,7 @@ template:
 
           {% set ready_candidates = [] %}
           {% for idx in ['1','2','3','0'] %}
-            {% if available(idx) and counts[idx]|int(0) > 0 %}
+            {% if available(idx) %}
               {% set ready_candidates = ready_candidates + [idx] %}
             {% endif %}
           {% endfor %}
@@ -251,7 +251,7 @@ template:
 
           {% if ready_bot == '' %}
             {% for idx in ['1','2','3','0'] %}
-              {% if has_quota(idx) and counts[idx]|int(0) > 0 %}
+              {% if has_quota(idx) %}
                 {% set ready_bot = idx %}
                 {% break %}
               {% endif %}
