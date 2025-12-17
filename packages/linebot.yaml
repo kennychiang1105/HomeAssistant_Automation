@@ -194,108 +194,31 @@ template:
         state: >-
           {% set switch_limit = 196 %}
           {% set mode = states('input_select.line_bot_mode') %}
-          {% set counts = {
-            '0': states('sensor.bot_msg_count0'),
-            '1': states('sensor.bot_msg_count1'),
-            '2': states('sensor.bot_msg_count2'),
-            '3': states('sensor.bot_msg_count3')
-          } %}
-          {% set remaining = {
-            '0': states('sensor.bot_msg_remaining0'),
-            '1': states('sensor.bot_msg_remaining1'),
-            '2': states('sensor.bot_msg_remaining2'),
-            '3': states('sensor.bot_msg_remaining3')
-          } %}
           {% set invalids = ['unknown','unavailable','none','None'] %}
 
-          {% macro available(idx) %}
-            {% set c = counts[idx] %}
-            {% set r = remaining[idx] %}
-            {% set c_valid = c|lower not in invalids %}
-            {% set r_valid = r|lower not in invalids %}
-            {{ c_valid and r_valid and r|int > 0 and c|int < switch_limit }}
-          {% endmacro %}
-
-          {% macro is_valid(idx) %}
-            {% set c = counts[idx] %}
-            {{ c|lower not in invalids }}
-          {% endmacro %}
-
-          {% macro has_quota(idx) %}
-            {% set r = remaining[idx] %}
-            {{ r|lower not in invalids and r|int > 0 }}
-          {% endmacro %}
-
-          {% set valid_count = [
-            is_valid('1'),
-            is_valid('2'),
-            is_valid('3'),
-            is_valid('0')
-          ] | select('equalto', true) | list | length %}
-
-          {% set any_quota = [
-            has_quota('1'),
-            has_quota('2'),
-            has_quota('3'),
-            has_quota('0')
-          ] | select('equalto', true) | list | length > 0 %}
-
-          {% set ready_candidates = [] %}
-          {% for idx in ['1','2','3','0'] %}
-            {% if available(idx) %}
-              {% set ready_candidates = ready_candidates + [idx] %}
-            {% endif %}
-          {% endfor %}
-
-          {% set ready_bot = ready_candidates[0] if ready_candidates|length > 0 else '' %}
-
-          {% if ready_bot == '' %}
-            {% for idx in ['1','2','3','0'] %}
-              {% if has_quota(idx) %}
-                {% set ready_bot = idx %}
-                {% break %}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-
-          {% set unknown_bot = '' %}
-          {% if ready_bot == '' %}
-            {% if not is_valid('1') %}{% set unknown_bot = '1' %}
-            {% elif not is_valid('2') %}{% set unknown_bot = '2' %}
-            {% elif not is_valid('3') %}{% set unknown_bot = '3' %}
-            {% elif not is_valid('0') %}{% set unknown_bot = '0' %}
-            {% endif %}
-          {% endif %}
+          {# 取得各 Bot 剩餘量，若無效則設為 0 #}
+          {% set r1 = states('sensor.bot_msg_remaining1')|int(-1) if states('sensor.bot_msg_remaining1') not in invalids else -1 %}
+          {% set r2 = states('sensor.bot_msg_remaining2')|int(-1) if states('sensor.bot_msg_remaining2') not in invalids else -1 %}
+          {% set r3 = states('sensor.bot_msg_remaining3')|int(-1) if states('sensor.bot_msg_remaining3') not in invalids else -1 %}
+          {% set r0 = states('sensor.bot_msg_remaining0')|int(-1) if states('sensor.bot_msg_remaining0') not in invalids else -1 %}
 
           {% if mode == 'Auto' %}
-            {% if ready_bot != '' %}{{ ready_bot }}
-            {% elif unknown_bot != '' %}{{ unknown_bot }}
-            {% elif valid_count == 0 %}1
-            {% elif not any_quota %}0
-            {% else %}-1{% endif %}
+            {# 嚴格依照 1 -> 2 -> 3 -> 0 順序檢查是否有剩餘額度 #}
+            {% if r1 > 0 and states('sensor.bot_msg_count1')|int(0) < switch_limit %}1
+            {% elif r2 > 0 and states('sensor.bot_msg_count2')|int(0) < switch_limit %}2
+            {% elif r3 > 0 and states('sensor.bot_msg_count3')|int(0) < switch_limit %}3
+            {% elif r0 > 0 and states('sensor.bot_msg_count0')|int(0) < switch_limit %}0
+            {# 若大家都超過 switch_limit 但還有殘餘額度，則依序選還有剩的 #}
+            {% elif r1 > 0 %}1
+            {% elif r2 > 0 %}2
+            {% elif r3 > 0 %}3
+            {% elif r0 > 0 %}0
+            {% else %}0{% endif %} {# 完全沒額度時停在緊急 Bot 0 #}
           {% elif mode == 'Manual Bot1' %}1
           {% elif mode == 'Manual Bot2' %}2
           {% elif mode == 'Manual Bot3' %}3
           {% elif mode == 'Manual Bot0（緊急Bot）' %}0
           {% else %}-1{% endif %}
-        attributes:
-          switch_limit: 196
-          mode: "{{ states('input_select.line_bot_mode') }}"
-          bot1_remaining: "{{ states('sensor.bot_msg_remaining1') }}"
-          bot2_remaining: "{{ states('sensor.bot_msg_remaining2') }}"
-          bot3_remaining: "{{ states('sensor.bot_msg_remaining3') }}"
-          bot0_remaining: "{{ states('sensor.bot_msg_remaining0') }}"
-          bot1_name: "ChiangFamily 智慧家庭 B"
-          bot2_name: "ChiangFamily 智慧家庭 C"
-          bot3_name: "ChiangFamily 智慧家庭 D"
-          bot0_name: "ChiangFamily 緊急 Bot"
-          selected_name: >-
-            {% set selected = this.state|int(0) %}
-            {% if selected == 1 %}ChiangFamily 智慧家庭 B
-            {% elif selected == 2 %}ChiangFamily 智慧家庭 C
-            {% elif selected == 3 %}ChiangFamily 智慧家庭 D
-            {% elif selected == 0 %}ChiangFamily 緊急 Bot
-            {% else %}無可用 Bot{% endif %}
 
       - name: line_bot_in_use
         unique_id: line_bot_in_use
