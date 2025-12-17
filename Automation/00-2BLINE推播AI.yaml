@@ -16,7 +16,7 @@ id: automation.line_bot_quota_guard
 description: LINE Bot 額度監控與緊急推播
 mode: single
 
-triggers:
+trigger:
   - id: bot1_low
     trigger: numeric_state
     entity_id: sensor.bot_msg_remaining1
@@ -52,6 +52,30 @@ triggers:
   - id: reload
     trigger: event
     event_type: automation_reloaded
+
+  - id: bot1_zero
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining1
+    below: 1
+
+  - id: bot2_zero
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining2
+    below: 1
+
+  - id: bot3_zero
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining3
+    below: 1
+
+  - id: bot0_zero
+    trigger: numeric_state
+    entity_id: sensor.bot_msg_remaining0
+    below: 1
+
+  - id: periodic_check
+    trigger: time_pattern
+    minutes: "/30"
 
 variables:
   automation_version: "V1.3"
@@ -128,6 +152,19 @@ variables:
     {% set mapping = {'bot1_low': bot1_used, 'bot2_low': bot2_used, 'bot3_low': bot3_used} %}
     {{ mapping.get(trigger.id, -1) }}
 
+  zero_triggered_bot: >-
+    {% set mapping = {
+      'bot1_zero': bot1_name,
+      'bot2_zero': bot2_name,
+      'bot3_zero': bot3_name,
+      'bot0_zero': 'ChiangFamily 緊急 Bot',
+      'periodic_check': ''
+    } %}
+    {{ mapping.get(trigger.id, '') }}
+
+  line_mode: "{{ states('input_select.line_bot_mode') }}"
+  rotation_target: "{{ states('sensor.line_bot_rotation_target')|int(-1) }}"
+
   triggered_remaining_text: >-
     {{ triggered_remaining if triggered_remaining >= 0 else '未知' }}
   triggered_used_text: >-
@@ -138,8 +175,37 @@ variables:
   allow_line_final: >-
     {{ is_state('input_boolean.notify_line_quota_final_enable','on') }}
 
-actions:
+action:
   - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.id in ['bot1_zero','bot2_zero','bot3_zero','bot0_zero','periodic_check'] }}
+        sequence:
+          - service: homeassistant.update_entity
+            target:
+              entity_id:
+                - sensor.line_bot_rotation_target
+                - sensor.line_bot_in_use
+          - if:
+              - condition: template
+                value_template: "{{ line_mode != 'Auto' }}"
+            then:
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.line_bot_mode
+                data:
+                  option: Auto
+          - service: notify.persistent_notification
+            data:
+              title: "{{ notif_title }}"
+              message: |-
+                {{ '定期檢查' if trigger.id == 'periodic_check' else '配額為 0 自動切換' }}（{{ automation_version }}）
+                觸發 Bot：{{ zero_triggered_bot if zero_triggered_bot else '排程檢查' }}
+                目前輪播：{{ active_bot_label }}
+                當前目標：{{ rotation_target }}
+          - stop: Auto rotation guard executed
+
       - conditions:
           - condition: template
             value_template: "{{ trigger.id in ['bot1_low','bot2_low','bot3_low'] }}"
