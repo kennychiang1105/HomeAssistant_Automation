@@ -1,13 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2BLINE推播AI (V1.1)
+# 00-2BLINE推播AI (V1.3)
 # 功能：實體化 LINE Bot 剩餘用量、每日摘要、額度不足緊急推播
+# 更新重點（V1.3）：
+# 1) 輪播門檻改回與套件一致的 196，用量警示版位同步更新。
+# 更新重點（V1.2）：
+# 1) 個別 Bot 低額度門檻由 3 則改為 12 則，與新輪播規則一致。
 # 更新重點（V1.1）：
 # 1) 每日配額摘要僅顯示於 HA 內建通知，不再推送 LINE。
 # 2) 額度警告與最終告警各自有開關，並改推播至指定使用者 ID。
 # 3) 新增實體顯示目前輪播 Bot。
 # 前版（V1.0）：新增剩餘訊息數 template 感測器告警，低於門檻自動推播緊急提醒。
 # ─────────────────────────────────────────────────────────────
-alias: 00-2BLINE推播AI (V1.1)
+alias: 00-2BLINE推播AI (V1.3)
 id: automation.line_bot_quota_guard
 description: LINE Bot 額度監控與緊急推播
 mode: single
@@ -16,19 +20,19 @@ triggers:
   - id: bot1_low
     trigger: numeric_state
     entity_id: sensor.bot_msg_remaining1
-    below: 3
+    below: 12
     for: "00:05:00"
 
   - id: bot2_low
     trigger: numeric_state
     entity_id: sensor.bot_msg_remaining2
-    below: 3
+    below: 12
     for: "00:05:00"
 
   - id: bot3_low
     trigger: numeric_state
     entity_id: sensor.bot_msg_remaining3
-    below: 3
+    below: 12
     for: "00:05:00"
 
   - id: final_low
@@ -50,10 +54,10 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.1"
+  automation_version: "V1.3"
   limit: 200
-  switch_limit: 198
-  notif_title: "【LINE Bot 配額監控 V1.0】"
+  switch_limit: 196
+  notif_title: "【LINE Bot 配額監控 V1.3】"
 
   quota_user_id: U9eeaaf5d404dbde249039924567992d3
 

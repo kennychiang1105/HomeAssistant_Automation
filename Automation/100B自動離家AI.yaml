@@ -1,5 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.7)   （Helpers V2.16 相容）
+# 100B自動離家AI (V2.8)   （Helpers V2.19 相容）
+# 更新重點（相對 V2.7）：
+# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
 # 更新重點（相對 V2.6）：
 # 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
 # 2) 版本同步：對應 Helpers V2.16。
@@ -14,9 +17,9 @@
 # 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
 # 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.7)"
+alias: "100B自動離家AI (V2.8)"
 id: automation.100b_ai_leave_v1beta9
-description: "AI離家 v2.7"
+description: "AI離家 v2.8"
 mode: single
 
 triggers:
@@ -80,15 +83,16 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.7"
-  helpers_compat: "Helpers V2.16"
-  notif_title_base: "【AI離家系統 V2.7】"
+  automation_version: "V2.8"
+  helpers_compat: "Helpers V2.19"
+  notif_title_base: "【AI離家系統 V2.8】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.7】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
   notif_title_urgent: >-
     {% set title = states('input_text.notif_title_100b_urgent') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.7】' }}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
+  line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   notif_title_only_general: >-
     {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
   notif_title_only_urgent: >-
@@ -217,7 +221,7 @@ actions:
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: "{{ line_bot_target_user_id }}"
                   payload: >-
                     {% set base = title_fallback_line %}
                     {% set title_raw = states('input_text.notif_title_100b_urgent') %}
@@ -276,7 +280,7 @@ actions:
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: "{{ line_bot_target_user_id }}"
                   payload: >-
                     {% set base = title_fallback_line %}
                     {% set title_raw = states('input_text.notif_title_100b_general') %}
@@ -327,7 +331,7 @@ actions:
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: "{{ line_bot_target_user_id }}"
                   payload: >-
                     {% set base = title_fallback_line %}
                     {% set title_raw = states('input_text.notif_title_100b_urgent') %}

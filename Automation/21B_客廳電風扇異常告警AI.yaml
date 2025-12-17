@@ -6,10 +6,16 @@
 # 前版更新（V1 Beta 2 → V2 Beta 2）：
 # 1) 版本號升級：升級至 V2 Beta 2，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 命名修正：修正 alias 以符合檔案名稱格式。
+# 更新重點（V2 Beta 4）：
+# 1) LINE 通知目標改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
 # ─────────────────────────────────────────────────────────────
 
-alias: 21B_客廳電風扇異常告警AI (V2 Beta 3)
+alias: 21B_客廳電風扇異常告警AI (V2 Beta 4)
 description: "當風扇在自動模式下離線或關閉時發出警報"
+
+variables:
+  line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+
 triggers:
   - platform: state
     entity_id: fan.ke_ting_dian_feng_shan
@@ -54,7 +60,7 @@ actions:
     then:
       - service: script.send_line_to_user
         data:
-          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          user_id: "{{ line_bot_target_user_id }}"
           payload: >-
             {{
               [

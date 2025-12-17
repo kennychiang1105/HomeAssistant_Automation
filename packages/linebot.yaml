@@ -1,4 +1,35 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.8)
+# 更新重點（V1.8）：
+# 1) Auto 模式下，先挑選未達 196 則的可用 Bot；若僅有未知用量的 Bot，依序嘗試 1→2→3→0；完全不可用時才回報額度用盡，不再誤回退到耗盡的 Bot。
+# 2) 保留 V1.7 功能：感測器全數暫時無效時回退主力 Bot1，避免顯示額度 0。
+# 3) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 4) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.7)
+# 更新重點（V1.7）：
+# 1) Auto 模式下，當所有用量感測器暫時無效時改回預設主力 Bot1，避免誤判為額度 0。
+# 2) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 3) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# LINE Bot 套件 (V1.6)
+# 更新重點（V1.6）：
+# 1) 修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 2) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.5)
+# 更新重點（V1.5）：
+# 1) 新增 sensor.line_bot_target_user_id，集中計算測試模式/自訂 ID/預設 ID，供自動化共用。
+# 2) 保留 V1.4 功能：Manual Bot0 標註緊急 Bot，對應 Helper 移除 initial 設定。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.4)
+# 更新重點（V1.4）：
+# 1) Manual Bot0 選項標註「緊急Bot」，對應 Helper 移除 initial 設定。
+# 2) 保留 V1.3 功能：新增緊急 Bot0、輪播門檻 196/12 則提醒、測試模式/自訂目標 ID。
+# LINE Bot 套件 (V1.3)
+# 更新重點（V1.3）：
+# 1) 新增緊急 Bot0，並提供手動 Bot0-3 與自動模式切換實體。
+# 2) 輪播門檻調整為 196，12 則時改以緊急 Bot 推送額度提醒。
+# 3) 測試模式時統一改向測試 ID，並支援自訂目標 ID 覆蓋。
 # LINE Bot 套件 (V1.2)
 # 更新重點（V1.2）：
 # 1) 保留原本 Bot 輪播 Script
@@ -42,6 +73,16 @@ sensor:
     method: GET
     headers:
       Authorization: !secret linebot_token3_bearer
+    value_template: "{{ value_json.totalUsage }}"
+    scan_interval: 180
+
+  - platform: rest
+    unique_id: bot_msg_count0
+    name: bot_msg_count0
+    resource: https://api.line.me/v2/bot/message/quota/consumption
+    method: GET
+    headers:
+      Authorization: !secret linebot_token0_bearer
     value_template: "{{ value_json.totalUsage }}"
     scan_interval: 180
 
@@ -122,37 +163,104 @@ template:
             {% set used = states('sensor.bot_msg_count3')|int(0) %}
             {{ ((used / 200) * 100)|round(1) }}
 
+      - name: bot_msg_remaining0
+        unique_id: bot_msg_remaining0
+        unit_of_measurement: "msg"
+        icon: mdi:counter
+        state: >-
+          {% set limit = 200 %}
+          {% set usage = states('sensor.bot_msg_count0') %}
+          {% set invalids = ['unknown','unavailable','none','None'] %}
+          {% if usage|lower in invalids %}
+            unknown
+          {% else %}
+            {% set remain = [limit - usage|int(0), 0]|max %}
+            {{ remain }}
+          {% endif %}
+        availability: >-
+          {% set usage = states('sensor.bot_msg_count0') %}
+          {{ usage|lower not in ['unknown','unavailable','none','None'] }}
+        attributes:
+          limit: 200
+          usage: "{{ states('sensor.bot_msg_count0')|int(0) }}"
+          used_ratio: >-
+            {% set used = states('sensor.bot_msg_count0')|int(0) %}
+            {{ ((used / 200) * 100)|round(1) }}
+
+
       - name: line_bot_rotation_target
         unique_id: line_bot_rotation_target
         icon: mdi:repeat-variant
         state: >-
-          {% set switch_limit = 198 %}
-          {% set c1 = states('sensor.bot_msg_count1') %}
-          {% set c2 = states('sensor.bot_msg_count2') %}
-          {% set c3 = states('sensor.bot_msg_count3') %}
+          {% set switch_limit = 196 %}
+          {% set mode = states('input_select.line_bot_mode') %}
+          {% set counts = {
+            '0': states('sensor.bot_msg_count0'),
+            '1': states('sensor.bot_msg_count1'),
+            '2': states('sensor.bot_msg_count2'),
+            '3': states('sensor.bot_msg_count3')
+          } %}
           {% set invalids = ['unknown','unavailable','none','None'] %}
-          {% if c1|lower not in invalids and c1|int < switch_limit %}
-            1
-          {% elif c2|lower not in invalids and c2|int < switch_limit %}
-            2
-          {% elif c3|lower not in invalids and c3|int < switch_limit %}
-            3
-          {% else %}
-            0
+
+          {% macro available(idx) %}
+            {% set c = counts[idx] %}
+            {{ c|lower not in invalids and c|int < switch_limit }}
+          {% endmacro %}
+
+          {% macro is_valid(idx) %}
+            {% set c = counts[idx] %}
+            {{ c|lower not in invalids }}
+          {% endmacro %}
+
+          {% set valid_count = [
+            is_valid('1'),
+            is_valid('2'),
+            is_valid('3'),
+            is_valid('0')
+          ] | select('equalto', true) | list | length %}
+
+          {% set ready_bot = '' %}
+          {% if available('1') %}{% set ready_bot = '1' %}
+          {% elif available('2') %}{% set ready_bot = '2' %}
+          {% elif available('3') %}{% set ready_bot = '3' %}
+          {% elif available('0') %}{% set ready_bot = '0' %}{% endif %}
+
+          {% set unknown_bot = '' %}
+          {% if ready_bot == '' %}
+            {% if not is_valid('1') %}{% set unknown_bot = '1' %}
+            {% elif not is_valid('2') %}{% set unknown_bot = '2' %}
+            {% elif not is_valid('3') %}{% set unknown_bot = '3' %}
+            {% elif not is_valid('0') %}{% set unknown_bot = '0' %}
+            {% endif %}
           {% endif %}
+
+          {% if mode == 'Auto' %}
+            {% if ready_bot != '' %}{{ ready_bot }}
+            {% elif unknown_bot != '' %}{{ unknown_bot }}
+            {% elif valid_count == 0 %}1
+            {% else %}-1{% endif %}
+          {% elif mode == 'Manual Bot1' %}1
+          {% elif mode == 'Manual Bot2' %}2
+          {% elif mode == 'Manual Bot3' %}3
+          {% elif mode == 'Manual Bot0（緊急Bot）' %}0
+          {% else %}-1{% endif %}
         attributes:
-          switch_limit: 198
+          switch_limit: 196
+          mode: "{{ states('input_select.line_bot_mode') }}"
           bot1_remaining: "{{ states('sensor.bot_msg_remaining1') }}"
           bot2_remaining: "{{ states('sensor.bot_msg_remaining2') }}"
           bot3_remaining: "{{ states('sensor.bot_msg_remaining3') }}"
+          bot0_remaining: "{{ states('sensor.bot_msg_remaining0') }}"
           bot1_name: "ChiangFamily 智慧家庭 B"
           bot2_name: "ChiangFamily 智慧家庭 C"
           bot3_name: "ChiangFamily 智慧家庭 D"
+          bot0_name: "ChiangFamily 緊急 Bot"
           selected_name: >-
             {% set selected = this.state|int(0) %}
             {% if selected == 1 %}ChiangFamily 智慧家庭 B
             {% elif selected == 2 %}ChiangFamily 智慧家庭 C
             {% elif selected == 3 %}ChiangFamily 智慧家庭 D
+            {% elif selected == 0 %}ChiangFamily 緊急 Bot
             {% else %}無可用 Bot{% endif %}
 
       - name: line_bot_in_use
@@ -163,10 +271,45 @@ template:
           {% if target == 1 %}ChiangFamily 智慧家庭 B
           {% elif target == 2 %}ChiangFamily 智慧家庭 C
           {% elif target == 3 %}ChiangFamily 智慧家庭 D
+          {% elif target == 0 %}ChiangFamily 緊急 Bot
           {% else %}無可用 Bot{% endif %}
         attributes:
           target_index: "{{ states('sensor.line_bot_rotation_target') }}"
-          rotation_switch_limit: 198
+          rotation_switch_limit: 196
+
+      - name: line_bot_target_user_id
+        unique_id: line_bot_target_user_id
+        icon: mdi:account-arrow-right
+        state: >-
+          {% set default_id = 'C26ff4e9d30159ba5264a1676f46f8f86' %}
+          {% set test_id = 'U9eeaaf5d404dbde249039924567992d3' %}
+          {% set custom_id = states('input_text.line_bot_custom_user_id')|trim %}
+          {% set custom_on = is_state('input_boolean.line_bot_custom_user_enable', 'on') %}
+          {% set test_on = is_state('input_boolean.line_bot_test_mode', 'on') %}
+          {% set invalids = ['', 'unknown', 'unavailable', 'None'] %}
+
+          {% if test_on %}
+            {{ test_id }}
+          {% elif custom_on and custom_id not in invalids %}
+            {{ custom_id }}
+          {% else %}
+            {{ default_id }}
+          {% endif %}
+        attributes:
+          mode: >-
+            {% set custom_id = states('input_text.line_bot_custom_user_id')|trim %}
+            {% set custom_on = is_state('input_boolean.line_bot_custom_user_enable', 'on') %}
+            {% set test_on = is_state('input_boolean.line_bot_test_mode', 'on') %}
+            {% set invalids = ['', 'unknown', 'unavailable', 'None'] %}
+            {% if test_on %}
+              test
+            {% elif custom_on and custom_id not in invalids %}
+              custom
+            {% else %}
+              default
+            {% endif %}
+          default_user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+          test_user_id: "U9eeaaf5d404dbde249039924567992d3"
 ###################################################################################
 ## SCRIPT（原樣保留）
 ###################################################################################
@@ -188,58 +331,75 @@ script:
     sequence:
       - variables:
           quota_limit: 200
-          switch_limit: 198
+          switch_limit: 196
 
+          bot0_token: !secret linebot_token0_bearer
           bot1_token: !secret linebot_token1_bearer
           bot2_token: !secret linebot_token2_bearer
           bot3_token: !secret linebot_token3_bearer
 
+          bot0_name: "ChiangFamily 緊急 Bot"
           bot1_name: "ChiangFamily 智慧家庭 B"
           bot2_name: "ChiangFamily 智慧家庭 C"
           bot3_name: "ChiangFamily 智慧家庭 D"
+
+          quota_notify_user: U9eeaaf5d404dbde249039924567992d3
+          bot_mode: "{{ states('input_select.line_bot_mode') }}"
+          bot_test_mode: "{{ states('input_boolean.line_bot_test_mode') }}"
+          bot_override_user: "{{ states('input_text.line_bot_custom_user_id')|trim }}"
+          bot_custom_enable: "{{ states('input_boolean.line_bot_custom_user_enable') }}"
 
           has_text: "{{ message is defined }}"
           has_json: "{{ payload is defined }}"
           valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
 
-          current_bot: >
-            {% set c1 = states('sensor.bot_msg_count1') %}
-            {% set c2 = states('sensor.bot_msg_count2') %}
-            {% set c3 = states('sensor.bot_msg_count3') %}
-            {% if c1 not in ['unknown','unavailable'] and c1|int < switch_limit %}
-              1
-            {% elif c2 not in ['unknown','unavailable'] and c2|int < switch_limit %}
-              2
-            {% elif c3 not in ['unknown','unavailable'] and c3|int < switch_limit %}
-              3
+          current_bot: "{{ states('sensor.line_bot_rotation_target')|int(-1) }}"
+
+          target_user: >
+            {% if bot_test_mode == 'on' %}
+              U9eeaaf5d404dbde249039924567992d3
+            {% elif bot_custom_enable == 'on' and bot_override_user not in ['', 'unknown', 'unavailable'] %}
+              {{ bot_override_user }}
             {% else %}
-              0
+              {{ user_id }}
             {% endif %}
 
           use_token: >
-            {% if current_bot|int == 1 %}{{ bot1_token }}
+            {% if current_bot|int == 0 %}{{ bot0_token }}
+            {% elif current_bot|int == 1 %}{{ bot1_token }}
             {% elif current_bot|int == 2 %}{{ bot2_token }}
             {% elif current_bot|int == 3 %}{{ bot3_token }}
             {% else %}""{% endif %}
 
           used_count: >
-            {% if current_bot|int == 1 %}{{ states('sensor.bot_msg_count1')|int }}
+            {% if current_bot|int == 0 %}{{ states('sensor.bot_msg_count0')|int }}
+            {% elif current_bot|int == 1 %}{{ states('sensor.bot_msg_count1')|int }}
             {% elif current_bot|int == 2 %}{{ states('sensor.bot_msg_count2')|int }}
             {% elif current_bot|int == 3 %}{{ states('sensor.bot_msg_count3')|int }}
             {% else %}999{% endif %}
 
           remain_count: "{{ quota_limit - used_count }}"
-          need_countdown_notice: "{{ remain_count in [3,2,1] }}"
+          need_countdown_notice: "{{ remain_count <= 12 }}"
+          can_notify_quota: >-
+            {{
+              states('sensor.bot_msg_count0')|int(999) < quota_limit
+              and states('input_boolean.notify_line_quota_warn_enable') == 'on'
+            }}
+
+          final_quota_notice: >-
+            {{
+              states('sensor.bot_msg_count0')|int(999) < quota_limit
+              and states('input_boolean.notify_line_quota_final_enable') == 'on'
+            }}
 
           # 🔑 自動補 to 的 RAW JSON
           full_payload: >
             {% if has_json %}
             {
-              "to": "{{ user_id }}",
+              "to": "{{ target_user }}",
               "messages": {{ payload }}
             }
             {% endif %}
-
       # ───── 防呆 ─────
       - choose:
           - conditions: "{{ not valid_input }}"
@@ -270,21 +430,32 @@ script:
                       - service: rest_command.line_bot_push
                         data:
                           token: "{{ use_token }}"
-                          to: "{{ user_id }}"
+                          to: "{{ target_user }}"
                           text: "{{ message }}"
 
-              # 額度倒數（管理者）
+              # 額度倒數（管理者，改用緊急 Bot 通知）
               - choose:
-                  - conditions: "{{ need_countdown_notice }}"
+                  - conditions: "{{ need_countdown_notice and can_notify_quota }}"
                     sequence:
-                      - service: script.send_line_emergency
+                      - service: rest_command.line_bot_push
                         data:
-                          message: "⚠️ {{ remain_count }} 次後將切換 Bot"
+                          token: "{{ bot0_token }}"
+                          to: "{{ quota_notify_user }}"
+                          text: "⚠️ {{ remain_count }} 次後將切換 Bot（目前使用：Bot{{ current_bot }}）"
 
         default:
-          - service: script.send_line_emergency
+          - choose:
+              - conditions: "{{ final_quota_notice }}"
+                sequence:
+                  - service: rest_command.line_bot_push
+                    data:
+                      token: "{{ bot0_token }}"
+                      to: "{{ quota_notify_user }}"
+                      text: "🚨 所有 Bot 額度已滿或不可用，訊息未送出"
+          - service: system_log.write
             data:
-              message: "🚨 LINE 主力 Bot 額度已滿，訊息未送出"
+              level: error
+              message: "LINE Bot 配額不足，無法送出訊息"
 ###################################################################################
 ## REST_COMMAND
 ###################################################################################
