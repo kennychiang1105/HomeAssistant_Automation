@@ -200,16 +200,30 @@ template:
             '2': states('sensor.bot_msg_count2'),
             '3': states('sensor.bot_msg_count3')
           } %}
+          {% set remaining = {
+            '0': states('sensor.bot_msg_remaining0'),
+            '1': states('sensor.bot_msg_remaining1'),
+            '2': states('sensor.bot_msg_remaining2'),
+            '3': states('sensor.bot_msg_remaining3')
+          } %}
           {% set invalids = ['unknown','unavailable','none','None'] %}
 
           {% macro available(idx) %}
             {% set c = counts[idx] %}
-            {{ c|lower not in invalids and c|int < switch_limit }}
+            {% set r = remaining[idx] %}
+            {% set c_valid = c|lower not in invalids %}
+            {% set r_valid = r|lower not in invalids %}
+            {{ c_valid and r_valid and r|int > 0 and c|int < switch_limit }}
           {% endmacro %}
 
           {% macro is_valid(idx) %}
             {% set c = counts[idx] %}
             {{ c|lower not in invalids }}
+          {% endmacro %}
+
+          {% macro has_quota(idx) %}
+            {% set r = remaining[idx] %}
+            {{ r|lower not in invalids and r|int > 0 }}
           {% endmacro %}
 
           {% set valid_count = [
@@ -219,11 +233,25 @@ template:
             is_valid('0')
           ] | select('equalto', true) | list | length %}
 
+          {% set any_quota = [
+            has_quota('1'),
+            has_quota('2'),
+            has_quota('3'),
+            has_quota('0')
+          ] | select('equalto', true) | list | length > 0 %}
+
           {% set ready_bot = '' %}
           {% if available('1') %}{% set ready_bot = '1' %}
           {% elif available('2') %}{% set ready_bot = '2' %}
           {% elif available('3') %}{% set ready_bot = '3' %}
           {% elif available('0') %}{% set ready_bot = '0' %}{% endif %}
+
+          {% if ready_bot == '' %}
+            {% if has_quota('1') %}{% set ready_bot = '1' %}
+            {% elif has_quota('2') %}{% set ready_bot = '2' %}
+            {% elif has_quota('3') %}{% set ready_bot = '3' %}
+            {% elif has_quota('0') %}{% set ready_bot = '0' %}{% endif %}
+          {% endif %}
 
           {% set unknown_bot = '' %}
           {% if ready_bot == '' %}
@@ -238,6 +266,7 @@ template:
             {% if ready_bot != '' %}{{ ready_bot }}
             {% elif unknown_bot != '' %}{{ unknown_bot }}
             {% elif valid_count == 0 %}1
+            {% elif not any_quota %}0
             {% else %}-1{% endif %}
           {% elif mode == 'Manual Bot1' %}1
           {% elif mode == 'Manual Bot2' %}2
