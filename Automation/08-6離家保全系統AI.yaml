@@ -18,20 +18,20 @@ alias: 08-6離家保全系統AI (V1.6)
 description: ""
 mode: single
 
-  variables:
-    automation_version: "V1.6"
-    helpers_compat: "Helpers V2.19"
-    notif_title_base: "【離家保全系統 V1.6】"
-    notif_title_important: >-
-      {% set title = states('input_text.notif_title_086_important') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
-    notif_title_emergency: >-
-      {% set title = states('input_text.notif_title_086_emergency') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
-    notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
-    notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
-    earthquake_admin_user_id: "U9eeaaf5d404dbde249039924567992d3"
-    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+variables:
+  automation_version: "V1.6"
+  helpers_compat: "Helpers V2.19"
+  notif_title_base: "【離家保全系統 V1.6】"
+  notif_title_important: >-
+    {% set title = states('input_text.notif_title_086_important') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+  notif_title_emergency: >-
+    {% set title = states('input_text.notif_title_086_emergency') %}
+    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+  notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
+  notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
+  earthquake_admin_user_id: "U9eeaaf5d404dbde249039924567992d3"
+  line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
   aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
