@@ -268,7 +268,7 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
         \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
         \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
         \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
@@ -308,7 +308,7 @@
     - parallel:
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
             \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
             \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
             \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
@@ -488,7 +488,7 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
         \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
         \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
         \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
@@ -529,7 +529,7 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
         \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
         \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
         \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
@@ -886,7 +886,7 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
             \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
             鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
             \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
@@ -966,7 +966,7 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
             \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
             鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
             \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
@@ -1369,7 +1369,7 @@
       entity_id: media_player.ke_ting_homepod
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般 General
         \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
         \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n\n
         \      }\n  ]\n"
@@ -1936,7 +1936,7 @@
   actions:
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
         \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
         \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
         \      }\n  ]\n"
@@ -5040,7 +5040,7 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\\nGeneral
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般 General
         \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常\\n\U0001F534，\\n請確認
         ⚡ ⚠️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\U0001F32C️客廳電風扇電源連線異常⚡⚠️\"\n
         \     }\n  ]\n"
