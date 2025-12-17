@@ -350,113 +350,113 @@
             發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
         enabled: true
         action: persistent_notification.create
-    - data:
-        media:
-          media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-          media_content_type: music
-          metadata: {}
-      enabled: false
-      target:
-        entity_id: media_player.guang_bo_qun_zu_all
-      action: media_player.play_media
-    - delay:
-        hours: 0
-        minutes: 0
-        seconds: 13
-        milliseconds: 0
-      enabled: false
-    - action: tts.speak
-      metadata: {}
-      target:
-        device_id: c01a1336ef43795fd0679631c3e6ce62
-      data:
-        media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: >-
-          {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
+  - data:
+      media:
+        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+        media_content_type: music
+        metadata: {}
+    enabled: false
+    target:
+      entity_id: media_player.guang_bo_qun_zu_all
+    action: media_player.play_media
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 13
+      milliseconds: 0
+    enabled: false
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      media_player_entity_id: media_player.guang_bo_qun_zu_all
+      message: >-
+        {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
 
-          即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
+        即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達，地震！地震！
-        cache: true
-      enabled: true
-    - delay:
-        hours: 0
-        minutes: 0
-        seconds: 30
-        milliseconds: 0
-      enabled: true
-    - data:
-        media:
-          media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-          media_content_type: music
-          metadata: {}
-      enabled: true
-      target:
-        entity_id: media_player.guang_bo_qun_zu_all
-      action: media_player.play_media
-    - delay:
-        hours: 0
-        minutes: 0
-        seconds: 13
-        milliseconds: 0
-      enabled: true
-    - action: tts.speak
-      metadata: {}
-      target:
-        device_id: c01a1336ef43795fd0679631c3e6ce62
-      data:
-        media_player_entity_id: media_player.guang_bo_qun_zu_all
-        message: >-
-          {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
+        地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達，地震！地震！
+      cache: true
+    enabled: true
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 30
+      milliseconds: 0
+    enabled: true
+  - data:
+      media:
+        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+        media_content_type: music
+        metadata: {}
+    enabled: true
+    target:
+      entity_id: media_player.guang_bo_qun_zu_all
+    action: media_player.play_media
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 13
+      milliseconds: 0
+    enabled: true
+  - action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+    data:
+      media_player_entity_id: media_player.guang_bo_qun_zu_all
+      message: >-
+        {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
 
-          發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
+        發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
 
-          地震預警系統預估地震{{ level }}級，發生地震，地震！地震！
-        cache: true
-      enabled: true
-    - delay:
-        hours: 0
-        minutes: 0
-        seconds: 25
-        milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
-    - data:
-        volume_level: 0.4
-      action: media_player.volume_set
-      target:
-        entity_id: media_player.ding_lou_homepod
-    - type: turn_off
+        地震預警系統預估地震{{ level }}級，發生地震，地震！地震！
+      cache: true
+    enabled: true
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 25
+      milliseconds: 0
+  - repeat:
+      until:
+      - condition: state
+        entity_id: media_player.sony_bravia_tv
+        attribute: media_title
+        state: TATV-8000
+      sequence:
+      - data:
+          command: Hdmi1
+        target:
+          device_id: fdcccfa405461070717b80a56a590960
+        action: remote.send_command
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 1
+          milliseconds: 0
+  - data:
+      command: Confirm
+    target:
       device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
-    - delay:
-        hours: 0
-        minutes: 0
-        seconds: 30
-        milliseconds: 0
-      enabled: true
+    enabled: true
+    action: remote.send_command
+  - data:
+      volume_level: 0.4
+    action: media_player.volume_set
+    target:
+      entity_id: media_player.ding_lou_homepod
+  - type: turn_off
+    device_id: fdcccfa405461070717b80a56a590960
+    entity_id: 61eaa5fb8386221ba077bcb884e74573
+    domain: remote
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 30
+      milliseconds: 0
+    enabled: true
     - type: turn_off
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
