@@ -1,10 +1,16 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.8)
+# 更新重點（V1.8）：
+# 1) Auto 模式下，先挑選未達 196 則的可用 Bot；若僅有未知用量的 Bot，依序嘗試 1→2→3→0；完全不可用時才回報額度用盡，不再誤回退到耗盡的 Bot。
+# 2) 保留 V1.7 功能：感測器全數暫時無效時回退主力 Bot1，避免顯示額度 0。
+# 3) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 4) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.7)
 # 更新重點（V1.7）：
 # 1) Auto 模式下，當所有用量感測器暫時無效時改回預設主力 Bot1，避免誤判為額度 0。
 # 2) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
 # 3) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
-# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.6)
 # 更新重點（V1.6）：
 # 1) 修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
@@ -201,18 +207,36 @@ template:
             {{ c|lower not in invalids and c|int < switch_limit }}
           {% endmacro %}
 
+          {% macro is_valid(idx) %}
+            {% set c = counts[idx] %}
+            {{ c|lower not in invalids }}
+          {% endmacro %}
+
           {% set valid_count = [
-            available('1'),
-            available('2'),
-            available('3'),
-            available('0')
+            is_valid('1'),
+            is_valid('2'),
+            is_valid('3'),
+            is_valid('0')
           ] | select('equalto', true) | list | length %}
 
+          {% set ready_bot = '' %}
+          {% if available('1') %}{% set ready_bot = '1' %}
+          {% elif available('2') %}{% set ready_bot = '2' %}
+          {% elif available('3') %}{% set ready_bot = '3' %}
+          {% elif available('0') %}{% set ready_bot = '0' %}{% endif %}
+
+          {% set unknown_bot = '' %}
+          {% if ready_bot == '' %}
+            {% if not is_valid('1') %}{% set unknown_bot = '1' %}
+            {% elif not is_valid('2') %}{% set unknown_bot = '2' %}
+            {% elif not is_valid('3') %}{% set unknown_bot = '3' %}
+            {% elif not is_valid('0') %}{% set unknown_bot = '0' %}
+            {% endif %}
+          {% endif %}
+
           {% if mode == 'Auto' %}
-            {% if available('1') %}1
-            {% elif available('2') %}2
-            {% elif available('3') %}3
-            {% elif available('0') %}0
+            {% if ready_bot != '' %}{{ ready_bot }}
+            {% elif unknown_bot != '' %}{{ unknown_bot }}
             {% elif valid_count == 0 %}1
             {% else %}-1{% endif %}
           {% elif mode == 'Manual Bot1' %}1
