@@ -66,13 +66,16 @@ actions:
               - data:
                   user_id: "{{ line_bot_target_user_id }}"
                   payload: |-
-                    {{
-                      [
-                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
-                        {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text": current_message }
-                      ] | tojson
-                    }}
+                    {% set header = "【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)" %}
+                    {% set lead = " 收到以下政府災害訊息:" %}
+                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                    {% set msg_safe = current_message if current_message not in invalids else '（無可用內容）' %}
+                    {% set messages = [
+                      {"type":"text","text": header},
+                      {"type":"text","text": lead},
+                      {"type":"text","text": msg_safe}
+                    ] %}
+                    {{ messages | tojson }}
                 action: script.send_line_to_user
           - target:
               entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -129,13 +132,16 @@ actions:
               - data:
                   user_id: "{{ line_bot_target_user_id }}"
                   payload: |-
-                    {{
-                      [
-                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
-                        {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text": current_message }
-                      ] | tojson
-                    }}
+                    {% set header = "【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report" %}
+                    {% set lead = " 收到以下政府災害訊息:" %}
+                    {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                    {% set msg_safe = current_message if current_message not in invalids else '（無可用內容）' %}
+                    {% set messages = [
+                      {"type":"text","text": header},
+                      {"type":"text","text": lead},
+                      {"type":"text","text": msg_safe}
+                    ] %}
+                    {{ messages | tojson }}
                 action: script.send_line_to_user
           - target:
               entity_id: media_player.guang_bo_qun_zu_tong_zhi
