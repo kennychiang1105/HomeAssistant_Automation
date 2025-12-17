@@ -64,11 +64,21 @@ variables:
     {% else %}情境未知{% endif %}
   aqara_active_labels: >-
     {% set labels = [] %}
-    {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set _ = labels.append('在家情境') %}{% endif %}
-    {% if is_state('input_boolean.aqara_wan_an','on') %}{% set _ = labels.append('晚安情境') %}{% endif %}
-    {% if is_state('input_boolean.aqara_li_jia','on') %}{% set _ = labels.append('離家情境') %}{% endif %}
-    {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set _ = labels.append('網關解除情境') %}{% endif %}
-    {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set _ = labels.append('網關觸發情境') %}{% endif %}
+    {% if is_state('input_boolean.aqara_zai_jia','on') %}
+      {% set labels = labels + ['在家情境'] %}
+    {% endif %}
+    {% if is_state('input_boolean.aqara_wan_an','on') %}
+      {% set labels = labels + ['晚安情境'] %}
+    {% endif %}
+    {% if is_state('input_boolean.aqara_li_jia','on') %}
+      {% set labels = labels + ['離家情境'] %}
+    {% endif %}
+    {% if is_state('input_boolean.aqara_guan_bi','on') %}
+      {% set labels = labels + ['網關解除情境'] %}
+    {% endif %}
+    {% if is_state('input_boolean.aqara_chu_fa','on') %}
+      {% set labels = labels + ['網關觸發情境'] %}
+    {% endif %}
     {{ labels|join('、') if labels else '' }}
   aqara_scene_label_safe: >-
     {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}

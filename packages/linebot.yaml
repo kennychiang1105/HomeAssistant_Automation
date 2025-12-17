@@ -233,6 +233,13 @@ template:
             is_valid('0')
           ] | select('equalto', true) | list | length %}
 
+          {% set any_quota = [
+            has_quota('1'),
+            has_quota('2'),
+            has_quota('3'),
+            has_quota('0')
+          ] | select('equalto', true) | list | length > 0 %}
+
           {% set ready_bot = '' %}
           {% if available('1') %}{% set ready_bot = '1' %}
           {% elif available('2') %}{% set ready_bot = '2' %}
@@ -259,6 +266,7 @@ template:
             {% if ready_bot != '' %}{{ ready_bot }}
             {% elif unknown_bot != '' %}{{ unknown_bot }}
             {% elif valid_count == 0 %}1
+            {% elif not any_quota %}0
             {% else %}-1{% endif %}
           {% elif mode == 'Manual Bot1' %}1
           {% elif mode == 'Manual Bot2' %}2

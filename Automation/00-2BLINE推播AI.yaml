@@ -137,9 +137,21 @@ variables:
 
   bot_overview_text: >-
     {% set lines = [] %}
-    {% set _ = lines.append('• ' ~ bot1_name ~ '：已用 ' ~ (bot1_used if bot1_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot1_remain if bot1_remain >= 0 else '未知')|string) %}
-    {% set _ = lines.append('• ' ~ bot2_name ~ '：已用 ' ~ (bot2_used if bot2_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot2_remain if bot2_remain >= 0 else '未知')|string) %}
-    {% set _ = lines.append('• ' ~ bot3_name ~ '：已用 ' ~ (bot3_used if bot3_used >= 0 else '未知')|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ (bot3_remain if bot3_remain >= 0 else '未知')|string) %}
+    {% if bot1_used >= 0 and bot1_remain >= 0 %}
+      {% set lines = lines + ['• ' ~ bot1_name ~ '：已用 ' ~ bot1_used|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ bot1_remain|string] %}
+    {% else %}
+      {% set lines = lines + ['• ' ~ bot1_name ~ '：已用 未知 / ' ~ limit|string ~ '，剩餘 未知'] %}
+    {% endif %}
+    {% if bot2_used >= 0 and bot2_remain >= 0 %}
+      {% set lines = lines + ['• ' ~ bot2_name ~ '：已用 ' ~ bot2_used|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ bot2_remain|string] %}
+    {% else %}
+      {% set lines = lines + ['• ' ~ bot2_name ~ '：已用 未知 / ' ~ limit|string ~ '，剩餘 未知'] %}
+    {% endif %}
+    {% if bot3_used >= 0 and bot3_remain >= 0 %}
+      {% set lines = lines + ['• ' ~ bot3_name ~ '：已用 ' ~ bot3_used|string ~ ' / ' ~ limit|string ~ '，剩餘 ' ~ bot3_remain|string] %}
+    {% else %}
+      {% set lines = lines + ['• ' ~ bot3_name ~ '：已用 未知 / ' ~ limit|string ~ '，剩餘 未知'] %}
+    {% endif %}
     {{ lines | join('\n') }}
 
   triggered_bot_name: >-
