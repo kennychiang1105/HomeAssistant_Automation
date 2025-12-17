@@ -205,13 +205,14 @@
       minutes: 0
       seconds: 25
       milliseconds: 0
-    - repeat:
-        until:
+    enabled: true
+  - repeat:
+      until:
         - condition: state
           entity_id: media_player.sony_bravia_tv
           attribute: media_title
           state: TATV-8000
-        sequence:
+      sequence:
         - data:
             command: Hdmi1
           target:
@@ -222,65 +223,87 @@
             minutes: 0
             seconds: 1
             milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
-    - data:
-        volume_level: 0.4
-      action: media_player.volume_set
-      target:
-        entity_id: media_player.ding_lou_homepod
-    else:
-    - parallel:
+    enabled: true
+  - data:
+      command: Confirm
+    target:
+      device_id: fdcccfa405461070717b80a56a590960
+    enabled: true
+    action: remote.send_command
+  - data:
+      volume_level: 0.4
+    action: media_player.volume_set
+    target:
+      entity_id: media_player.ding_lou_homepod
+  - parallel:
       - if:
-        - condition: or
-          conditions:
-          - condition: template
-            value_template: '{{ level == "3" }}'
-            enabled: false
-          - condition: template
-            value_template: '{{ level == "4" }}'
-            enabled: false
-          - condition: template
-            value_template: '{{ level == "5-" }}'
-          - condition: template
-            value_template: '{{ level == "5+" }}'
-          - condition: template
-            value_template: '{{ level == "6-" }}'
-          - condition: template
-            value_template: '{{ level == "6+" }}'
-          - condition: template
-            value_template: '{{ level == "7" }}'
-          - condition: template
-            value_template: '{{ level == ''3'' }}'
-            enabled: false
-          - condition: template
-            value_template: '{{ level == ''4'' }}'
-            enabled: false
-          - condition: template
-            value_template: '{{ level == ''5-'' }}'
-          - condition: template
-            value_template: '{{ level == ''5+'' }}'
-          - condition: template
-            value_template: '{{ level == ''6-'' }}'
-          - condition: template
-            value_template: '{{ level == ''6+'' }}'
-          - condition: template
-            value_template: '{{ level == ''7'' }}'
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: '{{ level == "3" }}'
+                enabled: false
+              - condition: template
+                value_template: '{{ level == "4" }}'
+                enabled: false
+              - condition: template
+                value_template: '{{ level == "5-" }}'
+              - condition: template
+                value_template: '{{ level == "5+" }}'
+              - condition: template
+                value_template: '{{ level == "6-" }}'
+              - condition: template
+                value_template: '{{ level == "6+" }}'
+              - condition: template
+                value_template: '{{ level == "7" }}'
+              - condition: template
+                value_template: '{{ level == ''3'' }}'
+                enabled: false
+              - condition: template
+                value_template: '{{ level == ''4'' }}'
+                enabled: false
+              - condition: template
+                value_template: '{{ level == ''5-'' }}'
+              - condition: template
+                value_template: '{{ level == ''5+'' }}'
+              - condition: template
+                value_template: '{{ level == ''6-'' }}'
+              - condition: template
+                value_template: '{{ level == ''6+'' }}'
+              - condition: template
+                value_template: '{{ level == ''7'' }}'
         then:
-        - parallel:
-          - data:
-              skip_condition: true
+          - parallel:
+              - data:
+                  skip_condition: true
+                target:
+                  entity_id: automation.jin_ji_mo_shi
+                action: automation.trigger
+              - if:
+                  - condition: state
+                    entity_id: input_boolean.helper_line_notification_urgent
+                    state: 'on'
+                then:
+                  - service: script.send_line_to_user
+                    data:
+                      user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                      payload: >-
+                        {{
+                          [
+                            {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
+                            {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                            {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
+                          ] | tojson
+                        }}
+          - action: input_boolean.turn_on
+            metadata: {}
+            data: {}
             target:
-              entity_id: automation.jin_ji_mo_shi
-            action: automation.trigger
+              entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
+        else:
           - if:
-            - condition: state
-              entity_id: input_boolean.helper_line_notification_urgent
-              state: 'on'
+              - condition: state
+                entity_id: input_boolean.helper_line_notification_urgent
+                state: 'on'
             then:
               - service: script.send_line_to_user
                 data:
@@ -288,38 +311,16 @@
                   payload: >-
                     {{
                       [
-                        {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
-                        {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                        {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
+                        {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
+                        {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                        {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
                       ] | tojson
                     }}
-          - action: input_boolean.turn_on
-            metadata: {}
-            data: {}
-            target:
-              entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
-        else:
-        - if:
-          - condition: state
-            entity_id: input_boolean.helper_line_notification_urgent
-            state: 'on'
-          then:
-            - service: script.send_line_to_user
-              data:
-                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
-                payload: >-
-                  {{
-                    [
-                      {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
-                      {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                      {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
-                    ] | tojson
-                  }}
       - type: turn_on
         device_id: fdcccfa405461070717b80a56a590960
         entity_id: 61eaa5fb8386221ba077bcb884e74573
         domain: remote
-    - parallel:
+  - parallel:
       - data:
           volume_level: 0.65
         action: media_player.volume_set
