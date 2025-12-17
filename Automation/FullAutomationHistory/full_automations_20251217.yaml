@@ -268,11 +268,11 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
-        \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
-        \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
-        \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-        }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n
+        \      {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: false
     action: script.send_line_to_user
   - data:
@@ -308,8 +308,8 @@
     - parallel:
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
-            \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+            General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
             \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
             \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
             states('sensor.earthquake') }}\"\n      }\n  ]\n"
@@ -488,11 +488,11 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
-        \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n       {\n
-        \         \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n       },\n
-        \     {\n          \"type\":\"text\",\n          \"text\":\"{{ states('sensor.disaster')
-        }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n
+        \      {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -529,10 +529,11 @@
     action: notify.persistent_notification
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般 General
-        \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
-        \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
-        \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+        General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
+        \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n
+        \     },\n\n       {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.earthquake') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -886,10 +887,11 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
-            \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
-            鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
-            \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
+            General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n
+            \          \"text\":\"鐵門狀態警告⚠️\\n\U0001F697 鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n
+            \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n
+            \     }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -966,10 +968,11 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
-            \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"鐵門狀態警告⚠️\\n\U0001F697
-            鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n      },\n      {\n          \"type\":\"text\",\n
-            \         \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
+            General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\n
+            \          \"text\":\"鐵門狀態警告⚠️\\n\U0001F697 鐵門開啟超過10分鐘，\\n且車庫無人車移動，\\n請注意\\n❗️\"\n
+            \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F697\\n鐵門開啟超過10分鐘\"\n
+            \     }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1369,8 +1372,8 @@
       entity_id: media_player.ke_ting_homepod
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般 General
-        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
         \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n\n
         \      }\n  ]\n"
     enabled: true
@@ -1936,8 +1939,8 @@
   actions:
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般 General
-        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
         \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
         \      }\n  ]\n"
     enabled: true
@@ -5040,8 +5043,8 @@
     enabled: true
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般 General
-        \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常\\n\U0001F534，\\n請確認
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️智慧家庭告警:\\n\U0001F6DC客廳電風扇電源連線異常\\n\U0001F534，\\n請確認
         ⚡ ⚠️\"\n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\U0001F32C️客廳電風扇電源連線異常⚡⚠️\"\n
         \     }\n  ]\n"
     enabled: false
@@ -11445,13 +11448,13 @@
       %}在家情境 {% elif is_state(''input_boolean.aqara_guan_bi'',''on'') %}網關解除情境 {%
       elif is_state(''input_boolean.aqara_chu_fa'',''on'') %}網關觸發情境 {% else %}情境未知{%
       endif %}'
-    aqara_active_labels: '{% set labels = [] %} {% if is_state(''input_boolean.aqara_zai_jia'',''on'')
-      %}{% set _ = labels.append(''在家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_wan_an'',''on'')
-      %}{% set _ = labels.append(''晚安情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_li_jia'',''on'')
-      %}{% set _ = labels.append(''離家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_guan_bi'',''on'')
-      %}{% set _ = labels.append(''網關解除情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_chu_fa'',''on'')
-      %}{% set _ = labels.append(''網關觸發情境'') %}{% endif %} {{ labels|join(''、'') if
-      labels else '''' }}'
+    aqara_active_labels: "{% set labels = [] %} {% if is_state('input_boolean.aqara_zai_jia','on')
+      %}\n  {% set labels = labels + ['在家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_wan_an','on')
+      %}\n  {% set labels = labels + ['晚安情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_li_jia','on')
+      %}\n  {% set labels = labels + ['離家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_guan_bi','on')
+      %}\n  {% set labels = labels + ['網關解除情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_chu_fa','on')
+      %}\n  {% set labels = labels + ['網關觸發情境'] %}\n{% endif %} {{ labels|join('、')
+      if labels else '' }}"
     aqara_scene_label_safe: '{% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim
       }} {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }} {%
       elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }} {% else %}{{
@@ -12143,10 +12146,17 @@
         then:
         - data:
             user_id: '{{ line_bot_target_user_id }}'
-            payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
-              \U0001FAA7\\n\U0001F30D 災防報告 (早晨補報)\"},\n    {\"type\":\"text\", \"text\":\"
-              收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": current_message }\n
-              \ ] | tojson\n}}"
+            payload: "{% set msg_raw = states('sensor.disaster') %} {% set invalids
+              = ['unknown', 'unavailable', 'none', 'None', ''] %} {% set msg_safe
+              = msg_raw if msg_raw not in invalids else '目前無災害訊息內容' %}\n{# 加入預設值判斷：若
+              trigger 未定義，則預設為即時播報模式 #} {% set trigger_id = trigger.id if trigger
+              is defined else 'manual' %} {% set is_morning = (trigger_id == 'morning_catch_up')
+              %}\n{% set header_text = \"\U0001F30D 災防報告 (早晨補報)\" if is_morning else
+              \"\U0001F30D 災防報告 Disaster Prevention Report\" %}\n{% set messages =
+              [\n  {\n    \"type\": \"text\",\n    \"text\": \"【災防系統通知】一般 General
+              \U0001FAA7\\n\" ~ header_text\n  },\n  {\n    \"type\": \"text\",\n
+              \   \"text\": \"收到以下政府災害訊息:\"\n  },\n  {\n    \"type\": \"text\",\n
+              \   \"text\": msg_safe\n  }\n] %} {{ messages | tojson }}"
           action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -12201,10 +12211,17 @@
         then:
         - data:
             user_id: '{{ line_bot_target_user_id }}'
-            payload: "{{\n  [\n    {\"type\":\"text\", \"text\":\"【災防系統通知】一般 General
-              \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"},\n    {\"type\":\"text\",
-              \"text\":\" 收到以下政府災害訊息:\"},\n    {\"type\":\"text\", \"text\": current_message
-              }\n  ] | tojson\n}}"
+            payload: "{% set msg_raw = states('sensor.disaster') %} {% set invalids
+              = ['unknown', 'unavailable', 'none', 'None', ''] %} {% set msg_safe
+              = msg_raw if msg_raw not in invalids else '目前無災害訊息內容' %}\n{# 加入預設值判斷：若
+              trigger 未定義，則預設為即時播報模式 #} {% set trigger_id = trigger.id if trigger
+              is defined else 'manual' %} {% set is_morning = (trigger_id == 'morning_catch_up')
+              %}\n{% set header_text = \"\U0001F30D 災防報告 (早晨補報)\" if is_morning else
+              \"\U0001F30D 災防報告 Disaster Prevention Report\" %}\n{% set messages =
+              [\n  {\n    \"type\": \"text\",\n    \"text\": \"【災防系統通知】一般 General
+              \U0001FAA7\\n\" ~ header_text\n  },\n  {\n    \"type\": \"text\",\n
+              \   \"text\": \"收到以下政府災害訊息:\"\n  },\n  {\n    \"type\": \"text\",\n
+              \   \"text\": msg_safe\n  }\n] %} {{ messages | tojson }}"
           action: script.send_line_to_user
       - target:
           entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -12296,19 +12313,19 @@
   - delay:
       seconds: 2
   - variables:
-      resolved_labels: '{% set labels = [] %} {% if is_state(''input_boolean.aqara_zai_jia'',''on'')
-        %}{% set _ = labels.append(''在家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_wan_an'',''on'')
-        %}{% set _ = labels.append(''晚安情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_li_jia'',''on'')
-        %}{% set _ = labels.append(''離家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_guan_bi'',''on'')
-        %}{% set _ = labels.append(''網關解除情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_chu_fa'',''on'')
-        %}{% set _ = labels.append(''網關觸發情境'') %}{% endif %} {{ labels|join(''、'')
-        if labels else '''' }}'
-      resolved_count: '{% set labels = [] %} {% if is_state(''input_boolean.aqara_zai_jia'',''on'')
-        %}{% set _ = labels.append(1) %}{% endif %} {% if is_state(''input_boolean.aqara_wan_an'',''on'')
-        %}{% set _ = labels.append(1) %}{% endif %} {% if is_state(''input_boolean.aqara_li_jia'',''on'')
-        %}{% set _ = labels.append(1) %}{% endif %} {% if is_state(''input_boolean.aqara_guan_bi'',''on'')
-        %}{% set _ = labels.append(1) %}{% endif %} {% if is_state(''input_boolean.aqara_chu_fa'',''on'')
-        %}{% set _ = labels.append(1) %}{% endif %} {{ labels|length }}'
+      resolved_labels: "{% set labels = [] %} {% if is_state('input_boolean.aqara_zai_jia','on')
+        %}\n  {% set labels = labels + ['在家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_wan_an','on')
+        %}\n  {% set labels = labels + ['晚安情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_li_jia','on')
+        %}\n  {% set labels = labels + ['離家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_guan_bi','on')
+        %}\n  {% set labels = labels + ['網關解除情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_chu_fa','on')
+        %}\n  {% set labels = labels + ['網關觸發情境'] %}\n{% endif %} {{ labels|join('、')
+        if labels else '' }}"
+      resolved_count: "{% set labels = [] %} {% if is_state('input_boolean.aqara_zai_jia','on')
+        %}\n  {% set labels = labels + [1] %}\n{% endif %} {% if is_state('input_boolean.aqara_wan_an','on')
+        %}\n  {% set labels = labels + [1] %}\n{% endif %} {% if is_state('input_boolean.aqara_li_jia','on')
+        %}\n  {% set labels = labels + [1] %}\n{% endif %} {% if is_state('input_boolean.aqara_guan_bi','on')
+        %}\n  {% set labels = labels + [1] %}\n{% endif %} {% if is_state('input_boolean.aqara_chu_fa','on')
+        %}\n  {% set labels = labels + [1] %}\n{% endif %} {{ labels|length }}"
   - data:
       title: '{{ notif_title_alert }}'
       message: '保全情境異常已自動排除。
@@ -12365,13 +12382,13 @@
       %}在家情境 {% elif is_state(''input_boolean.aqara_guan_bi'',''on'') %}網關解除情境 {%
       elif is_state(''input_boolean.aqara_chu_fa'',''on'') %}網關觸發情境 {% else %}情境未知{%
       endif %}'
-    aqara_active_labels: '{% set labels = [] %} {% if is_state(''input_boolean.aqara_zai_jia'',''on'')
-      %}{% set _ = labels.append(''在家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_wan_an'',''on'')
-      %}{% set _ = labels.append(''晚安情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_li_jia'',''on'')
-      %}{% set _ = labels.append(''離家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_guan_bi'',''on'')
-      %}{% set _ = labels.append(''網關解除情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_chu_fa'',''on'')
-      %}{% set _ = labels.append(''網關觸發情境'') %}{% endif %} {{ labels|join(''、'') if
-      labels else '''' }}'
+    aqara_active_labels: "{% set labels = [] %} {% if is_state('input_boolean.aqara_zai_jia','on')
+      %}\n  {% set labels = labels + ['在家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_wan_an','on')
+      %}\n  {% set labels = labels + ['晚安情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_li_jia','on')
+      %}\n  {% set labels = labels + ['離家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_guan_bi','on')
+      %}\n  {% set labels = labels + ['網關解除情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_chu_fa','on')
+      %}\n  {% set labels = labels + ['網關觸發情境'] %}\n{% endif %} {{ labels|join('、')
+      if labels else '' }}"
     aqara_scene_label_safe: '{% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim
       }} {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }} {%
       elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }} {% else %}{{
@@ -13525,13 +13542,13 @@
       %}在家情境 {% elif is_state(''input_boolean.aqara_guan_bi'',''on'') %}網關解除情境 {%
       elif is_state(''input_boolean.aqara_chu_fa'',''on'') %}網關觸發情境 {% else %}情境未知{%
       endif %}'
-    aqara_active_labels: '{% set labels = [] %} {% if is_state(''input_boolean.aqara_zai_jia'',''on'')
-      %}{% set _ = labels.append(''在家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_wan_an'',''on'')
-      %}{% set _ = labels.append(''晚安情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_li_jia'',''on'')
-      %}{% set _ = labels.append(''離家情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_guan_bi'',''on'')
-      %}{% set _ = labels.append(''網關解除情境'') %}{% endif %} {% if is_state(''input_boolean.aqara_chu_fa'',''on'')
-      %}{% set _ = labels.append(''網關觸發情境'') %}{% endif %} {{ labels|join(''、'') if
-      labels else '''' }}'
+    aqara_active_labels: "{% set labels = [] %} {% if is_state('input_boolean.aqara_zai_jia','on')
+      %}\n  {% set labels = labels + ['在家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_wan_an','on')
+      %}\n  {% set labels = labels + ['晚安情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_li_jia','on')
+      %}\n  {% set labels = labels + ['離家情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_guan_bi','on')
+      %}\n  {% set labels = labels + ['網關解除情境'] %}\n{% endif %} {% if is_state('input_boolean.aqara_chu_fa','on')
+      %}\n  {% set labels = labels + ['網關觸發情境'] %}\n{% endif %} {{ labels|join('、')
+      if labels else '' }}"
     aqara_scene_label_safe: '{% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim
       }} {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }} {%
       elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }} {% else %}{{
