@@ -455,7 +455,6 @@ input_select:
       - Manual Bot3
       - Manual Bot0（緊急Bot）
     icon: mdi:robot
-    initial: Manual Bot1
   # 車牌辨識AI_Beta
   lpr_last_plate:
     name: 最近車牌
