@@ -1,5 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 100C1客廳門鎖電量分級通知AI (V2.2)   （Helpers V2.9 相容）
+# 100C1客廳門鎖電量分級通知AI (V2.3)   （Helpers V2.19 相容）
+# 更新重點（相對 V2.2）：
+# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
 # 更新重點（相對 V2.1）：
 # 1) 版本號同步：更新 LINE 標題與預設字串至 V2.2，與 Helper V2.9 保持一致。
 # 2) 版本日誌：保留 V2.1 以前的更新紀錄供追溯。
@@ -11,7 +14,7 @@
 # 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
 # 2) 通知優化：新增「低於5%」的緊急 LINE 通知等級，並確保所有等級皆有 HA 系統通知。
 # ─────────────────────────────────────────────────────────────
-alias: 100C1客廳門鎖電量分級通知AI (V2.2)
+alias: 100C1客廳門鎖電量分級通知AI (V2.3)
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
 
@@ -33,13 +36,15 @@ triggers:
     for: "00:01:00"
 
 variables:
-  notif_title_base: 【AI電量告警系統 V2.2】
+  notif_title_base: 【AI電量告警系統 V2.3】
   notif_title_warn: |-
     {{ notif_title_base }}
     門鎖電量提醒 🚪🔋
   notif_title_alarm: |-
     {{ notif_title_base }}
     門鎖電量告警 🚪🔋
+
+  line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 
   doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
   batt_valid: "{{ doorlock_batt >= 0 }}"
@@ -113,7 +118,7 @@ actions:
                             then:
                               - service: script.send_line_to_user
                                 data:
-                                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                                  user_id: "{{ line_bot_target_user_id }}"
                                   payload: >-
                                     {{
                                       [
@@ -137,7 +142,7 @@ actions:
                             then:
                               - service: script.send_line_to_user
                                 data:
-                                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                                  user_id: "{{ line_bot_target_user_id }}"
                                   payload: >-
                                     {{
                                       [
@@ -161,7 +166,7 @@ actions:
                             then:
                               - service: script.send_line_to_user
                                 data:
-                                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                                  user_id: "{{ line_bot_target_user_id }}"
                                   payload: >-
                                     {{
                                       [
@@ -185,7 +190,7 @@ actions:
                             then:
                               - service: script.send_line_to_user
                                 data:
-                                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                                  user_id: "{{ line_bot_target_user_id }}"
                                   payload: >-
                                     {{
                                       [

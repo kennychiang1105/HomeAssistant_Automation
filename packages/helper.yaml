@@ -1,6 +1,13 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.16）
+# Helpers（V2.19）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.19):
+#   • LINE Bot 控制：版本說明同步至 Line Bot 套件 V1.5，搭配共用目標 ID 感測器使用。
+# 新增與強化 (V2.18):
+#   • LINE Bot 控制：移除測試模式、自訂 ID 啟用與目標 ID 的 initial 設定，Manual Bot0 標註緊急 Bot，避免覆蓋狀態。
+# 新增與強化 (V2.17):
+#   • LINE Bot 控制：新增 Bot 模式切換 input_select、測試模式開關與自訂目標 ID 欄位，配合 Line Bot 套件 V1.3。
+#   • 配額提示同步：提供手動 Bot0-3 與自動模式實體，支援改向測試帳號。
 # 新增與強化 (V2.16):
 #   • Aqara 情境標籤命名：調整情境 helper 的 entity_id 為 sensor.aqaradang_qian_qing_jing，避免錯字導致通知空白。
 # 新增與強化 (V2.15):
@@ -143,6 +150,12 @@ input_boolean:
     icon: mdi:counter-alert
     initial: on
     
+  line_bot_test_mode:
+    name: LINE Bot_測試模式
+    icon: mdi:flask
+  line_bot_custom_user_enable:
+    name: LINE Bot_自訂ID啟用
+    icon: mdi:account-edit
 input_number:
   # 車牌辨識AI_Beta
   lpr_auto_close_delay_min:
@@ -333,6 +346,11 @@ input_number:
     step: 0.1
 
 input_text:
+  # LINE Bot 目標 ID
+  line_bot_custom_user_id:
+    name: LINE Bot_自訂目標ID
+    icon: mdi:account-arrow-right
+    max: 120
   # 天氣告知系統
   disaster_last_message:
     name: 天氣告知系統_上一則訊息內容
@@ -425,6 +443,16 @@ input_text:
     initial: "AI離家 v2.4"
    
 input_select:
+  # LINE Bot 運作模式
+  line_bot_mode:
+    name: LINE Bot 模式
+    options:
+      - Auto
+      - Manual Bot1
+      - Manual Bot2
+      - Manual Bot3
+      - Manual Bot0（緊急Bot）
+    icon: mdi:robot
   # 車牌辨識AI_Beta
   lpr_last_plate:
     name: 最近車牌

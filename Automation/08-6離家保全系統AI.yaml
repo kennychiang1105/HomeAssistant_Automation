@@ -1,5 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V1.4)   （Helpers V2.16 相容）
+# 08-6離家保全系統AI (V1.6)   （Helpers V2.19 相容）
+# 更新重點（相對 V1.5）：
+# 1) 地震預警觸發時，原 LINE 群組推播保留，並同步加送給管理者 ID：U9eeaaf5d404dbde249039924567992d3。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
+# 更新重點（相對 V1.4）：
+# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
 # 更新重點（相對 V1.3）：
 # 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
 # 2) 版本同步：對應 Helpers V2.16。
@@ -8,22 +14,24 @@
 # 2) LINE 通知升級：採用 AI 離家訊息格式並套用 Helper 分級，鐵門告警歸類為「重要」、門鎖/全開告警歸類為「緊急」。
 # 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
-alias: 08-6離家保全系統AI (V1.4)
+alias: 08-6離家保全系統AI (V1.6)
 description: ""
 mode: single
 
-variables:
-  automation_version: "V1.4"
-  helpers_compat: "Helpers V2.16"
-  notif_title_base: "【離家保全系統 V1.4】"
-  notif_title_important: >-
-    {% set title = states('input_text.notif_title_086_important') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
-  notif_title_emergency: >-
-    {% set title = states('input_text.notif_title_086_emergency') %}
-    {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
-  notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
-  notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
+  variables:
+    automation_version: "V1.6"
+    helpers_compat: "Helpers V2.19"
+    notif_title_base: "【離家保全系統 V1.6】"
+    notif_title_important: >-
+      {% set title = states('input_text.notif_title_086_important') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+    notif_title_emergency: >-
+      {% set title = states('input_text.notif_title_086_emergency') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+    notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
+    notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
+    earthquake_admin_user_id: "U9eeaaf5d404dbde249039924567992d3"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
   aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
@@ -130,7 +138,7 @@ actions:
                     then:
                       - service: script.send_line_to_user
                         data:
-                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          user_id: "{{ line_bot_target_user_id }}"
                           payload: >-
                             {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                             {% set scene = scene_raw|trim %}
@@ -326,6 +334,21 @@ actions:
                                         將啟動緊急模式因應。
                                     enabled: true
                                     action: notify.line_notification_group
+                                  - action: script.send_line_to_user
+                                    data:
+                                      user_id: "{{ earthquake_admin_user_id }}"
+                                      payload: >-
+                                        {{
+                                          [
+                                            {"type":"text","text": notif_title_base},
+                                            {"type":"text","text": (
+                                              '地震預警系統作動\n\n'
+                                              ~ '發生有感危險地震，\n'
+                                              ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                              ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                            )}
+                                          ] | tojson
+                                        }}
                           - type: turn_on
                             device_id: fdcccfa405461070717b80a56a590960
                             entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -490,7 +513,7 @@ actions:
                     then:
                       - service: script.send_line_to_user
                         data:
-                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          user_id: "{{ line_bot_target_user_id }}"
                           payload: >-
                             {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                             {% set scene = scene_raw|trim %}
@@ -686,6 +709,21 @@ actions:
                                         將啟動緊急模式因應。
                                     enabled: true
                                     action: notify.line_notification_group
+                                  - action: script.send_line_to_user
+                                    data:
+                                      user_id: "{{ earthquake_admin_user_id }}"
+                                      payload: >-
+                                        {{
+                                          [
+                                            {"type":"text","text": notif_title_base},
+                                            {"type":"text","text": (
+                                              '地震預警系統作動\n\n'
+                                              ~ '發生有感危險地震，\n'
+                                              ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                              ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                            )}
+                                          ] | tojson
+                                        }}
                           - type: turn_on
                             device_id: fdcccfa405461070717b80a56a590960
                             entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -848,7 +886,7 @@ actions:
                     then:
                       - service: script.send_line_to_user
                         data:
-                          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                          user_id: "{{ line_bot_target_user_id }}"
                           payload: >-
                             {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
                             {% set scene = scene_raw|trim %}
@@ -1044,6 +1082,21 @@ actions:
                                         將啟動緊急模式因應。
                                     enabled: true
                                     action: notify.line_notification_group
+                                  - action: script.send_line_to_user
+                                    data:
+                                      user_id: "{{ earthquake_admin_user_id }}"
+                                      payload: >-
+                                        {{
+                                          [
+                                            {"type":"text","text": notif_title_base},
+                                            {"type":"text","text": (
+                                              '地震預警系統作動\n\n'
+                                              ~ '發生有感危險地震，\n'
+                                              ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                              ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                            )}
+                                          ] | tojson
+                                        }}
                           - type: turn_on
                             device_id: fdcccfa405461070717b80a56a590960
                             entity_id: 61eaa5fb8386221ba077bcb884e74573

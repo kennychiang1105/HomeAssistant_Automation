@@ -1,5 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.4)   （Helpers V2.16 相容）
+# 106B網關異常警告AI (V1.5)   （Helpers V2.19 相容）
+# 更新重點（相對 V1.4）：
+# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
 # 更新重點（相對 V1.3）：
 # 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
 # 2) 版本同步：對應 Helpers V2.16。
@@ -8,7 +11,7 @@
 # 2) 狀態判斷安全：情境布林改為明確布林與去空白，異常訊息能正確呈現當前狀態。
 # 3) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣；情境健檢+自動修復同步。
 # ─────────────────────────────────────────────────────────────
-alias: 106B網關異常警告AI (V1.4)
+alias: 106B網關異常警告AI (V1.5)
 id: automation.gateway_anomaly_guard_ai
 description: 保全情境重置與異常告警
 mode: single
@@ -27,12 +30,13 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.4"
-  helpers_compat: "Helpers V2.16"
+  automation_version: "V1.5"
+  helpers_compat: "Helpers V2.19"
   notif_title_base: "【保全告警系統 V1.0】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+  line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
   aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
   aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
@@ -107,7 +111,7 @@ actions:
     then:
       - service: script.send_line_to_user
         data:
-          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          user_id: "{{ line_bot_target_user_id }}"
           payload: >-
             {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
             {% set scene = scene_raw|trim %}
@@ -176,7 +180,7 @@ actions:
     then:
       - service: script.send_line_to_user
         data:
-          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          user_id: "{{ line_bot_target_user_id }}"
           payload: >-
             {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
             {% set scene = scene_raw|trim %}

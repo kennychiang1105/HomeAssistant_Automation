@@ -1,12 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# Scripts (V2.2)   （Helpers V2.6 相容）
-# 更新重點（相對 V2.1）：
-# 1) EEW 變數安全：將遠端地震等級與秒數寫入 Helpers 後再建構 LINE JSON payload，避免 Unknown。
+# Scripts (V2.3)   （Helpers V2.19 相容）
+# 更新重點（相對 V2.2）：
+# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
+# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
 #
 # 前版更新：
-# 1) 版本號升級：升級至 V2.1，與 Helper V2.2 同步。
-# 2) LINE 通知優化：地震預警系統的 LINE 通知已設定為「緊急」等級。
-# 3) Helper 整合：新增 input_boolean.helper_line_notification_urgent 開關，可控制是否發送 LINE 緊急通知。
+# 1) EEW 變數安全：將遠端地震等級與秒數寫入 Helpers 後再建構 LINE JSON payload，避免 Unknown。
+# 2) 版本號升級：升級至 V2.1，與 Helper V2.2 同步。
+# 3) LINE 通知優化：地震預警系統的 LINE 通知已設定為「緊急」等級。
+# 4) Helper 整合：新增 input_boolean.helper_line_notification_urgent 開關，可控制是否發送 LINE 緊急通知。
 # ─────────────────────────────────────────────────────────────
 
 '99999999999999':
@@ -77,7 +79,7 @@
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: "{{ states('sensor.line_bot_target_user_id') }}"
                   payload: >-
                     {{
                       [
@@ -99,7 +101,7 @@
           then:
             - service: script.send_line_to_user
               data:
-                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
                 payload: >-
                   {{
                     [
@@ -280,7 +282,7 @@
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                  user_id: "{{ states('sensor.line_bot_target_user_id') }}"
                   payload: >-
                     {{
                       [
@@ -302,7 +304,7 @@
           then:
             - service: script.send_line_to_user
               data:
-                user_id: C26ff4e9d30159ba5264a1676f46f8f86
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
                 payload: >-
                   {{
                     [
