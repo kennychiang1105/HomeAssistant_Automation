@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V2.19）
+# Helpers（V2.20）
 # ──────────────────────────────────────────────
+# 新增與強化 (V2.20):
+#   • LINE 標題版本同步：預設標題與同步器版本號更新至 100B/08-6/100C/保全告警自動化最新版本，避免 Helper 與自動化不一致。
 # 新增與強化 (V2.19):
 #   • LINE Bot 控制：版本說明同步至 Line Bot 套件 V1.5，搭配共用目標 ID 感測器使用。
 # 新增與強化 (V2.18):
@@ -372,31 +374,31 @@ input_text:
   notif_title_100b_general:
     name: 100B_LINEnotice_一般
     max: 120
-    initial: "【AI離家系統 V2.7】"
+    initial: "【AI離家系統 V2.8】"
   notif_title_100b_urgent:
     name: 100B_LINEnotice_緊急
     max: 120
-    initial: "【AI離家系統 V2.7】"
+    initial: "【AI離家系統 V2.8】"
   notif_title_086_important:
     name: 08-6_LINEnotice_重要
     max: 120
-    initial: "【離家保全系統 V1.4】"
+    initial: "【離家保全系統 V1.6】"
   notif_title_086_emergency:
     name: 08-6_LINEnotice_緊急
     max: 120
-    initial: "【離家保全系統 V1.4】"
+    initial: "【離家保全系統 V1.6】"
   notif_title_gateway_alert:
     name: 保全告警系統_通知標題
     max: 120
-    initial: "【保全告警系統 V1.4】"
+    initial: "【保全告警系統 V1.5】"
   notif_title_100c_warn:
     name: 100C_LINEnotice_電量提醒
     max: 120
-    initial: "【AI電量告警系統 V2.2】"
+    initial: "【AI電量告警系統 V2.3】"
   notif_title_100c_alarm:
     name: 100C_LINEnotice_電量告警
     max: 120
-    initial: "【AI電量告警系統 V2.2】"
+    initial: "【AI電量告警系統 V2.3】"
   notif_title_100c_calib:
     name: 100C_LINEnotice_電量校正
     max: 120
@@ -638,19 +640,19 @@ template:
           entity_id: automation.100b_ai_leave_v1beta9
           attribute: friendly_name
       sensor:
-        - name: AI離家版本（Template）
-          unique_id: ai_leave_version_template
-          icon: mdi:home-export-outline
-          state: >-
-            {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
-            {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 v2.7' }}
-          attributes:
-            source_automation: automation.100b_ai_leave_v1beta9
+          - name: AI離家版本（Template）
+            unique_id: ai_leave_version_template
+            icon: mdi:home-export-outline
+            state: >-
+              {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
+              {% set invalids = ['unknown','unavailable', '', None] %}
+              {{ friendly if friendly not in invalids else 'AI離家 v2.8' }}
+            attributes:
+              source_automation: automation.100b_ai_leave_v1beta9
 
 automation:
   - id: automation.ai_leave_version_sync
-    alias: AI離家版本同步器 v2.7
+    alias: AI離家版本同步器 v2.8
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
     mode: single
     trigger:
@@ -666,7 +668,7 @@ automation:
           current_version: >-
             {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
             {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 v2.7' }}
+            {{ friendly if friendly not in invalids else 'AI離家 v2.8' }}
       - service: input_text.set_value
         target:
           entity_id: input_text.ai_leave_version_text
@@ -677,7 +679,7 @@ automation:
           entity_id: sensor.ai_li_jia_ban_ben_template
 
   - id: automation.line_notif_title_refresh
-    alias: LINE通知標題同步器 v2.7
+    alias: LINE通知標題同步器 v2.8
     description: 開機/自動化重載時同步 LINE 標題 helpers，避免 initial 版本舊化
     mode: single
     trigger:
@@ -694,12 +696,12 @@ automation:
         {% set friendly = state_attr('automation.100b_ai_leave_v1beta9','friendly_name') %}
         {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
         {% set version = friendly if friendly not in invalids else states('sensor.ai_li_jia_ban_ben_template') %}
-        {{ version if version not in invalids else 'AI離家 v2.7' }}
+        {{ version if version not in invalids else 'AI離家 v2.8' }}
       ai_leave_title: "【{{ ai_leave_version.replace('AI離家', 'AI離家系統') }}】"
-      batt_warn_title: "【AI電量告警系統 V2.2】"
+      batt_warn_title: "【AI電量告警系統 V2.3】"
       batt_calib_title: "【AI電量計算系統 V2.3】"
-      leave_guard_title: "【離家保全系統 V1.4】"
-      gateway_alert_title: "【保全告警系統 V1.4】"
+      leave_guard_title: "【離家保全系統 V1.6】"
+      gateway_alert_title: "【保全告警系統 V1.5】"
     action:
       - service: input_text.set_value
         data:
