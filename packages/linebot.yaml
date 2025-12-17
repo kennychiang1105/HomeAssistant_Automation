@@ -1,4 +1,10 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.7)
+# 更新重點（V1.7）：
+# 1) Auto 模式下，當所有用量感測器暫時無效時改回預設主力 Bot1，避免誤判為額度 0。
+# 2) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 3) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.6)
 # 更新重點（V1.6）：
 # 1) 修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
@@ -195,11 +201,19 @@ template:
             {{ c|lower not in invalids and c|int < switch_limit }}
           {% endmacro %}
 
+          {% set valid_count = [
+            available('1'),
+            available('2'),
+            available('3'),
+            available('0')
+          ] | select('equalto', true) | list | length %}
+
           {% if mode == 'Auto' %}
             {% if available('1') %}1
             {% elif available('2') %}2
             {% elif available('3') %}3
             {% elif available('0') %}0
+            {% elif valid_count == 0 %}1
             {% else %}-1{% endif %}
           {% elif mode == 'Manual Bot1' %}1
           {% elif mode == 'Manual Bot2' %}2
