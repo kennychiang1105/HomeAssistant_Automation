@@ -1,20 +1,7 @@
-# ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V1.7)
-# 更新重點：
-# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
-# 2) 保留 V1.6 的災害訊息去重與播報紀錄。
-#
-# ----- 上次更新紀錄 -----
-# V1.4：
-# 1) 早晨補報：07:00 補播夜間未即時播報的苗栗災害訊息。
-# 2) 播報時段：限制於 7:00-22:00 間即時播報，避免夜間打擾。
-# ─────────────────────────────────────────────────────────────
-
 alias: 03苗栗天氣告知系統AI (V1.7)
 description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
 mode: queued
 max: 10
-
 variables:
   line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 triggers:
@@ -65,14 +52,32 @@ actions:
             then:
               - data:
                   user_id: "{{ line_bot_target_user_id }}"
-                  payload: |-
-                    {{
-                      [
-                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 (早晨補報)"},
-                        {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text": current_message }
-                      ] | tojson
-                    }}
+                  payload: >-
+                    {% set msg_raw = states('sensor.disaster') %}
+                    {% set invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
+                    {% set msg_safe = msg_raw if msg_raw not in invalids else '目前無災害訊息內容' %}
+                    
+                    {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #}
+                    {% set trigger_id = trigger.id if trigger is defined else 'manual' %}
+                    {% set is_morning = (trigger_id == 'morning_catch_up') %}
+                    
+                    {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍 災防報告 Disaster Prevention Report" %}
+                    
+                    {% set messages = [
+                      {
+                        "type": "text",
+                        "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
+                      },
+                      {
+                        "type": "text",
+                        "text": "收到以下政府災害訊息:"
+                      },
+                      {
+                        "type": "text",
+                        "text": msg_safe
+                      }
+                    ] %}
+                    {{ messages | tojson }}
                 action: script.send_line_to_user
           - target:
               entity_id: media_player.guang_bo_qun_zu_tong_zhi
@@ -128,14 +133,33 @@ actions:
             then:
               - data:
                   user_id: "{{ line_bot_target_user_id }}"
-                  payload: |-
-                    {{
-                      [
-                        {"type":"text", "text":"【災防系統通知】一般 General 🪧\n🌍 災防報告 Disaster Prevention Report"},
-                        {"type":"text", "text":" 收到以下政府災害訊息:"},
-                        {"type":"text", "text": current_message }
-                      ] | tojson
-                    }}
+                  payload: >-
+                    {% set msg_raw = states('sensor.disaster') %} {% set
+                    invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
+                    {% set msg_safe = msg_raw if msg_raw not in invalids else
+                    '目前無災害訊息內容' %}
+
+                    {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #} {% set trigger_id =
+                    trigger.id if trigger is defined else 'manual' %} {% set
+                    is_morning = (trigger_id == 'morning_catch_up') %}
+
+                    {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍
+                    災防報告 Disaster Prevention Report" %}
+
+                    {% set messages = [
+                      {
+                        "type": "text",
+                        "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
+                      },
+                      {
+                        "type": "text",
+                        "text": "收到以下政府災害訊息:"
+                      },
+                      {
+                        "type": "text",
+                        "text": msg_safe
+                      }
+                    ] %} {{ messages | tojson }}
                 action: script.send_line_to_user
           - target:
               entity_id: media_player.guang_bo_qun_zu_tong_zhi
