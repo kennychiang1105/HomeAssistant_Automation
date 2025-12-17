@@ -1,4 +1,9 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.6)
+# 更新重點（V1.6）：
+# 1) 修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 2) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.5)
 # 更新重點（V1.5）：
 # 1) 新增 sensor.line_bot_target_user_id，集中計算測試模式/自訂 ID/預設 ID，供自動化共用。
@@ -210,7 +215,7 @@ template:
           bot0_remaining: "{{ states('sensor.bot_msg_remaining0') }}"
           bot1_name: "ChiangFamily 智慧家庭 B"
           bot2_name: "ChiangFamily 智慧家庭 C"
-          bot3_name: "ChiangFamily 智慧家 D"
+          bot3_name: "ChiangFamily 智慧家庭 D"
           bot0_name: "ChiangFamily 緊急 Bot"
           selected_name: >-
             {% set selected = this.state|int(0) %}
