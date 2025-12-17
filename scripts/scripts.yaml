@@ -17,6 +17,7 @@
     lv: '{{ level[:1] | int }}'
     level_text: "{{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
     seconds_text: "{{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   sequence:
   - service: input_text.set_value
     data:
@@ -79,17 +80,20 @@
                         entity_id: input_boolean.helper_line_notification_urgent
                         state: 'on'
                     then:
-                      - service: script.send_line_to_user
-                        data:
-                          user_id: "{{ states('sensor.line_bot_target_user_id') }}"
-                          payload: >-
-                            {{
-                              [
+                        - service: script.send_line_to_user
+                          data:
+                            user_id: "{{ line_bot_target_user_id }}"
+                            payload: >-
+                              {% set level_raw = states('input_text.line_eew_remote_level') %}
+                              {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
+                              {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
+                              {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
+                              {% set messages = [
                                 {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
-                                {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                                {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
                                 {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
-                              ] | tojson
-                            }}
+                              ] %}
+                              {{ messages | tojson }}
       - action: input_boolean.turn_on
         metadata: {}
         data: {}
@@ -103,15 +107,18 @@
         then:
           - service: script.send_line_to_user
             data:
-              user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+              user_id: "{{ line_bot_target_user_id }}"
               payload: >-
-                {{
-                  [
-                    {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
-                    {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                    {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
-                  ] | tojson
-                }}
+                {% set level_raw = states('input_text.line_eew_remote_level') %}
+                {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
+                {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
+                {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
+                {% set messages = [
+                  {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
+                  {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                  {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
+                ] %}
+                {{ messages | tojson }}
       - data:
           volume_level: 0.65
         action: media_player.volume_set
@@ -285,15 +292,18 @@
                 then:
                   - service: script.send_line_to_user
                     data:
-                      user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                      user_id: "{{ line_bot_target_user_id }}"
                       payload: >-
-                        {{
-                          [
-                            {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
-                            {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                            {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
-                          ] | tojson
-                        }}
+                        {% set level_raw = states('input_text.line_eew_remote_level') %}
+                        {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
+                        {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
+                        {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
+                        {% set messages = [
+                          {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
+                          {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                          {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
+                        ] %}
+                        {{ messages | tojson }}
           - action: input_boolean.turn_on
             metadata: {}
             data: {}
@@ -307,15 +317,18 @@
             then:
               - service: script.send_line_to_user
                 data:
-                  user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                  user_id: "{{ line_bot_target_user_id }}"
                   payload: >-
-                    {{
-                      [
-                        {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
-                        {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                        {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達"}
-                      ] | tojson
-                    }}
+                    {% set level_raw = states('input_text.line_eew_remote_level') %}
+                    {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
+                    {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
+                    {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
+                    {% set messages = [
+                      {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
+                      {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
+                      {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
+                    ] %}
+                    {{ messages | tojson }}
       - type: turn_on
         device_id: fdcccfa405461070717b80a56a590960
         entity_id: 61eaa5fb8386221ba077bcb884e74573
