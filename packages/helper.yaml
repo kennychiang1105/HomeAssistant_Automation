@@ -133,7 +133,7 @@ input_boolean:
   lpr_auto_close_enable:
     name: LPR自動關門（啟用後才會真的關門）
     icon: mdi:garage
-    initial: false
+    #initial: false
   notify_line_general_enable:
     name: LINE通知啟用_一般
     icon: mdi:bell-outline
@@ -328,7 +328,7 @@ input_number:
     step: 0.01
     mode: box
     unit_of_measurement: "%/日"
-    initial: 0
+    #initial: 0
 
   living_room_effective_apparent_temperature:
     name: 客廳有效體感溫度
