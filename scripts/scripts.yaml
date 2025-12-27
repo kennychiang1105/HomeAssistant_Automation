@@ -17,13 +17,13 @@
     lv: '{{ level[:1] | int }}'
     level_text: "{{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
     seconds_text: "{{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
+    eew_test_mode_on: "{{ is_state('input_boolean.eew_test_mode', 'on') }}"
     line_bot_target_user_id: >-
       {% if eew_test_mode_on %}
         {{ state_attr('sensor.line_bot_target_user_id', 'test_user_id') }}
       {% else %}
         {{ states('sensor.line_bot_target_user_id') }}
       {% endif %}
-    eew_test_mode_on: "{{ is_state('input_boolean.eew_test_mode', 'on') }}"
     broadcast_player: "{{ 'media_player.ding_lou_homepod' if eew_test_mode_on else 'media_player.guang_bo_qun_zu_all' }}"
   sequence:
   - if:
@@ -140,7 +140,7 @@
         target:
           entity_id: media_player.ke_ting_homepod
       - data:
-          volume_level: "{{ 0.2 if eew_test_mode_on else 0.65 }}"
+          volume_level: "{{ 0.4 if eew_test_mode_on else 0.65 }}"
         action: media_player.volume_set
         target:
           entity_id: media_player.ding_lou_homepod
@@ -186,7 +186,7 @@
     enabled: true
     action: remote.send_command
   - data:
-      volume_level: "{{ 0.2 if eew_test_mode_on else 0.4 }}"
+      volume_level: 0.4
     action: media_player.volume_set
     target:
       entity_id: media_player.ding_lou_homepod
@@ -288,7 +288,7 @@
         target:
           entity_id: media_player.ke_ting_homepod
       - data:
-          volume_level: "{{ 0.2 if eew_test_mode_on else 0.65 }}"
+          volume_level: "{{ 0.4 if eew_test_mode_on else 0.65 }}"
         action: media_player.volume_set
         target:
           entity_id: media_player.ding_lou_homepod
@@ -407,7 +407,7 @@
     enabled: true
     action: remote.send_command
   - data:
-      volume_level: "{{ 0.2 if eew_test_mode_on else 0.4 }}"
+      volume_level: 0.4
     action: media_player.volume_set
     target:
       entity_id: media_player.ding_lou_homepod
