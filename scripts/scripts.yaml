@@ -17,8 +17,23 @@
     lv: '{{ level[:1] | int }}'
     level_text: "{{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
     seconds_text: "{{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
-    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    line_bot_target_user_id: >-
+      {% if eew_test_mode_on %}
+        {{ state_attr('sensor.line_bot_target_user_id', 'test_user_id') }}
+      {% else %}
+        {{ states('sensor.line_bot_target_user_id') }}
+      {% endif %}
+    eew_test_mode_on: "{{ is_state('input_boolean.eew_test_mode', 'on') }}"
+    broadcast_player: "{{ 'media_player.ding_lou_homepod' if eew_test_mode_on else 'media_player.guang_bo_qun_zu_all' }}"
   sequence:
+  - if:
+      - condition: state
+        entity_id: input_boolean.eew_test_mode
+        state: 'on'
+    then:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.line_bot_test_mode
   - service: input_text.set_value
     data:
       entity_id: input_text.line_eew_remote_level
@@ -143,76 +158,6 @@
             發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
         enabled: true
         action: persistent_notification.create
-  - data:
-      media:
-        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-        media_content_type: music
-        metadata: {}
-    enabled: false
-    target:
-      entity_id: media_player.guang_bo_qun_zu_all
-    action: media_player.play_media
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 13
-      milliseconds: 0
-    enabled: false
-  - action: tts.speak
-    metadata: {}
-    target:
-      device_id: c01a1336ef43795fd0679631c3e6ce62
-    data:
-      media_player_entity_id: media_player.guang_bo_qun_zu_all
-      message: >-
-        {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
-
-        即將發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-        地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達，地震！地震！
-      cache: true
-    enabled: true
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 30
-      milliseconds: 0
-    enabled: true
-  - data:
-      media:
-        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-        media_content_type: music
-        metadata: {}
-    enabled: true
-    target:
-      entity_id: media_player.guang_bo_qun_zu_all
-    action: media_player.play_media
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 13
-      milliseconds: 0
-    enabled: true
-  - action: tts.speak
-    metadata: {}
-    target:
-      device_id: c01a1336ef43795fd0679631c3e6ce62
-    data:
-      media_player_entity_id: media_player.guang_bo_qun_zu_all
-      message: >-
-        {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
-
-        發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-
-        地震預警系統預估地震{{ level }}級，發生地震，地震！地震！
-      cache: true
-    enabled: true
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 25
-      milliseconds: 0
-    enabled: true
   - repeat:
       until:
         - condition: state
@@ -370,7 +315,7 @@
         metadata: {}
     enabled: false
     target:
-      entity_id: media_player.guang_bo_qun_zu_all
+      entity_id: "{{ broadcast_player }}"
     action: media_player.play_media
   - delay:
       hours: 0
@@ -383,7 +328,7 @@
     target:
       device_id: c01a1336ef43795fd0679631c3e6ce62
     data:
-      media_player_entity_id: media_player.guang_bo_qun_zu_all
+      media_player_entity_id: "{{ broadcast_player }}"
       message: >-
         {{ level }}級地震！{{ seconds }}秒到達！地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。
 
@@ -405,7 +350,7 @@
         metadata: {}
     enabled: true
     target:
-      entity_id: media_player.guang_bo_qun_zu_all
+      entity_id: "{{ broadcast_player }}"
     action: media_player.play_media
   - delay:
       hours: 0
@@ -418,7 +363,7 @@
     target:
       device_id: c01a1336ef43795fd0679631c3e6ce62
     data:
-      media_player_entity_id: media_player.guang_bo_qun_zu_all
+      media_player_entity_id: "{{ broadcast_player }}"
       message: >-
         {{ level }}級地震！{{ level }}級地震！地震預警系統預估地震{{ level }}級。
 

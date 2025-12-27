@@ -155,6 +155,9 @@ input_boolean:
   line_bot_test_mode:
     name: LINE Bot_測試模式
     icon: mdi:flask
+  eew_test_mode:
+    name: 地震預警_測試模式
+    icon: mdi:flask
   line_bot_custom_user_enable:
     name: LINE Bot_自訂ID啟用
     icon: mdi:account-edit
