@@ -138,11 +138,22 @@
         action: media_player.volume_set
         target:
           entity_id: media_player.ke_ting_homepod
-      - data:
-          volume_level: "{{ 0.4 if eew_test_mode_on else 0.65 }}"
-        action: media_player.volume_set
-        target:
-          entity_id: media_player.ding_lou_homepod
+      - if:
+          - condition: state
+            entity_id: input_boolean.eew_test_mode
+            state: 'on'
+        then:
+          - data:
+              volume_level: 0.4
+            action: media_player.volume_set
+            target:
+              entity_id: media_player.ding_lou_homepod
+        else:
+          - data:
+              volume_level: 0.65
+            action: media_player.volume_set
+            target:
+              entity_id: media_player.ding_lou_homepod
       - data:
           volume_level: 0.15
         target:
@@ -286,11 +297,22 @@
         action: media_player.volume_set
         target:
           entity_id: media_player.ke_ting_homepod
-      - data:
-          volume_level: "{{ 0.4 if eew_test_mode_on else 0.65 }}"
-        action: media_player.volume_set
-        target:
-          entity_id: media_player.ding_lou_homepod
+      - if:
+          - condition: state
+            entity_id: input_boolean.eew_test_mode
+            state: 'on'
+        then:
+          - data:
+              volume_level: 0.4
+            action: media_player.volume_set
+            target:
+              entity_id: media_player.ding_lou_homepod
+        else:
+          - data:
+              volume_level: 0.65
+            action: media_player.volume_set
+            target:
+              entity_id: media_player.ding_lou_homepod
       - data:
           volume_level: 0.15
         target:
