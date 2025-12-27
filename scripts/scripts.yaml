@@ -8,7 +8,7 @@
 # 1) EEW 變數安全：將遠端地震等級與秒數寫入 Helpers 後再建構 LINE JSON payload，避免 Unknown。
 # 2) 版本號升級：升級至 V2.1，與 Helper V2.2 同步。
 # 3) LINE 通知優化：地震預警系統的 LINE 通知已設定為「緊急」等級。
-# 4) Helper 整合：新增 input_boolean.helper_line_notification_urgent 開關，可控制是否發送 LINE 緊急通知。
+# 4) Helper 整合：新增 input_boolean.notify_line_emergency_enable 開關，可控制是否發送 LINE 緊急通知。
 # ─────────────────────────────────────────────────────────────
 
 '99999999999999':
@@ -92,7 +92,7 @@
                     action: automation.trigger
                   - if:
                       - condition: state
-                        entity_id: input_boolean.helper_line_notification_urgent
+                        entity_id: input_boolean.notify_line_emergency_enable
                         state: 'on'
                     then:
                         - service: script.send_line_to_user
@@ -117,7 +117,7 @@
     else:
       - if:
           - condition: state
-            entity_id: input_boolean.helper_line_notification_urgent
+            entity_id: input_boolean.notify_line_emergency_enable
             state: 'on'
         then:
           - service: script.send_line_to_user
@@ -138,9 +138,12 @@
           volume_level: 0.65
         action: media_player.volume_set
         target:
-          entity_id:
-          - media_player.ke_ting_homepod
-          - media_player.ding_lou_homepod
+          entity_id: media_player.ke_ting_homepod
+      - data:
+          volume_level: "{{ 0.2 if eew_test_mode_on else 0.65 }}"
+        action: media_player.volume_set
+        target:
+          entity_id: media_player.ding_lou_homepod
       - data:
           volume_level: 0.15
         target:
@@ -183,7 +186,7 @@
     enabled: true
     action: remote.send_command
   - data:
-      volume_level: 0.4
+      volume_level: "{{ 0.2 if eew_test_mode_on else 0.4 }}"
     action: media_player.volume_set
     target:
       entity_id: media_player.ding_lou_homepod
@@ -232,7 +235,7 @@
                 action: automation.trigger
               - if:
                   - condition: state
-                    entity_id: input_boolean.helper_line_notification_urgent
+                    entity_id: input_boolean.notify_line_emergency_enable
                     state: 'on'
                 then:
                   - service: script.send_line_to_user
@@ -257,7 +260,7 @@
         else:
           - if:
               - condition: state
-                entity_id: input_boolean.helper_line_notification_urgent
+                entity_id: input_boolean.notify_line_emergency_enable
                 state: 'on'
             then:
               - service: script.send_line_to_user
@@ -283,9 +286,12 @@
           volume_level: 0.65
         action: media_player.volume_set
         target:
-          entity_id:
-          - media_player.ke_ting_homepod
-          - media_player.ding_lou_homepod
+          entity_id: media_player.ke_ting_homepod
+      - data:
+          volume_level: "{{ 0.2 if eew_test_mode_on else 0.65 }}"
+        action: media_player.volume_set
+        target:
+          entity_id: media_player.ding_lou_homepod
       - data:
           volume_level: 0.15
         target:
@@ -401,7 +407,7 @@
     enabled: true
     action: remote.send_command
   - data:
-      volume_level: 0.4
+      volume_level: "{{ 0.2 if eew_test_mode_on else 0.4 }}"
     action: media_player.volume_set
     target:
       entity_id: media_player.ding_lou_homepod
