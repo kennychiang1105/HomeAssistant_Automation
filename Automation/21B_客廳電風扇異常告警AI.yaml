@@ -11,7 +11,7 @@
 # ─────────────────────────────────────────────────────────────
 
 alias: 21B_客廳電風扇異常告警AI (V2 Beta 4)
-id: ai_21b_living_room_fan_anomaly_alert
+id: ai_living_room_fan_anomaly_alert
 description: "當風扇在自動模式下離線或關閉時發出警報"
 mode: single
 

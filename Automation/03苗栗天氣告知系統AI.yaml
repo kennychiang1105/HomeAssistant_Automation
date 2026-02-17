@@ -1,5 +1,5 @@
 alias: 03苗栗天氣告知系統AI (V1.7)
-id: ai_03_miaoli_weather_disaster_notify
+id: ai_miaoli_weather_disaster_notify
 description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
 mode: queued
 max: 10

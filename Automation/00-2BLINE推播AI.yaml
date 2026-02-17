@@ -12,7 +12,7 @@
 # 前版（V1.0）：新增剩餘訊息數 template 感測器告警，低於門檻自動推播緊急提醒。
 # ─────────────────────────────────────────────────────────────
 alias: 00-2BLINE推播AI (V1.3)
-id: line_bot_quota_guard
+id: ai_line_bot_quota_guard
 description: LINE Bot 額度監控與緊急推播
 mode: single
 

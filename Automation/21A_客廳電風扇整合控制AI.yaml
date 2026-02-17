@@ -13,7 +13,7 @@
 # ─────────────────────────────────────────────────────────────
 
 alias: 21A_客廳電風扇整合控制AI (V2.2)
-id: ai_21a_living_room_fan_integrated_control
+id: ai_living_room_fan_integrated_control
 description: "整合溫控、防關閉、夏季模式的雙模式自動化"
 mode: queued
 max: 10

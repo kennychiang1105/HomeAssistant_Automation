@@ -15,7 +15,7 @@
 # ─────────────────────────────────────────────────────────────
 
 alias: 22頂樓電風扇自動化AI (V2.3)
-id: ding_lou_dian_feng_shan_zi_dong_hua_ai_22
+id: ai_topfloor_fan_automation
 description: AI 管理自動化（已完成欄位標準化）
 mode: restart
 max: 10

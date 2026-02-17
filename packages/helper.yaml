@@ -637,21 +637,21 @@ template:
         - platform: event
           event_type: automation_reloaded
         - platform: state
-          entity_id: automation.ai_leave_100b_v1beta9
+          entity_id: automation.ai_auto_leave_system
           attribute: friendly_name
       sensor:
           - name: AI離家版本（Template）
             unique_id: ai_leave_version_template
             icon: mdi:home-export-outline
             state: >-
-              {% set friendly = state_attr('automation.ai_leave_100b_v1beta9','friendly_name') %}
+              {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
               {% set invalids = ['unknown','unavailable', '', None] %}
               {{ friendly if friendly not in invalids else 'AI離家 v2.8' }}
             attributes:
-              source_automation: automation.ai_leave_100b_v1beta9
+              source_automation: automation.ai_auto_leave_system
 
 automation:
-  - id: ai_leave_version_sync
+  - id: ui_ai_leave_version_sync
     alias: AI離家版本同步器 v2.8
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
     mode: single
@@ -661,12 +661,12 @@ automation:
       - platform: event
         event_type: automation_reloaded
       - platform: state
-        entity_id: automation.ai_leave_100b_v1beta9
+        entity_id: automation.ai_auto_leave_system
         attribute: friendly_name
     action:
       - variables:
           current_version: >-
-            {% set friendly = state_attr('automation.ai_leave_100b_v1beta9','friendly_name') %}
+            {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
             {% set invalids = ['unknown','unavailable', '', None] %}
             {{ friendly if friendly not in invalids else 'AI離家 v2.8' }}
       - service: input_text.set_value
@@ -678,7 +678,7 @@ automation:
         target:
           entity_id: sensor.ai_li_jia_ban_ben_template
 
-  - id: line_notif_title_refresh
+  - id: ui_line_notif_title_refresh
     alias: LINE通知標題同步器 v2.8
     description: 開機/自動化重載時同步 LINE 標題 helpers，避免 initial 版本舊化
     mode: single
@@ -693,7 +693,7 @@ automation:
           - input_text.ai_leave_version_text
     variables:
       ai_leave_version: >-
-        {% set friendly = state_attr('automation.ai_leave_100b_v1beta9','friendly_name') %}
+        {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
         {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
         {% set version = friendly if friendly not in invalids else states('sensor.ai_li_jia_ban_ben_template') %}
         {{ version if version not in invalids else 'AI離家 v2.8' }}

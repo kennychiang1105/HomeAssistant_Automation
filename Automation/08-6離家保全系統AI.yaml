@@ -15,7 +15,7 @@
 # 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
 alias: 08-6離家保全系統AI (V1.6)
-id: ai_08_6_away_security_system
+id: ai_away_security_system
 description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
 mode: single
 

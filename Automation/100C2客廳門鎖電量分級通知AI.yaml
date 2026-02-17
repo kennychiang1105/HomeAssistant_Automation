@@ -14,7 +14,7 @@
 # 1) 命名修正：修正 alias 以符合檔案名稱格式。
 # ─────────────────────────────────────────────────────────────
 alias: 100C2客廳門鎖電量分級通知AI (V2.4)
-id: ai_100c2_doorlock_battery_cycle_calibration
+id: ai_doorlock_battery_cycle_calibration
 description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
 mode: single
 

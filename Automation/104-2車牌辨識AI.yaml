@@ -5,7 +5,7 @@
 # 2) Aqara 離家判斷：沿用 input_boolean.aqara_li_jia 判斷離家狀態，淘汰舊 alarm_control_panel 實體。
 # ─────────────────────────────────────────────────────────────
 alias: 104-2車牌辨識AI (V1 Beta 4)
-id: lpr_ai_beta_104_2
+id: ai_lpr_recognition
 description: >
   兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
   UI 可切換「只通知 / 實際關門」。不含加密。
