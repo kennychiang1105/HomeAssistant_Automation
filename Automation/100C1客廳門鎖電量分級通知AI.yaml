@@ -15,7 +15,7 @@
 # 2) 通知優化：新增「低於5%」的緊急 LINE 通知等級，並確保所有等級皆有 HA 系統通知。
 # ─────────────────────────────────────────────────────────────
 alias: 100C1客廳門鎖電量分級通知AI (V2.3)
-id: automation.ai_100c1_doorlock_battery_stage_notify
+id: ai_100c1_doorlock_battery_stage_notify
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
 
@@ -38,7 +38,7 @@ triggers:
 
 variables:
   automation_version: "V2.3.0"
-  notif_title_base: 【AI電量告警系統 V2.3】
+  notif_title_base: "【AI電量告警系統 {{ automation_version }}】"
   notif_title_warn: |-
     {{ notif_title_base }}
     門鎖電量提醒 🚪🔋
@@ -82,9 +82,9 @@ variables:
   batt_line_text_line_safe: "{{ batt_line_text_line|default('', true)|string }}"
 
   notif_title_100c_warn_safe: >-
-    {{ states('input_text.notif_title_100c_warn') if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】' }}
+    {{ states('input_text.notif_title_100c_warn') if states('input_text.notif_title_100c_warn')|trim and states('input_text.notif_title_100c_warn')|lower not in ['unknown','unavailable','none'] else notif_title_base }}
   notif_title_100c_alarm_safe: >-
-    {{ states('input_text.notif_title_100c_alarm') if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower not in ['unknown','unavailable','none'] else '【AI電量告警系統 V2.2】' }}
+    {{ states('input_text.notif_title_100c_alarm') if states('input_text.notif_title_100c_alarm')|trim and states('input_text.notif_title_100c_alarm')|lower not in ['unknown','unavailable','none'] else notif_title_base }}
 
 actions:
   # 先過濾 unknown → -1 的假觸發

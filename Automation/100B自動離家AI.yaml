@@ -18,7 +18,7 @@
 # 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
 # ─────────────────────────────────────────────────────────────
 alias: "100B自動離家AI (V2.8)"
-id: automation.100b_ai_leave_v1beta9
+id: ai_leave_100b_v1beta9
 description: "AI離家 v2.8"
 mode: single
 
@@ -85,7 +85,7 @@ conditions:
 variables:
   automation_version: "V2.8.0"
   helpers_compat: "Helpers V2.19"
-  notif_title_base: "【AI離家系統 V2.8】"
+  notif_title_base: "【AI離家系統 {{ automation_version }}】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
@@ -197,7 +197,7 @@ actions:
   - event: ai_leave_confirmed
     event_data:
       who: kenny
-      reason: "automation.100b_ai_leave_v1beta9 conditions passed — {{ automation_version }} / {{ helpers_compat }}"
+      reason: "ai_leave_100b_v1beta9 conditions passed — {{ automation_version }} / {{ helpers_compat }}"
 
   # 若尚未離家情境 → 觸發離家情境
   - choose:

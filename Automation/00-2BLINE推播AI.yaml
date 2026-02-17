@@ -12,7 +12,7 @@
 # 前版（V1.0）：新增剩餘訊息數 template 感測器告警，低於門檻自動推播緊急提醒。
 # ─────────────────────────────────────────────────────────────
 alias: 00-2BLINE推播AI (V1.3)
-id: automation.line_bot_quota_guard
+id: line_bot_quota_guard
 description: LINE Bot 額度監控與緊急推播
 mode: single
 
@@ -81,7 +81,7 @@ variables:
   automation_version: "V1.3.0"
   limit: 200
   switch_limit: 196
-  notif_title: "【LINE Bot 配額監控 V1.3】"
+  notif_title: "【LINE Bot 配額監控 {{ automation_version }}】"
 
   quota_user_id: U9eeaaf5d404dbde249039924567992d3
 

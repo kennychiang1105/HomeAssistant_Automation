@@ -15,14 +15,14 @@
 # 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
 alias: 08-6離家保全系統AI (V1.6)
-id: automation.ai_08_6_away_security_system
-description: ""
+id: ai_08_6_away_security_system
+description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
 mode: single
 
 variables:
   automation_version: "V1.6.0"
   helpers_compat: "Helpers V2.19"
-  notif_title_base: "【離家保全系統 V1.6】"
+  notif_title_base: "【離家保全系統 {{ automation_version }}】"
   notif_title_important: >-
     {% set title = states('input_text.notif_title_086_important') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}

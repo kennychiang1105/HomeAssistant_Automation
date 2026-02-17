@@ -14,7 +14,7 @@
 # 3) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣；情境健檢+自動修復同步。
 # ─────────────────────────────────────────────────────────────
 alias: 106B網關異常警告AI (V1.6)
-id: automation.gateway_anomaly_guard_ai
+id: gateway_anomaly_guard_ai
 description: 保全情境重置與異常告警
 mode: single
 
@@ -34,7 +34,7 @@ triggers:
 variables:
   automation_version: "V1.6.0"
   helpers_compat: "Helpers V2.20"
-  notif_title_base: "【保全告警系統 V1.5】"
+  notif_title_base: "【保全告警系統 {{ automation_version }}】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}
     {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}

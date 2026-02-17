@@ -17,18 +17,18 @@
 
 | 檔案 | Alias | id | 與 full_automations_20260215 對照 |
 |---|---|---|---|
-| `Automation/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V1.3)` | `automation.line_bot_quota_guard` | ✅ 可對上 |
-| `Automation/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V1.7)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V2.0)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V1.6)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/100B自動離家AI.yaml` | `100B自動離家AI (V2.8)` | `automation.100b_ai_leave_v1beta9` | ⚠️ Alias 版本字串未直接對上（疑似版本漂移） |
-| `Automation/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V2.3)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V2.4)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V1 Beta 4)` | `104-2_lpr_ai_beta` | ✅ 可對上 |
-| `Automation/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V1.6)` | `automation.gateway_anomaly_guard_ai` | ✅ 可對上 |
-| `Automation/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V2.2)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V2 Beta 4)` | *(未宣告)* | ✅ 可對上 |
-| `Automation/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V2.3)` | `automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai` | ✅ 可對上 |
+| `Automation/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V1.3)` | `line_bot_quota_guard` | ✅ 可對上 |
+| `Automation/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V1.7)` | `ai_03_miaoli_weather_disaster_notify` | ✅ 可對上 |
+| `Automation/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V2.0)` | `ai_08_5f_stairs_scene` | ✅ 可對上 |
+| `Automation/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V1.6)` | `ai_08_6_away_security_system` | ✅ 可對上 |
+| `Automation/100B自動離家AI.yaml` | `100B自動離家AI (V2.8)` | `ai_leave_100b_v1beta9` | ⚠️ Alias 版本字串未直接對上（疑似版本漂移） |
+| `Automation/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V2.3)` | `ai_100c1_doorlock_battery_stage_notify` | ✅ 可對上 |
+| `Automation/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V2.4)` | `ai_100c2_doorlock_battery_cycle_calibration` | ✅ 可對上 |
+| `Automation/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V1 Beta 4)` | `lpr_ai_beta_104_2` | ✅ 可對上 |
+| `Automation/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V1.6)` | `gateway_anomaly_guard_ai` | ✅ 可對上 |
+| `Automation/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V2.2)` | `ai_21a_living_room_fan_integrated_control` | ✅ 可對上 |
+| `Automation/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V2 Beta 4)` | `ai_21b_living_room_fan_anomaly_alert` | ✅ 可對上 |
+| `Automation/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V2.3)` | `ding_lou_dian_feng_shan_zi_dong_hua_ai_22` | ✅ 可對上 |
 
 ### C. 全局 helper 套件
 - `packages/helper.yaml`
