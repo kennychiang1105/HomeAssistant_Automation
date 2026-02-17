@@ -32,6 +32,7 @@ trigger:
     to: "open"
 
 variables:
+  automation_version: "V1.4.0-beta.4"
   # 來源車牌與名稱
   plate: >-
     {% if trigger.id == 't_eak8030' %}EAK8030

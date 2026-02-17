@@ -78,7 +78,7 @@ trigger:
     minutes: "/30"
 
 variables:
-  automation_version: "V1.3"
+  automation_version: "V1.3.0"
   limit: 200
   switch_limit: 196
   notif_title: "【LINE Bot 配額監控 V1.3】"

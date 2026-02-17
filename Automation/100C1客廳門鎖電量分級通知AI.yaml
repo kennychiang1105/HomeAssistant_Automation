@@ -15,6 +15,7 @@
 # 2) 通知優化：新增「低於5%」的緊急 LINE 通知等級，並確保所有等級皆有 HA 系統通知。
 # ─────────────────────────────────────────────────────────────
 alias: 100C1客廳門鎖電量分級通知AI (V2.3)
+id: automation.ai_100c1_doorlock_battery_stage_notify
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
 
@@ -36,6 +37,7 @@ triggers:
     for: "00:01:00"
 
 variables:
+  automation_version: "V2.3.0"
   notif_title_base: 【AI電量告警系統 V2.3】
   notif_title_warn: |-
     {{ notif_title_base }}

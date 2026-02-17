@@ -83,7 +83,7 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.8"
+  automation_version: "V2.8.0"
   helpers_compat: "Helpers V2.19"
   notif_title_base: "【AI離家系統 V2.8】"
   notif_title_general: >-

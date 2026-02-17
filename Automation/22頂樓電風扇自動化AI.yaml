@@ -16,9 +16,12 @@
 
 alias: 22頂樓電風扇自動化AI (V2.3)
 id: automation.22ding_lou_dian_feng_shan_zi_dong_hua_ai
+description: AI 管理自動化（已完成欄位標準化）
 mode: restart
 max: 10
 
+variables:
+  automation_version: "V2.3.0"
 trigger:
   - platform: state
     entity_id:

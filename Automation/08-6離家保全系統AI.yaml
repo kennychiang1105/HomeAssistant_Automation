@@ -15,11 +15,12 @@
 # 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
 # ─────────────────────────────────────────────────────────────
 alias: 08-6離家保全系統AI (V1.6)
+id: automation.ai_08_6_away_security_system
 description: ""
 mode: single
 
 variables:
-  automation_version: "V1.6"
+  automation_version: "V1.6.0"
   helpers_compat: "Helpers V2.19"
   notif_title_base: "【離家保全系統 V1.6】"
   notif_title_important: >-

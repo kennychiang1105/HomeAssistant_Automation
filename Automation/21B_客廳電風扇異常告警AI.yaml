@@ -11,9 +11,12 @@
 # ─────────────────────────────────────────────────────────────
 
 alias: 21B_客廳電風扇異常告警AI (V2 Beta 4)
+id: automation.ai_21b_living_room_fan_anomaly_alert
 description: "當風扇在自動模式下離線或關閉時發出警報"
+mode: single
 
 variables:
+  automation_version: "V2.0.0-beta.4"
   line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 
 triggers:
@@ -274,4 +277,3 @@ actions:
         action: media_player.volume_set
         target:
           entity_id: media_player.ke_ting_homepod
-mode: single

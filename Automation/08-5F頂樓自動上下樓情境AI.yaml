@@ -5,10 +5,13 @@
 # 2) 格式統一：更新日誌格式與命名與新版標準一致。
 # ─────────────────────────────────────────────────────────────
 alias: 08-5F頂樓自動上下樓情境AI (V2.0)
+id: automation.ai_08_5f_stairs_scene
 description: >
   V1 Beta 13 — Helper 相容性更新至 V1 Beta 13，修正實體 ID。其餘沿用：上樓需全黑且（黑≥15s 或非剛關燈）；保護窗僅擋上樓、不擋下樓。
   下樓以 iPhone 為主，需連續 N 秒不在 5F AP；視窗內下樓=連續 20s 全暗/極暗；雙黏著鎖 90s。 Debug：可讀版快照 + JSON +
   可讀版決策卡；JSON 寫入 input_text 前截斷 250 字。
+mode: restart
+max: 10
 triggers:
   - id: t_leave_ai_confirmed
     event_type: ai_leave_confirmed
@@ -605,9 +608,8 @@ actions:
                                       title: "[DEBUG] 決策"
                                       message: 下樓成立（尾隨寬限）
                           - stop: 下樓成立（尾隨寬限）
-mode: restart
-max: 10
 variables:
+  automation_version: "V2.0.0"
   iphone_entity: >
     {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
     'device_tracker.iphone_17_pro_max_kenny' if s in
