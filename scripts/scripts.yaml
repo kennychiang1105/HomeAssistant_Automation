@@ -15,18 +15,22 @@
   alias: 地震預警系統(遠端)
   variables:
     lv: '{{ level[:1] | int }}'
-    level_text: "{{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
-    seconds_text: "{{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}"
-    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    level_text: '{{ level if level is defined and level|string|trim not in ['''',
+      ''unknown'', ''unavailable''] else ''未知'' }}'
+    seconds_text: '{{ seconds if seconds is defined and seconds|string|trim not in
+      ['''', ''unknown'', ''unavailable''] else ''未知'' }}'
+    line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
   sequence:
-  - service: input_text.set_value
-    data:
+  - action: input_text.set_value
+    target:
       entity_id: input_text.line_eew_remote_level
-      value: "{{ level_text }}"
-  - service: input_text.set_value
     data:
+      value: '{{ level_text }}'
+  - action: input_text.set_value
+    target:
       entity_id: input_text.line_eew_remote_seconds
-      value: "{{ seconds_text }}"
+    data:
+      value: '{{ seconds_text }}'
   - if:
     - condition: device
       type: is_on
@@ -34,124 +38,128 @@
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
     then:
-      - parallel:
-          - if:
-              - condition: or
-                conditions:
-                - condition: template
-                  value_template: '{{ level == "3" }}'
-                  enabled: false
-                - condition: template
-                  value_template: '{{ level == "4" }}'
-                - condition: template
-                  value_template: '{{ level == "5-" }}'
-                - condition: template
-                  value_template: '{{ level == "5+" }}'
-                - condition: template
-                  value_template: '{{ level == "6-" }}'
-                - condition: template
-                  value_template: '{{ level == "6+" }}'
-                - condition: template
-                  value_template: '{{ level == "7" }}'
-                - condition: template
-                  value_template: '{{ level == ''3'' }}'
-                  enabled: false
-                - condition: template
-                  value_template: '{{ level == ''4'' }}'
-                - condition: template
-                  value_template: '{{ level == ''5-'' }}'
-                - condition: template
-                  value_template: '{{ level == ''5+'' }}'
-                - condition: template
-                  value_template: '{{ level == ''6-'' }}'
-                - condition: template
-                  value_template: '{{ level == ''6+'' }}'
-                - condition: template
-                  value_template: '{{ level == ''7'' }}'
-            then:
-              - parallel:
-                  - data:
-                      skip_condition: true
-                    target:
-                      entity_id: automation.jin_ji_mo_shi
-                    action: automation.trigger
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.notify_line_emergency_enable
-                        state: 'on'
-                    then:
-                        - service: script.send_line_to_user
-                          data:
-                            user_id: "{{ line_bot_target_user_id }}"
-                            payload: >-
-                              {% set level_raw = states('input_text.line_eew_remote_level') %}
-                              {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
-                              {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
-                              {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
-                              {% set messages = [
-                                {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統作動⚠️"},
-                                {"type":"text","text":"🌍地震預警系統作動⚠️:\n\n發生有感危險地震\U0001FAE8，\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n預估地震大於4級，\n將啟動緊急模式因應。\n\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                                {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震預警系統作動⚠️，啟動緊急模式‼️"}
-                              ] %}
-                              {{ messages | tojson }}
-      - action: input_boolean.turn_on
-        metadata: {}
-        data: {}
-        target:
-          entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
-    else:
+    - parallel:
       - if:
-          - condition: state
-            entity_id: input_boolean.notify_line_emergency_enable
-            state: 'on'
+        - condition: or
+          conditions:
+          - condition: template
+            value_template: '{{ level == "3" }}'
+            enabled: false
+          - condition: template
+            value_template: '{{ level == "4" }}'
+          - condition: template
+            value_template: '{{ level == "5-" }}'
+          - condition: template
+            value_template: '{{ level == "5+" }}'
+          - condition: template
+            value_template: '{{ level == "6-" }}'
+          - condition: template
+            value_template: '{{ level == "6+" }}'
+          - condition: template
+            value_template: '{{ level == "7" }}'
+          - condition: template
+            value_template: '{{ level == ''3'' }}'
+            enabled: false
+          - condition: template
+            value_template: '{{ level == ''4'' }}'
+          - condition: template
+            value_template: '{{ level == ''5-'' }}'
+          - condition: template
+            value_template: '{{ level == ''5+'' }}'
+          - condition: template
+            value_template: '{{ level == ''6-'' }}'
+          - condition: template
+            value_template: '{{ level == ''6+'' }}'
+          - condition: template
+            value_template: '{{ level == ''7'' }}'
         then:
-          - service: script.send_line_to_user
-            data:
-              user_id: "{{ line_bot_target_user_id }}"
-              payload: >-
-                {% set level_raw = states('input_text.line_eew_remote_level') %}
-                {% set level_safe = level_raw if level_raw|trim and level_raw|lower not in ['unknown','unavailable','none'] else level_text %}
-                {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
-                {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text %}
-                {% set messages = [
-                  {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️\n地震預警系統 ⚠️"},
-                  {"type":"text","text":"🌍地震預警系統收到訊息⚠️:\n即將發生地震\U0001FAE8，\n\n地震預警系統預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n發生地震，請保持冷靜，\n立即就地趴下、掩護、穩住，\n並抓住桌腳，保護頭頸部。"},
-                  {"type":"text","text":"【緊急 Urgent ‼️】\U0001FAE8\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
-                ] %}
-                {{ messages | tojson }}
-      - data:
-          volume_level: 0.65
-        action: media_player.volume_set
-        target:
-          entity_id:
-          - media_player.ke_ting_homepod
-          - media_player.ding_lou_homepod
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id:
-          - media_player.sony_bravia_tv
-        action: media_player.volume_set
-      - data:
-          message: |-
-            地震預警系統收到訊息:
+        - parallel:
+          - data:
+              skip_condition: true
+            target:
+              entity_id: automation.jin_ji_mo_shi
+            action: automation.trigger
+          - if:
+            - condition: state
+              entity_id: input_boolean.notify_line_emergency_enable
+              state: 'on'
+            then:
+            - action: script.send_line_to_user
+              data:
+                user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'')
+                  }}'
+                payload: "{% set level_raw = states('input_text.line_eew_remote_level')
+                  %}  {% set level_safe = level_raw if level_raw|trim and level_raw|lower
+                  not in ['unknown','unavailable','none'] else level_text | default('未知')
+                  %}  {% set seconds_raw = states('input_text.line_eew_remote_seconds')
+                  %}  {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower
+                  not in ['unknown','unavailable','none'] else seconds_text | default('未知')
+                  %}  {% set messages = [\n  {\"type\":\"text\",\"text\":\"【災防系統通知】緊急
+                  Urgent ‼️\\n地震預警系統作動⚠️\"},\n  {\"type\":\"text\",\"text\":\"\U0001F30D地震預警系統作動⚠️:\\n\\n發生有感危險地震\U0001F6A8，\\n地震預警系統預估地震\"
+                  ~ level_safe ~ \"級，\" ~ seconds_safe ~ \"秒後到達。\\n\\n預估地震大於4級，\\n將啟動緊急模式因應。\\n\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"},\n
+                  \ {\"type\":\"text\",\"text\":\"【緊急 Urgent ‼️】\U0001F6A8\\n地震預警系統作動⚠️，啟動緊急模式‼️\"}\n]
+                  %}  {{ messages | tojson }}"
+    - action: input_boolean.turn_on
+      metadata: {}
+      data: {}
+      target:
+        entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
+    else:
+    - if:
+      - condition: state
+        entity_id: input_boolean.notify_line_emergency_enable
+        state: 'on'
+      then:
+      - action: script.send_line_to_user
+        data:
+          user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'')
+            }}'
+          payload: "{% set level_raw = states('input_text.line_eew_remote_level')
+            %}   {% set level_safe = level_raw if level_raw|trim and level_raw|lower
+            not in ['unknown','unavailable','none'] else level_text | default('未知')
+            %}   {% set seconds_raw = states('input_text.line_eew_remote_seconds')
+            %}   {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower
+            not in ['unknown','unavailable','none'] else seconds_text | default('未知')
+            %}   {% set messages = [\n  {\"type\":\"text\",\"text\":\"【災防系統通知】緊急 Urgent
+            ‼️\\n地震預警系統 ⚠️\"},\n  {\"type\":\"text\",\"text\":\"\U0001F30D地震預警系統收到訊息⚠️:\\n即將發生地震
+            \U0001F6A8，\\n\\n地震預警系統預估地震\" ~ level_safe ~ \"級，\" ~ seconds_safe ~ \"秒後到達。\\n\\n發生地震，請保持冷靜，\\n立即就地趴下、掩護、穩住，\\n並抓住桌腳，保護頭頸部。\"},\n
+            \ {\"type\":\"text\",\"text\":\"【緊急 Urgent ‼️】\U0001F6A8\\n地震\" ~ level_safe
+            ~ \"級，\" ~ seconds_safe ~ \"秒後到達\"}\n] %}   {{ messages | tojson }}"
+    - action: media_player.volume_set
+      data:
+        volume_level: 0.65
+      target:
+        entity_id:
+        - media_player.ke_ting_homepod
+        - media_player.ding_lou_homepod
+    - action: media_player.volume_set
+      data:
+        volume_level: 0.15
+      target:
+        entity_id:
+        - media_player.sony_bravia_tv
+    - action: persistent_notification.create
+      data:
+        message: '地震預警系統收到訊息:
 
-            即將發生地震，
 
-            地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達
+          即將發生地震，
 
-            發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-        enabled: true
-        action: persistent_notification.create
-  - data:
-      media:
-        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-        media_content_type: music
-        metadata: {}
-    enabled: false
+
+          地震預警系統預估地震{{ states(''input_text.line_eew_remote_level'') }}級，{{ states(''input_text.line_eew_remote_seconds'')
+          }}秒後到達
+
+
+          發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
+      enabled: true
+  - action: media_player.play_media
+    data:
+      media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+      media_content_type: music
+      metadata: {}
     target:
       entity_id: media_player.guang_bo_qun_zu_all
-    action: media_player.play_media
+    enabled: false
   - delay:
       hours: 0
       minutes: 0
@@ -164,8 +172,8 @@
       device_id: c01a1336ef43795fd0679631c3e6ce62
     data:
       media_player_entity_id: media_player.guang_bo_qun_zu_all
-      message: >-
-        地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。{{ level }}級地震！{{ seconds }}秒到達！
+      message: 地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds')
+        }}秒後到達。{{ level }}級地震！{{ seconds }}秒到達！
       cache: true
     enabled: true
   - delay:
@@ -174,15 +182,14 @@
       seconds: 30
       milliseconds: 0
     enabled: true
-  - data:
-      media:
-        media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-        media_content_type: music
-        metadata: {}
-    enabled: true
+  - action: media_player.play_media
+    data:
+      media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+      media_content_type: music
+      metadata: {}
     target:
       entity_id: media_player.guang_bo_qun_zu_all
-    action: media_player.play_media
+    enabled: true
   - delay:
       hours: 0
       minutes: 0
@@ -195,8 +202,7 @@
       device_id: c01a1336ef43795fd0679631c3e6ce62
     data:
       media_player_entity_id: media_player.guang_bo_qun_zu_all
-      message: >-
-        發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
+      message: 發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
       cache: true
     enabled: true
   - delay:
@@ -211,25 +217,25 @@
         attribute: media_title
         state: TATV-8000
       sequence:
-      - data:
+      - action: remote.send_command
+        data:
           command: Hdmi1
         target:
           device_id: fdcccfa405461070717b80a56a590960
-        action: remote.send_command
       - delay:
           hours: 0
           minutes: 0
           seconds: 1
           milliseconds: 0
-  - data:
+  - action: remote.send_command
+    data:
       command: Confirm
     target:
       device_id: fdcccfa405461070717b80a56a590960
     enabled: true
-    action: remote.send_command
-  - data:
+  - action: media_player.volume_set
+    data:
       volume_level: 0.4
-    action: media_player.volume_set
     target:
       entity_id: media_player.ding_lou_homepod
   - type: turn_off
@@ -258,3 +264,4 @@
         domain: remote
   mode: single
   icon: mdi:earth
+
