@@ -1811,7 +1811,7 @@
   mode: parallel
   max: 10
 - id: '1692271669059'
-  alias: 107-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家
+  alias: 800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家
   description: ''
   trigger:
   - platform: device
@@ -1862,7 +1862,7 @@
         entity_id: automation.103dao_jia_qing_jing
   mode: single
 - id: '1692271820467'
-  alias: 107-1廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-離家晚安
+  alias: 800-開關系列-1廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-離家晚安
   description: ''
   trigger:
   - platform: device
@@ -1909,7 +1909,7 @@
         entity_id: automation.101li_jia_qing_jing
   mode: single
 - id: '1692281341535'
-  alias: 107-2廚房開關2單擊/餐廳燈廁所開關3/餐廳主開關上3-餐廳燈
+  alias: 800-開關系列-2廚房開關2單擊/餐廳燈廁所開關3/餐廳主開關上3-餐廳燈
   description: ''
   trigger:
   - platform: device
@@ -1932,7 +1932,7 @@
       entity_id: light.can_ting_deng_zu_1_ha
   mode: single
 - id: '1692281430136'
-  alias: 107-3廚房開關2三擊
+  alias: 800-開關系列-3廚房開關2三擊
   description: ''
   trigger:
   - platform: device
@@ -1947,7 +1947,7 @@
       entity_id: fan.ke_ting_dian_feng_shan
   mode: single
 - id: '1692281816696'
-  alias: 107-4廚房開關2長按
+  alias: 800-開關系列-4廚房開關2長按
   description: ''
   trigger:
   - platform: device
@@ -1978,7 +1978,7 @@
       - sensor.earthquake_time
   mode: single
 - id: '1692451827229'
-  alias: 107-5客廳主開關下2/客廳外開關下1-客廳燈全
+  alias: 800-開關系列-5客廳主開關下2/客廳外開關下1-客廳燈全
   description: ''
   trigger:
   - platform: device
@@ -1997,7 +1997,7 @@
       entity_id: light.ke_ting_deng_zu_quan
   mode: single
 - id: '1692451967876'
-  alias: 107-6客廳主開關下2/客廳外開關下1-客廳燈部分開
+  alias: 800-開關系列-6客廳主開關下2/客廳外開關下1-客廳燈部分開
   description: ''
   trigger:
   - platform: device
@@ -2023,7 +2023,7 @@
       entity_id: light.ke_ting_deng_zu_2
   mode: single
 - id: '1692452096261'
-  alias: 107-7客廳主開關下2/客廳外開關下1-客廳燈部分關
+  alias: 800-開關系列-7客廳主開關下2/客廳外開關下1-客廳燈部分關
   description: ''
   trigger:
   - platform: device
@@ -2049,7 +2049,7 @@
       entity_id: light.yeelink_color5_4181_light
   mode: single
 - id: '1692452366469'
-  alias: 107-8客廳主開關下2/客廳外開關下1-客廳風扇切換
+  alias: 800-開關系列-8客廳主開關下2/客廳外開關下1-客廳風扇切換
   description: ''
   trigger:
   - platform: device
@@ -2069,7 +2069,7 @@
     data: {}
   mode: single
 - id: '1692452863496'
-  alias: 107-0B 客廳主開關下3-早安到家
+  alias: 800-開關系列-0B 客廳主開關下3-早安到家
   description: ''
   triggers:
   - domain: terncy
@@ -2124,7 +2124,7 @@
       action: automation.trigger
   mode: single
 - id: '1692453158473'
-  alias: 107-1B客廳主開關下3-晚安離家
+  alias: 800-開關系列-1B客廳主開關下3-晚安離家
   description: ''
   triggers:
   - domain: terncy
@@ -2198,7 +2198,7 @@
       action: automation.trigger
   mode: single
 - id: '1692455803063'
-  alias: 107-9B樓梯間燈全開一段時間
+  alias: 800-開關系列-9B樓梯間燈全開一段時間
   description: ''
   triggers:
   - domain: terncy
@@ -2258,7 +2258,7 @@
         entity_id: light.yeelink_color5_0fb7_light
   mode: restart
 - id: '1692457074428'
-  alias: 107-9A樓梯間燈全開
+  alias: 800-開關系列-9A樓梯間燈全開
   description: ''
   triggers:
   - domain: terncy
@@ -2290,7 +2290,7 @@
       entity_id: light.yeelink_color5_0fb7_light
   mode: single
 - id: '1692457161312'
-  alias: 107-9C樓梯間燈全關
+  alias: 800-開關系列-9C樓梯間燈全關
   description: ''
   triggers:
   - domain: terncy
@@ -2330,7 +2330,7 @@
       entity_id: light.yeelink_color5_0fb7_light
   mode: single
 - id: '1692457693231'
-  alias: 107-10A小米無線開關單擊-廚房燈
+  alias: 800-開關系列-10A小米無線開關單擊-廚房燈
   description: ''
   triggers:
   - device_id: 8a3a83db44f3e7851c3178495daa7b85
@@ -2452,7 +2452,7 @@
     else: []
   mode: single
 - id: '1692505329840'
-  alias: 107-10餐廳廁所開關1-車庫燈連動
+  alias: 800-開關系列-10餐廳廁所開關1-車庫燈連動
   description: ''
   trigger:
   - platform: device
@@ -2469,7 +2469,7 @@
       - switch.lou_ti_deng
   mode: single
 - id: '1692505364886'
-  alias: 107-10B餐廳廁所開關1車庫主燈-鐵門連動
+  alias: 800-開關系列-10B餐廳廁所開關1車庫主燈-鐵門連動
   description: ''
   triggers:
   - domain: terncy
@@ -5163,8 +5163,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a05ejin_ji_shi_ti_an_niu.attributes.last_triggered))
-      > (2) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a05ejin_ji_shi_ti_an_niu', 'last_triggered') | default(0)))
+      > (2) }}"
   actions:
   - parallel:
     - action: automation.trigger
@@ -5178,61 +5178,9 @@
       target:
         entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
   mode: single
-- id: '1747236876592'
-  alias: 08-5G 書房燈感應
-  description: ''
-  triggers:
-  - trigger: state
-    entity_id:
-    - binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
-    to: 'on'
-  conditions:
-  - condition: and
-    conditions:
-    - condition: state
-      entity_id: switch.shu_fang_deng
-      state: 'off'
-    - condition: or
-      conditions:
-      - condition: state
-        entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-        state: 'on'
-      - condition: not
-        conditions:
-        - condition: state
-          entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-          state: 'off'
-          for:
-            hours: 0
-            minutes: 2
-            seconds: 0
-      enabled: true
-    - condition: not
-      conditions:
-      - condition: template
-        value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_11a_single.attributes.last_triggered))
-          < (600) }}'
-      enabled: false
-  actions:
-  - sequence:
-    - action: switch.turn_on
-      metadata: {}
-      data: {}
-      target:
-        entity_id: switch.shu_fang_deng
-    - delay:
-        hours: 0
-        minutes: 5
-        seconds: 0
-        milliseconds: 0
-    - action: switch.turn_off
-      metadata: {}
-      data: {}
-      target:
-        entity_id: switch.shu_fang_deng
-  mode: restart
+
 - id: '1747237162262'
-  alias: 107-11A 書房燈感應開關單擊
+  alias: 800-開關系列-11A 書房燈感應開關單擊
   description: ''
   triggers:
   - domain: terncy
@@ -5241,8 +5189,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_11a_single.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_11a_single', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - action: switch.toggle
     metadata: {}
@@ -5517,11 +5465,11 @@
     to: 'on'
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a08_5cauto.attributes.last_triggered))
-      < (180) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a08_5cauto', 'last_triggered') | default(0)))
+      < (180) }}"
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a08_5cauto.attributes.last_triggered))
-      > (2) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a08_5cauto', 'last_triggered') | default(0)))
+      > (2) }}"
     enabled: false
   actions:
   - if:
@@ -5690,7 +5638,7 @@
   mode: parallel
   max: 10
 - id: '1747324079989'
-  alias: 107-11B 書房燈感應開關長按
+  alias: 800-開關系列-11B 書房燈感應開關長按
   description: ''
   triggers:
   - domain: terncy
@@ -5699,8 +5647,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_11b.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_11b', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - sequence:
     - parallel:
@@ -5742,42 +5690,14 @@
           entity_id: automation.08_5g_shu_fang_deng_gan_ying
           state: 'on'
         sequence:
-        - sequence:
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
+        - repeat:
+            count: 4
+            sequence:
+              - action: switch.toggle
+                target:
+                  entity_id: switch.shu_fang_deng
+              - delay:
+                  milliseconds: 500
           enabled: true
       - conditions:
         - condition: state
@@ -5787,67 +5707,19 @@
           entity_id: automation.08_5g_shu_fang_deng_gan_ying
           state: 'off'
         sequence:
-        - sequence:
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.shu_fang_deng
+        - repeat:
+            count: 2
+            sequence:
+              - action: switch.toggle
+                target:
+                  entity_id: switch.shu_fang_deng
+              - delay:
+                  milliseconds: 500
           enabled: true
   mode: restart
-- id: '1747546602085'
-  alias: 08-8A 廚房感應燈開
-  description: ''
-  triggers:
-  - trigger: state
-    entity_id:
-    - binary_sensor.unknown_zhan_kong
-    from:
-    to: 'on'
-  conditions:
-  - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.event.chu_fang_deng_single_press.last_changed))
-      > (180) }}'
-  actions:
-  - action: switch.turn_on
-    metadata: {}
-    data: {}
-    target:
-      entity_id: switch.chu_fang_deng
-  mode: single
-- id: '1747546682683'
-  alias: 08-8A 廚房感應燈關
-  description: ''
-  triggers:
-  - trigger: state
-    entity_id:
-    - binary_sensor.unknown_zhan_kong
-    from:
-    to: 'off'
-    for:
-      hours: 0
-      minutes: 1
-      seconds: 0
-  conditions: []
-  actions:
-  - action: switch.turn_off
-    metadata: {}
-    data: {}
-    target:
-      entity_id: switch.chu_fang_deng
-  mode: single
+
 - id: '1747548375786'
-  alias: 107-10B小米無線開關雙擊-廚房燈自動化開關
+  alias: 800-開關系列-10B小米無線開關雙擊-廚房燈自動化開關
   description: ''
   triggers:
   - device_id: 8a3a83db44f3e7851c3178495daa7b85
@@ -5869,7 +5741,6 @@
         target:
           entity_id:
           - automation.08_8a_chu_fang_gan_ying_deng_kai
-          - automation.08_8achu_fang_gan_ying_deng_guan
       - sequence:
         - action: switch.toggle
           metadata: {}
@@ -5897,75 +5768,33 @@
         - condition: state
           entity_id: automation.08_8a_chu_fang_gan_ying_deng_kai
           state: 'on'
-        - condition: state
-          entity_id: automation.08_8achu_fang_gan_ying_deng_guan
-          state: 'on'
         sequence:
-        - sequence:
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
+        - repeat:
+            count: 4
+            sequence:
+              - action: switch.toggle
+                target:
+                  entity_id: switch.chu_fang_deng
+              - delay:
+                  milliseconds: 500
           enabled: true
       - conditions:
         - condition: state
           entity_id: automation.08_8a_chu_fang_gan_ying_deng_kai
           state: 'off'
-        - condition: state
-          entity_id: automation.08_8achu_fang_gan_ying_deng_guan
-          state: 'off'
         sequence:
-        - sequence:
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 0
-              milliseconds: 500
-          - action: switch.toggle
-            metadata: {}
-            data: {}
-            target:
-              entity_id: switch.chu_fang_deng
+        - repeat:
+            count: 2
+            sequence:
+              - action: switch.toggle
+                target:
+                  entity_id: switch.chu_fang_deng
+              - delay:
+                  milliseconds: 500
           enabled: true
   mode: single
 - id: '1747916726853'
-  alias: 107-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈
+  alias: 800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈
   description: ''
   triggers:
   - domain: terncy
@@ -5978,8 +5807,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_12a_ding_lou_lou_ti_deng_dan_ji.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12a_ding_lou_lou_ti_deng_dan_ji', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - parallel:
     - action: light.toggle
@@ -6000,7 +5829,7 @@
         - light.yeelink_color5_0fb7_light
   mode: restart
 - id: '1747917853811'
-  alias: 107-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈
+  alias: 800-開關系列-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈
   description: ''
   triggers:
   - domain: terncy
@@ -6009,8 +5838,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_12b.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12b', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - action: light.toggle
     metadata: {}
@@ -6022,7 +5851,7 @@
       - light.yeelink_color5_13b8_light
   mode: restart
 - id: '1747918142087'
-  alias: 107-12C 五樓開關下2/四摟樓梯開關上2/四摟樓梯開關上1/四樓開關下1-三擊 樓梯燈校正
+  alias: 800-開關系列-12C 五樓開關下2/四摟樓梯開關上2/四摟樓梯開關上1/四樓開關下1-三擊 樓梯燈校正
   description: ''
   triggers:
   - domain: terncy
@@ -6043,8 +5872,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_12c.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12c', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - sequence:
     - action: light.turn_on
@@ -6068,7 +5897,7 @@
         - light.yeelink_color5_0fb7_light
   mode: restart
 - id: '1747919150435'
-  alias: 107-12D 四樓開關下1-單擊 四樓樓梯燈
+  alias: 800-開關系列-12D 四樓開關下1-單擊 四樓樓梯燈
   description: ''
   triggers:
   - domain: terncy
@@ -6077,8 +5906,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(states.automation.a107_12d.attributes.last_triggered))
-      > (1) }}'
+    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12d', 'last_triggered') | default(0)))
+      > (1) }}"
   actions:
   - parallel:
     - action: light.toggle
