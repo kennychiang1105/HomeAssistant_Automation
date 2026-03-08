@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2BLINE推播AI (V3.0)
+# 00-2BLINE推播AI (V3.1)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# - V3.1：移除每 30 分鐘定期檢查推播，避免高頻率通知干擾。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2BLINE推播AI (V3.0)
+- alias: 00-2BLINE推播AI (V3.1)
   id: ai_line_bot_quota_guard
   description: LINE Bot 額度監控與緊急推播
   mode: single
@@ -66,12 +67,8 @@
       entity_id: sensor.bot_msg_remaining0
       below: 1
 
-    - id: periodic_check
-      trigger: time_pattern
-      minutes: "/30"
-
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     limit: 200
     switch_limit: 196
     notif_title: "【LINE Bot 配額監控 {{ automation_version }}】"
@@ -162,8 +159,7 @@
         'bot1_zero': bot1_name,
         'bot2_zero': bot2_name,
         'bot3_zero': bot3_name,
-        'bot0_zero': 'ChiangFamily 緊急 Bot',
-        'periodic_check': ''
+        'bot0_zero': 'ChiangFamily 緊急 Bot'
       } %}
       {{ mapping.get(trigger.id, '') }}
 
@@ -185,7 +181,7 @@
         - conditions:
             - condition: template
               value_template: >-
-                {{ trigger.id in ['bot1_zero','bot2_zero','bot3_zero','bot0_zero','periodic_check'] }}
+                {{ trigger.id in ['bot1_zero','bot2_zero','bot3_zero','bot0_zero'] }}
           sequence:
             - service: homeassistant.update_entity
               target:
@@ -205,8 +201,8 @@
               data:
                 title: "{{ notif_title }}"
                 message: |-
-                  {{ '定期檢查' if trigger.id == 'periodic_check' else '配額為 0 自動切換' }}（{{ automation_version }}）
-                  觸發 Bot：{{ zero_triggered_bot if zero_triggered_bot else '排程檢查' }}
+                  配額為 0 自動切換（{{ automation_version }}）
+                  觸發 Bot：{{ zero_triggered_bot }}
                   目前輪播：{{ active_bot_label }}
                   當前目標：{{ rotation_target }}
             - stop: Auto rotation guard executed

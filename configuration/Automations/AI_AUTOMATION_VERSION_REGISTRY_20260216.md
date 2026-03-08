@@ -20,7 +20,7 @@
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.0)` | `ai_line_bot_quota_guard` | `V3.0` |
+| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.1)` | `ai_line_bot_quota_guard` | `V3.1` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.0)` | `ai_topfloor_stairs_scene` | `V3.0` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
