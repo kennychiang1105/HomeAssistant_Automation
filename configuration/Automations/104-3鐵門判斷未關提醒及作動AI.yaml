@@ -1,17 +1,18 @@
 # ─────────────────────────────────────────────────────────────
-# 104-3鐵門判斷未關提醒及作動AI (V3.0)
+# 104-3鐵門判斷未關提醒及作動AI (V3.1)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
+# - V3.1：改以 automation.tie_men_kai_guan 執行關門；修正執行期變數時機；LINE 改用 line_bot_target_user_id + tojson。
 # - V3.0：由「08鐵門判斷未關提醒V2」獨立重構；新增 10 分鐘提醒後 2 分鐘關門觀察與自動關門/取消通知。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-3鐵門判斷未關提醒及作動AI (V3.0)
+- alias: 104-3鐵門判斷未關提醒及作動AI (V3.1)
   id: ai_104_3_garage_gate_open_guard_and_autoclose
   description: >
     鐵門開啟達 10 分鐘且車庫無人車活動時先提醒；接續 2 分鐘觀察期，若無人車移動且車庫主燈狀態未改變則自動關門。
     若觀察期內偵測到人/車移動或車庫燈開關變化，會取消本次關門並發送 LINE 與永久通知；若期間已手動關門也會通知。
   mode: single
 
-  trigger:
+  triggers:
     - platform: state
       entity_id: cover.garage
       to: "open"
@@ -19,16 +20,15 @@
         minutes: 10
 
   variables:
-    automation_version: "V3.0"
-    line_user_id: "C26ff4e9d30159ba5264a1676f46f8f86"
+    automation_version: "V3.1"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    notif_title_general: "【智慧保全通知】一般 General 🪧"
     gate_entity: cover.garage
     person_entity: binary_sensor.che_ku_she_ying_ji_person_detected
     vehicle_entity: binary_sensor.che_ku_she_ying_ji_vehicle_detected
     garage_light_entity: switch.che_ku_zhu_deng
-    light_state_before_window: "{{ states(garage_light_entity) }}"
-    event_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
 
-  condition:
+  conditions:
     - condition: state
       entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
       state: "off"
@@ -40,16 +40,21 @@
       for:
         minutes: 3
 
-  action:
+  actions:
+    - variables:
+        light_state_before_window: "{{ states(garage_light_entity) }}"
+        event_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
     - service: script.send_line_to_user
       data:
-        user_id: "{{ line_user_id }}"
+        user_id: "{{ line_bot_target_user_id }}"
         payload: >-
-          [
-            {"type":"text","text":"【智慧保全通知】一般 General 🪧"},
+          {% set messages = [
+            {"type":"text","text": notif_title_general},
             {"type":"text","text":"鐵門狀態提醒⚠️\n🚪 鐵門已開啟超過 10 分鐘。\n若接下來 2 分鐘內仍無人車移動且車庫燈狀態不變，系統將自動關門。"},
             {"type":"text","text":"⏳ 即將進入 2 分鐘安全觀察期"}
-          ]
+          ] %} {{ messages | tojson }}
+
     - service: persistent_notification.create
       data:
         title: "鐵門狀態提醒（{{ automation_version }}）"
@@ -85,13 +90,13 @@
           sequence:
             - service: script.send_line_to_user
               data:
-                user_id: "{{ line_user_id }}"
+                user_id: "{{ line_bot_target_user_id }}"
                 payload: >-
-                  [
-                    {"type":"text","text":"【智慧保全通知】一般 General 🪧"},
+                  {% set messages = [
+                    {"type":"text","text": notif_title_general},
                     {"type":"text","text":"✅ 鐵門已於 2 分鐘觀察期內提前關閉，已不執行自動關門指令。"},
                     {"type":"text","text":"🚪 狀態：已提前關門"}
-                  ]
+                  ] %} {{ messages | tojson }}
             - service: persistent_notification.create
               data:
                 title: "鐵門自動關門結果（{{ automation_version }}）"
@@ -112,13 +117,13 @@
                   {% endif %}
             - service: script.send_line_to_user
               data:
-                user_id: "{{ line_user_id }}"
+                user_id: "{{ line_bot_target_user_id }}"
                 payload: >-
-                  [
-                    {"type":"text","text":"【智慧保全通知】一般 General 🪧"},
-                    {"type":"text","text":"⛔ 已取消本次鐵門自動關閉。\n原因：{{ cancel_reason }}。"},
+                  {% set messages = [
+                    {"type":"text","text": notif_title_general},
+                    {"type":"text","text":"⛔ 已取消本次鐵門自動關閉。\n原因：" ~ cancel_reason ~ "。"},
                     {"type":"text","text":"ℹ️ 若再次符合條件，系統將於下次流程重新評估。"}
-                  ]
+                  ] %} {{ messages | tojson }}
             - service: persistent_notification.create
               data:
                 title: "鐵門自動關門結果（{{ automation_version }}）"
@@ -128,19 +133,19 @@
         - condition: state
           entity_id: cover.garage
           state: "open"
-        - service: cover.close_cover
+        - action: automation.trigger
           target:
-            entity_id: cover.garage
+            entity_id: automation.tie_men_kai_guan
         - service: script.send_line_to_user
           data:
-            user_id: "{{ line_user_id }}"
+            user_id: "{{ line_bot_target_user_id }}"
             payload: >-
-              [
-                {"type":"text","text":"【智慧保全通知】一般 General 🪧"},
+              {% set messages = [
+                {"type":"text","text": notif_title_general},
                 {"type":"text","text":"🤖 已執行鐵門自動關閉。\n觀察期 2 分鐘內無人車移動，且車庫主燈狀態未變化。"},
-                {"type":"text","text":"🚪 動作：已下達關門指令"}
-              ]
+                {"type":"text","text":"🚪 動作：已執行 automation.tie_men_kai_guan"}
+              ] %} {{ messages | tojson }}
         - service: persistent_notification.create
           data:
             title: "鐵門自動關門結果（{{ automation_version }}）"
-            message: "已執行自動關門：2 分鐘觀察期內無人車移動，且車庫主燈狀態未變化。"
+            message: "已執行自動關門：2 分鐘觀察期內無人車移動，且車庫主燈狀態未變化（執行 automation.tie_men_kai_guan）。"

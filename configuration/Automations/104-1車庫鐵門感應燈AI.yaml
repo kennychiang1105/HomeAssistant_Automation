@@ -1,17 +1,19 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.0)
+# 104-1車庫鐵門感應燈AI (V3.1)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
+# - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
 # - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.0)
+- alias: 104-1車庫鐵門感應燈AI (V3.1)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門與攝影機事件控制車庫主燈/樓梯燈：鐵門開啟或偵測到人車移動時開燈；
     鐵門關閉後延時關燈，或在連續無人車移動一段時間後自動關燈。
-  mode: restart
+  mode: queued
+  max: 10
 
-  trigger:
+  triggers:
     - id: gate_open
       platform: state
       entity_id: cover.garage
@@ -42,14 +44,9 @@
         minutes: 6
 
   variables:
-    automation_version: "V3.0"
-    garage_light: switch.che_ku_zhu_deng
-    stair_light: switch.lou_ti_deng
-    gate: cover.garage
-    person_sensor: binary_sensor.che_ku_she_ying_ji_person_detected
-    vehicle_sensor: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+    automation_version: "V3.1"
 
-  action:
+  actions:
     - choose:
         - conditions:
             - condition: trigger
@@ -108,14 +105,8 @@
             - condition: state
               entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
               state: "off"
-            - condition: not
-              conditions:
-                - condition: state
-                  entity_id: cover.garage
-                  state: "open"
-                - condition: state
-                  entity_id: cover.garage
-                  state: "opening"
+            - condition: template
+              value_template: "{{ states('cover.garage') not in ['open','opening'] }}"
             - service: switch.turn_off
               target:
                 entity_id:
