@@ -1,1 +1,1233 @@
-- !include ../Automation/08-6離家保全系統AI.yaml
+# ─────────────────────────────────────────────────────────────
+# 08-6離家保全系統AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-6離家保全系統AI (V3.0)
+  id: ai_away_security_system
+  description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
+  mode: single
+
+  variables:
+    automation_version: "V3.0"
+    helpers_compat: "Helpers V3.0"
+    notif_title_base: "【離家保全系統 {{ automation_version }}】"
+    notif_title_important: >-
+      {% set title = states('input_text.notif_title_086_important') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+    notif_title_emergency: >-
+      {% set title = states('input_text.notif_title_086_emergency') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
+    notif_heading_important: "{{ notif_title_important ~ '\\n重要 Important ⚠️' }}"
+    notif_heading_emergency: "{{ notif_title_emergency ~ '\\n緊急 Urgent ‼️' }}"
+    earthquake_admin_user_id: "U9eeaaf5d404dbde249039924567992d3"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
+    aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
+    aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
+    aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
+    aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
+    aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+    aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
+    aqara_scene_label_helper: >-
+      {% set label = aqara_scene_label_helper_raw|trim %}
+      {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
+      {% if label|lower in invalids %}
+        {{ '' }}
+      {% else %}
+        {{ label }}
+      {% endif %}
+    aqara_scene_label_attr: >-
+      {% set label = aqara_scene_label_attr_raw|trim %}
+      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+      {% if label|lower in invalids %}
+        {{ '' }}
+      {% else %}
+        {{ label }}
+      {% endif %}
+    aqara_state_label: >-
+      {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
+      {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+      {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+      {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+      {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+      {% else %}情境未知{% endif %}
+    aqara_active_labels: >-
+      {% set labels = [] %}
+      {% if is_state('input_boolean.aqara_zai_jia','on') %}
+        {% set labels = labels + ['在家情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_wan_an','on') %}
+        {% set labels = labels + ['晚安情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_li_jia','on') %}
+        {% set labels = labels + ['離家情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_guan_bi','on') %}
+        {% set labels = labels + ['網關解除情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_chu_fa','on') %}
+        {% set labels = labels + ['網關觸發情境'] %}
+      {% endif %}
+      {{ labels|join('、') if labels else '' }}
+    aqara_scene_label_safe: >-
+      {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+      {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
+      {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
+      {% else %}{{ aqara_state_label }}{% endif %}
+  triggers:
+    - entity_id:
+        - cover.garage
+      to: open
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+      trigger: state
+    - entity_id:
+        - input_boolean.er_lou_men_suo_tong_bu_kai_guan
+      to: "on"
+      trigger: state
+  conditions:
+    - condition: and
+      conditions:
+        - condition: state
+          entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_17_pro_max_kenny
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_13_pro_max_iris_2
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_16_jerry
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.redmi_note_11_pro_5g
+          state: not_home
+  actions:
+    - parallel:
+        - choose:
+            - conditions:
+                - condition: and
+                  conditions:
+                    - condition: state
+                      entity_id: cover.garage
+                      state: open
+                      for:
+                        hours: 0
+                        minutes: 0
+                        seconds: 0
+                    - condition: state
+                      entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                      state: "off"
+                    - condition: state
+                      entity_id: input_boolean.aqara_li_jia
+                      state: "on"
+                      for:
+                        hours: 0
+                        minutes: 5
+                        seconds: 0
+              sequence:
+                - parallel:
+                    - if:
+                        - condition: state
+                          entity_id: input_boolean.notify_line_important_enable
+                          state: "on"
+                      then:
+                        - service: script.send_line_to_user
+                          data:
+                            user_id: "{{ line_bot_target_user_id }}"
+                            payload: >-
+                              {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                              {% set scene = scene_raw|trim %}
+                              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                              {% set messages = [
+                                {"type":"text","text": notif_title_important},
+                                {"type":"text","text": '重要 Important ⚠️'},
+                                {"type":"text","text": (
+                                  '🚗 鐵門於離家情境中保持開啟。'
+                                  ~ "\n請盡速確認並關閉鐵門，避免警報誤觸發。"
+                                  ~ "\n目前情境：" ~ scene_safe
+                                )}
+                              ] %}
+                              {{ messages | tojson }}
+                    - data:
+                        message: |-
+                          保全系統警告（離家保全 {{ automation_version }}）:
+                          系統偵測所有人未在家且離家情境已啟用，但鐵門已打開。
+                          目前情境：{{ aqara_scene_label_safe }}
+                          請盡速確認鐵門狀態。
+                        title: "{{ notif_title_important }}"
+                      action: notify.persistent_notification
+                    - action: alarm_control_panel.alarm_trigger
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                      data: {}
+                    - if:
+                        - condition: device
+                          type: is_on
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                      then:
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                      else:
+                        - parallel:
+                            - if:
+                                - condition: or
+                                  conditions:
+                                    - condition: template
+                                      value_template: "{{ level == \"3\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"4\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"5-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"5+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"7\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == '3' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '4' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '5-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '5+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '7' }}"
+                              then:
+                                - parallel:
+                                    - data:
+                                        skip_condition: true
+                                      target:
+                                        entity_id: automation.jin_ji_mo_shi
+                                      action: automation.trigger
+                                    - data:
+                                        title: 地震預警系統
+                                        message: |-
+                                          地震預警系統作動
+
+                                          發生有感危險地震，
+                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+
+                                          預估地震大於4級，
+                                          將啟動緊急模式因應。
+                                      enabled: true
+                                      action: notify.line_notification_group
+                                    - action: script.send_line_to_user
+                                      data:
+                                        user_id: "{{ earthquake_admin_user_id }}"
+                                        payload: >-
+                                          {{
+                                            [
+                                              {"type":"text","text": notif_title_base},
+                                              {"type":"text","text": (
+                                                '地震預警系統作動\n\n'
+                                                ~ '發生有感危險地震，\n'
+                                                ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                                ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                              )}
+                                            ] | tojson
+                                          }}
+                            - type: turn_on
+                              device_id: fdcccfa405461070717b80a56a590960
+                              entity_id: 61eaa5fb8386221ba077bcb884e74573
+                              domain: remote
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                state: "off"
+                            sequence:
+                              - type: turn_off
+                                device_id: fdcccfa405461070717b80a56a590960
+                                entity_id: 61eaa5fb8386221ba077bcb884e74573
+                                domain: remote
+                    - action: notify.line_notification_group
+                      data: {}
+            - conditions:
+                - condition: and
+                  conditions:
+                    - condition: state
+                      entity_id: cover.garage
+                      state: closed
+                      for:
+                        hours: 0
+                        minutes: 0
+                        seconds: 0
+                    - condition: state
+                      entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                      state: "on"
+                    - condition: state
+                      entity_id: input_boolean.aqara_li_jia
+                      state: "on"
+                      for:
+                        hours: 0
+                        minutes: 5
+                        seconds: 0
+              sequence:
+                - parallel:
+                    - if:
+                        - condition: state
+                          entity_id: input_boolean.notify_line_emergency_enable
+                          state: "on"
+                      then:
+                        - service: script.send_line_to_user
+                          data:
+                            user_id: "{{ line_bot_target_user_id }}"
+                            payload: >-
+                              {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                              {% set scene = scene_raw|trim %}
+                              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                              {% set messages = [
+                                {"type":"text","text": notif_title_emergency},
+                                {"type":"text","text": '緊急 Urgent ‼️'},
+                                {"type":"text","text": (
+                                  '🚪 二樓門鎖於離家情境中開啟。'
+                                  ~ "\n請立即鎖上門鎖並確認鐵門狀態。"
+                                  ~ "\n目前情境：" ~ scene_safe
+                                )}
+                              ] %}
+                              {{ messages | tojson }}
+                    - data:
+                        message: |-
+                          保全系統警告（離家保全 {{ automation_version }}）:
+                          系統偵測所有人未在家且離家情境已啟用，但二樓門鎖已打開。
+                          目前情境：{{ aqara_scene_label_safe }}
+                          請立即鎖上門鎖並確認鐵門狀態。
+                        title: "{{ notif_title_emergency }}"
+                      action: notify.persistent_notification
+                    - action: alarm_control_panel.alarm_trigger
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                      data: {}
+                    - if:
+                        - condition: device
+                          type: is_on
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                      then:
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                      else:
+                        - parallel:
+                            - if:
+                                - condition: or
+                                  conditions:
+                                    - condition: template
+                                      value_template: "{{ level == \"3\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"4\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"5-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"5+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"7\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == '3' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '4' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '5-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '5+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '7' }}"
+                              then:
+                                - parallel:
+                                    - data:
+                                        skip_condition: true
+                                      target:
+                                        entity_id: automation.jin_ji_mo_shi
+                                      action: automation.trigger
+                                    - data:
+                                        title: 地震預警系統
+                                        message: |-
+                                          地震預警系統作動
+
+                                          發生有感危險地震，
+                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+
+                                          預估地震大於4級，
+                                          將啟動緊急模式因應。
+                                      enabled: true
+                                      action: notify.line_notification_group
+                                    - action: script.send_line_to_user
+                                      data:
+                                        user_id: "{{ earthquake_admin_user_id }}"
+                                        payload: >-
+                                          {{
+                                            [
+                                              {"type":"text","text": notif_title_base},
+                                              {"type":"text","text": (
+                                                '地震預警系統作動\n\n'
+                                                ~ '發生有感危險地震，\n'
+                                                ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                                ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                              )}
+                                            ] | tojson
+                                          }}
+                            - type: turn_on
+                              device_id: fdcccfa405461070717b80a56a590960
+                              entity_id: 61eaa5fb8386221ba077bcb884e74573
+                              domain: remote
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                state: "off"
+                            sequence:
+                              - type: turn_off
+                                device_id: fdcccfa405461070717b80a56a590960
+                                entity_id: 61eaa5fb8386221ba077bcb884e74573
+                                domain: remote
+            - conditions:
+                - condition: and
+                  conditions:
+                    - condition: state
+                      entity_id: cover.garage
+                      state: open
+                      for:
+                        hours: 0
+                        minutes: 0
+                        seconds: 0
+                    - condition: state
+                      entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                      state: "on"
+                    - condition: state
+                      entity_id: input_boolean.aqara_li_jia
+                      state: "on"
+                      for:
+                        hours: 0
+                        minutes: 5
+                        seconds: 0
+              sequence:
+                - parallel:
+                    - if:
+                        - condition: state
+                          entity_id: input_boolean.notify_line_emergency_enable
+                          state: "on"
+                      then:
+                        - service: script.send_line_to_user
+                          data:
+                            user_id: "{{ line_bot_target_user_id }}"
+                            payload: >-
+                              {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                              {% set scene = scene_raw|trim %}
+                              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                              {% set messages = [
+                                {"type":"text","text": notif_title_emergency},
+                                {"type":"text","text": '緊急 Urgent ‼️'},
+                                {"type":"text","text": (
+                                  '🚗 鐵門與 🚪 二樓門鎖於離家情境中同時開啟。'
+                                  ~ "\n請立即確認現場安全並關閉鐵門與門鎖。"
+                                  ~ "\n目前情境：" ~ scene_safe
+                                )}
+                              ] %}
+                              {{ messages | tojson }}
+                    - data:
+                        message: |-
+                          保全系統警告（離家保全 {{ automation_version }}）:
+                          系統偵測所有人未在家且離家情境已啟用，但鐵門與門鎖皆已打開。
+                          目前情境：{{ aqara_scene_label_safe }}
+                          請立即確認並關閉鐵門與門鎖。
+                        title: "{{ notif_title_emergency }}"
+                      action: notify.persistent_notification
+                    - action: alarm_control_panel.alarm_trigger
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                      data: {}
+                    - if:
+                        - condition: device
+                          type: is_on
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                      then:
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                      else:
+                        - parallel:
+                            - if:
+                                - condition: or
+                                  conditions:
+                                    - condition: template
+                                      value_template: "{{ level == \"3\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"4\" }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == \"5-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"5+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6-\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"6+\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == \"7\" }}"
+                                    - condition: template
+                                      value_template: "{{ level == '3' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '4' }}"
+                                      enabled: false
+                                    - condition: template
+                                      value_template: "{{ level == '5-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '5+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6-' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '6+' }}"
+                                    - condition: template
+                                      value_template: "{{ level == '7' }}"
+                              then:
+                                - parallel:
+                                    - data:
+                                        skip_condition: true
+                                      target:
+                                        entity_id: automation.jin_ji_mo_shi
+                                      action: automation.trigger
+                                    - data:
+                                        title: 地震預警系統
+                                        message: |-
+                                          地震預警系統作動
+
+                                          發生有感危險地震，
+                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
+
+                                          預估地震大於4級，
+                                          將啟動緊急模式因應。
+                                      enabled: true
+                                      action: notify.line_notification_group
+                                    - action: script.send_line_to_user
+                                      data:
+                                        user_id: "{{ earthquake_admin_user_id }}"
+                                        payload: >-
+                                          {{
+                                            [
+                                              {"type":"text","text": notif_title_base},
+                                              {"type":"text","text": (
+                                                '地震預警系統作動\n\n'
+                                                ~ '發生有感危險地震，\n'
+                                                ~ '地震預警系統預估地震' ~ level ~ '級，' ~ seconds ~ '秒後到達\n\n'
+                                                ~ '預估地震大於4級，\n將啟動緊急模式因應。'
+                                              )}
+                                            ] | tojson
+                                          }}
+                            - type: turn_on
+                              device_id: fdcccfa405461070717b80a56a590960
+                              entity_id: 61eaa5fb8386221ba077bcb884e74573
+                              domain: remote
+                        - parallel:
+                            - data:
+                                volume_level: 0.65
+                              action: media_player.volume_set
+                              target:
+                                entity_id:
+                                  - media_player.ke_ting_homepod
+                                  - media_player.ding_lou_homepod
+                            - data:
+                                volume_level: 0.15
+                              target:
+                                entity_id:
+                                  - media_player.sony_bravia_tv
+                              action: media_player.volume_set
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: false
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: false
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            media:
+                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                              media_content_type: music
+                              metadata: {}
+                          enabled: true
+                          target:
+                            entity_id: media_player.guang_bo_qun_zu_all
+                          action: media_player.play_media
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 13
+                            milliseconds: 0
+                          enabled: true
+                        - data:
+                            message: >-
+                              保全系統警告:
+                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
+                            media_player_entity_id: media_player.guang_bo_qun_zu_all
+                            cache: true
+                          enabled: true
+                          action: tts.speak
+                          metadata: {}
+                          target:
+                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 25
+                            milliseconds: 0
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                attribute: media_title
+                                state: TATV-8000
+                            sequence:
+                              - data:
+                                  command: Hdmi1
+                                target:
+                                  device_id: fdcccfa405461070717b80a56a590960
+                                action: remote.send_command
+                              - delay:
+                                  hours: 0
+                                  minutes: 0
+                                  seconds: 1
+                                  milliseconds: 0
+                        - data:
+                            command: Confirm
+                          target:
+                            device_id: fdcccfa405461070717b80a56a590960
+                          enabled: true
+                          action: remote.send_command
+                        - data:
+                            volume_level: 0.4
+                          action: media_player.volume_set
+                          target:
+                            entity_id: media_player.ding_lou_homepod
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 30
+                            milliseconds: 0
+                          enabled: true
+                        - type: turn_off
+                          device_id: fdcccfa405461070717b80a56a590960
+                          entity_id: 61eaa5fb8386221ba077bcb884e74573
+                          domain: remote
+                        - repeat:
+                            until:
+                              - condition: state
+                                entity_id: media_player.sony_bravia_tv
+                                state: "off"
+                            sequence:
+                              - type: turn_off
+                                device_id: fdcccfa405461070717b80a56a590960
+                                entity_id: 61eaa5fb8386221ba077bcb884e74573
+                                domain: remote

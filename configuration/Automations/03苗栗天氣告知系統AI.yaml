@@ -1,1 +1,198 @@
-- !include ../Automation/03苗栗天氣告知系統AI.yaml
+# ─────────────────────────────────────────────────────────────
+# 03苗栗天氣告知系統AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# ─────────────────────────────────────────────────────────────
+- alias: 03苗栗天氣告知系統AI (V3.0)
+  id: ai_miaoli_weather_disaster_notify
+  description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
+  mode: queued
+  max: 10
+  variables:
+    automation_version: "V3.0"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+  triggers:
+    - entity_id: sensor.disaster
+      id: message_received
+      trigger: state
+    - at: "07:00:05"
+      id: morning_catch_up
+      trigger: time
+  actions:
+    - variables:
+        current_message: "{{ states('sensor.disaster') }}"
+        sensor_updated_recently: >-
+          {{ (now() - states.sensor.disaster.last_updated).total_seconds() < 300
+          }}
+        is_miaoli_message: "{{ '苗栗' in current_message }}"
+        is_broadcast_time: "{{ 7 <= now().hour < 22 }}"
+        last_broadcast_ts: "{{ as_timestamp(states('input_datetime.last_disaster_broadcast'), 0) }}"
+        last_broadcast_message: "{{ states('input_text.disaster_last_message') }}"
+        message_ts: "{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}"
+        is_new_message: "{{ message_ts > last_broadcast_ts }}"
+        is_new_content: "{{ current_message != last_broadcast_message }}"
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: morning_catch_up
+            - condition: template
+              value_template: >-
+                {{ is_new_message and is_new_content and is_miaoli_message and
+                sensor_updated_recently }}
+          sequence:
+            - target:
+                entity_id: media_player.ke_ting_homepod
+              data:
+                volume_level: 0.5
+              action: media_player.volume_set
+            - data:
+                title: 天氣告知系統 (早晨補報)
+                message: |-
+                  天氣告知系統收到以下政府災害訊息:
+
+                  {{ current_message }}
+              action: notify.persistent_notification
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_general_enable
+                  state: "on"
+              then:
+                - data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set msg_raw = states('sensor.disaster') %}
+                      {% set invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
+                      {% set msg_safe = msg_raw if msg_raw not in invalids else '目前無災害訊息內容' %}
+                    
+                      {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #}
+                      {% set trigger_id = trigger.id if trigger is defined else 'manual' %}
+                      {% set is_morning = (trigger_id == 'morning_catch_up') %}
+                    
+                      {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍 災防報告 Disaster Prevention Report" %}
+                    
+                      {% set messages = [
+                        {
+                          "type": "text",
+                          "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
+                        },
+                        {
+                          "type": "text",
+                          "text": "收到以下政府災害訊息:"
+                        },
+                        {
+                          "type": "text",
+                          "text": msg_safe
+                        }
+                      ] %}
+                      {{ messages | tojson }}
+                  action: script.send_line_to_user
+            - target:
+                entity_id: media_player.guang_bo_qun_zu_tong_zhi
+              data:
+                announce: true
+                media:
+                  media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
+                  media_content_type: music
+                  metadata: {}
+              action: media_player.play_media
+            - delay: "00:00:13"
+            - target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
+                cache: true
+                message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
+              action: tts.speak
+            - target:
+                entity_id: input_datetime.last_disaster_broadcast
+              data:
+                datetime: "{{ now().isoformat() }}"
+              action: input_datetime.set_datetime
+            - target:
+                entity_id: input_text.disaster_last_message
+              data:
+                value: "{{ current_message }}"
+              action: input_text.set_value
+        - conditions:
+            - condition: trigger
+              id: message_received
+            - condition: template
+              value_template: >-
+                {{ is_broadcast_time and is_new_message and is_new_content and
+                is_miaoli_message and sensor_updated_recently }}
+          sequence:
+            - target:
+                entity_id: media_player.ke_ting_homepod
+              data:
+                volume_level: 0.5
+              action: media_player.volume_set
+            - data:
+                title: 天氣告知系統 (即時)
+                message: |-
+                  天氣告知系統收到以下政府災害訊息:
+
+                  {{ current_message }}
+              action: notify.persistent_notification
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_general_enable
+                  state: "on"
+              then:
+                - data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set msg_raw = states('sensor.disaster') %} {% set
+                      invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
+                      {% set msg_safe = msg_raw if msg_raw not in invalids else
+                      '目前無災害訊息內容' %}
+
+                      {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #} {% set trigger_id =
+                      trigger.id if trigger is defined else 'manual' %} {% set
+                      is_morning = (trigger_id == 'morning_catch_up') %}
+
+                      {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍
+                      災防報告 Disaster Prevention Report" %}
+
+                      {% set messages = [
+                        {
+                          "type": "text",
+                          "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
+                        },
+                        {
+                          "type": "text",
+                          "text": "收到以下政府災害訊息:"
+                        },
+                        {
+                          "type": "text",
+                          "text": msg_safe
+                        }
+                      ] %} {{ messages | tojson }}
+                  action: script.send_line_to_user
+            - target:
+                entity_id: media_player.guang_bo_qun_zu_tong_zhi
+              data:
+                announce: true
+                media:
+                  media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
+                  media_content_type: music
+                  metadata: {}
+              action: media_player.play_media
+            - delay: "00:00:13"
+            - target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
+                cache: true
+                message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
+              action: tts.speak
+            - target:
+                entity_id: input_datetime.last_disaster_broadcast
+              data:
+                datetime: "{{ now().isoformat() }}"
+              action: input_datetime.set_datetime
+            - target:
+                entity_id: input_text.disaster_last_message
+              data:
+                value: "{{ current_message }}"
+              action: input_text.set_value
