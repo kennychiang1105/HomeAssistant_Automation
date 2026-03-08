@@ -5657,7 +5657,7 @@
         data: {}
         target:
           entity_id:
-          - automation.08_5g_shu_fang_deng_gan_yingai_v3_0
+          - automation.ai_08_5g_study_motion_light
           - automation.08_5cding_lou_lou_ti_gan_ying_deng_zi_dong_guan_bi
       - sequence:
         - action: switch.toggle
@@ -5687,7 +5687,7 @@
           entity_id: automation.08_5cding_lou_lou_ti_gan_ying_deng_zi_dong_guan_bi
           state: 'on'
         - condition: state
-          entity_id: automation.08_5g_shu_fang_deng_gan_yingai_v3_0
+          entity_id: automation.ai_08_5g_study_motion_light
           state: 'on'
         sequence:
         - repeat:
@@ -5704,7 +5704,7 @@
           entity_id: automation.08_5cding_lou_lou_ti_gan_ying_deng_zi_dong_guan_bi
           state: 'off'
         - condition: state
-          entity_id: automation.08_5g_shu_fang_deng_gan_yingai_v3_0
+          entity_id: automation.ai_08_5g_study_motion_light
           state: 'off'
         sequence:
         - repeat:
@@ -5740,7 +5740,7 @@
         data: {}
         target:
           entity_id:
-          - automation.08_8a_chu_fang_gan_ying_dengai_v3_0
+          - automation.ai_08_8a_kitchen_motion_light
       - sequence:
         - action: switch.toggle
           metadata: {}
@@ -5766,7 +5766,7 @@
     - choose:
       - conditions:
         - condition: state
-          entity_id: automation.08_8a_chu_fang_gan_ying_dengai_v3_0
+          entity_id: automation.ai_08_8a_kitchen_motion_light
           state: 'on'
         sequence:
         - repeat:
@@ -5780,7 +5780,7 @@
           enabled: true
       - conditions:
         - condition: state
-          entity_id: automation.08_8a_chu_fang_gan_ying_dengai_v3_0
+          entity_id: automation.ai_08_8a_kitchen_motion_light
           state: 'off'
         sequence:
         - repeat:

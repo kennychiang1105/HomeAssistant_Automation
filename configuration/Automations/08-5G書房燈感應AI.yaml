@@ -4,7 +4,7 @@
 # - V3.0：由 UI automation 拆分為 AI 模組檔，維持原觸發/條件/動作行為。
 # ─────────────────────────────────────────────────────────────
 - alias: 08-5G 書房燈感應AI (V3.0)
-  id: ai_study_motion_light
+  id: ai_08_5g_study_motion_light
   description: >
     書房感應燈控制：偵測動作時開啟書房燈，延遲 5 分鐘後自動關閉。
     保留原攝影機條件判斷以降低誤觸。
@@ -22,20 +22,15 @@
         - condition: state
           entity_id: switch.shu_fang_deng
           state: 'off'
-        - condition: or
+        - condition: not
           conditions:
             - condition: state
               entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-              state: 'on'
-            - condition: not
-              conditions:
-                - condition: state
-                  entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-                  state: 'off'
-                  for:
-                    hours: 0
-                    minutes: 2
-                    seconds: 0
+              state: 'off'
+              for:
+                hours: 0
+                minutes: 2
+                seconds: 0
           enabled: true
         - condition: not
           conditions:
