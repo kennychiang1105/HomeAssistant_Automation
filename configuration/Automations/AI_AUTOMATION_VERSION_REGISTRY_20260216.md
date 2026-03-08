@@ -26,7 +26,7 @@
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.0)` | `ai_auto_leave_system` | `V3.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_cycle_calibration` | `V3.0` |
-| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0 Beta 1)` | `ai_lpr_recognition` | `V3.0 Beta 1` |
+| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0 Beta 2)` | `ai_lpr_recognition` | `V3.0 Beta 2` |
 | `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.0)` | `ai_living_room_fan_integrated_control` | `V3.0` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.0)` | `ai_living_room_fan_anomaly_alert` | `V3.0` |
