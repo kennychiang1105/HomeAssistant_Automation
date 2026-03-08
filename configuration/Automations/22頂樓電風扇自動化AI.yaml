@@ -1,17 +1,18 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V3.0)
-# 相容版本：Helpers V3.0
+# 22頂樓電風扇自動化AI (V3.1)
+# 相容版本：Helpers V3.1
 # 更新紀錄（統一格式）：
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V3.0)
+- alias: 22頂樓電風扇自動化AI (V3.1)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
   trigger:
     - platform: state
       entity_id:
@@ -32,6 +33,10 @@
       entity_id: input_boolean.ding_lou_fan_manual_hold
       to: "on"
       for: "01:00:00"
+    - platform: state
+      entity_id: input_boolean.ding_lou_fan_manual_off_hold
+      to: "on"
+      for: "03:00:00"
 
   action:
     - variables:
@@ -74,13 +79,16 @@
             {{ -9999 }}
           {% endif %}
 
-        # ---- 體感溫度計算 (簡易加權) ----
-        # 濕度 > 75% -> +1.5°C; > 60% -> +1.0°C; > 50% -> +0.5°C
+        # ---- 體感溫度計算 (平滑線性加權) ----
+        # 濕度 ≤ 50% 不加權；50% ~ 80% 平滑遞增 (每 1% 約 +0.05°C)；> 80% 最多 +1.5°C
         humidity_bonus_c: >
-          {% if hp_humidity > 75 %} 1.5
-          {% elif hp_humidity > 60 %} 1.0
-          {% elif hp_humidity > 50 %} 0.5
-          {% else %} 0 {% endif %}
+          {% if hp_humidity <= 50 %}
+            0.0
+          {% elif hp_humidity > 50 and hp_humidity <= 80 %}
+            {{ ((hp_humidity - 50) * 0.05) | round(2) }}
+          {% else %}
+            1.5
+          {% endif %}
         hp_temp_feels_like: "{{ hp_temp_base + humidity_bonus_c }}"
 
         hp_valid_now: >
@@ -110,43 +118,19 @@
         # ---- 上樓必開門檻（固定 26.1°C）----
         enter_high_open_c_dyn: 26.1
 
-        # ---- 快速升溫加權（AC 感溫跳升）----
-        ac_rise_fast: >
-          {% set has = (trigger is defined and trigger.to_state is defined and trigger.from_state is defined) %}
-          {% if has and trigger.entity_id == 'climate.ding_lou_kong_diao' %}
-            {{ (trigger.to_state.attributes.current_temperature | float(0))
-               - (trigger.from_state.attributes.current_temperature | float(0)) >= ac_fast_rise_th_c }}
-          {% else %} false {% endif %}
-
-        # ---- AC 優先條件 ----
-        # 規則A (新)：AC on 且 AC 溫度顯著高於體感溫度 (≥1.5°C) → 以 AC 為主
-        ac_prio_override: >
-          {{ ac_on and hp_valid_now and (ac_temp - hp_temp_feels_like >= 1.5) }}
-
-        # 規則B (舊/保護)：AC on 且 ac_temp > 29，且（HP 無效 或 體感 < 28）→ 以 AC 為主 (清晨保護)
-        ac_override_until_hp28: >
-          {{ ac_on and (ac_temp > 29.0) and ( (not hp_valid_now) or (hp_temp_feels_like < 28.0) ) }}
-
-        # 規則C (舊/保護)：AC on 且（AC+權重 - 體感）≥ 1.5 且 體感<28 → 以 AC 為主（HP 偏低保護）
-        ac_hp_diff_override: >
-          {{ ac_on and hp_valid_now and ( (ac_temp + ac_weight_add_c) - hp_temp_feels_like >= 1.5 ) and (hp_temp_feels_like < 28.0) }}
-
-        # ---- 有效溫度 t_eff ----
-        # 優先序：凍結 none → 規則A/B/C → 一般整合（AC: max(體感, AC+權重)+快速升溫；OFF: 體感 或退 AC）
+        # ---- 有效溫度 t_eff (平滑抗跳動 + 夏季模式判斷版) ----
+        # 夏季模式關閉時：無視冷氣溫度，只看 HomePod 體感溫度 (hp_temp_feels_like)
+        # 夏季模式開啟時：平滑比較 max(體感, 冷氣+權重)
         t_eff: >
           {% if hp_soft_hold %}
             none
           {% else %}
-            {% if ac_prio_override or ac_override_until_hp28 or ac_hp_diff_override %}
-              {{ (ac_temp + ac_weight_add_c + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
+            {% if summer_mode and ac_on %}
+              {% set hp_use = (hp_temp_feels_like if hp_valid_now else -9999) %}
+              {% set base = [ hp_use, ac_temp + ac_weight_add_c ] | max %}
+              {{ base | float | round(2) }}
             {% else %}
-              {% if ac_on %}
-                {% set hp_use = (hp_temp_feels_like if hp_valid_now else none) %}
-                {% set base = [ (hp_use if hp_use is not none else -9999), ac_temp + ac_weight_add_c ] | max %}
-                {{ (base + (ac_fast_rise_bonus_c if ac_rise_fast else 0)) | float }}
-              {% else %}
-                {{ hp_temp_feels_like if hp_valid_now else ac_temp }}
-              {% endif %}
+              {{ (hp_temp_feels_like if hp_valid_now else ac_temp) | float | round(2) }}
             {% endif %}
           {% endif %}
         t_eff_valid: "{{ t_eff is not none }}"
@@ -258,6 +242,27 @@
                     title: "手動保留已自動解除（1 小時）"
                     message: "⏱️ 手動保留超過 1 小時，已恢復溫控自動判斷。"
 
+    # 0) 手動關機保留超時（3 小時）→ 恢復自動管理
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ (trigger is defined)
+                   and (trigger.entity_id == 'input_boolean.ding_lou_fan_manual_off_hold')
+                   and (trigger.to_state is defined and trigger.to_state.state == 'on') }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_off_hold
+            - if:
+                - condition: template
+                  value_template: "{{ debug_notify }}"
+              then:
+                - service: notify.persistent_notification
+                  data:
+                    title: "手動關機防護罩已自動解除（3 小時）"
+                    message: "⏱️ 手動關機防護罩超過 3 小時，已恢復溫控自動開機判斷。"
+
     # 0) 外部/手動關機 → 清除回溫記憶（需 t_eff 有效且非過冷）
     - choose:
         - conditions:
@@ -276,15 +281,19 @@
             - service: input_boolean.turn_off
               target:
                 entity_id: input_boolean.ding_lou_fan_manual_hold
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_off_hold
             - if:
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
                 - service: notify.persistent_notification
                   data:
-                    title: "已偵測外部/手動關機 → 清除回溫記憶"
+                    title: "已偵測外部/手動關機 → 啟用手動關機防護罩"
                     message: >
-                      📴 t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ 過冷門檻 {{ night_cold_off_c }}°C
+                      📴 t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ 過冷門檻 {{ night_cold_off_c }}°C；
+                      已啟用 3 小時手動關機防護罩，期間 AI 不自動開風扇。
 
     # 0.1) 手動保留期間關機 → 直接解除保留
     - choose:
@@ -482,7 +491,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') }}"
+              value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') and not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - service: fan.turn_on
               target:
