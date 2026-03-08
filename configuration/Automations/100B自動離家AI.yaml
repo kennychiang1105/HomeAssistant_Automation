@@ -1,0 +1,354 @@
+# ─────────────────────────────────────────────────────────────
+# 100B自動離家AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# ─────────────────────────────────────────────────────────────
+- alias: 100B自動離家AI (V3.0)
+  id: ai_auto_leave_system
+  description: "AI離家 v2.8"
+  mode: single
+
+  triggers:
+    - entity_id: device_tracker.iphone_17_pro_max_kenny
+      to: not_home
+      for: {seconds: 10}
+      trigger: state
+    - entity_id: device_tracker.iphone_13_pro_max_iris_2
+      to: not_home
+      for: {seconds: 10}
+      trigger: state
+    - entity_id: device_tracker.iphone_16_jerry
+      to: not_home
+      for: {seconds: 10}
+      trigger: state
+    - entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+      to: not_home
+      for: {seconds: 10}
+      trigger: state
+
+  conditions:
+    - condition: and
+      conditions:
+        - condition: state
+          entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_17_pro_max_kenny
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_13_pro_max_iris_2
+          state: not_home
+        - condition: state
+          entity_id: device_tracker.iphone_16_jerry
+          state: not_home
+    - condition: or
+      conditions:
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+              state: not_home
+              for: {minutes: 10}
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: device_tracker.iphone_17_pro_max_kenny
+              state: not_home
+              for: {minutes: 10}
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: device_tracker.iphone_13_pro_max_iris_2
+              state: not_home
+              for: {minutes: 10}
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: device_tracker.iphone_16_jerry
+              state: not_home
+              for: {minutes: 10}
+
+  variables:
+    automation_version: "V3.0"
+    helpers_compat: "Helpers V3.0"
+    notif_title_base: "【AI離家系統 {{ automation_version }}】"
+    notif_title_general: >-
+      {% set title = states('input_text.notif_title_100b_general') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
+    notif_title_urgent: >-
+      {% set title = states('input_text.notif_title_100b_urgent') %}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    notif_title_only_general: >-
+      {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
+    notif_title_only_urgent: >-
+      {{ (notif_title_urgent if notif_title_urgent|trim else notif_title_base) }}
+    notif_heading_general: >-
+      {% set heading = notif_title_general if notif_title_general|trim else notif_title_base %}
+      {{ heading ~ '\n一般 General 🪧' }}
+    notif_heading_urgent: >-
+      {% set heading = notif_title_urgent if notif_title_urgent|trim else notif_title_base %}
+      {{ heading ~ '\n緊急 Urgent ‼️' }}
+    notif_title_only_general_safe: >-
+      {{ notif_title_only_general|default(notif_title_base, true)|string }}
+    notif_title_only_urgent_safe: >-
+      {{ notif_title_only_urgent|default(notif_title_base, true)|string }}
+
+    debounce_sec: 120
+    debounce_ok: >-
+      {% set last = state_attr(this.entity_id, 'last_triggered') %}
+      {% set delta = (as_timestamp(now()) - as_timestamp(last)) if last else 999999 %}
+      {{ delta > debounce_sec }}
+
+    arm_away_timeout_sec: 5
+
+    aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
+    aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
+    aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
+    aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
+    aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
+    aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
+    aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
+    aqara_scene_label_helper: >-
+      {% set label = aqara_scene_label_helper_raw|trim %}
+      {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
+      {% if label|lower in invalids %}
+        {{ '' }}
+      {% else %}
+        {{ label }}
+      {% endif %}
+    aqara_scene_label_attr: >-
+      {% set label = aqara_scene_label_attr_raw|trim %}
+      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+      {% if label|lower in invalids %}
+        {{ '' }}
+      {% else %}
+        {{ label }}
+      {% endif %}
+    aqara_state_label: >-
+      {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
+      {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+      {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+      {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+      {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+      {% else %}情境未知{% endif %}
+    aqara_active_labels: >-
+      {% set labels = [] %}
+      {% if is_state('input_boolean.aqara_zai_jia','on') %}
+        {% set labels = labels + ['在家情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_wan_an','on') %}
+        {% set labels = labels + ['晚安情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_li_jia','on') %}
+        {% set labels = labels + ['離家情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_guan_bi','on') %}
+        {% set labels = labels + ['網關解除情境'] %}
+      {% endif %}
+      {% if is_state('input_boolean.aqara_chu_fa','on') %}
+        {% set labels = labels + ['網關觸發情境'] %}
+      {% endif %}
+      {{ labels|join('、') if labels else '' }}
+    aqara_scene_label_safe: >-
+      {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
+      {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
+      {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
+      {% else %}{{ aqara_state_label }}{% endif %}
+    aqara_is_away: "{{ aqara_li_jia_on }}"
+
+    doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
+    batt_valid: "{{ doorlock_batt >= 0 }}"
+    batt50: "{{ batt_valid and doorlock_batt < 50 }}"
+    batt10: "{{ batt_valid and doorlock_batt < 10 }}"
+    batt0: "{{ batt_valid and doorlock_batt < 1 }}"
+    batt_line_text: >-
+      {% set txt = states('sensor.batt_line_text') %}
+      {% set invalids = ['unknown','unavailable','none','None'] %}
+      {{ txt if txt|trim and txt|lower not in invalids else '門鎖電量摘要：\n• 資料暫無（gateway 尚未回報）' }}
+    batt_line_text_line: >-
+      {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
+    batt_line_text_line_safe: >-
+      {{ batt_line_text_line|default('', true)|string }}
+    title_fallback_line: "【AI離家系統 V2.7】"
+
+  actions:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ not debounce_ok }}"
+          sequence:
+            - stop: "防抖中（{{ debounce_sec }} 秒內重複觸發）—已跳過通知"
+
+    - event: ai_leave_confirmed
+      event_data:
+        who: kenny
+        reason: "ai_auto_leave_system conditions passed — {{ automation_version }} / {{ helpers_compat }}"
+
+    # 若尚未離家情境 → 觸發離家情境
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ not is_state('input_boolean.aqara_li_jia','on') }}"
+          sequence:
+            - service: automation.trigger
+              target:
+                entity_id: automation.101li_jia_qing_jing
+              data: {skip_condition: true}
+            - wait_template: >
+                {{ is_state('input_boolean.aqara_li_jia','on') }}
+              timeout: "00:00:{{ arm_away_timeout_sec }}"
+              continue_on_timeout: true
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ not is_state('input_boolean.aqara_li_jia','on') }}"
+                  sequence:
+            - service: notify.persistent_notification
+              data:
+                title: "{{ notif_title_urgent }}"
+                message: |-
+                  ⚠️ 已判定離家，但保全系統未成功設定外出模式。
+                  目前情境：{{ aqara_scene_label_safe }}
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_emergency_enable
+                  state: "on"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set base = title_fallback_line %}
+                      {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                      {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                      {% set batt_txt = states('sensor.batt_line_text') %}
+                      {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                      {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                      {% set scene = scene_raw|trim %}
+                      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                      {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                      {% set messages = [
+                        {"type":"text","text": title_safe},
+                        {"type":"text","text": '緊急 Urgent ‼️'},
+                        {"type":"text","text": (
+                          '⚠️ 已判定離家並執行離家情境，'
+                          ~ "\n但 Aqara 網關未成功設定離家模式。"
+                          ~ "\n目前情境：" ~ scene_safe
+                        )}
+                      ] %}
+                      {% if batt_safe|trim %}
+                        {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                      {% endif %}
+                      {{ messages | tojson }}
+
+    - choose:
+        - conditions:
+            - condition: and
+              conditions:
+                - condition: state
+                  entity_id: cover.garage
+                  state: closed
+                - condition: or
+                  conditions:
+                    - condition: state
+                      entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                      state: "off"
+                    - condition: template
+                      value_template: "{{ batt0 }}"
+                - condition: state
+                  entity_id: input_boolean.aqara_li_jia
+                  state: "on"
+          sequence:
+            - service: notify.persistent_notification
+              data:
+                title: "{{ notif_title_general|default(notif_title_base, true) }}"
+                message: |-
+                  🏠 系統偵測所有人已離家。
+                  • 家電皆為關閉，門鎖皆已上鎖。
+                  • 已啟動離家模式。
+
+                  {{ batt_line_text_line }}
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_important_enable
+                  state: "on"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set base = title_fallback_line %}
+                      {% set title_raw = states('input_text.notif_title_100b_general') %}
+                      {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                      {% set batt_txt = states('sensor.batt_line_text') %}
+                      {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                      {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                      {% set scene = scene_raw|trim %}
+                      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                      {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                      {% set messages = [
+                        {"type":"text","text": title_safe},
+                        {"type":"text","text": '一般 General 🪧'},
+                        {"type":"text","text": (
+                          '🏠 系統偵測所有人已離家。'
+                          ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
+                          ~ "\n• 已啟動離家模式。"
+                          ~ "\n目前情境：" ~ scene_safe
+                        )}
+                      ] %}
+                      {% if batt_safe|trim %}
+                        {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                      {% endif %}
+                      {{ messages | tojson }}
+
+        - conditions:
+            - condition: and
+              conditions:
+                - condition: template
+                  value_template: >-
+                    {% set garage_open = is_state('cover.garage','open') %}
+                    {% set lock_on = is_state('input_boolean.er_lou_men_suo_tong_bu_kai_guan','on') %}
+                    {{ garage_open or (lock_on and (not batt0)) }}
+                - condition: state
+                  entity_id: input_boolean.aqara_li_jia
+                  state: "on"
+          sequence:
+            - service: notify.persistent_notification
+              data:
+                title: "{{ notif_title_urgent|default(notif_title_base, true) }}"
+                message: |-
+                  ⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。
+                  請確認鐵門與二樓門鎖狀況！
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_emergency_enable
+                  state: "on"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set base = title_fallback_line %}
+                      {% set title_raw = states('input_text.notif_title_100b_urgent') %}
+                      {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                      {% set batt_txt = states('sensor.batt_line_text') %}
+                      {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
+                      {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
+                      {% set scene = scene_raw|trim %}
+                      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
+                      {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
+                      {% set messages = [
+                        {"type":"text","text": title_safe},
+                        {"type":"text","text": '緊急 Urgent ‼️'},
+                        {"type":"text","text": (
+                          '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
+                          ~ "\n請確認鐵門與二樓門鎖狀況！"
+                          ~ "\n目前情境：" ~ scene_safe
+                        )}
+                      ] %}
+                      {% if batt_safe|trim %}
+                        {% set messages = messages + [{"type":"text","text": batt_safe}] %}
+                      {% endif %}
+                      {{ messages | tojson }}
