@@ -115,17 +115,18 @@
 
 ---
 
-## 6) 已採納：configuration/Automations 直接載入模式
+## 6) 已採納：UI + AI 雙軌載入模式
 
 ### 6.1 設定方式
-- 改為 `automation: !include_dir_merge_list Automations`（直接從 configuration/Automations 載入）。
+- `automation: !include automations.yaml`（UI 維護路徑）。
+- `automation ai_managed: !include_dir_merge_list Automations`（AI 模組化路徑）。
 
 ### 6.2 檔案歸屬
 - `configuration/Automations/*.yaml`：
   - 每個檔案即為可直接載入的自動化定義（不再使用 include stub）。
   - 為目前實際載入來源（AI 管理主路徑）。
 - `configuration/automations.yaml`：
-  - 作為歷史/UI 轉換參考檔，不再作為主要載入入口。
+  - 保留為 UI 可執行路徑（非 AI 管理自動化）。
 
 ### 6.3 管理約定（建議）
 - 新增 AI 自動化時：
@@ -159,10 +160,12 @@
   2. 直接重啟 Home Assistant（若同時動到多個核心設定）。
 
 ### Step 4：確認載入是否生效
-- 在 HA 的自動化頁面確認 `configuration/Automations/*AI.yaml` 對應項目已載入且正常觸發。
-- 若保留 `automations.yaml` 參考檔，請避免與 AI 檔存在同名 alias 以免重複載入。
+- 在 HA 的自動化頁面確認：
+  - UI 自動化（`automations.yaml`）可正常執行。
+  - AI 自動化（`configuration/Automations/*AI.yaml`）可正常執行。
+- 避免 UI 與 AI 兩邊出現同名 alias。
 
 ### Step 5：後續維護規則（實務）
-- **主要維護來源** → `/config/Automations/*AI.yaml`。
-- **載入入口** → `/config/Automations/*.yaml`。
+- **UI 維護來源** → `/config/automations.yaml`。
+- **AI 維護來源** → `/config/Automations/*AI.yaml`。
 - 每次搬移自動化前後，都建議執行一次「檢查設定 + 重新載入 Automations」。

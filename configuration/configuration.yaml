@@ -12,7 +12,8 @@ tts:
 #  - platform: edge_tts
 #    language: zh-TW # Default language or voice (Optional)
 group: !include groups.yaml
-automation: !include_dir_merge_list Automations
+automation: !include automations.yaml
+automation ai_managed: !include_dir_merge_list Automations
 script: !include scripts.yaml
 scene: !include scenes.yaml
 sensor: !include sensors.yaml
