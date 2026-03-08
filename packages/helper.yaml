@@ -92,10 +92,14 @@ input_boolean:
     icon: mdi:hand-heart
     # 手動開啟但覺得冷時，可開啟此開關避免自動關閉
 
+  ding_lou_fan_manual_off_hold:
+    name: 頂樓風扇手動關機保留
+    icon: mdi:timer-off-outline
+    # 手動關機後 3 小時內防止 AI 自動重開
+
   top_floor_fan_auto_mode:
     name: 頂樓電風扇_自動模式
     icon: mdi:fan-auto
-    initial: on
 
   living_room_fan_auto_speed_mode:
     name: 客廳風扇_自動風速模式
@@ -114,7 +118,6 @@ input_boolean:
   summer_mode:
     name: 夏季模式
     icon: mdi:weather-sunny
-    initial: off
 
   # 頂樓進出情境（你另一套上/下樓自動化使用）
   ding_lou_shang_lou_qing_jing:
