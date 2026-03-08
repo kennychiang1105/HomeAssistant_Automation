@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────
+# 08-8A廚房感應燈AI (V3.0)
+# 更新紀錄：
+# - V3.0：合併「感應燈開/關」為單一自動化，減少重複觸發器與執行開銷。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-8A 廚房感應燈AI (V3.0)
+  id: ai_08_8a_kitchen_motion_light
+  description: >
+    廚房感應燈整合控制：感應 ON 且符合手動按鍵冷卻條件時開燈；
+    感應 OFF 持續 1 分鐘後關燈。
+  mode: single
+  variables:
+    automation_version: V3.0
+  triggers:
+    - id: motion_on
+      trigger: state
+      entity_id:
+        - binary_sensor.unknown_zhan_kong
+      to: 'on'
+    - id: motion_off
+      trigger: state
+      entity_id:
+        - binary_sensor.unknown_zhan_kong
+      to: 'off'
+      for:
+        hours: 0
+        minutes: 1
+        seconds: 0
+  conditions: []
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: motion_on
+            - condition: template
+              value_template: '{{ (as_timestamp(now()) - as_timestamp(states("event.chu_fang_deng_single_press"), 0)) > 180 }}'
+          sequence:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.chu_fang_deng
+        - conditions:
+            - condition: trigger
+              id: motion_off
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.chu_fang_deng
