@@ -13,6 +13,9 @@
   - 穩定版：`Vx.y.z`
   - 測試版：`Vx.y.z-beta.n`
 
+## 依賴版本
+- Helper 套件版本（`packages/helper.yaml`）：`V3.1`
+
 ## 現況總表
 
 | File | Alias | id | automation_version |
