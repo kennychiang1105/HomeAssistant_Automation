@@ -1,26 +1,27 @@
 # ─────────────────────────────────────────────────────────────
-# 08-8A廚房感應燈AI (V3.0)
+# 08-8A廚房感應燈AI (V3.1)
 # 更新紀錄：
-# - V3.0：合併「感應燈開/關」為單一自動化，減少重複觸發器與執行開銷。
+# - V3.1：調整開燈偵測器為 binary_sensor.kitchen_motion。將手動按鍵後的防誤觸冷卻時間從 3 分鐘縮短為 1 分鐘 (60秒)。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-8A 廚房感應燈AI (V3.0)
+- alias: 08-8A 廚房感應燈AI (V3.1)
   id: ai_08_8a_kitchen_motion_light
   description: >
-    廚房感應燈整合控制：感應 ON 且符合手動按鍵冷卻條件時開燈；
-    感應 OFF 持續 1 分鐘後關燈。
+    廚房感應燈整合控制：使用新偵測器觸發開燈；
+    原感測器偵測 OFF 持續 1 分鐘後關燈；
+    手動開關冷卻時間設為 1 分鐘。
   mode: single
   variables:
-    automation_version: V3.0
+    automation_version: V3.1
   triggers:
     - id: motion_on
       trigger: state
       entity_id:
-        - binary_sensor.unknown_zhan_kong
+        - binary_sensor.kitchen_motion # 新感應器負責開燈
       to: 'on'
     - id: motion_off
       trigger: state
       entity_id:
-        - binary_sensor.unknown_zhan_kong
+        - binary_sensor.unknown_zhan_kong # 原感應器負責判斷無人
       to: 'off'
       for:
         hours: 0
@@ -32,8 +33,9 @@
         - conditions:
             - condition: trigger
               id: motion_on
+            # 防誤觸機制：判斷距離上次手動按鍵是否已超過 60 秒
             - condition: template
-              value_template: '{{ (as_timestamp(now()) - as_timestamp(states("event.chu_fang_deng_single_press"), 0)) > 180 }}'
+              value_template: '{{ (as_timestamp(now()) - as_timestamp(states("event.chu_fang_deng_single_press"), 0)) > 60 }}'
           sequence:
             - action: switch.turn_on
               target:
