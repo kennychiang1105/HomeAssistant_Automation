@@ -1,0 +1,135 @@
+# ─────────────────────────────────────────────────────────────
+# 104-1車庫鐵門感應燈AI (V3.1)
+# 相容版本：Helpers V3.0
+# 更新紀錄：
+# - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
+# - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
+# ─────────────────────────────────────────────────────────────
+- alias: 104-1車庫鐵門感應燈AI (V3.1)
+  id: ai_104_1_garage_gate_motion_light
+  description: >
+    整合鐵門與攝影機事件控制車庫主燈/樓梯燈：鐵門開啟或偵測到人車移動時開燈；
+    鐵門關閉後延時關燈，或在連續無人車移動一段時間後自動關燈。
+  mode: queued
+  max: 10
+
+  triggers:
+    - id: gate_open
+      platform: state
+      entity_id: cover.garage
+      to: "open"
+    - id: gate_opening
+      platform: state
+      entity_id: cover.garage
+      to: "opening"
+    - id: person_on
+      platform: state
+      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+      to: "on"
+    - id: vehicle_on
+      platform: state
+      entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+      to: "on"
+    - id: person_clear_6m
+      platform: state
+      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+      to: "off"
+      for:
+        minutes: 6
+    - id: vehicle_clear_6m
+      platform: state
+      entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+      to: "off"
+      for:
+        minutes: 6
+
+  variables:
+    automation_version: "V3.1"
+
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id:
+                - gate_open
+                - gate_opening
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id:
+                  - switch.che_ku_zhu_deng
+                  - switch.lou_ti_deng
+            - wait_for_trigger:
+                - platform: state
+                  entity_id: cover.garage
+                  to: "closed"
+              timeout:
+                minutes: 30
+              continue_on_timeout: true
+            - condition: state
+              entity_id: cover.garage
+              state: "closed"
+            - delay:
+                minutes: 5
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+              state: "off"
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+              state: "off"
+            - service: switch.turn_off
+              target:
+                entity_id:
+                  - switch.che_ku_zhu_deng
+                  - switch.lou_ti_deng
+
+        - conditions:
+            - condition: trigger
+              id:
+                - person_on
+                - vehicle_on
+            - condition: state
+              entity_id: switch.che_ku_zhu_deng
+              state: "off"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id:
+                  - switch.che_ku_zhu_deng
+                  - switch.lou_ti_deng
+            - delay:
+                minutes: 5
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+              state: "off"
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+              state: "off"
+            - condition: template
+              value_template: "{{ states('cover.garage') not in ['open','opening'] }}"
+            - service: switch.turn_off
+              target:
+                entity_id:
+                  - switch.che_ku_zhu_deng
+                  - switch.lou_ti_deng
+
+        - conditions:
+            - condition: trigger
+              id:
+                - person_clear_6m
+                - vehicle_clear_6m
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+              state: "off"
+            - condition: state
+              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+              state: "off"
+            - condition: state
+              entity_id: cover.garage
+              state: "closed"
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id:
+                  - switch.che_ku_zhu_deng
+                  - switch.lou_ti_deng
