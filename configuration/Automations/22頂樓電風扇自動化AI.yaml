@@ -125,16 +125,12 @@
           {% if hp_soft_hold %}
             none
           {% else %}
-            {% if not summer_mode %}
-              {{ (hp_temp_feels_like if hp_valid_now else ac_temp) | float | round(2) }}
+            {% if summer_mode and ac_on %}
+              {% set hp_use = (hp_temp_feels_like if hp_valid_now else -9999) %}
+              {% set base = [ hp_use, ac_temp + ac_weight_add_c ] | max %}
+              {{ base | float | round(2) }}
             {% else %}
-              {% if ac_on %}
-                {% set hp_use = (hp_temp_feels_like if hp_valid_now else -9999) %}
-                {% set base = [ hp_use, ac_temp + ac_weight_add_c ] | max %}
-                {{ base | float | round(2) }}
-              {% else %}
-                {{ (hp_temp_feels_like if hp_valid_now else ac_temp) | float | round(2) }}
-              {% endif %}
+              {{ (hp_temp_feels_like if hp_valid_now else ac_temp) | float | round(2) }}
             {% endif %}
           {% endif %}
         t_eff_valid: "{{ t_eff is not none }}"
@@ -253,8 +249,7 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'input_boolean.ding_lou_fan_manual_off_hold')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
-                   and (states('input_boolean.ding_lou_fan_manual_off_hold') == 'on') }}
+                   and (trigger.to_state is defined and trigger.to_state.state == 'on') }}
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -344,8 +339,6 @@
               state: "on"
             - condition: template
               value_template: "{{ t_eff_valid }}"
-            - condition: template
-              value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - variables:
                 t_enter: "{{ t_eff | float }}"
@@ -421,8 +414,6 @@
                    and (trigger.to_state is defined and trigger.to_state.state == 'on')
                    and (trigger.from_state is defined and trigger.from_state.state == 'off') }}
             - condition: template
-              value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
-            - condition: template
               value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
             - condition: template
               value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
@@ -479,8 +470,6 @@
               state: "on"
             - condition: template
               value_template: "{{ t_eff_valid and (t_eff | float >= morning_reopen_c) }}"
-            - condition: template
-              value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - service: fan.turn_on
               target:
