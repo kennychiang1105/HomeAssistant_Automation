@@ -1,18 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 21A_客廳電風扇整合控制AI (V2.2)   （Helpers V2.3 相容）
-# 更新重點：
-# 1) 體感溫度修正：即使非自動風速模式，偵測到有效感測值也會寫回體感溫度 Helper，避免卡在 10°C。
-#
-# ----- 上次更新紀錄 -----
-# V2.1：
-# 1) 風速曲線調整：改為20%~100%風速，29°C以上為100%，並區分夏季/非夏季模式(-5%)。
-# 2) 體感溫度實體：新增 input_number Helper，用於顯示目前有效體感溫度。
-# V2.0：
-# 1) 版本號升級：升級至 V2 Beta 2，與 Helper V2.2 同步，並統一更新日誌格式。
-# 2) 命名修正：修正 alias 以符合檔案名稱格式。
+# 21A_客廳電風扇整合控制AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-
-alias: 21A_客廳電風扇整合控制AI (V2.2)
+alias: 21A_客廳電風扇整合控制AI (V3.0)
 id: ai_living_room_fan_integrated_control
 description: "整合溫控、防關閉、夏季模式的雙模式自動化"
 mode: queued
@@ -41,7 +33,7 @@ trigger:
     id: mode_change
 
 variables:
-  automation_version: "V2.2.0"
+  automation_version: "V3.0"
   # ---- Modes ----
   auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
   prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"

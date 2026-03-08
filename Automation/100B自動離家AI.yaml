@@ -1,23 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V2.8)   （Helpers V2.19 相容）
-# 更新重點（相對 V2.7）：
-# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
-# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
-# 更新重點（相對 V2.6）：
-# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
-# 2) 版本同步：對應 Helpers V2.16。
-# 前版更新（V2.3 → V2.5）：
-# 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
-# 2) 通知同步：LINE 標題同步至 V2.5，訊息仍沿用 AI 離家格式並補充情境狀態說明。
-# 前版更新（V2.3 → V2.4）：
-# 1) Aqara 網關情境：改用 input_boolean.aqara_* 判斷離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
-# 2) 通知同步：LINE 標題同步至 V2.4，訊息仍沿用 AI 離家格式並補充情境狀態說明。
-# 前版更新（V1 Beta 9 → V2.3）：
-# 1) 版本號升級：升級至 V2.3，與 Helper V2.10 同步，並統一更新日誌格式。
-# 2) 通知優化：新增 HA 系統通知，並將 LINE 重要/緊急通知開關與 Helpers V2.2 同步。
-# 3) LINE 格式：一般通知回復「一般 General 🪧」標示並增添 Emoji，維持舊版訊息風格與可讀性。
+# 100B自動離家AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-alias: "100B自動離家AI (V2.8)"
+alias: 100B自動離家AI (V3.0)
 id: ai_auto_leave_system
 description: "AI離家 v2.8"
 mode: single
@@ -83,8 +70,8 @@ conditions:
             for: {minutes: 10}
 
 variables:
-  automation_version: "V2.8.0"
-  helpers_compat: "Helpers V2.19"
+  automation_version: "V3.0"
+  helpers_compat: "Helpers V3.0"
   notif_title_base: "【AI離家系統 {{ automation_version }}】"
   notif_title_general: >-
     {% set title = states('input_text.notif_title_100b_general') %}

@@ -17,18 +17,18 @@
 
 | 檔案 | Alias | id | 與 full_automations_20260215 對照 |
 |---|---|---|---|
-| `Automation/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V1.3)` | `ai_line_bot_quota_guard` | ✅ 可對上 |
-| `Automation/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V1.7)` | `ai_miaoli_weather_disaster_notify` | ✅ 可對上 |
-| `Automation/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V2.0)` | `ai_topfloor_stairs_scene` | ✅ 可對上 |
-| `Automation/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V1.6)` | `ai_away_security_system` | ✅ 可對上 |
-| `Automation/100B自動離家AI.yaml` | `100B自動離家AI (V2.8)` | `ai_auto_leave_system` | ⚠️ Alias 版本字串未直接對上（疑似版本漂移） |
-| `Automation/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V2.3)` | `ai_doorlock_battery_stage_notify` | ✅ 可對上 |
-| `Automation/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V2.4)` | `ai_doorlock_battery_cycle_calibration` | ✅ 可對上 |
-| `Automation/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V1 Beta 4)` | `ai_lpr_recognition` | ✅ 可對上 |
-| `Automation/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V1.6)` | `ai_gateway_anomaly_guard` | ✅ 可對上 |
-| `Automation/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V2.2)` | `ai_living_room_fan_integrated_control` | ✅ 可對上 |
-| `Automation/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V2 Beta 4)` | `ai_living_room_fan_anomaly_alert` | ✅ 可對上 |
-| `Automation/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V2.3)` | `ai_topfloor_fan_automation` | ✅ 可對上 |
+| `Automation/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.0)` | `ai_line_bot_quota_guard` | ✅ 可對上 |
+| `Automation/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | ✅ 可對上 |
+| `Automation/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.0)` | `ai_topfloor_stairs_scene` | ✅ 可對上 |
+| `Automation/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | ✅ 可對上 |
+| `Automation/100B自動離家AI.yaml` | `100B自動離家AI (V3.0)` | `ai_auto_leave_system` | ⚠️ Alias 版本字串未直接對上（疑似版本漂移） |
+| `Automation/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | ✅ 可對上 |
+| `Automation/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_cycle_calibration` | ✅ 可對上 |
+| `Automation/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0 Beta 1)` | `ai_lpr_recognition` | ✅ 可對上 |
+| `Automation/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | ✅ 可對上 |
+| `Automation/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.0)` | `ai_living_room_fan_integrated_control` | ✅ 可對上 |
+| `Automation/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.0)` | `ai_living_room_fan_anomaly_alert` | ✅ 可對上 |
+| `Automation/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.0)` | `ai_topfloor_fan_automation` | ✅ 可對上 |
 
 ### C. 全局 helper 套件
 - `packages/helper.yaml`
@@ -115,27 +115,25 @@
 
 ---
 
-## 6) 已採納：雙軌並行落地方式（UI 編輯 + AI 獨立維護）
+## 6) 已採納：configuration/Automations 直接載入模式
 
 ### 6.1 設定方式
-- 保留 `automation: !include automations.yaml`（給 HA UI 可編輯自動化）。
-- 新增 `automation ai_managed: !include_dir_merge_list automations_active`（給 AI 模組化檔案）。
+- 改為 `automation: !include_dir_merge_list Automations`（直接從 configuration/Automations 載入）。
 
 ### 6.2 檔案歸屬
+- `configuration/Automations/*.yaml`：
+  - 每個檔案直接 include 對應的 `Automation/*AI.yaml`。
+  - 為目前實際載入來源（AI 管理主路徑）。
 - `configuration/automations.yaml`：
-  - 放置「非 AI 管理」的 UI 可編輯自動化。
-  - 來源為 `full_automations_20260215.yaml` 扣除 12 份 `*AI.yaml` 對應 alias 後產生。
-- `configuration/automations_active/*.yaml`：
-  - 每個檔案各自 include 對應的 `Automation/*AI.yaml`。
-  - 作為 AI 文字維護區，不走 UI 編輯流程。
+  - 作為歷史/UI 轉換參考檔，不再作為主要載入入口。
 
 ### 6.3 管理約定（建議）
 - 新增 AI 自動化時：
   1. 在 `Automation/` 建立（或更新）`XXX_AI.yaml`。
-  2. 在 `configuration/automations_active/` 新增對應 include 檔。
+  2. 在 `configuration/Automations/` 新增對應 include 檔。
   3. 確認同名 alias 已從 `configuration/automations.yaml` 移除，避免重複載入。
 - 若需讓某自動化回到 UI 維護：
-  - 自 `automations_active` 移除 include，並把該自動化貼回 `automations.yaml`。
+  - 自 `Automations` 移除 include，並把該自動化貼回 `automations.yaml`。
 
 ---
 
@@ -147,11 +145,11 @@
 - 將本 repo 的 `configuration/` 內容同步到 HA 的 `/config/`：
   - `configuration/configuration.yaml` → `/config/configuration.yaml`
   - `configuration/automations.yaml` → `/config/automations.yaml`
-  - `configuration/automations_active/*.yaml` → `/config/automations_active/*.yaml`
+  - `configuration/Automations/*.yaml` → `/config/Automations/*.yaml`
 - 同時確保 AI 原始檔案路徑存在：
   - `Automation/*.yaml` → `/config/Automation/*.yaml`
 
-> 重要：`automations_active/*.yaml` 內使用相對路徑 `../../Automation/...`，
+> 重要：`Automations/*.yaml` 內使用相對路徑 `../Automation/...`，
 > 所以在 HA 端必須保留 `/config/Automation/` 這個目錄結構。
 
 ### Step 2：先做語法檢查（強烈建議）
@@ -164,14 +162,11 @@
   1. **開發者工具 → YAML → 重新載入 Automations**（優先，停機影響小）。
   2. 直接重啟 Home Assistant（若同時動到多個核心設定）。
 
-### Step 4：確認雙軌是否生效
-- 在 HA 的自動化頁面確認：
-  - `automations.yaml` 的項目仍可由 UI 編輯。
-  - `Automation/*AI.yaml` 對應項目已載入且正常觸發。
-- 若看到重複自動化：
-  - 代表同一 alias 同時存在於 `automations.yaml` 與 AI 檔，需保留其中一份。
+### Step 4：確認載入是否生效
+- 在 HA 的自動化頁面確認 `Automation/*AI.yaml` 對應項目已載入且正常觸發。
+- 若保留 `automations.yaml` 參考檔，請避免與 AI 檔存在同名 alias 以免重複載入。
 
 ### Step 5：後續維護規則（實務）
-- **UI 要編輯** → 放在 `/config/automations.yaml`。
-- **AI 要維護** → 放在 `/config/Automation/*AI.yaml`，並在 `/config/automations_active/` 建立 include 檔。
+- **主要維護來源** → `/config/Automation/*AI.yaml`。
+- **載入入口** → `/config/Automations/*.yaml` include 檔。
 - 每次搬移自動化前後，都建議執行一次「檢查設定 + 重新載入 Automations」。

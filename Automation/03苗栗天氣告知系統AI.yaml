@@ -1,10 +1,16 @@
-alias: 03苗栗天氣告知系統AI (V1.7)
+# ─────────────────────────────────────────────────────────────
+# 03苗栗天氣告知系統AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# ─────────────────────────────────────────────────────────────
+alias: 03苗栗天氣告知系統AI (V3.0)
 id: ai_miaoli_weather_disaster_notify
 description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
 mode: queued
 max: 10
 variables:
-  automation_version: "V1.7.0"
+  automation_version: "V3.0"
   line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 triggers:
   - entity_id: sensor.disaster

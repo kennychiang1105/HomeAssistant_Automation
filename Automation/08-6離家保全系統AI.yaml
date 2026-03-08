@@ -1,27 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V1.6)   （Helpers V2.19 相容）
-# 更新重點（相對 V1.5）：
-# 1) 地震預警觸發時，原 LINE 群組推播保留，並同步加送給管理者 ID：U9eeaaf5d404dbde249039924567992d3。
-# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
-# 更新重點（相對 V1.4）：
-# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
-# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
-# 更新重點（相對 V1.3）：
-# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
-# 2) 版本同步：對應 Helpers V2.16。
-# 前版更新（V1.0 → V1.1）：
-# 1) Aqara 情境判斷：改用 input_boolean.aqara_* 辨識離家/夜間/觸發狀態，淘汰舊 alarm_control_panel 實體。
-# 2) LINE 通知升級：採用 AI 離家訊息格式並套用 Helper 分級，鐵門告警歸類為「重要」、門鎖/全開告警歸類為「緊急」。
-# 3) 版本同步：通知標題與 Helpers V2.12 同步，保留舊版更新紀錄。
+# 08-6離家保全系統AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-alias: 08-6離家保全系統AI (V1.6)
+alias: 08-6離家保全系統AI (V3.0)
 id: ai_away_security_system
 description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
 mode: single
 
 variables:
-  automation_version: "V1.6.0"
-  helpers_compat: "Helpers V2.19"
+  automation_version: "V3.0"
+  helpers_compat: "Helpers V3.0"
   notif_title_base: "【離家保全系統 {{ automation_version }}】"
   notif_title_important: >-
     {% set title = states('input_text.notif_title_086_important') %}

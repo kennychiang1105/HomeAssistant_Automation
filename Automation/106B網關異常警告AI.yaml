@@ -1,19 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V1.6)   （Helpers V2.20 相容）
-# 更新重點（相對 V1.5）：
-# 1) LINE 標題版本同步：通知標題預設值與 Helper 同步至 V1.5，避免版本號不一致。
-# 更新重點（相對 V1.4）：
-# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
-# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
-# 更新重點（相對 V1.3）：
-# 1) 情境 helper 更名：改讀 sensor.aqaradang_qian_qing_jing，修正拼字導致空白情境。
-# 2) 版本同步：對應 Helpers V2.16。
-# 前版更新（V1.0 → V1.3）：
-# 1) 情境標籤穩定：通知直接讀取 Aqara 情境 helper 並強制 fallback，避免顯示空白情境。
-# 2) 狀態判斷安全：情境布林改為明確布林與去空白，異常訊息能正確呈現當前狀態。
-# 3) 命名優化：通知標題改為「保全告警系統」，去除 Aqara/網關守護字樣；情境健檢+自動修復同步。
+# 106B網關異常警告AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-alias: 106B網關異常警告AI (V1.6)
+alias: 106B網關異常警告AI (V3.0)
 id: ai_gateway_anomaly_guard
 description: 保全情境重置與異常告警
 mode: single
@@ -32,8 +23,8 @@ triggers:
     event_type: automation_reloaded
 
 variables:
-  automation_version: "V1.6.0"
-  helpers_compat: "Helpers V2.20"
+  automation_version: "V3.0"
+  helpers_compat: "Helpers V3.0"
   notif_title_base: "【保全告警系統 {{ automation_version }}】"
   notif_title_alert: >-
     {% set title = states('input_text.notif_title_gateway_alert') %}

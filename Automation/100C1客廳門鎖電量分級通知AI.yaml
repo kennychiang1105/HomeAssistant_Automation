@@ -1,20 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 100C1客廳門鎖電量分級通知AI (V2.3)   （Helpers V2.19 相容）
-# 更新重點（相對 V2.2）：
-# 1) LINE user_id 改讀 sensor.line_bot_target_user_id，支援測試模式與自訂 ID 覆蓋。
-# 2) 版本同步：對應 Helpers V2.19 / Line Bot 套件 V1.5。
-# 更新重點（相對 V2.1）：
-# 1) 版本號同步：更新 LINE 標題與預設字串至 V2.2，與 Helper V2.9 保持一致。
-# 2) 版本日誌：保留 V2.1 以前的更新紀錄供追溯。
-#
-# 前版更新（V2.0 → V2.1）：
-# 1) LINE 通知格式：改用 script.send_line_to_user 的 JSON payload 並引用 Helpers 標題，避免 Unknown。
-#
-# 更早版本（V1 Beta 10 → V2.0）：
-# 1) 版本號升級：升級至 V2.0，與 Helper V2.2 同步，並統一更新日誌格式。
-# 2) 通知優化：新增「低於5%」的緊急 LINE 通知等級，並確保所有等級皆有 HA 系統通知。
+# 100C1客廳門鎖電量分級通知AI (V3.0)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-alias: 100C1客廳門鎖電量分級通知AI (V2.3)
+alias: 100C1客廳門鎖電量分級通知AI (V3.0)
 id: ai_doorlock_battery_stage_notify
 description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
 mode: single
@@ -37,7 +27,7 @@ triggers:
     for: "00:01:00"
 
 variables:
-  automation_version: "V2.3.0"
+  automation_version: "V3.0"
   notif_title_base: "【AI電量告警系統 {{ automation_version }}】"
   notif_title_warn: |-
     {{ notif_title_base }}

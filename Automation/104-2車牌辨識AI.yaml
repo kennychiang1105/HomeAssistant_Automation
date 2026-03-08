@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V1 Beta 4)   （Helpers V2.13 相容）
-# 更新重點（相對 V1 Beta 3）：
-# 1) 離家關門等待：將延遲關門預設改為 1.5 分鐘並支援 0.5 分鐘步進。
-# 2) Aqara 離家判斷：沿用 input_boolean.aqara_li_jia 判斷離家狀態，淘汰舊 alarm_control_panel 實體。
+# 104-2車牌辨識AI (V3.0 Beta 1)
+# 相容版本：Helpers V3.0
+# 更新紀錄（統一格式）：
+# - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-alias: 104-2車牌辨識AI (V1 Beta 4)
+alias: 104-2車牌辨識AI (V3.0 Beta 1)
 id: ai_lpr_recognition
 description: >
   兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -32,7 +32,7 @@ trigger:
     to: "open"
 
 variables:
-  automation_version: "V1.4.0-beta.4"
+  automation_version: "V3.0 Beta 1"
   # 來源車牌與名稱
   plate: >-
     {% if trigger.id == 't_eak8030' %}EAK8030
