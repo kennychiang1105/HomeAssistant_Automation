@@ -42,7 +42,6 @@
     - variables:
         debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
         manual_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
-        manual_off_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
         summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
 
         # ---- Helpers ----
@@ -346,7 +345,7 @@
             - condition: template
               value_template: "{{ t_eff_valid }}"
             - condition: template
-              value_template: "{{ not manual_off_hold }}"
+              value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - variables:
                 t_enter: "{{ t_eff | float }}"
@@ -481,7 +480,7 @@
             - condition: template
               value_template: "{{ t_eff_valid and (t_eff | float >= morning_reopen_c) }}"
             - condition: template
-              value_template: "{{ not manual_off_hold }}"
+              value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - service: fan.turn_on
               target:
@@ -503,7 +502,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') and not manual_off_hold }}"
+              value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') and not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - service: fan.turn_on
               target:
