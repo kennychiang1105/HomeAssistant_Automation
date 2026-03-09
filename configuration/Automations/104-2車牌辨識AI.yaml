@@ -1,24 +1,24 @@
 # ─────────────────────────────────────────────────────────────
 # 104-2車牌辨識AI (V3.0 Beta 2)
 # 相容版本：Helpers V3.0
-# 更新紀錄（統一格式）：
-# - V3.0 Beta.2：新增開門 5 秒延遲防呆，並導入 LPR 雙階段驗證以解決車內盲區問題。
+# 更新紀錄：
+# - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
 - alias: 104-2車牌辨識AI (V3.0 Beta 2)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
-    新增出門手動開門防呆與 10 分鐘車輛駛出等待。不含加密。
-  mode: single
-  max_exceeded: silent
+    新增出門防呆與 10 分鐘等待。LPR觸發免憑證，統一給予 2 分鐘關門緩衝。
+  mode: parallel
+  max: 5
 
   trigger:
     # LPR — EAK8030
     - id: t_eak8030
       platform: webhook
       webhook_id: lpr_gate_eak8030
-      allowed_methods: [GET, POST]   # 方便測試；穩定後可改回 [POST]
+      allowed_methods: [GET, POST]
       local_only: false
     # LPR — REA9519
     - id: t_rea9519
@@ -26,14 +26,14 @@
       webhook_id: lpr_gate_rea9519
       allowed_methods: [GET, POST]
       local_only: false
-    # 鐵門一開就觸發
+    # 鐵門一開就觸發 (代表鐵門已 100% 完全開啟)
     - id: t_gate_open_instant
       platform: state
       entity_id: cover.garage
       to: "open"
 
   variables:
-    automation_version: "V3.1-beta.1"
+    automation_version: "V3.0 Beta 2"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -49,28 +49,33 @@
     gate_state: "{{ states('cover.garage') }}"
     debug_on: "{{ is_state('input_boolean.lpr_debug_notify','on') }}"
     auto_close_enabled: "{{ is_state('input_boolean.lpr_auto_close_enable','on') }}"
-    delay_minutes: "{{ states('input_number.lpr_auto_close_delay_min') | float(1.5) }}"
-
-    # 安防與人形
+    
+    # 安防與感測器群
     aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
     person_sensor: binary_sensor.che_ku_she_ying_ji_person_detected
+    vehicle_sensor: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+    motion_sensor: binary_sensor.g6_instant_motion
+    
     arm_away_now: "{{ aqara_li_jia_on }}"
     nobody_now: "{{ is_state(person_sensor, 'off') }}"
-    arm_away_text: "{{ '離家情境' if arm_away_now else '非離家情境' }}"
-    nobody_text: "{{ '無人' if nobody_now else '有人' }}"
+    
+    # 判斷是否為 LPR 剛觸發的開門 (120 秒內)
+    lpr_opened_recently: >-
+      {{ 
+        '來源:LPR' in states('input_text.lpr_last_event') and 
+        (as_timestamp(now()) - as_timestamp(states.input_text.lpr_last_event.last_updated)) < 120 
+      }}
 
-    # LPR 當下「開門」預判（維持原本判斷，透過後續 5 秒延遲確認防呆）
+    # LPR 當下「開門」預判
     should_open_now: "{{ is_state('cover.garage','closed') }}"
-    open_decision_text: "{{ '預判：會開門' if should_open_now else '預判：不開門（門已開或條件不符）' }}"
 
   action:
     - choose:
-        # ① LPR 事件（EAK8030 / REA9519）
+        # ① LPR 事件（回家或出門觸發自動開門）
         - conditions:
             - condition: template
               value_template: "{{ trigger.id in ['t_eak8030','t_rea9519'] }}"
           sequence:
-            # 記錄最後事件（255 硬截斷）
             - service: input_text.set_value
               data:
                 entity_id: input_text.lpr_last_event
@@ -79,20 +84,19 @@
                     (event_time ~ " | 來源:LPR | 車牌:" ~ plate ~
                     " (" ~ car_name ~ ") | 鐵門:" ~ gate_state)[:255]
                   }}
-            # UI 顯示最近車牌
             - service: input_select.select_option
               data:
                 entity_id: input_select.lpr_last_plate
                 option: "{{ '未偵測' if plate=='未知' else plate }}"
-            # 根據預判，執行開門或僅通知
+            
             - choose:
-                # 條件符合：關閉狀態下收到 LPR -> 開門
+                # 條件符合：關閉狀態下收到 LPR -> 等 3 秒 -> 開門
                 - conditions:
                     - condition: template
                       value_template: "{{ should_open_now }}"
                   sequence:
-                    - delay: "00:00:05"  # 🟢 5秒延遲防呆：等待手動開門狀態同步
-                    - condition: state     # 🟢 再次確認：如果 5 秒後門仍是「關閉」才執行
+                    - delay: "00:00:03"  # 🟢 3 秒防呆
+                    - condition: state
                       entity_id: cover.garage
                       state: "closed"
                     - service: cover.open_cover
@@ -121,14 +125,13 @@
                                 message: >-
                                   時間：{{ event_time }}
                                   車牌：{{ plate }}（{{ car_name }}）
-                                  狀態：鐵門已開，不重複執行開門。
+                                  狀態：鐵門已開，不重複執行。
 
-        # ② 鐵門開啟 → 進入「可取消」的延遲關門評估 (雙階段驗證)
+        # ② 鐵門開啟 → 進入「可取消」的延遲關門評估
         - conditions:
             - condition: template
               value_template: "{{ trigger.id == 't_gate_open_instant' }}"
           sequence:
-            # 立即記錄（255 硬截斷）
             - service: input_text.set_value
               data:
                 entity_id: input_text.lpr_last_event
@@ -136,7 +139,7 @@
                   {{
                     (event_time ~ " | 來源:GateOpen | 車牌:N/A | 鐵門:" ~ gate_state)[:255]
                   }}
-            # 告知開始等待車輛駛出
+            
             - choose:
                 - conditions:
                     - condition: template
@@ -144,47 +147,70 @@
                   sequence:
                     - service: persistent_notification.create
                       data:
-                        title: "🛗 鐵門已開啟（{{ automation_version }}）"
+                        title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: >-
-                          開始等待車輛駛出 (10分鐘內)。駛出後將進入 {{ delay_minutes }} 分鐘關門評估視窗。
+                          {% if lpr_opened_recently %}
+                          ✅ 近期已有 LPR 觸發紀錄，視同取得駛出憑證，將於 2 分鐘後評估關門。
+                          {% else %}
+                          ⏳ 開始等待駛出憑證 (10分鐘內)。支援車牌、車輛偵測與嚴謹移動偵測。
+                          {% endif %}
 
-            # —— 階段一：防呆等待，確認車輛真的有開出去 —— #
-            - wait_for_trigger:
-                - platform: webhook
-                  webhook_id: lpr_gate_eak8030
-                - platform: webhook
-                  webhook_id: lpr_gate_rea9519
-              timeout:
-                minutes: 10
-              continue_on_timeout: true
-
-            # 如果 10 分鐘都沒有車牌訊號 (代表車沒開出去) ⇒ 取消自動關門
+            # —— 階段一：防呆等待，確認車輛真的有移動/駛出 —— #
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ wait.trigger is none }}"
+                      value_template: "{{ not lpr_opened_recently }}"  # 🟢 若 LPR 剛觸發過，跳過這段等待
                   sequence:
+                    - wait_for_trigger:
+                        # 【憑證一：專屬車輛辨識】
+                        - platform: webhook
+                          webhook_id: lpr_gate_eak8030
+                        - platform: webhook
+                          webhook_id: lpr_gate_rea9519
+                        - platform: state
+                          entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+                          to: "on"
+                        - platform: state
+                          entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+                          to: "off"
+                        # 【憑證二：一般移動偵測】
+                        - platform: state
+                          entity_id: binary_sensor.g6_instant_motion
+                          from: "on"
+                          to: "off"
+                          for:
+                            seconds: 30
+                      timeout:
+                        minutes: 10
+                      continue_on_timeout: true
+
+                    # 如果 10 分鐘都沒有憑證觸發 ⇒ 取消
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ debug_on }}"
+                              value_template: "{{ wait.trigger is none }}"
                           sequence:
-                            - service: persistent_notification.create
-                              data:
-                                title: "⛔ 已取消自動關門 (車輛未駛出)"
-                                message: "鐵門開啟後 10 分鐘內未偵測到車牌，推測可能還在車庫內整理，已暫停本次自動關門。"
-                    - stop: "Canceled because no car left"
+                            - choose:
+                                - conditions:
+                                    - condition: template
+                                      value_template: "{{ debug_on }}"
+                                  sequence:
+                                    - service: persistent_notification.create
+                                      data:
+                                        title: "⛔ 已取消自動關門 (車輛未駛出)"
+                                        message: "鐵門開啟後 10 分鐘內未捕捉到任何駛出憑證，為保護安全已暫停本次自動關門。"
+                            - stop: "Canceled because no car left"
 
-            # —— 階段二：車輛已駛出 (收到LPR)，進入 1.5 分鐘安全緩衝 —— #
+            # —— 階段二：確認駛出 (或 LPR 直達)，進入統一 2 分鐘安全緩衝 —— #
             - wait_for_trigger:
                 - platform: state
-                  entity_id: binary_sensor.che_ku_she_ying_ji_person_detected  # 固定填實體ID
+                  entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
                   to: "on"
               timeout:
-                seconds: "{{ (delay_minutes | float(1.5)) * 60 }}"
+                minutes: 2  # 🟢 統一等待時間為 2 分鐘
               continue_on_timeout: true
 
-            # 緩衝期間如果攝影機偵測到人 ⇒ 取消自動關門
+            # 緩衝期間偵測到人 ⇒ 取消
             - choose:
                 - conditions:
                     - condition: template
@@ -198,22 +224,27 @@
                             - service: persistent_notification.create
                               data:
                                 title: "⛔ 已取消自動關門 (偵測到人)"
-                                message: "車輛駛出後，攝影機偵測到人員活動，為保護安全已暫停關門。"
-                    - stop: "Canceled by presence after LPR"
+                                message: "等待期間攝影機偵測到人員活動，為保護安全已暫停關門。"
+                    - stop: "Canceled by presence"
 
-            # 視窗結束且「沒有」取消 ⇒ 做條件式判斷
+            # 視窗結束 ⇒ 條件式判斷
             - variables:
                 arm_away_later: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
-                nobody_later: "{{ is_state(person_sensor, 'off') }}"
+                # 🟢 三重保護：確認現場無人、無車輛狀態、無任何細微移動
+                nobody_later: >-
+                  {{ 
+                    is_state(person_sensor, 'off') and 
+                    is_state(vehicle_sensor, 'off') and
+                    is_state(motion_sensor, 'off')
+                  }}
                 gate_still_open: "{{ is_state('cover.garage','open') }}"
             - choose:
-                # 符合條件：Arm Away + 無人 + 門仍開
+                # 符合條件
                 - conditions:
                     - condition: template
                       value_template: "{{ gate_still_open and arm_away_later and nobody_later }}"
                   sequence:
                     - choose:
-                        # 啟用自動關門：真的關門
                         - conditions:
                             - condition: template
                               value_template: "{{ auto_close_enabled }}"
@@ -223,10 +254,8 @@
                                 entity_id: cover.garage
                             - service: persistent_notification.create
                               data:
-                                title: "🤖 自動關門已執行"
-                                message: >-
-                                  視窗結束：Arm Away + 無人 + 門仍開 ⇒ 已下達關門。
-                        # 未啟用：只通知
+                                title: "🤖 自動關門已執行 ({{ automation_version }})"
+                                message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
                         - conditions:
                             - condition: template
                               value_template: "{{ not auto_close_enabled }}"
@@ -234,10 +263,8 @@
                             - service: persistent_notification.create
                               data:
                                 title: "🤖（預備）條件式關門：會關"
-                                message: >-
-                                  視窗結束：Arm Away + 無人 + 門仍開 ⇒ 預判會關門。
-                                  （目前僅通知；開啟『LPR自動關門』即可生效）
-                # 不符合條件：不關
+                                message: "預判會關門。目前僅通知；開啟『LPR自動關門』即可生效。"
+                # 不符合條件
                 - conditions:
                     - condition: template
                       value_template: "{{ not (gate_still_open and arm_away_later and nobody_later) }}"
@@ -246,7 +273,6 @@
                       data:
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
-                          視窗結束但條件未滿足：保全={{ 'Arm Away' if arm_away_later else '非 Arm Away' }}、
-                          人形={{ '無人' if nobody_later else '有人' }}、鐵門={{ '仍開啟' if gate_still_open else '已關閉' }}。
-                          本次不關門（或已關）。
+                          條件未滿足：保全={{ 'Arm Away' if arm_away_later else '非 Arm Away' }}、
+                          現場動靜={{ '平靜無人' if nobody_later else '有動靜' }}、鐵門={{ '仍開啟' if gate_still_open else '已關閉' }}。
       default: []
