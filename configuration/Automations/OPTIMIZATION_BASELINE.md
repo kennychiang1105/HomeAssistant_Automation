@@ -1,4 +1,4 @@
-# Home Assistant 自動化整理基線（2026-02-16）
+# Home Assistant 自動化整理基線
 
 > 目的：先建立**現況盤點**，作為下一階段「優化與冗餘清理」的共同基準。  
 > 範圍：`FullHistory/full_automations_20260307.yaml`、各 `*AI.yaml`、`packages/helper.yaml`。
