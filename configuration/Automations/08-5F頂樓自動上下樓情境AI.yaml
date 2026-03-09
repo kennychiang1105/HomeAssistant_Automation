@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5F頂樓自動上下樓情境AI (V3.0)
+# 08-5F頂樓自動上下樓情境AI (V3.1)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V3.0)
+- alias: 08-5F頂樓自動上下樓情境AI (V3.1)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -23,20 +24,15 @@
       trigger: state
     - id: t_ap_immediate_up
       value_template: >
-        {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set s2
-        = states('input_text.watch_tracker_entity_kenny') %} {% set iphone_ent =
+        {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set iphone_ent =
         'device_tracker.iphone_17_pro_max_kenny' if s1 in
-        ['unknown','unavailable',''] else s1 %} {% set watch_ent  =
-        'device_tracker.apple_watch_ultra_3_kenny' if s2 in
-        ['unknown','unavailable',''] else s2 %} {% set iphone_ap  =
-        (state_attr(iphone_ent,'ap_mac')|default(''))|lower %} {% set watch_ap   =
-        (state_attr(watch_ent,'ap_mac')|default(''))|lower %} {% set ap_raw     =
+        ['unknown','unavailable',''] else s1 %} {% set iphone_ap  =
+        (state_attr(iphone_ent,'ap_mac')|default(''))|lower %} {% set ap_raw     =
         states('input_text.topfloor_ap_macs_5f') %} {% set ap_list_raw =
         '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in
         ['unknown','unavailable',''] else ap_raw %} {% set ap_list =
         (ap_list_raw|lower|replace('
-        ','')|replace(';',',')|regex_findall('[^,]+')) %} {{ (iphone_ap in
-        ap_list) or (watch_ap in ap_list) }}
+        ','')|replace(';',',')|regex_findall('[^,]+')) %} {{ iphone_ap in ap_list }}
       trigger: template
     - id: t_ap_left_phone
       value_template: >
@@ -51,38 +47,23 @@
         ','')|replace(';',',')|regex_findall('[^,]+')) %} {{ iphone_ap not in
         ap_list }}
       trigger: template
-    - id: t_ap_left_watch
-      value_template: >
-        {% set s2 = states('input_text.watch_tracker_entity_kenny') %} {% set
-        watch_ent = 'device_tracker.apple_watch_ultra_3_kenny' if s2 in
-        ['unknown','unavailable',''] else s2 %} {% set watch_ap  =
-        (state_attr(watch_ent,'ap_mac')|default(''))|lower %} {% set ap_raw     =
-        states('input_text.topfloor_ap_macs_5f') %} {% set ap_list_raw =
-        '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in
-        ['unknown','unavailable',''] else ap_raw %} {% set ap_list =
-        (ap_list_raw|lower|replace('
-        ','')|replace(';',',')|regex_findall('[^,]+')) %} {{ watch_ap not in
-        ap_list }}
-      trigger: template
   conditions:
-    - condition: state
-      entity_id: device_tracker.iphone_17_pro_max_kenny
-      state: home
+    - condition: template
+      value_template: >-
+        {{ trigger.id == 't_leave_ai_confirmed' or
+           is_state('device_tracker.iphone_17_pro_max_kenny', 'home') }}
   actions:
     - variables:
         _trig: "{{ (trigger.id | default('unknown')) | string }}"
         _iphone_ap_s: "{{ (iphone_ap | default('none')) | string }}"
-        _watch_ap_s: "{{ (watch_ap  | default('none')) | string }}"
         _snap_json: |
           {{
             {
               "ts": now().isoformat(),
               "trigger": _trig,
               "iphone_ap": _iphone_ap_s,
-              "watch_ap": _watch_ap_s,
               "iphone_ap_valid": (iphone_ap_valid | bool),
               "up_phone_raw": (upstairs_phone_raw | bool),
-              "up_watch": (upstairs_watch | bool),
               "up_for_up": (upstairs_present_up | bool),
               "up_for_down": (upstairs_present_down | bool),
               "l1": (lamp1_on | bool),
@@ -103,8 +84,7 @@
           {% set Y = '✅' %}{% set N = '❌' %} 🕒 {{ now().strftime('%Y-%m-%d
           %H:%M:%S') }} 🔔 Trigger: {{ _trig }} ───────────────────────────── 📶
           AP 狀態 • iPhone AP: {{ _iphone_ap_s }}（有效? {{ Y if iphone_ap_valid else N
-          }}）→ 5F? {{ Y if upstairs_phone_raw else N }} • Watch  AP: {{
-          _watch_ap_s }} → 5F? {{ Y if upstairs_watch else N }} • 上樓用(OR): {{ Y if
+          }}）→ 5F? {{ Y if upstairs_phone_raw else N }} • 上樓用(iPhone): {{ Y if
           upstairs_present_up else N }}　下樓用(Phone-保守): {{ Y if
           upstairs_present_down else N }} ───────────────────────────── 💡 燈光 •
           L1: {{ 'ON' if lamp1_on else 'off' }}　L2: {{ 'ON' if lamp2_on else 'off'
@@ -153,22 +133,37 @@
             condition: trigger
             id: t_leave_ai_confirmed
           sequence:
-            - action: input_boolean.turn_on
-              target:
-                entity_id: input_boolean.ding_lou_xia_lou_qing_jing
-            - action: input_boolean.turn_off
-              target:
-                entity_id: input_boolean.ding_lou_shang_lou_qing_jing
-            - action: timer.start
-              target:
-                entity_id: timer.topfloor_lock_after_down
-              data:
-                duration: 90
-            - action: input_text.set_value
-              target:
-                entity_id: input_text.topfloor_debug_last_decision
-              data:
-                value: AI離家→下樓
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >-
+                        {{ (not upstairs_present_down) or is_state(iphone_entity, 'not_home') }}
+                  sequence:
+                    - action: input_boolean.turn_on
+                      target:
+                        entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+                    - action: input_boolean.turn_off
+                      target:
+                        entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+                    - action: timer.start
+                      target:
+                        entity_id: timer.topfloor_lock_after_down
+                      data:
+                        duration: 90
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.topfloor_debug_last_decision
+                      data:
+                        value: AI離家後複檢→下樓（已離家或不在頂樓）
+                - conditions:
+                    - condition: template
+                      value_template: "{{ upstairs_present_down and is_state(iphone_entity, 'home') }}"
+                  sequence:
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.topfloor_debug_last_decision
+                      data:
+                        value: AI離家後複檢未下樓（仍在頂樓）
             - choose:
                 - conditions:
                     - condition: template
@@ -177,8 +172,8 @@
                     - action: persistent_notification.create
                       data:
                         title: "[DEBUG] 決策"
-                        message: AI離家→下樓
-            - stop: AI離家→下樓完成
+                        message: "{{ states('input_text.topfloor_debug_last_decision') }}"
+            - stop: AI離家後複檢完成
         - conditions:
             - condition: state
               entity_id: timer.topfloor_lock_after_down
@@ -295,12 +290,8 @@
             - condition: state
               entity_id: timer.topfloor_lock_after_up
               state: idle
-            - condition: or
-              conditions:
-                - condition: trigger
-                  id: t_ap_left_watch
-                - condition: trigger
-                  id: t_cam
+            - condition: trigger
+              id: t_cam
           sequence:
             - choose:
                 - conditions:
@@ -608,14 +599,10 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     iphone_entity: >
       {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
-      ['unknown','unavailable',''] else s }}
-    watch_entity: >
-      {% set s = states('input_text.watch_tracker_entity_kenny') %} {{
-      'device_tracker.apple_watch_ultra_3_kenny' if s in
       ['unknown','unavailable',''] else s }}
     ap_list_raw: >
       {% set s = states('input_text.topfloor_ap_macs_5f') %} {{
@@ -625,11 +612,9 @@
       {{ ap_list_raw | lower | replace(' ','') | replace(';',',') |
       regex_findall('[^,]+') }}
     iphone_ap: "{{ (state_attr(iphone_entity, 'ap_mac') | default('')) | lower }}"
-    watch_ap: "{{ (state_attr(watch_entity,  'ap_mac') | default('')) | lower }}"
     upstairs_phone_raw: "{{ iphone_ap in ap_list }}"
-    upstairs_watch: "{{ watch_ap in ap_list }}"
     iphone_ap_valid: "{{ iphone_ap not in ['', 'unknown', 'unavailable', none] }}"
-    upstairs_present_up: "{{ upstairs_phone_raw or upstairs_watch }}"
+    upstairs_present_up: "{{ upstairs_phone_raw }}"
     upstairs_present_down: |
       {% if iphone_ap_valid %}
         {{ upstairs_phone_raw }}

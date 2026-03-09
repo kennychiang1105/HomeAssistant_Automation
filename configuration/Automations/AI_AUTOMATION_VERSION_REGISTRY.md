@@ -22,7 +22,7 @@
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.1)` | `ai_line_bot_quota_guard` | `V3.1` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
-| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.0)` | `ai_topfloor_stairs_scene` | `V3.0` |
+| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -42,4 +42,3 @@
   1. 先更新檔內 `variables.automation_version`。
   2. 再同步本總表。
   3. 若有跨檔引用，優先保持 `id` 不變；若必須改 `id`，要全域搜尋後一併更新。
-
