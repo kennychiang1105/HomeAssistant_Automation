@@ -11,7 +11,7 @@
   - `variables.automation_version`
 - 版本字串統一使用：
   - 穩定版：`Vx.y.z`
-  - 測試版：`Vx.y.z-beta.n`
+  - 測試版：`Vx.y.z (Beta n)`
 
 ## 依賴版本
 - Helper 套件版本（`packages/helper.yaml`）：`V3.1`
