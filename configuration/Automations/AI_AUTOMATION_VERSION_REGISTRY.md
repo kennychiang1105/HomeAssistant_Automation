@@ -1,4 +1,4 @@
-# AI 自動化版本與 ID 總表（2026-02-16）
+# AI 自動化版本與 ID 總表
 
 > 用途：集中管理 `configuration/Automations/*AI.yaml` 的標準欄位，作為後續優化/比對基準。
 
