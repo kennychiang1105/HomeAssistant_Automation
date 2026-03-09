@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5F頂樓自動上下樓情境AI (V3.0)
+# 08-5F頂樓自動上下樓情境AI (V3.1)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V3.0)
+- alias: 08-5F頂樓自動上下樓情境AI (V3.1)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -598,7 +599,7 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     iphone_entity: >
       {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
