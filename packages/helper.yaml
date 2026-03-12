@@ -60,6 +60,9 @@
 # ──────────────────────────────────────────────
 
 timer:
+  garage_light_manual_off_cooldown:
+    name: 車庫燈手動關閉冷卻
+    duration: "00:05:00"
   topfloor_down_intent_guard:
     name: 頂樓下樓意圖保護窗
   topfloor_lock_after_up:
@@ -381,11 +384,11 @@ input_text:
   notif_title_100b_general:
     name: 100B_LINEnotice_一般
     max: 120
-    initial: "【AI離家系統 V2.8】"
+    initial: "【AI離家系統 V3.0】"
   notif_title_100b_urgent:
     name: 100B_LINEnotice_緊急
     max: 120
-    initial: "【AI離家系統 V2.8】"
+    initial: "【AI離家系統 V3.0】"
   notif_title_086_important:
     name: 08-6_LINEnotice_重要
     max: 120
@@ -449,7 +452,7 @@ input_text:
     name: AI離家版本字串
     icon: mdi:home-export-outline
     max: 120
-    initial: "AI離家 v2.4"
+    initial: "AI離家 V3.0"
    
 input_select:
   # LINE Bot 運作模式
@@ -706,13 +709,13 @@ template:
             state: >-
               {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
               {% set invalids = ['unknown','unavailable', '', None] %}
-              {{ friendly if friendly not in invalids else 'AI離家 v3.1' }}
+              {{ friendly if friendly not in invalids else 'AI離家 V3.0' }}
             attributes:
               source_automation: automation.ai_auto_leave_system
 
 automation:
   - id: ui_ai_leave_version_sync
-    alias: AI離家版本同步器 v3.1
+    alias: AI離家版本同步器 v3.0
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
     mode: single
     trigger:
@@ -728,7 +731,7 @@ automation:
           current_version: >-
             {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
             {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 v3.1' }}
+            {{ friendly if friendly not in invalids else 'AI離家 V3.0' }}
       - service: input_text.set_value
         target:
           entity_id: input_text.ai_leave_version_text
@@ -739,7 +742,7 @@ automation:
           entity_id: sensor.ai_li_jia_ban_ben_template
 
   - id: ui_line_notif_title_refresh
-    alias: LINE通知標題同步器 v3.1
+    alias: LINE通知標題同步器 v3.0
     description: 開機/自動化重載時同步 LINE 標題 helpers，避免 initial 版本舊化
     mode: single
     trigger:
@@ -756,7 +759,7 @@ automation:
         {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
         {% set invalids = ['unknown','unavailable','', None, 'none', 'None'] %}
         {% set version = friendly if friendly not in invalids else states('sensor.ai_li_jia_ban_ben_template') %}
-        {{ version if version not in invalids else 'AI離家 v3.1' }}
+        {{ version if version not in invalids else 'AI離家 V3.0' }}
       ai_leave_title: "【{{ ai_leave_version.replace('AI離家', 'AI離家系統') }}】"
       batt_warn_title: "【AI電量告警系統 V3.1】"
       batt_calib_title: "【AI電量計算系統 V3.1】"
