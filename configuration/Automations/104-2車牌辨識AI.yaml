@@ -1,15 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V3.0 Beta 2)
+# 104-2車牌辨識AI (V3.0 Beta 3)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
+# - V3.0 Beta 3：手動開門後一旦取得駛出憑證立即進入 2 分鐘安全緩衝；憑證等待上限由 10 分鐘下修為 6 分鐘。
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V3.0 Beta 2)
+- alias: 104-2車牌辨識AI (V3.0 Beta 3)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
-    新增出門防呆與 10 分鐘等待。LPR觸發免憑證，統一給予 2 分鐘關門緩衝。
+    新增出門防呆與 6 分鐘憑證等待。LPR觸發免憑證，統一給予 2 分鐘關門緩衝。
   mode: parallel
   max: 5
 
@@ -33,7 +34,7 @@
       to: "open"
 
   variables:
-    automation_version: "V3.0 Beta 2"
+    automation_version: "V3.0 Beta 3"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -152,7 +153,7 @@
                           {% if lpr_opened_recently %}
                           ✅ 近期已有 LPR 觸發紀錄，視同取得駛出憑證，將於 2 分鐘後評估關門。
                           {% else %}
-                          ⏳ 開始等待駛出憑證 (10分鐘內)。支援車牌、車輛偵測與嚴謹移動偵測。
+                          ⏳ 開始等待駛出憑證 (6分鐘內)。一旦取得憑證即立刻進入 2 分鐘安全緩衝。
                           {% endif %}
 
             # —— 階段一：防呆等待，確認車輛真的有移動/駛出 —— #
@@ -181,10 +182,10 @@
                           for:
                             seconds: 30
                       timeout:
-                        minutes: 10
+                        minutes: 6
                       continue_on_timeout: true
 
-                    # 如果 10 分鐘都沒有憑證觸發 ⇒ 取消
+                    # 如果 6 分鐘都沒有憑證觸發 ⇒ 取消
                     - choose:
                         - conditions:
                             - condition: template
@@ -198,8 +199,16 @@
                                     - service: persistent_notification.create
                                       data:
                                         title: "⛔ 已取消自動關門 (車輛未駛出)"
-                                        message: "鐵門開啟後 10 分鐘內未捕捉到任何駛出憑證，為保護安全已暫停本次自動關門。"
+                                        message: "鐵門開啟後 6 分鐘內未捕捉到任何駛出憑證，為保護安全已暫停本次自動關門。"
                             - stop: "Canceled because no car left"
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ wait.trigger is not none and debug_on }}"
+                          sequence:
+                            - service: persistent_notification.create
+                              data:
+                                title: "✅ 已取得駛出憑證"
+                                message: "已取得駛出憑證（{{ wait.trigger.platform }}），立即進入 2 分鐘安全緩衝，不會繼續等待到 6 分鐘上限。"
 
             # —— 階段二：確認駛出 (或 LPR 直達)，進入統一 2 分鐘安全緩衝 —— #
             - wait_for_trigger:

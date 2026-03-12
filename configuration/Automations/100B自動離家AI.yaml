@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────
 - alias: 100B自動離家AI (V3.0)
   id: ai_auto_leave_system
-  description: "AI離家 v2.8"
+  description: "AI離家 V3.0"
   mode: single
 
   triggers:
@@ -75,10 +75,10 @@
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
       {% set title = states('input_text.notif_title_100b_general') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.0】' }}
     notif_title_urgent: >-
       {% set title = states('input_text.notif_title_100b_urgent') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V2.8】' }}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.0】' }}
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_only_general: >-
       {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
@@ -171,7 +171,7 @@
       {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
     batt_line_text_line_safe: >-
       {{ batt_line_text_line|default('', true)|string }}
-    title_fallback_line: "【AI離家系統 V2.7】"
+    title_fallback_line: "【AI離家系統 V3.0】"
 
   actions:
     - choose:

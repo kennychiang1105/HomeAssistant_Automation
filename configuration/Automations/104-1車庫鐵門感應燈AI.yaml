@@ -1,16 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.1)
+# 104-1車庫鐵門感應燈AI (V3.2)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
+# - V3.2：改為 restart 降低排隊延遲體感；新增「手動關燈後 5 分鐘冷卻」避免立刻被自動重開。
 # - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
 # - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.1)
+- alias: 104-1車庫鐵門感應燈AI (V3.2)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門與攝影機事件控制車庫主燈/樓梯燈：鐵門開啟或偵測到人車移動時開燈；
     鐵門關閉後延時關燈，或在連續無人車移動一段時間後自動關燈。
-  mode: queued
+  mode: restart
   max: 10
 
   triggers:
@@ -42,9 +43,17 @@
       to: "off"
       for:
         minutes: 6
+    - id: main_light_off
+      platform: state
+      entity_id: switch.che_ku_zhu_deng
+      to: "off"
+    - id: stair_light_off
+      platform: state
+      entity_id: switch.lou_ti_deng
+      to: "off"
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V3.2"
 
   actions:
     - choose:
@@ -53,6 +62,9 @@
               id:
                 - gate_open
                 - gate_opening
+            - condition: state
+              entity_id: timer.garage_light_manual_off_cooldown
+              state: "idle"
           sequence:
             - service: switch.turn_on
               target:
@@ -91,6 +103,9 @@
             - condition: state
               entity_id: switch.che_ku_zhu_deng
               state: "off"
+            - condition: state
+              entity_id: timer.garage_light_manual_off_cooldown
+              state: "idle"
           sequence:
             - service: switch.turn_on
               target:
@@ -112,6 +127,20 @@
                 entity_id:
                   - switch.che_ku_zhu_deng
                   - switch.lou_ti_deng
+
+        - conditions:
+            - condition: trigger
+              id:
+                - main_light_off
+                - stair_light_off
+            - condition: template
+              value_template: "{{ trigger.to_state.context.user_id is not none }}"
+          sequence:
+            - service: timer.start
+              target:
+                entity_id: timer.garage_light_manual_off_cooldown
+              data:
+                duration: "00:05:00"
 
         - conditions:
             - condition: trigger
