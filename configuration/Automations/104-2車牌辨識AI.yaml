@@ -1,13 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V3.0 RC1)
+# 104-2車牌辨識AI (V3.0 RC2)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
+# - V3.0 (RC2)：LPR 開門新增保全條件限制，僅在 Arm Away 狀態才允許自動開門。
 # - V3.0 (RC1)：車輛駛出安全緩衝由 2 分鐘調整為 1.5 分鐘（90 秒），其餘流程不變。
 # - V3.0 Beta 3：手動開門後一旦取得駛出憑證立即進入 2 分鐘安全緩衝；憑證等待上限由 10 分鐘下修為 6 分鐘。
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V3.0 RC1)
+- alias: 104-2車牌辨識AI (V3.0 RC2)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -35,7 +36,7 @@
       to: "open"
 
   variables:
-    automation_version: "V3.0 (RC1)"
+    automation_version: "V3.0 (RC2)"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -68,8 +69,8 @@
         (as_timestamp(now()) - as_timestamp(states.input_text.lpr_last_event.last_updated)) < 120 
       }}
 
-    # LPR 當下「開門」預判
-    should_open_now: "{{ is_state('cover.garage','closed') }}"
+    # LPR 當下「開門」預判（需保全 Arm Away）
+    should_open_now: "{{ is_state('cover.garage','closed') and arm_away_now }}"
 
   action:
     - choose:
@@ -92,7 +93,7 @@
                 option: "{{ '未偵測' if plate=='未知' else plate }}"
             
             - choose:
-                # 條件符合：關閉狀態下收到 LPR -> 等 3 秒 -> 開門
+                # 條件符合：關閉狀態 + Arm Away 下收到 LPR -> 等 3 秒 -> 開門
                 - conditions:
                     - condition: template
                       value_template: "{{ should_open_now }}"
@@ -111,7 +112,7 @@
                           時間：{{ event_time }}
                           車牌：{{ plate }}（{{ car_name }}）
                           指令：開門 (因鐵門為關閉狀態)
-                # 條件不符：門已開 -> 僅通知
+                # 條件不符：門已開或非 Arm Away -> 僅通知
                 - conditions:
                     - condition: template
                       value_template: "{{ not should_open_now }}"
@@ -127,7 +128,7 @@
                                 message: >-
                                   時間：{{ event_time }}
                                   車牌：{{ plate }}（{{ car_name }}）
-                                  狀態：鐵門已開，不重複執行。
+                                  狀態：{{ '鐵門已開，不重複執行。' if is_state('cover.garage','open') else '目前非 Arm Away，不執行開門。' }}
 
         # ② 鐵門開啟 → 進入「可取消」的延遲關門評估
         - conditions:
