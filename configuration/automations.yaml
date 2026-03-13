@@ -1713,22 +1713,6 @@
     target:
       entity_id: fan.kong_qi_qing_jing_ji
   mode: single
-- id: '1692412846877'
-  alias: 00-4 特定日誌刪除
-  description: ''
-  trigger:
-  - platform: time
-    at: 01:00:00
-  condition: []
-  action:
-  - service: recorder.purge_entities
-    data:
-      keep_days: 0
-    target:
-      entity_id:
-      - sensor.disaster_time
-      - sensor.earthquake_time
-  mode: single
 - id: '1692451827229'
   alias: 800-開關系列-5客廳主開關下2/客廳外開關下1-客廳燈全
   description: ''
@@ -3005,85 +2989,6 @@
           domain: remote
   mode: parallel
   max: 10
-- id: '1705817101115'
-  alias: 00-2A 廣播系統Testing
-  description: ''
-  triggers: []
-  conditions: []
-  actions:
-  - data:
-      volume_level: 0.6
-    target:
-      entity_id: media_player.can_ting
-    action: media_player.volume_set
-  - data:
-      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【廣播系統】測試訊息\\nTEST
-        Message\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"測試訊息\\nTEST
-        Message。\\n測試訊息 TEST Message。\"\n      },\n      {\n          \"type\":\"text\",\n\n
-        \          \"text\":\"【廣播系統】測試訊息 TEST Message\"\n      }\n  ]\n"
-    enabled: true
-    action: script.send_line_to_user
-  - data:
-      media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-      media_content_type: music
-    target:
-      entity_id: media_player.guang_bo_qun_zu_all
-    action: media_player.play_media
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 13
-      milliseconds: 0
-    enabled: true
-  - data:
-      message: 系統廣播 廣播測試中 Boardcasting Testing 廣播測試中
-      media_player_entity_id: media_player.guang_bo_qun_zu_all
-      cache: true
-    action: tts.speak
-    metadata: {}
-    target:
-      device_id: c01a1336ef43795fd0679631c3e6ce62
-  - data:
-      message: 廣播中...廣播系統測試中
-      title: 廣播系統測試中
-    action: notify.persistent_notification
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 20
-      milliseconds: 0
-  - repeat:
-      until:
-      - condition: state
-        entity_id: media_player.sony_bravia_tv
-        attribute: media_title
-        state: TATV-8000
-      sequence:
-      - data:
-          command: Hdmi1
-        target:
-          device_id: fdcccfa405461070717b80a56a590960
-        action: remote.send_command
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 1
-          milliseconds: 0
-  - data:
-      command: Confirm
-    target:
-      device_id: fdcccfa405461070717b80a56a590960
-    enabled: true
-    action: remote.send_command
-  - metadata: {}
-    data:
-      volume_level: 0.4
-    target:
-      entity_id: media_player.wu_lou
-    action: media_player.volume_set
-  mode: parallel
-  max: 10
 - id: '1721459962917'
   alias: 100A自動啟動到家早安情境
   description: ''
@@ -3109,7 +3014,7 @@
       minutes: 5
       seconds: 0
     trigger: state
-    enabled: false
+    enabled: true
   - minutes: /10
     trigger: time_pattern
     enabled: false
@@ -4874,8 +4779,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a05ejin_ji_shi_ti_an_niu', 'last_triggered') | default(0)))
-      > (2) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a05ejin_ji_shi_ti_an_niu'',
+      ''last_triggered'') | default(0))) > (2) }}'
   actions:
   - parallel:
     - action: automation.trigger
@@ -4889,7 +4794,6 @@
       target:
         entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
   mode: single
-
 - id: '1747237162262'
   alias: 800-開關系列-11A 書房燈感應開關單擊
   description: ''
@@ -4900,8 +4804,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_11a_single', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_11a_single'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - action: switch.toggle
     metadata: {}
@@ -5176,11 +5080,11 @@
     to: 'on'
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a08_5cauto', 'last_triggered') | default(0)))
-      < (180) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a08_5cauto'',
+      ''last_triggered'') | default(0))) < (180) }}'
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a08_5cauto', 'last_triggered') | default(0)))
-      > (2) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a08_5cauto'',
+      ''last_triggered'') | default(0))) > (2) }}'
     enabled: false
   actions:
   - if:
@@ -5358,8 +5262,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_11b', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_11b'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - sequence:
     - parallel:
@@ -5404,11 +5308,11 @@
         - repeat:
             count: 4
             sequence:
-              - action: switch.toggle
-                target:
-                  entity_id: switch.shu_fang_deng
-              - delay:
-                  milliseconds: 500
+            - action: switch.toggle
+              target:
+                entity_id: switch.shu_fang_deng
+            - delay:
+                milliseconds: 500
           enabled: true
       - conditions:
         - condition: state
@@ -5421,14 +5325,13 @@
         - repeat:
             count: 2
             sequence:
-              - action: switch.toggle
-                target:
-                  entity_id: switch.shu_fang_deng
-              - delay:
-                  milliseconds: 500
+            - action: switch.toggle
+              target:
+                entity_id: switch.shu_fang_deng
+            - delay:
+                milliseconds: 500
           enabled: true
   mode: restart
-
 - id: '1747548375786'
   alias: 800-開關系列-10B小米無線開關雙擊-廚房燈自動化開關
   description: ''
@@ -5483,11 +5386,11 @@
         - repeat:
             count: 4
             sequence:
-              - action: switch.toggle
-                target:
-                  entity_id: switch.chu_fang_deng
-              - delay:
-                  milliseconds: 500
+            - action: switch.toggle
+              target:
+                entity_id: switch.chu_fang_deng
+            - delay:
+                milliseconds: 500
           enabled: true
       - conditions:
         - condition: state
@@ -5497,11 +5400,11 @@
         - repeat:
             count: 2
             sequence:
-              - action: switch.toggle
-                target:
-                  entity_id: switch.chu_fang_deng
-              - delay:
-                  milliseconds: 500
+            - action: switch.toggle
+              target:
+                entity_id: switch.chu_fang_deng
+            - delay:
+                milliseconds: 500
           enabled: true
   mode: single
 - id: '1747916726853'
@@ -5518,8 +5421,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12a_ding_lou_lou_ti_deng_dan_ji', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12a_ding_lou_lou_ti_deng_dan_ji'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - parallel:
     - action: light.toggle
@@ -5549,8 +5452,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12b', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12b'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - action: light.toggle
     metadata: {}
@@ -5583,8 +5486,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12c', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12c'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - sequence:
     - action: light.turn_on
@@ -5617,8 +5520,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_12d', 'last_triggered') | default(0)))
-      > (1) }}"
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12d'',
+      ''last_triggered'') | default(0))) > (1) }}'
   actions:
   - parallel:
     - action: light.toggle
