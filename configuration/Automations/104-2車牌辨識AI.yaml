@@ -1,16 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V3.0 Beta 3)
+# 104-2車牌辨識AI (V3.0 RC1)
 # 相容版本：Helpers V3.0
 # 更新紀錄：
-# - V3.0 Beta 3：手動開門後一旦取得駛出憑證立即進入 2 分鐘安全緩衝；憑證等待上限由 10 分鐘下修為 6 分鐘。
+# - V3.0 (RC1)：車輛駛出安全緩衝由 2 分鐘調整為 1.5 分鐘（90 秒），其餘流程不變。
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V3.0 Beta 3)
+- alias: 104-2車牌辨識AI (V3.0 RC1)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
-    新增出門防呆與 6 分鐘憑證等待。LPR觸發免憑證，統一給予 2 分鐘關門緩衝。
+    新增出門防呆與 6 分鐘憑證等待。LPR觸發免憑證，統一給予 1.5 分鐘（90 秒）關門緩衝。
   mode: parallel
   max: 5
 
@@ -34,7 +34,7 @@
       to: "open"
 
   variables:
-    automation_version: "V3.0 Beta 3"
+    automation_version: "V3.0 (RC1)"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -151,9 +151,9 @@
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: >-
                           {% if lpr_opened_recently %}
-                          ✅ 近期已有 LPR 觸發紀錄，視同取得駛出憑證，將於 2 分鐘後評估關門。
+                          ✅ 近期已有 LPR 觸發紀錄，視同取得駛出憑證，將於 1.5 分鐘（90 秒）後評估關門。
                           {% else %}
-                          ⏳ 開始等待駛出憑證 (6分鐘內)。一旦取得憑證即立刻進入 2 分鐘安全緩衝。
+                          ⏳ 開始等待駛出憑證 (6分鐘內)。一旦取得憑證即立刻進入 1.5 分鐘（90 秒）安全緩衝。
                           {% endif %}
 
             # —— 階段一：防呆等待，確認車輛真的有移動/駛出 —— #
@@ -208,15 +208,15 @@
                             - service: persistent_notification.create
                               data:
                                 title: "✅ 已取得駛出憑證"
-                                message: "已取得駛出憑證（{{ wait.trigger.platform }}），立即進入 2 分鐘安全緩衝，不會繼續等待到 6 分鐘上限。"
+                                message: "已取得駛出憑證（{{ wait.trigger.platform }}），立即進入 1.5 分鐘（90 秒）安全緩衝，不會繼續等待到 6 分鐘上限。"
 
-            # —— 階段二：確認駛出 (或 LPR 直達)，進入統一 2 分鐘安全緩衝 —— #
+            # —— 階段二：確認駛出 (或 LPR 直達)，進入統一 1.5 分鐘（90 秒）安全緩衝 —— #
             - wait_for_trigger:
                 - platform: state
                   entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
                   to: "on"
               timeout:
-                minutes: 2  # 🟢 統一等待時間為 2 分鐘
+                seconds: 90  # 🟢 統一等待時間為 1.5 分鐘（90 秒）
               continue_on_timeout: true
 
             # 緩衝期間偵測到人 ⇒ 取消
