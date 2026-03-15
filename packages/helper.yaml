@@ -1,6 +1,12 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.1）
+# Helpers（V3.3）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.3):
+#   • 移除未再使用的 Bot 配額獨立通知開關（notify_line_quota_warn_enable / notify_line_quota_final_enable）。
+#   • LINE Bot 配額提醒全面統一到通知分級開關（重要/緊急）。
+# 新增與強化 (V3.2):
+#   • 門鎖剩餘天數估算優化：同一電量%連續多日時，依「該電量維持時間」遞減估算天數，避免連續顯示相同剩餘天數。
+#   • 版本同步流程強化：新增 AI 更新 SOP（通知易懂化、分級開關檢查、Helper 相容註記、版本三方同步）。
 # 新增與強化 (V3.1):
 #   • AI/UI 自動化命名規範統一：AI 以 ai_、UI 以 ui_ 前綴，並移除 ID 版本號。
 #   • 雙軌調整：改由 configuration/Automations 直接載入 AI 自動化（移除 automations_active 依賴）。
@@ -153,14 +159,6 @@ input_boolean:
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
-  notify_line_quota_warn_enable:
-    name: LINE通知啟用_Bot配額提醒
-    icon: mdi:counter
-    initial: on
-  notify_line_quota_final_enable:
-    name: LINE通知啟用_Bot配額最終告警
-    icon: mdi:counter-alert
-    initial: on
     
   line_bot_test_mode:
     name: LINE Bot_測試模式
@@ -551,7 +549,10 @@ template:
             {% set drop_ok = drop is not none and drop > 0 %}
 
             {% if batt_ok and drop_ok and model_ok %}
-              {{ (batt / drop)|round(1) }}
+              {% set raw_days = (batt / drop) %}
+              {% set hold_age_days = ((as_timestamp(now()) - as_timestamp(states.sensor.ke_ting_men_suo_dian_liang_guo_lu.last_changed)) / 86400) %}
+              {% set est_days = [raw_days - hold_age_days, 0] | max %}
+              {{ est_days|round(1) }}
             {% else %}
               unknown
             {% endif %}
