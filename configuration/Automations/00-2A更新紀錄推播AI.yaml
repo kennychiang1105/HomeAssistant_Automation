@@ -1,5 +1,5 @@
 # 相容版本：Helpers V3.5（已確認）
-- alias: 00-2A更新紀錄推播AI (V3.0)
+- alias: 00-2A更新紀錄推播AI (V3.1)
   id: ai_00_2a_release_note_push
   description: 每日 18:00 比對 HA/AI 版本，僅在有更新時推播變更摘要（HA + LINE 一般通知）。
   mode: single
@@ -7,77 +7,104 @@
   - trigger: time
     at: '18:00:00'
   variables:
-    automation_version: 'V3.0'
+    automation_version: 'V3.1'
     line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
     release_url: 'https://github.com/kennychiang1105/HomeAssistant_Automation/releases/'
     invalid_texts: ['unknown', 'unavailable', 'none', 'None', '']
     ha_current_version: '{{ states(''sensor.current_version'') if states(''sensor.current_version'') not in invalid_texts else ''未知'' }}'
     ai_components:
-    - name: 00-2A更新紀錄推播AI
-      version: V3.0
-    - name: 00-2BLINE推播AI
+    - key: ai_00_2a
+      name: 00-2A更新紀錄推播AI
+      version: V3.1
+    - key: ai_00_2b
+      name: 00-2BLINE推播AI
       version: V3.2
-    - name: 03苗栗天氣告知系統AI
+    - key: ai_03
+      name: 03苗栗天氣告知系統AI
       version: V3.0
-    - name: 05B緊急模式通知AI
+    - key: ai_05b
+      name: 05B緊急模式通知AI
       version: V3.0
-    - name: 05C按鈕自動復位AI
+    - key: ai_05c
+      name: 05C按鈕自動復位AI
       version: V3.0
-    - name: 05D緊急模式虛擬按鈕AI
+    - key: ai_05d
+      name: 05D緊急模式虛擬按鈕AI
       version: V3.0
-    - name: 08-5F頂樓自動上下樓情境AI
+    - key: ai_08_5f
+      name: 08-5F頂樓自動上下樓情境AI
       version: V3.1
-    - name: 08-5G書房燈感應AI
+    - key: ai_08_5g
+      name: 08-5G書房燈感應AI
       version: V3.1
-    - name: 08-6離家保全系統AI
+    - key: ai_08_6
+      name: 08-6離家保全系統AI
       version: V3.0
-    - name: 08-8A廚房感應燈AI
+    - key: ai_08_8a
+      name: 08-8A廚房感應燈AI
       version: V3.1
-    - name: 100B自動離家AI
+    - key: ai_100b
+      name: 100B自動離家AI
       version: V3.1
-    - name: 100C1客廳門鎖電量分級通知AI
+    - key: ai_100c1
+      name: 100C1客廳門鎖電量分級通知AI
       version: V3.0
-    - name: 100C2客廳門鎖電量分級通知AI
+    - key: ai_100c2
+      name: 100C2客廳門鎖電量分級通知AI
       version: V3.0
-    - name: 104-1車庫鐵門感應燈AI
+    - key: ai_104_1
+      name: 104-1車庫鐵門感應燈AI
       version: V3.2
-    - name: 104-2車牌辨識AI
+    - key: ai_104_2
+      name: 104-2車牌辨識AI
       version: V3.0 (RC2)
-    - name: 104-3鐵門判斷未關提醒及作動AI
+    - key: ai_104_3
+      name: 104-3鐵門判斷未關提醒及作動AI
       version: V3.2
-    - name: 106B網關異常警告AI
+    - key: ai_106b
+      name: 106B網關異常警告AI
       version: V3.0
-    - name: 21A_客廳電風扇整合控制AI
+    - key: ai_21a
+      name: 21A_客廳電風扇整合控制AI
       version: V3.0
-    - name: 21B_客廳電風扇異常告警AI
+    - key: ai_21b
+      name: 21B_客廳電風扇異常告警AI
       version: V3.0
-    - name: 22頂樓電風扇自動化AI
+    - key: ai_22
+      name: 22頂樓電風扇自動化AI
       version: V3.1
-    - name: 地震預警系統(遠端)AI
+    - key: script_eew_remote
+      name: 地震預警系統(遠端)AI
       version: V3.2
-    current_ai_versions_csv: >-
-      {% set ns = namespace(values=[]) %}
+    current_versions_kv: >-
+      {% set ns = namespace(pairs=[]) %}
       {% for item in ai_components %}
-        {% set ns.values = ns.values + [item.version] %}
+        {% set ns.pairs = ns.pairs + [item.key ~ '=' ~ item.version] %}
       {% endfor %}
-      {{ ns.values | join(',') }}
-    current_snapshot: '{{ ha_current_version ~ ''|'' ~ current_ai_versions_csv }}'
+      {{ ns.pairs | join(';') }}
+    current_snapshot: '{{ ''ha='' ~ ha_current_version ~ ''|'' ~ current_versions_kv }}'
     previous_snapshot: '{{ states(''input_text.ai_version_snapshot_compact'') }}'
     previous_ha_version: >-
-      {% if previous_snapshot in invalid_texts %}
+      {% if previous_snapshot in invalid_texts or '|' not in previous_snapshot %}
         V0.0
       {% else %}
-        {% set parts = previous_snapshot.split('|') %}
-        {{ parts[0] if parts|length > 0 and parts[0] else 'V0.0' }}
+        {% set head = previous_snapshot.split('|', 1)[0] %}
+        {% if '=' in head %}
+          {{ head.split('=', 1)[1] }}
+        {% else %}
+          V0.0
+        {% endif %}
       {% endif %}
     changed_lines_text: >-
-      {% set ns = namespace(lines=[]) %}
+      {% set ns = namespace(lines=[], prev_map={}) %}
       {% set prev_raw = previous_snapshot %}
-      {% if prev_raw in invalid_texts %}
-        {% set prev_versions = [] %}
-      {% else %}
-        {% set parts = prev_raw.split('|') %}
-        {% set prev_versions = parts[1].split(',') if parts|length > 1 and parts[1] else [] %}
+      {% if prev_raw not in invalid_texts and '|' in prev_raw %}
+        {% set body = prev_raw.split('|', 1)[1] %}
+        {% for pair in body.split(';') if '=' in pair %}
+          {% set key = pair.split('=', 1)[0] %}
+          {% set val = pair.split('=', 1)[1] %}
+          {% set ns.prev_map = dict(ns.prev_map, **{key: val}) %}
+        {% endfor %}
       {% endif %}
 
       {% if previous_ha_version != ha_current_version %}
@@ -85,8 +112,7 @@
       {% endif %}
 
       {% for item in ai_components %}
-        {% set idx = loop.index0 %}
-        {% set old_version = prev_versions[idx] if idx < prev_versions|length and prev_versions[idx] else 'V0.0' %}
+        {% set old_version = ns.prev_map.get(item.key, 'V0.0') %}
         {% if old_version != item.version %}
           {% set ns.lines = ns.lines + ['• ' ~ item.name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ item.version] %}
         {% endif %}

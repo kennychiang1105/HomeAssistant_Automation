@@ -23,7 +23,7 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.2)` | `ai_line_bot_quota_guard` | `V3.2` |
-| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.0)` | `ai_00_2a_release_note_push` | `V3.0` |
+| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.1)` | `ai_00_2a_release_note_push` | `V3.1` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.0)` | `ai_05b_emergency_mode_notify_v3` | `V3.0` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -121,6 +121,4 @@
 - 已全域檢查 05B-05D 與地震 Script 的 ID/實體引用，未發現殘留舊 ID 參照。
 - Helper 相容性檢查完成：本次流程依賴的 `notify_line_*` 與 `input_text.line_eew_remote_*` 已於 `packages/helper.yaml` 定義，維持 `Helpers V3.5`。
 
-- 新增 `00-2A更新紀錄推播AI (V1.0)`：每日 18:00 推播 HA/AI 版本摘要到 HA 與 LINE（一般通知），並附更新紀錄網址。
-
-- 00-2A更新紀錄推播AI 升級至 `V3.0`：納入全部 AI 自動化/腳本版本比對，僅在與上次版本快照不同時推播；新建項目以 `V0.0 -> 新版本` 顯示。
+- 00-2A更新紀錄推播AI 版本演進：`V1.0`（建立每日 18:00 更新推播）→ `V3.0`（變更才推播）→ `V3.1`（改為 key-based 版本快照比對，避免元件順序異動造成誤判）。

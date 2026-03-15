@@ -125,7 +125,7 @@
           device_id: c01a1336ef43795fd0679631c3e6ce62
         data:
           media_player_entity_id: media_player.guang_bo_qun_zu_all
-          message: 地震預警系統預估地震{{ states('input_text.line_eew_remote_level') }}級，{{ states('input_text.line_eew_remote_seconds') }}秒後到達。{{ level }}級地震！{{ seconds }}秒到達！
+          message: 地震預警系統預估地震{{ level_text }}級，{{ seconds_text }}秒後到達。{{ level_text }}級地震！{{ seconds_text }}秒到達！
           cache: true
       - delay:
           hours: 0

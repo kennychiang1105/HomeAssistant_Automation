@@ -48,13 +48,10 @@
           enabled: true
           action: script.send_line_to_user
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由家庭APP手動觸發\U0001F4F1，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+            title: 智慧家庭通知｜緊急 Urgent ‼️
+            message: >-
+              緊急模式已啟動（所有照明開啟並關閉電源）。
+              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
           action: persistent_notification.create
         - if:
@@ -306,7 +303,7 @@
       - sequence:
         - if:
           - condition: template
-            value_template: "{{ state_attr('script.99999999999999', 'last_triggered') is not none and (as_timestamp(now()) - as_timestamp(state_attr('script.99999999999999', 'last_triggered'))) < 600 }}"
+            value_template: "{{ trigger.entity_id == 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto' and states('input_text.line_eew_remote_level')|int(0) >= 4 and state_attr('script.99999999999999', 'last_triggered') is not none and (as_timestamp(now()) - as_timestamp(state_attr('script.99999999999999', 'last_triggered'))) < 600 }}"
           then:
           - stop: 地震已由地震預警腳本通知，略過 05B 自動來源補充通知，避免訊息覆蓋
         - delay:
@@ -326,12 +323,10 @@
             enabled: true
             action: script.send_line_to_user
           - data:
-              message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-                \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n
-                \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198
-                緊急模式為啟動狀態\U0001F534\\n(所有照明開啟並關閉電源)\\n\\n\U0001F30D緊急模式由系統自動判定觸發\\n(地震\U0001FAE8,火災\U0001F525,緊急情況等)\\n\\n\U0001F198請確認實際狀況!\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況穩定後\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-                \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198 緊急 Urgent ‼️】緊急模式啟動\\n請確認緊急情況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+              title: 智慧家庭通知｜緊急 Urgent ‼️
+              message: >-
+                緊急模式已啟動（所有照明開啟並關閉電源）。
+                請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
             enabled: true
             action: persistent_notification.create
           - if:
@@ -519,13 +514,10 @@
           enabled: true
           action: script.send_line_to_user
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由系統手動觸發\U0001F449，\\n請確認是否為測試或誤發‼️\\n若為測試或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}   \n"
+            title: 智慧家庭通知｜緊急 Urgent ‼️
+            message: >-
+              緊急模式已啟動（所有照明開啟並關閉電源）。
+              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
           action: persistent_notification.create
         - if:
@@ -787,13 +779,10 @@
           enabled: true
           action: script.send_line_to_user
         - data:
-            message: "{\n  \"messages\":[\n      {\n          \"type\":\"text\",\n
-              \         \"text\":\"【智慧家庭通知】\U0001F198 緊急 Urgent ‼️\"\n      },\n      {\n
-              \         \"type\":\"text\",\n          \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由實體按鈕按壓觸發\U0001F518，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n
-              \     },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198
-              緊急 Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n}  \n"
+            title: 智慧家庭通知｜緊急 Urgent ‼️
+            message: >-
+              緊急模式已啟動（所有照明開啟並關閉電源）。
+              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
           action: persistent_notification.create
         - if:
