@@ -109,7 +109,7 @@
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.2)` | `99999999999999` | `V3.2` |
+| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.3)` | `99999999999999` | `V3.3` |
 
 ## 本次調整（2026-03）
 - 05 系列中 `05B/05C/05D` 已拆分為 AI 管理檔案（`configuration/Automations/*AI.yaml`），`05A` 保留於 `configuration/automations.yaml` 手動流程。
@@ -117,7 +117,7 @@
 
 - 版本總表更名為 `configuration/AI_VERSION_REGISTRY.md`，改為 Automation/Script 共用維護。
 - 05B/05C/05D 緊急模式 AI 自動化統一升級為 `V3.0`，並同步更新 ID：`ai_05b_emergency_mode_notify_v3` / `ai_05c_emergency_button_auto_reset_v3` / `ai_05d_emergency_virtual_button_bridge_v3`。
-- 地震遠端 Script AI（`script.99999999999999`）版本升級為 `V3.2`：震度分級調整為「2級以下僅通知、3級廣播不啟動緊急模式、4級以上維持緊急模式」，並同步分級通知（2級以下重要、3級以上緊急）。
+- 地震遠端 Script AI（`script.99999999999999`）版本升級為 `V3.3`：震度解析改為正則擷取數字，`5- / 5+ / 6- / 6+ / 7` 均可正確判定分級。
 - 已全域檢查 05B-05D 與地震 Script 的 ID/實體引用，未發現殘留舊 ID 參照。
 - Helper 相容性檢查完成：本次流程依賴的 `notify_line_*` 與 `input_text.line_eew_remote_*` 已於 `packages/helper.yaml` 定義，維持 `Helpers V3.5`。
 

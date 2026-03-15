@@ -1,10 +1,10 @@
-# 相容版本：Helpers V3.3（已確認）
+# 相容版本：Helpers V3.5（已確認）
 '99999999999999':
-  alias: 地震預警系統(遠端)AI (V3.2)
+  alias: 地震預警系統(遠端)AI (V3.3)
   description: 地震預警通知與分級廣播；4級以上觸發緊急模式。
   variables:
-    automation_version: 'V3.2'
-    lv: '{{ level[:1] | int }}'
+    automation_version: 'V3.3'
+    lv: "{{ (level_text | regex_findall_index('\\d+')) | int(0) }}"
     level_text: '{{ level if level is defined and level|string|trim not in ['''', ''unknown'', ''unavailable''] else ''未知'' }}'
     seconds_text: '{{ seconds if seconds is defined and seconds|string|trim not in ['''', ''unknown'', ''unavailable''] else ''未知'' }}'
     line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
