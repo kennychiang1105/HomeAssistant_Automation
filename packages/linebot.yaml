@@ -1,4 +1,12 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.9)
+# 更新重點（V1.9）：
+# 1) 配額提醒/最終告警開關改為統一使用通知分級：重要/緊急。
+# 2) 保留 V1.8 功能：Auto 模式下，先挑選未達 196 則的可用 Bot；若僅有未知用量的 Bot，依序嘗試 1→2→3→0；完全不可用時才回報額度用盡，不再誤回退到耗盡的 Bot。
+# 3) 保留 V1.7 功能：感測器全數暫時無效時回退主力 Bot1，避免顯示額度 0。
+# 4) 保留 V1.6 功能：修正 Bot3 顯示名稱缺字，與其他 Bot 命名保持一致。
+# 5) 保留 V1.5 功能：集中計算測試模式/自訂 ID/預設 ID，供自動化共用，Manual Bot0 標註緊急 Bot。
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.8)
 # 更新重點（V1.8）：
 # 1) Auto 模式下，先挑選未達 196 則的可用 Bot；若僅有未知用量的 Bot，依序嘗試 1→2→3→0；完全不可用時才回報額度用盡，不再誤回退到耗盡的 Bot。
@@ -340,13 +348,13 @@ script:
           can_notify_quota: >-
             {{
               states('sensor.bot_msg_count0')|int(999) < quota_limit
-              and states('input_boolean.notify_line_quota_warn_enable') == 'on'
+              and states('input_boolean.notify_line_important_enable') == 'on'
             }}
 
           final_quota_notice: >-
             {{
               states('sensor.bot_msg_count0')|int(999) < quota_limit
-              and states('input_boolean.notify_line_quota_final_enable') == 'on'
+              and states('input_boolean.notify_line_emergency_enable') == 'on'
             }}
 
           # 🔑 自動補 to 的 RAW JSON

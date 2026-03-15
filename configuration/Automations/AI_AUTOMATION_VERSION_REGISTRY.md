@@ -15,7 +15,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.2`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.3`
 
 ## 現況總表
 
@@ -57,7 +57,8 @@
 2. 重要通知：必須檢查 `input_boolean.notify_line_important_enable`，標題格式建議為 `【系統名稱】重要 Important ⚠️`。
 3. 緊急通知：必須檢查 `input_boolean.notify_line_emergency_enable`，標題格式建議為 `【系統名稱】緊急 Emergency 🚨` 或 `緊急 Urgent ‼️`（同系統內需一致）。
 4. 不可跳過分級判斷直接送 LINE（除非明確有例外需求並在更新註解說明）。
-5. 通知內容需維持易懂：標題先顯示等級，再描述事件重點、系統動作與目前狀態。
+5. 若原有獨立開關已被統一分級取代，需同步移除舊 helper 與引用，避免殭屍開關。
+6. 通知內容需維持易懂：標題先顯示等級，再描述事件重點、系統動作與目前狀態。
 
 ### SOP-3：Helper 相容性檢查與註記（每次更新必做）
 1. 調整自動化前，先確認使用到的 helper/sensor/input_* 是否存在且型別相容。
