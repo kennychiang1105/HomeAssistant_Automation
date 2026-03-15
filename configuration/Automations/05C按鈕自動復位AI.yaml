@@ -1,0 +1,74 @@
+# 相容版本：Helpers V3.3（已確認）
+- id: ai_05c_emergency_button_auto_reset_v3
+  alias: 05C按鈕自動復位AI (V3.0)
+  description: 緊急模式判斷按鈕自動復位。
+  variables:
+    automation_version: 'V3.0'
+  triggers:
+  - trigger: time_pattern
+    minutes: /3
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_shang_lou_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_xia_lou_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_ye_deng_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_yue_du_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  conditions: []
+  actions:
+  - parallel:
+    - action: input_boolean.turn_off
+      metadata: {}
+      data: {}
+      target:
+        entity_id:
+        - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+        - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
+        - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual
+        - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
+    - action: input_boolean.turn_off
+      metadata: {}
+      data: {}
+      target:
+        entity_id:
+        - input_boolean.ding_lou_xia_lou_qing_jing
+        - input_boolean.ding_lou_shang_lou_qing_jing
+        - input_boolean.ding_lou_ye_deng_qing_jing
+        - input_boolean.ding_lou_yue_du_qing_jing
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: cover.garage
+          state: closed
+        sequence:
+        - action: input_boolean.turn_off
+          metadata: {}
+          data: {}
+          target:
+            entity_id: input_boolean.garagejudge
+  mode: single

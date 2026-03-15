@@ -1,8 +1,9 @@
-# AI 自動化版本與 ID 總表
+# AI 版本與 ID 總表（Automation + Script）
 
-> 用途：集中管理 `configuration/Automations/*AI.yaml` 的標準欄位，作為後續優化/比對基準。
+> 用途：集中管理 `configuration/Automations/*AI.yaml` 與 `configuration/Scripts/*AI.yaml` 的標準欄位，作為後續優化/比對基準。
 
 ## 統一規範（已套用）
+- Automation 與 Script 皆需維持可追溯版本欄位（`variables.automation_version`）。
 - 每份 AI 自動化檔案皆具備：
   - `alias`
   - `id`
@@ -15,14 +16,18 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.3`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.5`
 
-## 現況總表
+## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.2)` | `ai_line_bot_quota_guard` | `V3.2` |
+| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.1)` | `ai_00_2a_release_note_push` | `V3.1` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
+| `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.0)` | `ai_05b_emergency_mode_notify_v3` | `V3.0` |
+| `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
+| `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
@@ -69,7 +74,7 @@
 1. 任何影響通知或 helper 相依邏輯的更新，需同步檢查並更新：
    - 自動化檔案內 `automation_version` 與 alias 版本。
    - `packages/helper.yaml` 版本與更新紀錄。
-   - `AI_AUTOMATION_VERSION_REGISTRY.md` 的依賴版本與現況總表。
+   - `AI_VERSION_REGISTRY.md` 的依賴版本與現況總表。
 2. 三方版本必須一致可追溯，避免「自動化已升版、Helper/Registry 未同步」。
 
 ### SOP-5：更新資訊連結（建議）
@@ -80,3 +85,40 @@
 1. 同一事件流若會觸發多段通知，需加上流程控制（`choose` / `stop` / 去重旗標）避免重複推播。
 2. 「狀態說明通知」與「自動化結果通知」若可合併，優先合併為單一通知。
 3. 通知需包含當前關鍵情境（例如目前情境狀態），降低使用者二次查詢成本。
+
+
+### SOP-7：更新紀錄推播（00-2A）運作原理與更新點（每次改版必做）
+1. **運作原理（變更才推播）**：
+   - 00-2A 會讀取 `input_text.ai_version_snapshot_compact` 作為「上次版本快照」。
+   - 將目前 HA 版本與 AI 元件版本組成新快照，比對後僅輸出有差異項目。
+   - 若是新建立項目，舊版視為 `V0.0`，通知顯示 `V0.0 -> 新版本`。
+2. **後續改版需要更新的地方**：
+   - `configuration/Automations/00-2A更新紀錄推播AI.yaml`
+     - `variables.ai_components`：新增/刪除/改版 AI 自動化與腳本時必須同步。
+     - `variables.automation_version` 與 alias 版本。
+   - `configuration/AI_VERSION_REGISTRY.md`
+     - Automations/Scripts 現況總表版本號。
+     - 「本次調整」條目（描述此次升版重點）。
+   - `packages/helper.yaml`
+     - 若 00-2A 依賴 helper 有增減，需同步版本與註記。
+3. **驗證建議**：
+   - 檢查 `ai_components` 與 registry 項目是否一致。
+   - 檢查 `input_text.ai_version_snapshot_compact` 存在且可寫入。
+
+## 現況總表（Scripts）
+
+| File | Alias | id | automation_version |
+|---|---|---|---|
+| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.3)` | `99999999999999` | `V3.3` |
+
+## 本次調整（2026-03）
+- 05 系列中 `05B/05C/05D` 已拆分為 AI 管理檔案（`configuration/Automations/*AI.yaml`），`05A` 保留於 `configuration/automations.yaml` 手動流程。
+- 地震遠端腳本 `script.99999999999999` 已拆分至 `configuration/Scripts/地震預警系統遠端AI.yaml`，並由 `configuration/configuration.yaml` 新增 AI script include 載入。
+
+- 版本總表更名為 `configuration/AI_VERSION_REGISTRY.md`，改為 Automation/Script 共用維護。
+- 05B/05C/05D 緊急模式 AI 自動化統一升級為 `V3.0`，並同步更新 ID：`ai_05b_emergency_mode_notify_v3` / `ai_05c_emergency_button_auto_reset_v3` / `ai_05d_emergency_virtual_button_bridge_v3`。
+- 地震遠端 Script AI（`script.99999999999999`）版本升級為 `V3.3`：震度解析改為正則擷取數字，`5- / 5+ / 6- / 6+ / 7` 均可正確判定分級。
+- 已全域檢查 05B-05D 與地震 Script 的 ID/實體引用，未發現殘留舊 ID 參照。
+- Helper 相容性檢查完成：本次流程依賴的 `notify_line_*` 與 `input_text.line_eew_remote_*` 已於 `packages/helper.yaml` 定義，維持 `Helpers V3.5`。
+
+- 00-2A更新紀錄推播AI 版本演進：`V1.0`（建立每日 18:00 更新推播）→ `V3.0`（變更才推播）→ `V3.1`（改為 key-based 版本快照比對，避免元件順序異動造成誤判）。

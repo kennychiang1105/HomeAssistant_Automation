@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.3）
+# Helpers（V3.5）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.5):
+#   • 移除全部 helper `initial` 設定，避免重開機時覆寫歷史狀態/紀錄。
+# 新增與強化 (V3.4):
+#   • 新增 input_text.ai_version_snapshot_compact，供 00-2A 更新紀錄推播AI 比對上次版本快照（僅有變更時推播）。
 # 新增與強化 (V3.3):
 #   • 移除未再使用的 Bot 配額獨立通知開關（notify_line_quota_warn_enable / notify_line_quota_final_enable）。
 #   • LINE Bot 配額提醒全面統一到通知分級開關（重要/緊急）。
@@ -94,7 +98,6 @@ input_boolean:
   ding_lou_fan_cold_off_memory:
     name: 頂樓風扇_夜間過冷記憶
     icon: mdi:fan-off
-    initial: off
 
   ding_lou_fan_manual_hold:
     name: 頂樓風扇_手動保留（暫停自動關閉）
@@ -113,12 +116,10 @@ input_boolean:
   living_room_fan_auto_speed_mode:
     name: 客廳風扇_自動風速模式
     icon: mdi:fan-auto
-    initial: on
 
   living_room_fan_prevent_off_mode:
     name: 客廳風扇_防關閉模式
     icon: mdi:fan-off
-    initial: off
 
   living_room_fan_debug_notify:
     name: 客廳風扇_通知Debug模式
@@ -175,7 +176,6 @@ input_number:
     step: 0.5
     unit_of_measurement: min
     icon: mdi:timer-sand
-    initial: 1.5
   # 風扇 AI 自動化：門檻 & 權重參數
   enter_low_close_c:
     name: 上樓_不開門檻(°C)
@@ -185,7 +185,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:thermometer-off
-    initial: 25.4
 
   enter_high_open_c:
     name: 上樓_必開門檻(°C)（目前以動態值為主）
@@ -195,7 +194,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:thermometer-alert
-    initial: 29.0
 
   night_cold_off_c:
     name: 夜間_過冷關機(°C)
@@ -205,7 +203,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:snowflake-off
-    initial: 25.4
 
   morning_reopen_c:
     name: 白天_回溫再開(°C)
@@ -215,7 +212,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:weather-sunset-up
-    initial: 27.5
 
   ac_weight_add_c:
     name: AC加權(+°C)
@@ -225,7 +221,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:plus-thick
-    initial: 1.0
 
   ac_fast_rise_th_c:
     name: AC快速升溫門檻(°C/次)
@@ -235,7 +230,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:speedometer
-    initial: 0.4
 
   ac_fast_rise_bonus_c:
     name: AC快速升溫加權(+°C)
@@ -245,7 +239,6 @@ input_number:
     mode: slider
     unit_of_measurement: "°C"
     icon: mdi:trending-up
-    initial: 0.5
 
   # 頂樓上下樓自動化：時間視窗參數
   topfloor_cam_window_min_kenny:
@@ -255,7 +248,6 @@ input_number:
     step: 1
     unit_of_measurement: min
     mode: box
-    initial: 6
 
   topfloor_tail_grace_up_min_kenny:
     name: Kenny 上樓尾隨寬限（分鐘）
@@ -264,7 +256,6 @@ input_number:
     step: 1
     unit_of_measurement: min
     mode: box
-    initial: 3
 
   topfloor_tail_grace_down_min_kenny:
     name: Kenny 下樓尾隨寬限（分鐘）
@@ -273,7 +264,6 @@ input_number:
     step: 1
     unit_of_measurement: min
     mode: box
-    initial: 3
   topfloor_light_off_cooldown_sec_kenny:
     name: Kenny 燈剛關冷卻（秒）
     icon: mdi:timer-off
@@ -282,7 +272,6 @@ input_number:
     step: 5
     unit_of_measurement: s
     mode: box
-    initial: 30
   topfloor_down_no_light_grace_sec_kenny:
     name: Kenny 下樓無關燈光寬限（秒）
     icon: mdi:timer-outline
@@ -291,7 +280,6 @@ input_number:
     step: 10
     unit_of_measurement: s
     mode: box
-    initial: 120
   topfloor_down_assist_wait_sec_kenny:
     name: Kenny 下樓 Assist 視窗（秒，用來等 iPhone 晚切 AP）
     min: 0
@@ -299,7 +287,6 @@ input_number:
     step: 10
     unit_of_measurement: s
     mode: box
-    initial: 180
   topfloor_cam_ambiguous_sec_kenny:
     name: Kenny 攝影機模糊期（秒：保護窗時長）
     min: 10
@@ -307,7 +294,6 @@ input_number:
     step: 5
     unit_of_measurement: s
     mode: box
-    initial: 45
 # 🕑 睡眠靜默時段（分鐘）
   sleep_silent_start_min:
     name: 靜默時段開始（分鐘；0=00:00）
@@ -317,7 +303,6 @@ input_number:
     step: 5
     mode: box
     unit_of_measurement: min
-    initial: 150     # 02:30 AM
   sleep_silent_end_min:
     name: 靜默時段結束（分鐘；0=00:00）
     icon: mdi:clock-end
@@ -326,7 +311,6 @@ input_number:
     step: 5
     mode: box
     unit_of_measurement: min
-    initial: 540     # 09:00 AM
   # 門鎖低電量通知 AI
   doorlock_batt_drop_last_cycle:
     name: 門鎖上次日耗電率（%/日）
@@ -366,7 +350,6 @@ input_text:
     name: 天氣告知系統_上一則訊息內容
     icon: mdi:weather-cloudy-alert
     max: 255
-    initial: ""
 
   # 門鎖低電量通知 AI
   doorlock_batt_model_current:
@@ -382,35 +365,27 @@ input_text:
   notif_title_100b_general:
     name: 100B_LINEnotice_一般
     max: 120
-    initial: "【AI離家系統 V3.0】"
   notif_title_100b_urgent:
     name: 100B_LINEnotice_緊急
     max: 120
-    initial: "【AI離家系統 V3.0】"
   notif_title_086_important:
     name: 08-6_LINEnotice_重要
     max: 120
-    initial: "【離家保全系統 V3.1】"
   notif_title_086_emergency:
     name: 08-6_LINEnotice_緊急
     max: 120
-    initial: "【離家保全系統 V3.1】"
   notif_title_gateway_alert:
     name: 保全告警系統_通知標題
     max: 120
-    initial: "【保全告警系統 V3.1】"
   notif_title_100c_warn:
     name: 100C_LINEnotice_電量提醒
     max: 120
-    initial: "【AI電量告警系統 V3.1】"
   notif_title_100c_alarm:
     name: 100C_LINEnotice_電量告警
     max: 120
-    initial: "【AI電量告警系統 V3.1】"
   notif_title_100c_calib:
     name: 100C_LINEnotice_電量校正
     max: 120
-    initial: "【AI電量計算系統 V3.1】"
   line_eew_remote_level:
     name: LINE_EEW遠端_預估震度
     max: 10
@@ -430,15 +405,12 @@ input_text:
     name: 5F 頂樓 AP MAC 清單（逗號分隔）
     icon: mdi:wifi
 #    initial: 70:a7:41:e4:5a:bf
-    initial: 70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c
   iphone_tracker_entity_kenny:
     name: Kenny iPhone Tracker Entity
     icon: mdi:cellphone-nfc
-    initial: device_tracker.iphone_17_pro_max_kenny
   watch_tracker_entity_kenny:
     name: Kenny Watch Tracker Entity
     icon: mdi:watch-variant
-    initial: device_tracker.apple_watch_ultra_3_kenny
   # 車牌辨識AI_Beta
   lpr_last_event:
     name: LPR最後事件紀錄
@@ -450,7 +422,10 @@ input_text:
     name: AI離家版本字串
     icon: mdi:home-export-outline
     max: 120
-    initial: "AI離家 V3.0"
+  ai_version_snapshot_compact:
+    name: AI版本快照_更新比對
+    icon: mdi:source-branch-check
+    max: 255
    
 input_select:
   # LINE Bot 運作模式
