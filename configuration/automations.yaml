@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260307.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260315.yaml minus AI-managed aliases
 - id: '1634212146693'
   alias: 00-1自動重啟Home Assistant
   description: ''
@@ -110,6 +110,8 @@
   triggers: []
   conditions: []
   actions:
+  - variables:
+      line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
   - data:
       message: 廣播測試 廣播測試 TESTING
       media_player_entity_id: media_player.ding_lou_homepod
@@ -181,6 +183,12 @@
     metadata: {}
     target:
       device_id: c01a1336ef43795fd0679631c3e6ce62
+  - action: script.send_line_to_user
+    data:
+      user_id: '{{ line_bot_target_user_id }}'
+      payload: "{% set messages = [\n  {\"type\":\"text\",\"text\":\"推播通知測試\"},\n
+        \ {\"type\":\"text\",\"text\":\"⏳ 即將進行地震預警系統測試\"},\n  {\"type\":\"text\",\"text\":\"將進行播音及警告測試，測試測試。\"}\n]
+        %} {{ messages | tojson }}"
   mode: single
 - id: '1644394919500'
   alias: 01地震災害系統
