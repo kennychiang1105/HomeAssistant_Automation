@@ -23,7 +23,7 @@ frontend:
 
 recorder: 
   commit_interval: 10
-  purge_keep_days: 90
+  purge_keep_days: 180
 google_assistant:
   project_id: fluid-etching-332006
   service_account: !include google_assistant.json
