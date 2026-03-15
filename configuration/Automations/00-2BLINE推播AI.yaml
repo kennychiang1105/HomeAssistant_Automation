@@ -1,11 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2BLINE推播AI (V3.1)
-# 相容版本：Helpers V3.0
+# 00-2BLINE推播AI (V3.2)
+# 相容版本：Helpers V3.2（已確認）
 # 更新紀錄（統一格式）：
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# - V3.2：LINE 配額預警/最終告警改為統一分級開關（重要/緊急）；新增「HA AI更新紀錄」網址到 LINE 通知。
 # - V3.1：移除每 30 分鐘定期檢查推播，避免高頻率通知干擾。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2BLINE推播AI (V3.1)
+- alias: 00-2BLINE推播AI (V3.2)
   id: ai_line_bot_quota_guard
   description: LINE Bot 額度監控與緊急推播
   mode: single
@@ -68,7 +69,7 @@
       below: 1
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V3.2"
     limit: 200
     switch_limit: 196
     notif_title: "【LINE Bot 配額監控 {{ automation_version }}】"
@@ -172,9 +173,9 @@
       {{ triggered_used if triggered_used >= 0 else '未知' }}
 
     allow_line_warn: >-
-      {{ is_state('input_boolean.notify_line_quota_warn_enable','on') }}
+      {{ is_state('input_boolean.notify_line_important_enable','on') }}
     allow_line_final: >-
-      {{ is_state('input_boolean.notify_line_quota_final_enable','on') }}
+      {{ is_state('input_boolean.notify_line_emergency_enable','on') }}
 
   action:
     - choose:
@@ -233,11 +234,12 @@
                       {{
                         [
                           {"type":"text","text": notif_title},
-                          {"type":"text","text": "緊急 Urgent ‼️\nLINE Bot 配額即將用罄，請切換或補充主力 Bot。"},
+                          {"type":"text","text": "重要 Important ⚠️\nLINE Bot 配額即將用罄，請切換或補充主力 Bot。"},
                           {"type":"text","text": (
                             '• ' ~ triggered_bot_name ~ ' 剩餘 ' ~ triggered_remaining_text ~ ' / ' ~ limit|string ~ '（已用 ' ~ triggered_used_text ~ '）'
                             ~ '\n• 目前輪播：' ~ active_bot_label
                             ~ '\n\n用量摘要：\n' ~ bot_overview_text
+                            ~ '\n\nHA AI更新紀錄：\nhttps://github.com/kennychiang1105/HomeAssistant_Automation/releases/'
                           )}
                         ] | tojson
                       }}
@@ -282,6 +284,7 @@
                           {"type":"text","text": (
                             '• 目前輪播：' ~ active_bot_label
                             ~ '\n• 用量摘要：\n' ~ bot_overview_text
+                            ~ '\n\nHA AI更新紀錄：\nhttps://github.com/kennychiang1105/HomeAssistant_Automation/releases/'
                           )}
                         ] | tojson
                       }}
