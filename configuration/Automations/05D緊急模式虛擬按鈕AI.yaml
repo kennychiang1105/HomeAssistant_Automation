@@ -1,0 +1,24 @@
+# 相容版本：Helpers V3.3（已確認）
+- id: ai_05d_emergency_virtual_button_bridge_v3
+  alias: 05D緊急模式虛擬按鈕AI (V3.0)
+  description: 虛擬按鈕觸發緊急模式。
+  variables:
+    automation_version: 'V3.0'
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_button.jin_ji_mo_shi
+  conditions: []
+  actions:
+  - parallel:
+    - action: automation.trigger
+      target:
+        entity_id: automation.jin_ji_mo_shi
+      data:
+        skip_condition: true
+    - action: input_boolean.turn_on
+      metadata: {}
+      data: {}
+      target:
+        entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
+  mode: single
