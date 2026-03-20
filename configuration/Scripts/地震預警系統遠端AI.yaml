@@ -1,13 +1,19 @@
 # 相容版本：Helpers V3.5（已確認）
-'99999999999999':
+'eq99':
   alias: 地震預警系統(遠端)AI (V3.3)
   description: 地震預警通知與分級廣播；4級以上觸發緊急模式。
   variables:
     automation_version: 'V3.3'
-    lv: "{{ (level_text | regex_findall_index('\\d+')) | int(0) }}"
-    level_text: '{{ level if level is defined and level|string|trim not in ['''', ''unknown'', ''unavailable''] else ''未知'' }}'
-    seconds_text: '{{ seconds if seconds is defined and seconds|string|trim not in ['''', ''unknown'', ''unavailable''] else ''未知'' }}'
-    line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
+    # 修正 1：將 level_text 移至上方，讓後續的 lv 可以正確引用它
+    level_text: >-
+      {{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}
+    seconds_text: >-
+      {{ seconds if seconds is defined and seconds|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}
+    # 修正 2：使用更安全的 regex 取值方式。就算字串是 "未知" 也不會引發系統崩潰，會安全地給予預設值 0
+    lv: >-
+      {{ (level_text | regex_findall('\d+') | join('')) | int(0) }}
+    line_bot_target_user_id: >-
+      {{ states('sensor.line_bot_target_user_id') }}
   sequence:
   - action: input_text.set_value
     target:
