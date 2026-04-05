@@ -271,8 +271,7 @@
                   🏠 系統偵測所有人已離家。
                   • 家電皆為關閉，門鎖皆已上鎖。
                   • 已啟動離家模式。
-                  {% if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') %}• 本次已自動切換為離家情境（切換成功）。
-                  {% endif %}
+                  {% if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') %}• 本次已自動切換為離家情境（切換成功）。{% endif %}
                   {{ batt_line_text_line }}
             - if:
                 - condition: state
