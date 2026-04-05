@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 21A_客廳電風扇整合控制AI (V3.0)
+# 21A_客廳電風扇整合控制AI (V3.1)
 # 相容版本：Helpers V3.6
 # 更新紀錄（統一格式）：
+# - V3.1：新增手動調速防護罩（下次開機解除），補強 null-safe 觸發判斷與 manual actor 偵測，避免 AI 覆蓋手動風速。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 21A_客廳電風扇整合控制AI (V3.0)
+- alias: 21A_客廳電風扇整合控制AI (V3.1)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -37,7 +38,7 @@
       id: mode_change
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"

@@ -2,9 +2,9 @@
 # 22頂樓電風扇自動化AI (V3.2)
 # 相容版本：Helpers V3.6
 # 更新紀錄（統一格式）：
-# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
+# - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
 - alias: 22頂樓電風扇自動化AI (V3.2)
   id: ai_topfloor_fan_automation
@@ -563,7 +563,13 @@
 
     - if:
         - condition: template
-          value_template: "{{ debug_notify and is_state('input_boolean.ding_lou_fan_manual_speed_snooze','on') }}"
+          value_template: >
+            {{ debug_notify
+               and (trigger is defined)
+               and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+               and (trigger.attribute is defined and trigger.attribute == 'percentage')
+               and (trigger.to_state is not none)
+               and manual_actor_detected }}
       then:
         - service: notify.persistent_notification
           data:
