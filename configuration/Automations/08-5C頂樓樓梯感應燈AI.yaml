@@ -3,7 +3,8 @@
 # 相容版本：Helpers V3.5（已確認）
 # 更新紀錄：
 # - V3.0：由 configuration/automations.yaml 拆分為 AI 管理模組，重編標準 ID，
-#         並優化左側感應自動關燈邏輯（移除複雜 if/else，改為直接關燈流程）。
+#         並優化左側感應自動關燈邏輯（移除複雜 if/else，改為直接關燈流程），
+#         並在主流程加入 8 秒防呆，避免關燈後攝影機延遲訊號立刻重開。
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5c_topfloor_stairs_motion_light
@@ -27,6 +28,14 @@
       state: 'off'
       for:
         seconds: 5
+
+    - condition: template
+      value_template: >-
+        {{
+          (as_timestamp(now()) -
+          as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light_auto_off', 'last_triggered') | default(0, true)))
+          > 8
+        }}
 
   actions:
     - choose:
