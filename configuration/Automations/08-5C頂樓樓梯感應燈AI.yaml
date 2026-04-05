@@ -1,15 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5C頂樓樓梯感應燈AI (V3.0)
+# 08-5C頂樓樓梯感應燈AI (V3.1)
 # 相容版本：Helpers V3.5（已確認）
 # 更新紀錄：
+# - V3.1：修正左側感應自動關燈時間窗判斷，新增多實體回退以避免主流程 last_triggered 讀取失敗。
 # - V3.0：由 configuration/automations.yaml 拆分為 AI 管理模組，並重編標準 ID。
 # ─────────────────────────────────────────────────────────────
 - id: ai_08_5c_topfloor_stairs_motion_light
-  alias: 08-5C頂樓樓梯感應燈AI (V3.0)
+  alias: 08-5C頂樓樓梯感應燈AI (V3.1)
   description: >
     頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，並在延遲後自動熄燈。
   variables:
-    automation_version: V3.0
+    automation_version: V3.1
   triggers:
   - entity_id:
     - binary_sensor.wu_lou_she_ying_ji_person_detected
@@ -144,11 +145,11 @@
             action: light.turn_off
   mode: restart
 - id: ai_08_5c_topfloor_stairs_motion_light_auto_off
-  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.0)
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.1)
   description: >
     頂樓樓梯感應燈輔助關閉流程：書房左側感應觸發後，於主流程觸發時間窗內執行補充關燈邏輯。
   variables:
-    automation_version: V3.0
+    automation_version: V3.1
   triggers:
   - trigger: state
     entity_id:
@@ -156,11 +157,19 @@
     to: 'on'
   conditions:
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.ai_08_5c_topfloor_stairs_motion_light'',
-      ''last_triggered'') | default(0))) < (180) }}'
+    value_template: >-
+      {% set last_triggered =
+        state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
+        or state_attr('automation.a08_5cauto','last_triggered')
+        or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
+      {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) < 180 }}
   - condition: template
-    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.ai_08_5c_topfloor_stairs_motion_light'',
-      ''last_triggered'') | default(0))) > (2) }}'
+    value_template: >-
+      {% set last_triggered =
+        state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
+        or state_attr('automation.a08_5cauto','last_triggered')
+        or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
+      {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) > 2 }}
     enabled: false
   actions:
   - if:
