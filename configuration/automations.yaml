@@ -126,29 +126,7 @@
       minutes: 0
       seconds: 15
       milliseconds: 0
-  - repeat:
-      until:
-      - condition: state
-        entity_id: media_player.sony_bravia_tv
-        attribute: media_title
-        state: TATV-8000
-      sequence:
-      - data:
-          command: Hdmi1
-        target:
-          device_id: fdcccfa405461070717b80a56a590960
-        action: remote.send_command
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 1
-          milliseconds: 0
-  - data:
-      command: Confirm
-    target:
-      device_id: fdcccfa405461070717b80a56a590960
-    enabled: true
-    action: remote.send_command
+  # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   - data:
       entity_id: media_player.ba101
       message: 廣播系統測試
@@ -898,30 +876,7 @@
       minutes: 0
       seconds: 20
       milliseconds: 0
-  - repeat:
-      until:
-      - condition: state
-        entity_id: media_player.sony_bravia_tv
-        attribute: media_title
-        state: TATV-8000
-      sequence:
-      - data:
-          command: Hdmi1
-        target:
-          device_id: fdcccfa405461070717b80a56a590960
-        action: remote.send_command
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 1
-          milliseconds: 0
-  - data:
-      command: Confirm
-    target:
-      device_id: fdcccfa405461070717b80a56a590960
-    enabled: true
-    action: remote.send_command
-  mode: single
+  # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
 - id: '1690887532200'
   alias: 00-3 手動清理空間
   description: ''
@@ -1245,11 +1200,7 @@
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
         action: notify.persistent_notification
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
@@ -1277,30 +1228,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
-    else:
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - parallel:
       - type: turn_on
         device_id: fdcccfa405461070717b80a56a590960
@@ -1325,11 +1253,7 @@
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
         action: notify.persistent_notification
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
@@ -1357,29 +1281,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - type: turn_off
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -1394,16 +1296,7 @@
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          state: 'off'
-        sequence:
-        - type: turn_off
-          device_id: fdcccfa405461070717b80a56a590960
-          entity_id: 61eaa5fb8386221ba077bcb884e74573
-          domain: remote
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1691820750233'
@@ -2179,11 +2072,7 @@
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
         action: persistent_notification.create
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -2243,29 +2132,7 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2332,29 +2199,7 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2393,11 +2238,7 @@
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
         action: persistent_notification.create
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -2457,29 +2298,7 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2546,29 +2365,7 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2590,16 +2387,7 @@
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          state: 'off'
-        sequence:
-        - type: turn_off
-          device_id: fdcccfa405461070717b80a56a590960
-          entity_id: 61eaa5fb8386221ba077bcb884e74573
-          domain: remote
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: queued
   max: 10
 - id: '1705765755841'
@@ -2697,11 +2485,7 @@
             \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
         media_content_type: music
@@ -2731,29 +2515,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2785,11 +2547,7 @@
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
         action: notify.persistent_notification
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
         media_content_type: music
@@ -2815,29 +2573,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2857,16 +2593,7 @@
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          state: 'off'
-        sequence:
-        - type: turn_off
-          device_id: fdcccfa405461070717b80a56a590960
-          entity_id: 61eaa5fb8386221ba077bcb884e74573
-          domain: remote
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1721459962917'
@@ -3532,11 +3259,7 @@
             \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -3568,29 +3291,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -3622,11 +3323,7 @@
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
         action: notify.persistent_notification
-      - data:
-          volume_level: 0.15
-        target:
-          entity_id: media_player.sony_bravia_tv
-        action: media_player.volume_set
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -3654,29 +3351,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          attribute: media_title
-          state: TATV-8000
-        sequence:
-        - data:
-            command: Hdmi1
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          action: remote.send_command
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 1
-            milliseconds: 0
-    - data:
-        command: Confirm
-      target:
-        device_id: fdcccfa405461070717b80a56a590960
-      enabled: true
-      action: remote.send_command
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -3696,17 +3371,7 @@
       device_id: fdcccfa405461070717b80a56a590960
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
-    - repeat:
-        until:
-        - condition: state
-          entity_id: media_player.sony_bravia_tv
-          state: 'off'
-        sequence:
-        - type: turn_off
-          device_id: fdcccfa405461070717b80a56a590960
-          entity_id: 61eaa5fb8386221ba077bcb884e74573
-          domain: remote
-    enabled: false
+    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1747319755900'

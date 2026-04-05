@@ -82,11 +82,7 @@
                 message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
                 title: 智慧家庭告警
               action: notify.persistent_notification
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id: media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - data:
             media:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -129,29 +125,7 @@
             minutes: 0
             seconds: 25
             milliseconds: 0
-        - repeat:
-            until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-            sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-        - data:
-            command: Confirm
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          enabled: true
-          action: remote.send_command
+        # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - data:
             volume_level: 0.5
           action: media_player.volume_set
@@ -173,11 +147,7 @@
                 message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
                 title: 智慧家庭告警
               action: notify.persistent_notification
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id: media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - data:
             media:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -219,29 +189,7 @@
             minutes: 0
             seconds: 25
             milliseconds: 0
-        - repeat:
-            until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-            sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-        - data:
-            command: Confirm
-          target:
-            device_id: fdcccfa405461070717b80a56a590960
-          enabled: true
-          action: remote.send_command
+        # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - type: turn_off
           device_id: fdcccfa405461070717b80a56a590960
           entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -256,16 +204,7 @@
           device_id: fdcccfa405461070717b80a56a590960
           entity_id: 61eaa5fb8386221ba077bcb884e74573
           domain: remote
-        - repeat:
-            until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                state: "off"
-            sequence:
-              - type: turn_off
-                device_id: fdcccfa405461070717b80a56a590960
-                entity_id: 61eaa5fb8386221ba077bcb884e74573
-                domain: remote
+        # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - data:
             volume_level: 0.5
           action: media_player.volume_set

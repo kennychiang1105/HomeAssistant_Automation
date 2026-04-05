@@ -69,12 +69,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -130,29 +125,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -172,12 +145,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -233,29 +201,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -275,16 +221,7 @@
             device_id: fdcccfa405461070717b80a56a590960
             entity_id: 61eaa5fb8386221ba077bcb884e74573
             domain: remote
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                state: 'off'
-              sequence:
-              - type: turn_off
-                device_id: fdcccfa405461070717b80a56a590960
-                entity_id: 61eaa5fb8386221ba077bcb884e74573
-                domain: remote
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
         entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
@@ -343,11 +280,7 @@
                 target:
                   entity_id:
                   - media_player.ke_ting_homepod
-              - data:
-                  volume_level: 0.15
-                target:
-                  entity_id: media_player.sony_bravia_tv
-                action: media_player.volume_set
+              # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - data:
                 media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
                 media_content_type: music
@@ -373,30 +306,7 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
-            - repeat:
-                until:
-                - condition: state
-                  entity_id: media_player.sony_bravia_tv
-                  attribute: media_title
-                  state: TATV-8000
-                sequence:
-                - data:
-                    command: Hdmi1
-                  target:
-                    device_id: fdcccfa405461070717b80a56a590960
-                  action: remote.send_command
-                - delay:
-                    hours: 0
-                    minutes: 0
-                    seconds: 1
-                    milliseconds: 0
-            - data:
-                command: Confirm
-              target:
-                device_id: fdcccfa405461070717b80a56a590960
-              enabled: true
-              action: remote.send_command
-            else:
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - parallel:
               - type: turn_on
                 device_id: fdcccfa405461070717b80a56a590960
@@ -409,11 +319,7 @@
                 target:
                   entity_id:
                   - media_player.ke_ting_homepod
-              - data:
-                  volume_level: 0.15
-                target:
-                  entity_id: media_player.sony_bravia_tv
-                action: media_player.volume_set
+              # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - data:
                 media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
                 media_content_type: music
@@ -439,29 +345,7 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
-            - repeat:
-                until:
-                - condition: state
-                  entity_id: media_player.sony_bravia_tv
-                  attribute: media_title
-                  state: TATV-8000
-                sequence:
-                - data:
-                    command: Hdmi1
-                  target:
-                    device_id: fdcccfa405461070717b80a56a590960
-                  action: remote.send_command
-                - delay:
-                    hours: 0
-                    minutes: 0
-                    seconds: 1
-                    milliseconds: 0
-            - data:
-                command: Confirm
-              target:
-                device_id: fdcccfa405461070717b80a56a590960
-              enabled: true
-              action: remote.send_command
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - type: turn_off
               device_id: fdcccfa405461070717b80a56a590960
               entity_id: 61eaa5fb8386221ba077bcb884e74573
@@ -476,16 +360,7 @@
               device_id: fdcccfa405461070717b80a56a590960
               entity_id: 61eaa5fb8386221ba077bcb884e74573
               domain: remote
-            - repeat:
-                until:
-                - condition: state
-                  entity_id: media_player.sony_bravia_tv
-                  state: 'off'
-                sequence:
-                - type: turn_off
-                  device_id: fdcccfa405461070717b80a56a590960
-                  entity_id: 61eaa5fb8386221ba077bcb884e74573
-                  domain: remote
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
         entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
@@ -535,12 +410,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -596,29 +466,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -638,12 +486,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -699,29 +542,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -741,16 +562,7 @@
             device_id: fdcccfa405461070717b80a56a590960
             entity_id: 61eaa5fb8386221ba077bcb884e74573
             domain: remote
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                state: 'off'
-              sequence:
-              - type: turn_off
-                device_id: fdcccfa405461070717b80a56a590960
-                entity_id: 61eaa5fb8386221ba077bcb884e74573
-                domain: remote
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
         entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
@@ -800,12 +612,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -861,29 +668,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -903,12 +688,7 @@
                 entity_id:
                 - media_player.ke_ting_homepod
                 - media_player.ding_lou_homepod
-            - data:
-                volume_level: 0.15
-              target:
-                entity_id:
-                - media_player.sony_bravia_tv
-              action: media_player.volume_set
+            # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
               media_content_type: music
@@ -964,29 +744,7 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                attribute: media_title
-                state: TATV-8000
-              sequence:
-              - data:
-                  command: Hdmi1
-                target:
-                  device_id: fdcccfa405461070717b80a56a590960
-                action: remote.send_command
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-          - data:
-              command: Confirm
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-            enabled: true
-            action: remote.send_command
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
             action: media_player.volume_set
@@ -1006,14 +764,5 @@
             device_id: fdcccfa405461070717b80a56a590960
             entity_id: 61eaa5fb8386221ba077bcb884e74573
             domain: remote
-          - repeat:
-              until:
-              - condition: state
-                entity_id: media_player.sony_bravia_tv
-                state: 'off'
-              sequence:
-              - type: turn_off
-                device_id: fdcccfa405461070717b80a56a590960
-                entity_id: 61eaa5fb8386221ba077bcb884e74573
-                domain: remote
+          # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single
