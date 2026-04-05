@@ -101,26 +101,29 @@ command_line:
       command: >-
         sh -c '
           dirs="/config/configuration/Automations /config/configuration/Scripts /config/Automations /config/Scripts ./configuration/Automations ./configuration/Scripts";
-          files="$(for d in $dirs; do [ -d "$d" ] && find "$d" -maxdepth 1 -type f -name "*AI.yaml"; done | sort)";
-          printf "%s\n" "$files" | awk '"'"'
-            BEGIN { count=0 }
+          for d in $dirs; do
+            [ -d "$d" ] && find "$d" -maxdepth 1 -type f -name "*AI.yaml" -print0
+          done | xargs -0 awk '"'"'
             function esc(s){ gsub(/\\/,"\\\\",s); gsub(/"/,"\\\"",s); return s }
             FNR==1 { file=FILENAME }
-            /^[[:space:]]*-[[:space:]]*alias:[[:space:]]*/ || /^[[:space:]]*alias:[[:space:]]*/ {
+            /^[[:space:]]*(-[[:space:]]*)?alias:[[:space:]]*/ {
               line=$0
-              sub(/^[[:space:]]*-[[:space:]]*alias:[[:space:]]*/, "", line)
-              sub(/^[[:space:]]*alias:[[:space:]]*/, "", line)
-              if (match(line, /(.*)\((V.*)\)[[:space:]]*$/, m)) {
-                name=m[1]; version=m[2]
+              sub(/^[[:space:]]*(-[[:space:]]*)?alias:[[:space:]]*/, "", line)
+              gsub(/^[[:space:]"\047]+|[[:space:]"\047]+$/, "", line)
+              if (match(line, /\(V.*\)[[:space:]]*$/)) {
+                ver = substr(line, RSTART, RLENGTH)
+                gsub(/^[[:space:]]*\(|\)[[:space:]]*$/, "", ver)
+                name = substr(line, 1, RSTART - 1)
                 sub(/[[:space:]]+$/, "", name)
-                key=name
+                key = name
                 gsub(/[[:space:]]+/, "_", key)
-                count++
-                versions[key] = "{\"name\":\"" esc(name) "\",\"version\":\"" esc(version) "\",\"file\":\"" esc(file) "\"}"
+                versions[key] = "{\"name\":\"" esc(name) "\",\"version\":\"" esc(ver) "\",\"file\":\"" esc(file) "\"}"
               }
             }
             END {
-              printf "{\"state\":\"ok\",\"count\":%d,\"versions\":{", count
+              c = 0
+              for (k in versions) c++
+              printf "{\"state\":\"ok\",\"count\":%d,\"versions\":{", c
               i=0
               for (k in versions) {
                 if (i++) printf ","
@@ -128,7 +131,7 @@ command_line:
               }
               printf "}}"
             }
-          '"'"' $(printf "%s\n" "$files")
+          '"'"'
         '
       value_template: "{{ value_json.state | default('error') }}"
       json_attributes:

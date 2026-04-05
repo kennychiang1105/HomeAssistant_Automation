@@ -78,7 +78,7 @@
               then:
                 - action: script.send_line_to_user
                   data:
-                    user_id: "{{ line_bot_target_user_id | default('C26ff4e9d30159ba5264a1676f46f8f86') }}"
+                    user_id: "{{ line_bot_target_user_id if line_bot_target_user_id not in invalid_texts else 'C26ff4e9d30159ba5264a1676f46f8f86' }}"
                     payload: >-
                       {% set messages = [
                         {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
