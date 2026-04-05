@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260315.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260404.yaml minus AI-managed aliases
 - id: '1634212146693'
   alias: 00-1自動重啟Home Assistant
   description: ''
@@ -345,7 +345,7 @@
           target:
             entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
           action: input_boolean.turn_on
-        count: 30
+        count: 10
     - type: turn_on
       device_id: ace03a7c2c374894e6f67149137e1a5c
       entity_id: cde9f96a2f72a9566319685b407d78bd
@@ -3016,16 +3016,20 @@
       seconds: 45
     trigger: state
   - entity_id:
+    - switch.ce_suo_deng
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 45
+    trigger: state
+  - entity_id:
     - switch.chu_fang_deng
     for:
       hours: 0
-      minutes: 5
+      minutes: 2
       seconds: 0
     trigger: state
     enabled: true
-  - minutes: /10
-    trigger: time_pattern
-    enabled: false
   - entity_id:
     - fan.ke_ting_dian_feng_shan
     for:
@@ -3079,6 +3083,11 @@
         device_id: 06c41a1060821fec0d9a660acb3ee9fa
         entity_id: 9923a06b8ac533e3014744fb76c54cca
         domain: light
+      - condition: device
+        type: is_on
+        device_id: a9caa455edec9bd90f96dcb457a46dc6
+        entity_id: 0797df522058c11dff0c8d78672e6fb2
+        domain: switch
       - condition: device
         type: is_on
         device_id: de4044f4d156d13b885a1be8eb61c85b
@@ -3169,11 +3178,12 @@
     enabled: false
   - condition: state
     entity_id: light.yeelink_color5_13b8_light
-    state: 'off'
+    state:
+    - 'off'
     for:
       hours: 0
       minutes: 0
-      seconds: 3
+      seconds: 5
   actions:
   - if:
     - condition: state
