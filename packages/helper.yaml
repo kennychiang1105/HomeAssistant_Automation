@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.5）
+# Helpers（V3.6）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.6):
+#   • 頂樓/客廳風扇AI新增手動調速防護罩（下次開機自動解除），避免 AI 與手動調速互搶控制權。
 # 新增與強化 (V3.5):
 #   • 移除全部 helper `initial` 設定，避免重開機時覆寫歷史狀態/紀錄。
 # 新增與強化 (V3.4):
@@ -108,6 +110,18 @@ input_boolean:
     name: 頂樓風扇手動關機保留
     icon: mdi:timer-off-outline
     # 手動關機後 3 小時內防止 AI 自動重開
+
+  ding_lou_fan_manual_speed_snooze:
+    name: 頂樓風扇_手動調速防護罩（下次開機解除）
+    icon: mdi:fan-chevron-up
+
+  ding_lou_fan_system_action_guard:
+    name: 頂樓風扇_系統動作保護窗
+    icon: mdi:shield-sync
+
+  living_room_fan_manual_speed_snooze:
+    name: 客廳風扇_手動調速防護罩（下次開機解除）
+    icon: mdi:fan-chevron-up
 
   top_floor_fan_auto_mode:
     name: 頂樓電風扇_自動模式

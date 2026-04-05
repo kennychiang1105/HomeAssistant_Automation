@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────
+# 08-5H頂樓深夜熟睡情境AI (V3.0)
+# 相容版本：Helpers V3.6
+# 更新紀錄（統一格式）：
+# - V3.0：新增平日 03:00 / 假日 05:00 深夜熟睡情境；執行下樓情境並在 HomeKit 外部關閉風扇時做狀態救援（系統來源不視為手動關機）。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-5H頂樓深夜熟睡情境AI (V3.0)
+  id: ai_08_5h_topfloor_deep_sleep_scene_guard
+  description: 深夜熟睡情境定時執行下樓，並避免 HomeKit 連動關閉風扇造成 AI 溫控軌道偏移。
+  mode: single
+  variables:
+    automation_version: "V3.0"
+
+  triggers:
+    - trigger: time
+      at: "03:00:00"
+      id: weekday_0300
+    - trigger: time
+      at: "05:00:00"
+      id: weekend_0500
+
+  conditions:
+    - condition: template
+      value_template: >
+        {{ (trigger.id == 'weekday_0300' and now().weekday() in [0,1,2,3,4])
+           or (trigger.id == 'weekend_0500' and now().weekday() in [5,6]) }}
+
+  actions:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.ding_lou_fan_system_action_guard
+
+    - variables:
+        fan_was_on: "{{ is_state('fan.dmaker_p33_eabd_fan','on') }}"
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+
+    # 等待 HomeKit/情境連動完成後，再判斷是否需要救援風扇
+    - delay: "00:00:08"
+
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ fan_was_on and is_state('fan.dmaker_p33_eabd_fan','off') and is_state('input_boolean.ding_lou_fan_manual_off_hold','off') }}"
+            - condition: template
+              value_template: "{{ is_state('input_boolean.top_floor_fan_auto_mode','on') }}"
+          sequence:
+            - action: fan.turn_on
+              target:
+                entity_id: fan.dmaker_p33_eabd_fan
+
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.ding_lou_fan_system_action_guard

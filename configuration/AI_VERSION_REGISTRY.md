@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.5`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.6`
 
 ## 現況總表（Automations）
 
@@ -40,9 +40,10 @@
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.2)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.2` |
 | `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.0)` | `ai_living_room_fan_integrated_control` | `V3.0` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.0)` | `ai_living_room_fan_anomaly_alert` | `V3.0` |
-| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.1)` | `ai_topfloor_fan_automation` | `V3.1` |
+| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2)` | `ai_topfloor_fan_automation` | `V3.2` |
+| `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -130,3 +131,13 @@
 
 
 - 08-5C頂樓樓梯感應燈AI 維持 `V3.0`：同次改版內完成左側感應關燈邏輯優化（精簡流程並避免分支衝突造成漏關燈），並在主流程新增 8 秒防呆避免關燈後攝影機延遲訊號立刻重開。
+
+- 22頂樓電風扇自動化AI 升級至 `V3.2`：
+  - 修正「手動開啟」會強制清除 `input_boolean.ding_lou_fan_cold_off_memory`，避免後續誤觸回溫再開。
+  - 修正「手動關機」改為不受溫度限制；HomeKit 手動操作亦視為手動，但可透過系統保護窗排除情境腳本造成的關機。
+  - 新增手動調速防護罩（頂樓/客廳），人為調速後跳過 AI 自動調速，並於風扇下次開機時自動解除。
+- 新增 `08-5H頂樓深夜熟睡情境AI (V3.0)`：平日 `03:00`、假日 `05:00` 自動執行下樓情境，並在 HomeKit 外部關閉風扇時做風扇救援，維持 AI 溫控軌道。
+- `configuration/automations.yaml` 已移除過時 UI 自動化 `12客廳電視自動化` 與 `13遙控器轉台`，並備份至 `deprecated_automations_backup/12_13_legacy_tv_remote_automations.yaml`。
+- Helper 相容性檢查完成：本次新增頂樓/客廳手動調速防護罩 helper，`packages/helper.yaml` 版本同步升級至 `V3.6`。
+
+- 21A_客廳電風扇整合控制AI 升級至 `V3.1`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。

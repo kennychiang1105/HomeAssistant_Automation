@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 21A_客廳電風扇整合控制AI (V3.0)
-# 相容版本：Helpers V3.0
+# 21A_客廳電風扇整合控制AI (V3.1)
+# 相容版本：Helpers V3.6
 # 更新紀錄（統一格式）：
+# - V3.1：新增手動調速防護罩（下次開機解除），補強 null-safe 觸發判斷與 manual actor 偵測，避免 AI 覆蓋手動風速。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 21A_客廳電風扇整合控制AI (V3.0)
+- alias: 21A_客廳電風扇整合控制AI (V3.1)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -23,6 +24,10 @@
       entity_id: fan.ke_ting_dian_feng_shan
       id: fan_change
     - platform: state
+      entity_id: fan.ke_ting_dian_feng_shan
+      attribute: percentage
+      id: fan_speed_change
+    - platform: state
       entity_id: light.yeelink_color5_4181_light
       to: "on"
       id: light_on
@@ -33,12 +38,17 @@
       id: mode_change
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
     summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
     snooze_active: "{{ is_state('timer.living_room_fan_light_sync_snooze', 'active') }}"
+    speed_snooze_active: "{{ is_state('input_boolean.living_room_fan_manual_speed_snooze', 'on') }}"
+    manual_actor_detected: >
+      {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is not none) else none %}
+      {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is not none) else none %}
+      {{ (uid is not none) or ((uid is none) and (pid is none)) }}
     light_is_on: "{{ is_state('light.yeelink_color5_4181_light', 'on') }}"
 
     # ---- Debug & Fan State ----
@@ -118,17 +128,45 @@
                       target:
                         entity_id: fan.ke_ting_dian_feng_shan
                 - conditions:
-                    - "{{ trigger.to_state.state == 'off' }}"
+                    - "{{ trigger.to_state is not none and trigger.to_state.state == 'off' }}"
                   sequence:
                     - service: xiaomi_miio_fan.fan_set_child_lock_off
                       target:
                         entity_id: fan.ke_ting_dian_feng_shan
 
-        # === PRIORITY 2: 手動關閉風扇 (防關閉模式 vs 自動風速模式的區別處理) ===
+        # === PRIORITY 2: 手動調速防護罩（下次開機解除） ===
         - conditions:
             - condition: trigger
               id: fan_change
-            - "{{ trigger.to_state.state == 'off' }}"
+            - "{{ trigger.from_state is not none and trigger.to_state is not none and trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.living_room_fan_manual_speed_snooze
+
+        - conditions:
+            - condition: trigger
+              id: fan_speed_change
+            - condition: template
+              value_template: >
+                {{ trigger.to_state is not none and manual_actor_detected and is_state('input_boolean.living_room_fan_manual_speed_snooze','off') }}
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.living_room_fan_manual_speed_snooze
+            - if:
+                - "{{ debug_notify }}"
+              then:
+                - service: notify.persistent_notification
+                  data:
+                    title: "客廳風扇 (Debug)"
+                    message: "偵測到人為手動調速，AI 自動調速將暫停至下次開機。"
+
+        # === PRIORITY 3: 手動關閉風扇 (防關閉模式 vs 自動風速模式的區別處理) ===
+        - conditions:
+            - condition: trigger
+              id: fan_change
+            - "{{ trigger.to_state is not none and trigger.to_state.state == 'off' }}"
           sequence:
             - choose:
                 # Case A: 防關閉模式開啟 -> 強制重開 (並觸發21B警報)
@@ -161,7 +199,7 @@
                   sequence:
                     - stop: "Auto-speed mode allows manual turn off"
 
-        # === PRIORITY 3: 夏季模式開燈 (自動風速模式) ===
+        # === PRIORITY 4: 夏季模式開燈 (自動風速模式) ===
         - conditions:
             - condition: trigger
               id: light_on
@@ -181,7 +219,7 @@
                     title: "客廳風扇 (Debug)"
                     message: "夏季模式下，因燈光開啟而連動開啟風扇。"
 
-        # === PRIORITY 4: 體感溫度調整 (自動風速模式) ===
+        # === PRIORITY 5: 體感溫度調整 (自動風速模式) ===
         - conditions:
             - condition: trigger
               id: sensor_change
@@ -199,6 +237,7 @@
             - if:
                 - "{{ auto_speed_mode }}"
                 - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
+                - "{{ not speed_snooze_active }}"
               then:
                 - variables:
                     desired_pct: "{{ desired_pct_curve | int }}"
