@@ -16,14 +16,14 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.7`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.8`
 
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.2)` | `ai_line_bot_quota_guard` | `V3.2` |
-| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.1)` | `ai_00_2a_release_note_push` | `V3.1` |
+| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.2)` | `ai_00_2a_release_note_push` | `V3.2` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.0)` | `ai_05b_emergency_mode_notify_v3` | `V3.0` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -92,21 +92,24 @@
 
 ### SOP-7：更新紀錄推播（00-2A）運作原理與更新點（每次改版必做）
 1. **運作原理（變更才推播）**：
-   - 00-2A 會讀取 `input_text.ai_version_snapshot_compact` 作為「上次版本快照」。
-   - 將目前 HA 版本與 AI 元件版本組成新快照，比對後僅輸出有差異項目。
+   - 00-2A 會讀取 `sensor.ai_version_registry_dynamic` 的 `versions` 屬性作為「目前版本快照」。
+   - 00-2A 會讀取 `sensor.ai_version_snapshot_history` 的 `versions` 屬性作為「上次版本快照」。
+   - 以 JSON 字典（Dictionary）逐鍵比對版本，僅輸出有差異項目（新增/升版/移除）。
    - 若是新建立項目，舊版視為 `V0.0`，通知顯示 `V0.0 -> 新版本`。
 2. **後續改版需要更新的地方**：
    - `configuration/Automations/00-2A更新紀錄推播AI.yaml`
-     - `variables.ai_components`：新增/刪除/改版 AI 自動化與腳本時必須同步。
      - `variables.automation_version` 與 alias 版本。
+   - `packages/helper.yaml`
+     - `command_line.ai_version_registry_dynamic`：掃描路徑異動時需同步。
+     - `template.ai_version_snapshot_history`：快照事件結構異動時需同步。
    - `configuration/AI_VERSION_REGISTRY.md`
      - Automations/Scripts 現況總表版本號。
      - 「本次調整」條目（描述此次升版重點）。
    - `packages/helper.yaml`
      - 若 00-2A 依賴 helper 有增減，需同步版本與註記。
 3. **驗證建議**：
-   - 檢查 `ai_components` 與 registry 項目是否一致。
-   - 檢查 `input_text.ai_version_snapshot_compact` 存在且可寫入。
+   - 檢查 `sensor.ai_version_registry_dynamic` 的 `versions` 屬性是否可正常產生。
+   - 檢查 18:00 後 `sensor.ai_version_snapshot_history` 屬性是否已更新為最新 JSON。
 
 ## 現況總表（Scripts）
 
@@ -124,7 +127,7 @@
 - 已全域檢查 05B-05D 與地震 Script 的 ID/實體引用，未發現殘留舊 ID 參照。
 - Helper 相容性檢查完成：本次流程依賴的 `notify_line_*` 與 `input_text.line_eew_remote_*` 已於 `packages/helper.yaml` 定義，維持 `Helpers V3.5`。
 
-- 00-2A更新紀錄推播AI 版本演進：`V1.0`（建立每日 18:00 更新推播）→ `V3.0`（變更才推播）→ `V3.1`（改為 key-based 版本快照比對，避免元件順序異動造成誤判）。
+- 00-2A更新紀錄推播AI 版本演進：`V1.0`（建立每日 18:00 更新推播）→ `V3.0`（變更才推播）→ `V3.1`（改為 key-based 版本快照比對，避免元件順序異動造成誤判）→ `V3.2`（改為動態掃描版本 + trigger-based template snapshot，並修正 event JSON 型別保存）。
 
 - 08-5C 頂樓樓梯感應燈（含自動關閉）已由 `configuration/automations.yaml` 拆分為 `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml`，並改用標準 ID：`ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off`；已同步修正 `1747324079989` 的跨檔 automation 參照。
 - 104-2 車牌辨識AI 由 `V3.0 (RC2)` 轉為正式 `V3.0`，車輛駛出安全緩衝由 90 秒調整為 45 秒。

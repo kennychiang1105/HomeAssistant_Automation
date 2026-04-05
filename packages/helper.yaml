@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.7）
+# Helpers（V3.8）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.8):
+#   • 新增 command_line sensor：動態掃描 AI YAML 的 alias 版本，輸出 JSON 屬性（versions）。
+#   • 新增 trigger-based template sensor：保存 00-2A 的版本快照歷史（attributes 無 255 字元限制）。
+#   • 00-2A 改版後不再依賴 input_text.ai_version_snapshot_compact。
 # 新增與強化 (V3.7):
 #   • 新增 input_datetime.doorlock_batt_last_drop_time，記錄門鎖電量上次下降時間，修復 HA 重啟後剩餘天數估算反彈問題。
 #   • doorlock_batt_days_left_last_model 改以 helper 時間戳計算持平天數，不再依賴 sensor.last_changed。
@@ -87,6 +91,53 @@ timer:
   living_room_fan_light_sync_snooze:
     name: 客廳風扇_燈光連動暫停
     duration: "01:00:00"
+
+command_line:
+  - sensor:
+      name: ai_version_registry_dynamic
+      unique_id: ai_version_registry_dynamic
+      scan_interval: 21600
+      command_timeout: 60
+      command: >-
+        sh -c '
+          dirs="/config/configuration/Automations /config/configuration/Scripts /config/Automations /config/Scripts ./configuration/Automations ./configuration/Scripts";
+          for d in $dirs; do
+            [ -d "$d" ] && find "$d" -maxdepth 1 -type f -name "*AI.yaml" -print0
+          done | xargs -0 awk '"'"'
+            function esc(s){ gsub(/\\/,"\\\\",s); gsub(/"/,"\\\"",s); return s }
+            FNR==1 { file=FILENAME }
+            /^[[:space:]]*(-[[:space:]]*)?alias:[[:space:]]*/ {
+              line=$0
+              sub(/^[[:space:]]*(-[[:space:]]*)?alias:[[:space:]]*/, "", line)
+              gsub(/^[[:space:]"\047]+|[[:space:]"\047]+$/, "", line)
+              if (match(line, /\(V.*\)[[:space:]]*$/)) {
+                ver = substr(line, RSTART, RLENGTH)
+                gsub(/^[[:space:]]*\(|\)[[:space:]]*$/, "", ver)
+                name = substr(line, 1, RSTART - 1)
+                sub(/[[:space:]]+$/, "", name)
+                key = name
+                gsub(/[[:space:]]+/, "_", key)
+                versions[key] = "{\"name\":\"" esc(name) "\",\"version\":\"" esc(ver) "\",\"file\":\"" esc(file) "\"}"
+              }
+            }
+            END {
+              c = 0
+              for (k in versions) c++
+              printf "{\"state\":\"ok\",\"count\":%d,\"versions\":{", c
+              i=0
+              for (k in versions) {
+                if (i++) printf ","
+                printf "\"%s\":%s", esc(k), versions[k]
+              }
+              printf "}}"
+            }
+          '"'"'
+        '
+      value_template: "{{ value_json.state | default('error') }}"
+      json_attributes:
+        - count
+        - versions
+      availability: "{{ value_json.state | default('error') == 'ok' }}"
 
 input_datetime:
   last_disaster_broadcast:
@@ -443,11 +494,6 @@ input_text:
     name: AI離家版本字串
     icon: mdi:home-export-outline
     max: 120
-  ai_version_snapshot_compact:
-    name: AI版本快照_更新比對
-    icon: mdi:source-branch-check
-    max: 255
-   
 input_select:
   # LINE Bot 運作模式
   line_bot_mode:
@@ -468,6 +514,28 @@ input_select:
       - REA9519
       - EBH8030
 template:
+    - trigger:
+        - platform: event
+          event_type: ai_version_snapshot_update
+      sensor:
+        - name: ai_version_snapshot_history
+          unique_id: ai_version_snapshot_history
+          icon: mdi:source-branch-check
+          state: >-
+            {{ trigger.event.time_fired.isoformat() if trigger is defined else now().isoformat() }}
+          attributes:
+            ha_version: >-
+              {{ trigger.event.data.ha_version if trigger is defined else 'V0.0' }}
+            versions: >-
+              {% if trigger is defined %}
+                {% set payload = trigger.event.data.versions_json | default('{}') %}
+                {{ payload | from_json }}
+              {% else %}
+                {{ dict() }}
+              {% endif %}
+            changed_lines_text: >-
+              {{ trigger.event.data.changed_lines_text if trigger is defined else '' }}
+
     - trigger:
         - platform: state
           entity_id:

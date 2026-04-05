@@ -1,158 +1,93 @@
-# 相容版本：Helpers V3.5（已確認）
-- alias: 00-2A更新紀錄推播AI (V3.1)
+# 相容版本：Helpers V3.8（已確認）
+- alias: 00-2A更新紀錄推播AI (V3.2)
   id: ai_00_2a_release_note_push
   description: 每日 18:00 比對 HA/AI 版本，僅在有更新時推播變更摘要（HA + LINE 一般通知）。
   mode: single
   triggers:
-  - trigger: time
-    at: '18:00:00'
+    - trigger: time
+      at: "18:00:00"
   variables:
-    automation_version: 'V3.1'
-    line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
-    release_url: 'https://github.com/kennychiang1105/HomeAssistant_Automation/releases/'
-    invalid_texts: ['unknown', 'unavailable', 'none', 'None', '']
-    ha_current_version: '{{ states(''sensor.current_version'') if states(''sensor.current_version'') not in invalid_texts else ''未知'' }}'
-    ai_components:
-    - key: ai_00_2a
-      name: 00-2A更新紀錄推播AI
-      version: V3.1
-    - key: ai_00_2b
-      name: 00-2BLINE推播AI
-      version: V3.2
-    - key: ai_03
-      name: 03苗栗天氣告知系統AI
-      version: V3.0
-    - key: ai_05b
-      name: 05B緊急模式通知AI
-      version: V3.0
-    - key: ai_05c
-      name: 05C按鈕自動復位AI
-      version: V3.0
-    - key: ai_05d
-      name: 05D緊急模式虛擬按鈕AI
-      version: V3.0
-    - key: ai_08_5f
-      name: 08-5F頂樓自動上下樓情境AI
-      version: V3.1
-    - key: ai_08_5g
-      name: 08-5G書房燈感應AI
-      version: V3.1
-    - key: ai_08_6
-      name: 08-6離家保全系統AI
-      version: V3.0
-    - key: ai_08_8a
-      name: 08-8A廚房感應燈AI
-      version: V3.1
-    - key: ai_100b
-      name: 100B自動離家AI
-      version: V3.1
-    - key: ai_100c1
-      name: 100C1客廳門鎖電量分級通知AI
-      version: V3.0
-    - key: ai_100c2
-      name: 100C2客廳門鎖電量分級通知AI
-      version: V3.0
-    - key: ai_104_1
-      name: 104-1車庫鐵門感應燈AI
-      version: V3.2
-    - key: ai_104_2
-      name: 104-2車牌辨識AI
-      version: V3.0 (RC2)
-    - key: ai_104_3
-      name: 104-3鐵門判斷未關提醒及作動AI
-      version: V3.2
-    - key: ai_106b
-      name: 106B網關異常警告AI
-      version: V3.0
-    - key: ai_21a
-      name: 21A_客廳電風扇整合控制AI
-      version: V3.0
-    - key: ai_21b
-      name: 21B_客廳電風扇異常告警AI
-      version: V3.0
-    - key: ai_22
-      name: 22頂樓電風扇自動化AI
-      version: V3.1
-    - key: script_eew_remote
-      name: 地震預警系統(遠端)AI
-      version: V3.2
-    current_versions_kv: >-
-      {% set ns = namespace(pairs=[]) %}
-      {% for item in ai_components %}
-        {% set ns.pairs = ns.pairs + [item.key ~ '=' ~ item.version] %}
-      {% endfor %}
-      {{ ns.pairs | join(';') }}
-    current_snapshot: '{{ ''ha='' ~ ha_current_version ~ ''|'' ~ current_versions_kv }}'
-    previous_snapshot: '{{ states(''input_text.ai_version_snapshot_compact'') }}'
+    automation_version: "V3.2"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    release_url: "https://github.com/kennychiang1105/HomeAssistant_Automation/releases/"
+    invalid_texts: ["unknown", "unavailable", "none", "None", ""]
+
+    ha_current_version: >-
+      {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
     previous_ha_version: >-
-      {% if previous_snapshot in invalid_texts or '|' not in previous_snapshot %}
-        V0.0
-      {% else %}
-        {% set head = previous_snapshot.split('|', 1)[0] %}
-        {% if '=' in head %}
-          {{ head.split('=', 1)[1] }}
-        {% else %}
-          V0.0
-        {% endif %}
-      {% endif %}
+      {{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}
+
+    current_versions: >-
+      {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
+      {{ versions if versions is mapping else dict() }}
+    previous_versions: >-
+      {% set versions = state_attr('sensor.ai_version_snapshot_history', 'versions') %}
+      {{ versions if versions is mapping else dict() }}
+    registry_ready: >-
+      {{ states('sensor.ai_version_registry_dynamic') == 'ok' and (current_versions | count > 0) }}
+
     changed_lines_text: >-
-      {% set ns = namespace(lines=[], prev_map={}) %}
-      {% set prev_raw = previous_snapshot %}
-      {% if prev_raw not in invalid_texts and '|' in prev_raw %}
-        {% set body = prev_raw.split('|', 1)[1] %}
-        {% for pair in body.split(';') if '=' in pair %}
-          {% set key = pair.split('=', 1)[0] %}
-          {% set val = pair.split('=', 1)[1] %}
-          {% set ns.prev_map = dict(ns.prev_map, **{key: val}) %}
-        {% endfor %}
-      {% endif %}
+      {% set ns = namespace(lines=[]) %}
 
       {% if previous_ha_version != ha_current_version %}
         {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
       {% endif %}
 
-      {% for item in ai_components %}
-        {% set old_version = ns.prev_map.get(item.key, 'V0.0') %}
-        {% if old_version != item.version %}
-          {% set ns.lines = ns.lines + ['• ' ~ item.name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ item.version] %}
+      {% for key, item in (current_versions | dictsort) %}
+        {% set old_item = previous_versions.get(key) %}
+        {% set old_version = old_item.version if old_item is mapping else 'V0.0' %}
+        {% set new_version = item.version if item is mapping else '未知' %}
+        {% set name = item.name if item is mapping else key %}
+        {% if old_version != new_version %}
+          {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
+        {% endif %}
+      {% endfor %}
+
+      {% for key, old_item in (previous_versions | dictsort) %}
+        {% if key not in current_versions %}
+          {% set old_name = old_item.name if old_item is mapping else key %}
+          {% set old_version = old_item.version if old_item is mapping else '未知' %}
+          {% set ns.lines = ns.lines + ['• ' ~ old_name ~ '：已從 ' ~ old_version ~ ' 移除或停用'] %}
         {% endif %}
       {% endfor %}
 
       {{ ns.lines | join('\n') }}
-    has_changes: '{{ changed_lines_text | trim != '''' }}'
+    has_changes: "{{ registry_ready and (changed_lines_text | trim != '') }}"
+
   conditions: []
+
   actions:
-  - if:
-    - condition: template
-      value_template: '{{ has_changes }}'
-    then:
-    - parallel:
-      - action: persistent_notification.create
-        data:
-          title: 智慧家庭更新紀錄（每日）
-          message: >-
-            【偵測到版本更新】
+    - if:
+        - condition: template
+          value_template: "{{ has_changes }}"
+      then:
+        - parallel:
+            - action: persistent_notification.create
+              data:
+                title: 智慧家庭更新紀錄（每日）
+                message: >-
+                  【偵測到版本更新】
 
-            {{ changed_lines_text }}
+                  {{ changed_lines_text }}
 
-            更新紀錄網址：{{ release_url }}
-      - if:
-        - condition: state
-          entity_id: input_boolean.notify_line_general_enable
-          state: 'on'
-        then:
-        - action: script.send_line_to_user
-          data:
-            user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'') }}'
-            payload: >-
-              {% set messages = [
-                {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
-                {"type":"text","text":"📘 偵測到版本更新\n\n" ~ changed_lines_text},
-                {"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}
-              ] %}
-              {{ messages | tojson }}
-    - action: input_text.set_value
-      target:
-        entity_id: input_text.ai_version_snapshot_compact
-      data:
-        value: '{{ current_snapshot }}'
+                  更新紀錄網址：{{ release_url }}
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_general_enable
+                  state: "on"
+              then:
+                - action: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id if line_bot_target_user_id not in invalid_texts else 'C26ff4e9d30159ba5264a1676f46f8f86' }}"
+                    payload: >-
+                      {% set messages = [
+                        {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
+                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ changed_lines_text},
+                        {"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}
+                      ] %}
+                      {{ messages | tojson }}
+        - event: ai_version_snapshot_update
+          event_data:
+            ha_version: "{{ ha_current_version }}"
+            versions_json: "{{ current_versions | tojson }}"
+            changed_lines_text: "{{ changed_lines_text }}"
