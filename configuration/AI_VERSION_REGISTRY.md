@@ -111,7 +111,7 @@
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.3)` | `99999999999999` | `V3.3` |
+| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.3)` | `eq99` | `V3.3` |
 
 ## 本次調整（2026-03）
 - 05 系列中 `05B/05C/05D` 已拆分為 AI 管理檔案（`configuration/Automations/*AI.yaml`），`05A` 保留於 `configuration/automations.yaml` 手動流程。
