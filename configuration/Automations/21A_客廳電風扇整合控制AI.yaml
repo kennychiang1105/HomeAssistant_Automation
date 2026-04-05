@@ -149,7 +149,7 @@
               id: fan_speed_change
             - condition: template
               value_template: >
-                {{ trigger.to_state is not none and manual_actor_detected }}
+                {{ trigger.to_state is not none and manual_actor_detected and is_state('input_boolean.living_room_fan_manual_speed_snooze','off') }}
           sequence:
             - service: input_boolean.turn_on
               target:
