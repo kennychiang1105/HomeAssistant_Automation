@@ -46,7 +46,7 @@
               {% set messages = [
                 {"type":"text","text":"【災防系統通知】重要 Important ⚠️"},
                 {"type":"text","text":"🌍地震預警系統收到訊息：預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n目前未達廣播門檻（3級）與緊急模式門檻（4級）。"},
-                {"type":"text","text":"【重要 Important ⚠️】地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達（僅通知）"}
+                {"type":"text","text":"【重要 Important ⚠️】\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達（僅通知）"}
               ] %}
               {{ messages | tojson }}
       - action: persistent_notification.create
@@ -81,7 +81,7 @@
               {% set messages = [
                 {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️"},
                 {"type":"text","text":"🌍地震預警系統收到訊息：預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n" ~ status_text},
-                {"type":"text","text":"【緊急 Urgent ‼️】地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
+                {"type":"text","text":"【緊急 Urgent ‼️】\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
               ] %}
               {{ messages | tojson }}
       - if:
