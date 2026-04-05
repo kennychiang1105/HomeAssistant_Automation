@@ -29,7 +29,7 @@
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.2)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.2` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -127,6 +127,6 @@
 - 08-5C 頂樓樓梯感應燈（含自動關閉）已由 `configuration/automations.yaml` 拆分為 `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml`，並改用標準 ID：`ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off`；已同步修正 `1747324079989` 的跨檔 automation 參照。
 - 104-2 車牌辨識AI 由 `V3.0 (RC2)` 轉為正式 `V3.0`，車輛駛出安全緩衝由 90 秒調整為 45 秒。
 
-- 08-5C頂樓樓梯感應燈AI 升級為 `V3.1`：修正左側感應關燈流程在主流程 `last_triggered` 讀取失敗時不執行的問題（新增多實體回退判斷）。
 
-- 08-5C頂樓樓梯感應燈AI 升級為 `V3.2`：移除左側感應自動關燈對 `last_triggered` 的依賴，改為直接關閉流程，並清理停用與冗餘片段。
+
+- 08-5C頂樓樓梯感應燈AI 維持 `V3.0`：同次改版內完成左側感應關燈邏輯優化（精簡流程並避免分支衝突造成漏關燈）。
