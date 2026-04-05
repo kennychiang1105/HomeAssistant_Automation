@@ -119,12 +119,7 @@
           entity_id:
           - media_player.ke_ting_homepod
           - media_player.ding_lou_homepod
-      - action: media_player.volume_set
-        data:
-          volume_level: 0.15
-        target:
-          entity_id:
-          - media_player.sony_bravia_tv
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
       - action: tts.speak
         metadata: {}
         target:
@@ -163,28 +158,7 @@
           minutes: 0
           seconds: 25
           milliseconds: 0
-      - repeat:
-          until:
-          - condition: state
-            entity_id: media_player.sony_bravia_tv
-            attribute: media_title
-            state: TATV-8000
-          sequence:
-          - action: remote.send_command
-            data:
-              command: Hdmi1
-            target:
-              device_id: fdcccfa405461070717b80a56a590960
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 1
-              milliseconds: 0
-      - action: remote.send_command
-        data:
-          command: Confirm
-        target:
-          device_id: fdcccfa405461070717b80a56a590960
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
       - action: media_player.volume_set
         data:
           volume_level: 0.4
@@ -203,15 +177,6 @@
         device_id: fdcccfa405461070717b80a56a590960
         entity_id: 61eaa5fb8386221ba077bcb884e74573
         domain: remote
-      - repeat:
-          until:
-          - condition: state
-            entity_id: media_player.sony_bravia_tv
-            state: 'off'
-          sequence:
-          - type: turn_off
-            device_id: fdcccfa405461070717b80a56a590960
-            entity_id: 61eaa5fb8386221ba077bcb884e74573
-            domain: remote
+      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single
   icon: mdi:earth

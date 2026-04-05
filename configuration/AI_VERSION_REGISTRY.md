@@ -146,3 +146,5 @@
 - Helper 升級至 `V3.7`：新增 `input_datetime.doorlock_batt_last_drop_time`，並修正剩餘天數估算改採 helper 時間戳，避免 HA 重啟重置 `last_changed` 造成天數反彈。
 
 - 21A_客廳電風扇整合控制AI 升級至 `V3.1`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。
+- 廣播設備清理（2026-04）：已移除 `media_player.sony_bravia_tv` 相關音量/切源/狀態判斷流程，避免已下線設備造成自動化錯誤。
+- 後續廣播更新約定：原 Sony TV 控制位置已統一改以 `# TVSPEAKERTODO:` 註記；未來導入新設備時，優先搜尋 `TVSPEAKERTODO` 後補上新設備音量與播放指令即可。
