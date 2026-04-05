@@ -877,6 +877,7 @@
       seconds: 20
       milliseconds: 0
   # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
+  mode: single
 - id: '1690887532200'
   alias: 00-3 手動清理空間
   description: ''
@@ -1228,6 +1229,7 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
+    else:
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - parallel:
       - type: turn_on
@@ -3372,6 +3374,7 @@
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
+  enabled: false
   mode: parallel
   max: 10
 - id: '1747319755900'
