@@ -1,13 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V3.1)
-# 相容版本：Helpers V3.2（已確認）
+# 100B自動離家AI (V3.3)
+# 相容版本：Helpers V3.7（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3：完整通知新增「本次已自動切換為離家情境」強調文案，僅在原先非離家且切換成功時顯示。
+# - V3.2：網關非離家時改為切換成功後續行完整門窗安全檢查流程，移除簡短成功通知，統一送出含門鎖電量摘要的詳細狀態通知。
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V3.1)
+- alias: 100B自動離家AI (V3.3)
   id: ai_auto_leave_system
-  description: "AI離家 V3.1"
+  description: "AI離家 V3.3"
   mode: single
 
   triggers:
@@ -71,15 +73,15 @@
               for: {minutes: 10}
 
   variables:
-    automation_version: "V3.1"
-    helpers_compat: "Helpers V3.2"
+    automation_version: "V3.3"
+    helpers_compat: "Helpers V3.7"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
       {% set title = states('input_text.notif_title_100b_general') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.1】' }}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.3】' }}
     notif_title_urgent: >-
       {% set title = states('input_text.notif_title_100b_urgent') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.1】' }}
+      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.3】' }}
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_only_general: >-
       {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
@@ -172,7 +174,7 @@
       {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
     batt_line_text_line_safe: >-
       {{ batt_line_text_line|default('', true)|string }}
-    title_fallback_line: "【AI離家系統 V3.1】"
+    title_fallback_line: "【AI離家系統 V3.3】"
 
   actions:
     - choose:
@@ -187,7 +189,7 @@
         who: kenny
         reason: "ai_auto_leave_system conditions passed — {{ automation_version }} / {{ helpers_compat }}"
 
-    # 若尚未離家情境 → 觸發離家情境（僅通知一次，避免重複）
+    # 若尚未離家情境 → 先嘗試切換離家；若失敗才發送緊急通知
     - choose:
         - conditions:
             - condition: template
@@ -243,43 +245,6 @@
                                 {% set messages = messages + [{"type":"text","text": batt_safe}] %}
                               {% endif %}
                               {{ messages | tojson }}
-                - conditions:
-                    - condition: state
-                      entity_id: input_boolean.aqara_li_jia
-                      state: "on"
-                  sequence:
-                    - service: notify.persistent_notification
-                      data:
-                        title: "{{ notif_title_general|default(notif_title_base, true) }}"
-                        message: |-
-                          ✅ 已自動將情境設定為離家情境。
-                          目前情境：{{ aqara_scene_label_safe }}
-                    - if:
-                        - condition: state
-                          entity_id: input_boolean.notify_line_important_enable
-                          state: "on"
-                      then:
-                        - service: script.send_line_to_user
-                          data:
-                            user_id: "{{ line_bot_target_user_id }}"
-                            payload: >-
-                              {% set base = title_fallback_line %}
-                              {% set title_raw = states('input_text.notif_title_100b_general') %}
-                              {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
-                              {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
-                              {% set scene = scene_raw|trim %}
-                              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-                              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
-                              {% set messages = [
-                                {"type":"text","text": title_safe},
-                                {"type":"text","text": '重要 Important ⚠️'},
-                                {"type":"text","text": (
-                                  '✅ 已自動將情境設定為離家情境。'
-                                  ~ "\n目前情境：" ~ scene_safe
-                                )}
-                              ] %}
-                              {{ messages | tojson }}
-                    - stop: "網關原先非離家：已完成一次通知，避免重複通知"
 
     - choose:
         - conditions:
@@ -306,7 +271,8 @@
                   🏠 系統偵測所有人已離家。
                   • 家電皆為關閉，門鎖皆已上鎖。
                   • 已啟動離家模式。
-
+                  {% if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') %}• 本次已自動切換為離家情境（切換成功）。
+                  {% endif %}
                   {{ batt_line_text_line }}
             - if:
                 - condition: state
@@ -333,6 +299,7 @@
                           '🏠 系統偵測所有人已離家。'
                           ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
                           ~ "\n• 已啟動離家模式。"
+                          ~ ("\n• 本次已自動切換為離家情境（切換成功）。" if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') else "")
                           ~ "\n目前情境：" ~ scene_safe
                         )}
                       ] %}
@@ -359,6 +326,7 @@
                 message: |-
                   ⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。
                   請確認鐵門與二樓門鎖狀況！
+                  {% if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') %}• 本次已自動切換為離家情境（切換成功）。{% endif %}
             - if:
                 - condition: state
                   entity_id: input_boolean.notify_line_emergency_enable
@@ -383,6 +351,7 @@
                         {"type":"text","text": (
                           '⚠️ 系統偵測所有人已離家，但門鎖/車庫有未上鎖或未關狀態。'
                           ~ "\n請確認鐵門與二樓門鎖狀況！"
+                          ~ ("\n• 本次已自動切換為離家情境（切換成功）。" if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') else "")
                           ~ "\n目前情境：" ~ scene_safe
                         )}
                       ] %}

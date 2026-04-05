@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────
+# 100C3客廳門鎖電量下降時間紀錄AI (V3.0)
+# 相容版本：Helpers V3.7（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0：新增門鎖電量下降時間戳記錄（過濾 unknown/unavailable/-1 假觸發），供剩餘天數估算跨重啟維持連續性。
+# ─────────────────────────────────────────────────────────────
+- alias: 100C3客廳門鎖電量下降時間紀錄AI (V3.0)
+  id: ai_doorlock_battery_drop_timestamp_recorder
+  description: 當客廳門鎖電量感測值有效變動且為下降時，寫入 helper 時間戳，避免 HA 重啟造成 last_changed 重置而影響剩餘天數估算。
+  mode: single
+
+  triggers:
+    - trigger: state
+      entity_id: sensor.ke_ting_men_suo_dian_liang_guo_lu
+
+  conditions:
+    - condition: template
+      alias: 僅接受有效數值變動（排除 unknown/unavailable/-1），且必須為下降
+      value_template: >-
+        {% set invalids = ['unknown','unavailable','none','None','null','-1'] %}
+        {% set from_s = trigger.from_state.state if trigger.from_state is not none else 'unknown' %}
+        {% set to_s = trigger.to_state.state if trigger.to_state is not none else 'unknown' %}
+        {% set from_ok = from_s not in invalids %}
+        {% set to_ok = to_s not in invalids %}
+        {% set changed = from_s != to_s %}
+        {{ from_ok and to_ok and changed and (to_s|float(999) < from_s|float(999)) }}
+
+  variables:
+    automation_version: "V3.0"
+
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.doorlock_batt_last_drop_time
+      data:
+        timestamp: "{{ as_timestamp(now()) }}"

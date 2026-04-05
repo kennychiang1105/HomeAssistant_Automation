@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.6）
+# Helpers（V3.7）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.7):
+#   • 新增 input_datetime.doorlock_batt_last_drop_time，記錄門鎖電量上次下降時間，修復 HA 重啟後剩餘天數估算反彈問題。
+#   • doorlock_batt_days_left_last_model 改以 helper 時間戳計算持平天數，不再依賴 sensor.last_changed。
 # 新增與強化 (V3.6):
 #   • 頂樓/客廳風扇AI新增手動調速防護罩（下次開機自動解除），避免 AI 與手動調速互搶控制權。
 # 新增與強化 (V3.5):
@@ -88,6 +91,10 @@ timer:
 input_datetime:
   last_disaster_broadcast:
     name: Last Disaster Broadcast
+    has_date: true
+    has_time: true
+  doorlock_batt_last_drop_time:
+    name: 門鎖電量上次下降時間
     has_date: true
     has_time: true
 input_boolean:
@@ -539,7 +546,8 @@ template:
 
             {% if batt_ok and drop_ok and model_ok %}
               {% set raw_days = (batt / drop) %}
-              {% set hold_age_days = ((as_timestamp(now()) - as_timestamp(states.sensor.ke_ting_men_suo_dian_liang_guo_lu.last_changed)) / 86400) %}
+              {% set last_drop = states('input_datetime.doorlock_batt_last_drop_time') %}
+              {% set hold_age_days = ((as_timestamp(now()) - as_timestamp(last_drop)) / 86400) if last_drop not in ['unknown', 'unavailable', 'none'] else 0 %}
               {% set est_days = [raw_days - hold_age_days, 0] | max %}
               {{ est_days|round(1) }}
             {% else %}
