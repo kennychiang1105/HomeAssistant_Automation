@@ -32,8 +32,6 @@
 
     - variables:
         fan_was_on: "{{ is_state('fan.dmaker_p33_eabd_fan','on') }}"
-        manual_off_hold_before: "{{ is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
-
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
@@ -47,7 +45,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ fan_was_on and is_state('fan.dmaker_p33_eabd_fan','off') and not manual_off_hold_before }}"
+              value_template: "{{ fan_was_on and is_state('fan.dmaker_p33_eabd_fan','off') and is_state('input_boolean.ding_lou_fan_manual_off_hold','off') }}"
             - condition: template
               value_template: "{{ is_state('input_boolean.top_floor_fan_auto_mode','on') }}"
           sequence:

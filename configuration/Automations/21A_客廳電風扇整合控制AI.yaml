@@ -44,6 +44,10 @@
     summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
     snooze_active: "{{ is_state('timer.living_room_fan_light_sync_snooze', 'active') }}"
     speed_snooze_active: "{{ is_state('input_boolean.living_room_fan_manual_speed_snooze', 'on') }}"
+    manual_actor_detected: >
+      {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is not none) else none %}
+      {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is not none) else none %}
+      {{ (uid is not none) or ((uid is none) and (pid is none)) }}
     light_is_on: "{{ is_state('light.yeelink_color5_4181_light', 'on') }}"
 
     # ---- Debug & Fan State ----
@@ -123,7 +127,7 @@
                       target:
                         entity_id: fan.ke_ting_dian_feng_shan
                 - conditions:
-                    - "{{ trigger.to_state.state == 'off' }}"
+                    - "{{ trigger.to_state is not none and trigger.to_state.state == 'off' }}"
                   sequence:
                     - service: xiaomi_miio_fan.fan_set_child_lock_off
                       target:
@@ -133,7 +137,7 @@
         - conditions:
             - condition: trigger
               id: fan_change
-            - "{{ trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
+            - "{{ trigger.from_state is not none and trigger.to_state is not none and trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -144,7 +148,7 @@
               id: fan_speed_change
             - condition: template
               value_template: >
-                {{ trigger.to_state.context is defined and trigger.to_state.context.user_id is not none }}
+                {{ trigger.to_state is not none and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_on
               target:
@@ -161,7 +165,7 @@
         - conditions:
             - condition: trigger
               id: fan_change
-            - "{{ trigger.to_state.state == 'off' }}"
+            - "{{ trigger.to_state is not none and trigger.to_state.state == 'off' }}"
           sequence:
             - choose:
                 # Case A: 防關閉模式開啟 -> 強制重開 (並觸發21B警報)

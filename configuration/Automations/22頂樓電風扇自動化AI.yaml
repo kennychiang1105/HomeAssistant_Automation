@@ -49,8 +49,8 @@
         summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
         speed_snooze_active: "{{ is_state('input_boolean.ding_lou_fan_manual_speed_snooze','on') }}"
         manual_actor_detected: >
-          {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is defined and trigger.to_state.context is defined) else none %}
-          {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is defined and trigger.to_state.context is defined) else none %}
+          {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is not none) else none %}
+          {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is not none) else none %}
           {{ (uid is not none) or ((uid is none) and (pid is none) and not is_state('input_boolean.ding_lou_fan_system_action_guard','on')) }}
 
         # ---- Helpers ----
@@ -236,7 +236,7 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'input_boolean.ding_lou_fan_manual_hold')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on')
                    and (states('input_boolean.ding_lou_fan_manual_hold') == 'on') }}
           sequence:
             - service: input_boolean.turn_off
@@ -258,7 +258,7 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'input_boolean.ding_lou_fan_manual_off_hold')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on') }}
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on') }}
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -279,8 +279,8 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'off')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'on')
+                   and (trigger.to_state is not none and trigger.to_state.state == 'off')
+                   and (trigger.from_state is not none and trigger.from_state.state == 'on')
                    and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_off
@@ -311,8 +311,8 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'off')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'on') }}
+                   and (trigger.to_state is not none and trigger.to_state.state == 'off')
+                   and (trigger.from_state is not none and trigger.from_state.state == 'on') }}
             - condition: state
               entity_id: input_boolean.ding_lou_fan_manual_hold
               state: 'on'
@@ -347,8 +347,8 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'off') }}
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on')
+                   and (trigger.from_state is not none and trigger.from_state.state == 'off') }}
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -361,8 +361,8 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'off')
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on')
+                   and (trigger.from_state is not none and trigger.from_state.state == 'off')
                    and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_off
@@ -380,7 +380,7 @@
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
                    and (trigger.attribute is defined and trigger.attribute == 'percentage')
-                   and (trigger.to_state is defined)
+                   and (trigger.to_state is not none)
                    and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_on
@@ -467,8 +467,8 @@
               value_template: >
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
-                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'off') }}
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on')
+                   and (trigger.from_state is not none and trigger.from_state.state == 'off') }}
             - condition: template
               value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
             - condition: template
@@ -563,7 +563,7 @@
 
     - if:
         - condition: template
-          value_template: "{{ debug_notify and speed_snooze_active }}"
+          value_template: "{{ debug_notify and is_state('input_boolean.ding_lou_fan_manual_speed_snooze','on') }}"
       then:
         - service: notify.persistent_notification
           data:
@@ -578,7 +578,7 @@
         - condition: template
           value_template: "{{ t_eff_valid }}"
         - condition: template
-          value_template: "{{ not speed_snooze_active }}"
+          value_template: "{{ is_state('input_boolean.ding_lou_fan_manual_speed_snooze','off') }}"
       then:
         - variables:
             desired_pct: "{{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}"
