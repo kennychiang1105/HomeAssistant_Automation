@@ -3374,7 +3374,7 @@
       entity_id: 61eaa5fb8386221ba077bcb884e74573
       domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-  enabled: false
+  initial_state: false
   mode: parallel
   max: 10
 - id: '1747319755900'
