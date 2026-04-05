@@ -1,0 +1,148 @@
+# ─────────────────────────────────────────────────────────────
+# 08-5C頂樓樓梯感應燈AI (V3.0)
+# 相容版本：Helpers V3.5（已確認）
+# 更新紀錄：
+# - V3.0：由 configuration/automations.yaml 拆分為 AI 管理模組，重編標準 ID，
+#         並優化左側感應自動關燈邏輯（移除複雜 if/else，改為直接關燈流程），
+#         並在主流程加入 8 秒防呆，避免關燈後攝影機延遲訊號立刻重開。
+# ─────────────────────────────────────────────────────────────
+
+- id: ai_08_5c_topfloor_stairs_motion_light
+  alias: 08-5C頂樓樓梯感應燈AI (V3.0)
+  description: >
+    頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，
+    並在 2 分 30 秒後關閉相關燈具；若當時由此流程點亮坎燈，會一併嘗試關閉。
+  mode: restart
+  variables:
+    automation_version: V3.0
+
+  triggers:
+    - trigger: state
+      entity_id:
+        - binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: 'on'
+
+  conditions:
+    - condition: state
+      entity_id: light.yeelink_color5_13b8_light
+      state: 'off'
+      for:
+        seconds: 5
+
+    - condition: template
+      value_template: >-
+        {{
+          (as_timestamp(now()) -
+          as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light_auto_off', 'last_triggered') | default(0, true)))
+          > 8
+        }}
+
+  actions:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: light.ding_lou_kan_deng
+              state: 'on'
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id:
+                  - light.yeelink_color5_0fb7_light
+                  - light.yeelink_color5_13b8_light
+            - delay:
+                minutes: 2
+                seconds: 30
+            - action: light.turn_off
+              target:
+                entity_id:
+                  - light.yeelink_color5_0fb7_light
+                  - light.yeelink_color5_13b8_light
+      default:
+        - parallel:
+            - action: light.turn_on
+              target:
+                entity_id: light.ding_lou_kan_deng
+            - action: light.turn_on
+              target:
+                entity_id:
+                  - light.yeelink_color5_0fb7_light
+                  - light.yeelink_color5_13b8_light
+        - delay:
+            minutes: 2
+            seconds: 30
+        - action: light.turn_off
+          target:
+            entity_id:
+              - light.yeelink_color5_13b8_light
+              - light.yeelink_color5_0fb7_light
+        - choose:
+            - conditions:
+                - condition: state
+                  entity_id: light.yeelink_lamp2_678c_light
+                  state: 'off'
+                - condition: state
+                  entity_id: light.yeelink_bslamp2_4329_light
+                  state: 'off'
+              sequence:
+                - action: light.turn_off
+                  target:
+                    entity_id: light.ding_lou_kan_deng
+
+- id: ai_08_5c_topfloor_stairs_motion_light_auto_off
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.0)
+  description: >
+    書房左側感應觸發後，於主流程觸發後 180 秒內執行輔助關燈流程。
+    時間窗設定對齊原始邏輯（<180 秒；>2 秒條件保留為停用備援）。
+  mode: single
+  variables:
+    automation_version: V3.0
+
+  triggers:
+    - trigger: state
+      entity_id:
+        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+      to: 'on'
+
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set last_triggered =
+          state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
+          or state_attr('automation.a08_5cauto','last_triggered')
+          or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
+        {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) < 180 }}
+    - condition: template
+      value_template: >-
+        {% set last_triggered =
+          state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
+          or state_attr('automation.a08_5cauto','last_triggered')
+          or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
+        {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) > 2 }}
+      enabled: false
+
+  actions:
+    - parallel:
+        - action: switch.turn_off
+          target:
+            entity_id: switch.shu_fang_deng
+        - action: light.turn_off
+          target:
+            entity_id:
+              - light.yeelink_color5_0fb7_light
+              - light.yeelink_color5_13b8_light
+
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: light.ding_lou_kan_deng
+              state: 'on'
+            - condition: state
+              entity_id: light.yeelink_lamp2_678c_light
+              state: 'off'
+            - condition: state
+              entity_id: light.yeelink_bslamp2_4329_light
+              state: 'off'
+          sequence:
+            - action: light.turn_off
+              target:
+                entity_id: light.ding_lou_kan_deng

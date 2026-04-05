@@ -29,6 +29,7 @@
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -36,7 +37,7 @@
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_cycle_calibration` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
-| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0 RC2)` | `ai_lpr_recognition` | `V3.0 (RC2)` |
+| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.2)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.2` |
 | `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.0)` | `ai_living_room_fan_integrated_control` | `V3.0` |
@@ -122,3 +123,10 @@
 - Helper 相容性檢查完成：本次流程依賴的 `notify_line_*` 與 `input_text.line_eew_remote_*` 已於 `packages/helper.yaml` 定義，維持 `Helpers V3.5`。
 
 - 00-2A更新紀錄推播AI 版本演進：`V1.0`（建立每日 18:00 更新推播）→ `V3.0`（變更才推播）→ `V3.1`（改為 key-based 版本快照比對，避免元件順序異動造成誤判）。
+
+- 08-5C 頂樓樓梯感應燈（含自動關閉）已由 `configuration/automations.yaml` 拆分為 `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml`，並改用標準 ID：`ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off`；已同步修正 `1747324079989` 的跨檔 automation 參照。
+- 104-2 車牌辨識AI 由 `V3.0 (RC2)` 轉為正式 `V3.0`，車輛駛出安全緩衝由 90 秒調整為 45 秒。
+
+
+
+- 08-5C頂樓樓梯感應燈AI 維持 `V3.0`：同次改版內完成左側感應關燈邏輯優化（精簡流程並避免分支衝突造成漏關燈），並在主流程新增 8 秒防呆避免關燈後攝影機延遲訊號立刻重開。
