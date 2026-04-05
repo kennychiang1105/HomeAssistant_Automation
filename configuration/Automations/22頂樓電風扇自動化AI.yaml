@@ -1,18 +1,19 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V3.1)
-# 相容版本：Helpers V3.1
+# 22頂樓電風扇自動化AI (V3.2)
+# 相容版本：Helpers V3.6
 # 更新紀錄（統一格式）：
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V3.1)
+- alias: 22頂樓電風扇自動化AI (V3.2)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V3.2"
   trigger:
     - platform: state
       entity_id:
@@ -30,6 +31,9 @@
     - platform: state
       entity_id: fan.dmaker_p33_eabd_fan
     - platform: state
+      entity_id: fan.dmaker_p33_eabd_fan
+      attribute: percentage
+    - platform: state
       entity_id: input_boolean.ding_lou_fan_manual_hold
       to: "on"
       for: "01:00:00"
@@ -43,6 +47,11 @@
         debug_notify: "{{ is_state('input_boolean.ding_lou_fan_debug_notify','on') }}"
         manual_hold: "{{ is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
         summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
+        speed_snooze_active: "{{ is_state('input_boolean.ding_lou_fan_manual_speed_snooze','on') }}"
+        manual_actor_detected: >
+          {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is defined and trigger.to_state.context is defined) else none %}
+          {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is defined and trigger.to_state.context is defined) else none %}
+          {{ (uid is not none) or ((uid is none) and (pid is none) and not is_state('input_boolean.ding_lou_fan_system_action_guard','on')) }}
 
         # ---- Helpers ----
         enter_low_close_c: "{{ states('input_number.enter_low_close_c') | float(26.9) }}"
@@ -263,7 +272,7 @@
                     title: "手動關機防護罩已自動解除（3 小時）"
                     message: "⏱️ 手動關機防護罩超過 3 小時，已恢復溫控自動開機判斷。"
 
-    # 0) 外部/手動關機 → 清除回溫記憶（需 t_eff 有效且非過冷）
+    # 0) 手動關機（含 HomeKit 手動；排除系統情境）→ 啟用 3 小時防護罩並清除自動開啟記憶
     - choose:
         - conditions:
             - condition: template
@@ -271,9 +280,8 @@
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
                    and (trigger.to_state is defined and trigger.to_state.state == 'off')
-                   and (trigger.from_state is defined and trigger.from_state.state == 'on') }}
-            - condition: template
-              value_template: "{{ t_eff_valid and (t_eff | float >= night_cold_off_c) and is_state('input_boolean.ding_lou_fan_cold_off_memory', 'off') }}"
+                   and (trigger.from_state is defined and trigger.from_state.state == 'on')
+                   and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -281,6 +289,9 @@
             - service: input_boolean.turn_off
               target:
                 entity_id: input_boolean.ding_lou_fan_manual_hold
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_speed_snooze
             - service: input_boolean.turn_on
               target:
                 entity_id: input_boolean.ding_lou_fan_manual_off_hold
@@ -290,10 +301,8 @@
               then:
                 - service: notify.persistent_notification
                   data:
-                    title: "已偵測外部/手動關機 → 啟用手動關機防護罩"
-                    message: >
-                      📴 t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ 過冷門檻 {{ night_cold_off_c }}°C；
-                      已啟用 3 小時手動關機防護罩，期間 AI 不自動開風扇。
+                    title: "已偵測手動關機（含 HomeKit）→ 啟用手動關機防護罩"
+                    message: "🙋‍♂️ 已啟用 3 小時手動關機防護罩，並清除回溫/保留/調速暫停記憶。"
 
     # 0.1) 手動保留期間關機 → 直接解除保留
     - choose:
@@ -330,6 +339,53 @@
             title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
             message: >
               ⚠️ hp_raw_temp={{ hp_raw_temp }}, hp_raw_humidity={{ hp_raw_humidity }}；15 分內不依溫/濕度做關/開與調速，避免誤判。
+
+    # 0.2) 風扇下次開機 → 解除手動調速防護罩
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ (trigger is defined)
+                   and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
+                   and (trigger.from_state is defined and trigger.from_state.state == 'off') }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_speed_snooze
+
+    # 0.2) 人為手動開啟 → 強制清除過冷記憶與手動關機防護
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ (trigger is defined)
+                   and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                   and (trigger.to_state is defined and trigger.to_state.state == 'on')
+                   and (trigger.from_state is defined and trigger.from_state.state == 'off')
+                   and manual_actor_detected }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_fan_cold_off_memory
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_off_hold
+
+    # 0.3) 人為手動調速（percentage）→ 啟用調速防護罩（下次開機解除）
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ (trigger is defined)
+                   and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
+                   and (trigger.attribute is defined and trigger.attribute == 'percentage')
+                   and (trigger.to_state is defined)
+                   and manual_actor_detected }}
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.ding_lou_fan_manual_speed_snooze
 
     # 1) 上樓情境（t_eff 有效才判斷；介於門檻至少 40%）
     - choose:
@@ -505,13 +561,24 @@
                     title: "頂樓風扇自動開啟（冷氣同步）"
                     message: "❄️ 冷氣=COOL，ac_temp={{ ac_temp }}°C"
 
-    # 5) 自動調速（差≥5% 才調；凍結時不調）
+    - if:
+        - condition: template
+          value_template: "{{ debug_notify and speed_snooze_active }}"
+      then:
+        - service: notify.persistent_notification
+          data:
+            title: "手動調速防護罩啟用中"
+            message: "🙋‍♂️ 偵測到人為調速，將跳過 AI 自動調速，直到風扇下次開機。"
+
+    # 5) 自動調速（差≥5% 才調；凍結時不調；手動調速防護啟用時跳過）
     - if:
         - condition: state
           entity_id: fan.dmaker_p33_eabd_fan
           state: "on"
         - condition: template
           value_template: "{{ t_eff_valid }}"
+        - condition: template
+          value_template: "{{ not speed_snooze_active }}"
       then:
         - variables:
             desired_pct: "{{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}"
