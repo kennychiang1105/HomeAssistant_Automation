@@ -380,7 +380,8 @@
                 {{ (trigger is defined)
                    and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
                    and (trigger.attribute is defined and trigger.attribute == 'percentage')
-                   and (trigger.to_state is not none)
+                   and (trigger.to_state is not none and trigger.to_state.state == 'on')
+                   and (trigger.from_state is not none)
                    and manual_actor_detected }}
           sequence:
             - service: input_boolean.turn_on
@@ -568,7 +569,8 @@
                and (trigger is defined)
                and (trigger.entity_id == 'fan.dmaker_p33_eabd_fan')
                and (trigger.attribute is defined and trigger.attribute == 'percentage')
-               and (trigger.to_state is not none)
+               and (trigger.to_state is not none and trigger.to_state.state == 'on')
+               and (trigger.from_state is not none)
                and manual_actor_detected }}
       then:
         - service: notify.persistent_notification
