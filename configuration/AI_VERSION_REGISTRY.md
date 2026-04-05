@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.6`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.7`
 
 ## 現況總表（Automations）
 
@@ -33,9 +33,10 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.1)` | `ai_auto_leave_system` | `V3.1` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3)` | `ai_auto_leave_system` | `V3.3` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
-| `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_cycle_calibration` | `V3.0` |
+| `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
+| `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.2)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.2` |
@@ -139,5 +140,9 @@
 - 新增 `08-5H頂樓深夜熟睡情境AI (V3.0)`：平日 `03:00`、假日 `05:00` 自動執行下樓情境，並在 HomeKit 外部關閉風扇時做風扇救援，維持 AI 溫控軌道。
 - `configuration/automations.yaml` 已移除過時 UI 自動化 `12客廳電視自動化` 與 `13遙控器轉台`，並備份至 `deprecated_automations_backup/12_13_legacy_tv_remote_automations.yaml`。
 - Helper 相容性檢查完成：本次新增頂樓/客廳手動調速防護罩 helper，`packages/helper.yaml` 版本同步升級至 `V3.6`。
+- 100B自動離家AI 升級至 `V3.3`：維持切換成功後續行完整通知，並在完整通知中新增「本次已自動切換為離家情境（切換成功）」提示（僅原先非離家且切換成功時顯示）。
+- 新增 `100C3客廳門鎖電量下降時間紀錄AI (V3.0)`：僅在門鎖電量有效下降時寫入 `input_datetime.doorlock_batt_last_drop_time`。
+- 100C2客廳門鎖電量分級通知AI 升級至 `V3.1`：換電池校正時同步重設 `input_datetime.doorlock_batt_last_drop_time`，避免跨循環舊時間戳導致剩餘天數短暫顯示 0。
+- Helper 升級至 `V3.7`：新增 `input_datetime.doorlock_batt_last_drop_time`，並修正剩餘天數估算改採 helper 時間戳，避免 HA 重啟重置 `last_changed` 造成天數反彈。
 
 - 21A_客廳電風扇整合控制AI 升級至 `V3.1`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。

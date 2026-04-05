@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 100C2客廳門鎖電量分級通知AI (V3.0)
-# 相容版本：Helpers V3.0
+# 100C2客廳門鎖電量分級通知AI (V3.1)
+# 相容版本：Helpers V3.7（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1：換電池校正時同步重設 doorlock_batt_last_drop_time，避免跨循環殘留時間戳造成剩餘天數誤判為 0。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100C2客廳門鎖電量分級通知AI (V3.0)
+- alias: 100C2客廳門鎖電量分級通知AI (V3.1)
   id: ai_doorlock_battery_cycle_calibration
   description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
   mode: single
@@ -24,7 +25,7 @@
         {{ prev not in invalids and prev|float(100) < 20 }}
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     notif_title_base: "【AI電量計算系統 {{ automation_version }}】"
     notif_title_calib: |-
       {{ notif_title_base }}
@@ -58,7 +59,14 @@
         entity_id: input_text.doorlock_batt_last_stage
         value: "OK"
 
-    # 4) 發送 LINE（tojson 防亂碼）
+    # 4) 重設「電量上次下降時間」，避免跨電池循環沿用舊時間戳造成剩餘天數誤判
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.doorlock_batt_last_drop_time
+      data:
+        timestamp: "{{ as_timestamp(now()) }}"
+
+    # 5) 發送 LINE（tojson 防亂碼）
     - if:
         - condition: state
           entity_id: input_boolean.notify_line_emergency_enable
@@ -76,7 +84,7 @@
                 ] | tojson
               }}
 
-    # 5) 永久通知（如你已改用 persistent_notification.create，可自行切換）
+    # 6) 永久通知（如你已改用 persistent_notification.create，可自行切換）
     - action: notify.persistent_notification
       data:
         title: "{{ notif_title_calib }}"
