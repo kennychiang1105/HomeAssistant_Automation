@@ -28,7 +28,7 @@
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.0)` | `ai_05b_emergency_mode_notify_v3` | `V3.0` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
-| `configuration/Automations/05E_GoogleHome情境虛擬按鈕橋接AI.yaml` | `05E GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_05e_googlehome_scene_virtual_button_bridge` | `V3.0` |
+| `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
@@ -153,5 +153,5 @@
 - 廣播設備清理（2026-04）：已移除 `media_player.sony_bravia_tv` 相關音量/切源/狀態判斷流程，避免已下線設備造成自動化錯誤。
 - 後續廣播更新約定：原 Sony TV 控制位置已統一改以 `# TVSPEAKERTODO:` 註記；未來導入新設備時，優先搜尋 `TVSPEAKERTODO` 後補上新設備音量與播放指令即可。
 
-- Google Home 情境觸發橋接（2026-04）：新增 `05E_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
+- Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。

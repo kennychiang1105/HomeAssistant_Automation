@@ -1,9 +1,10 @@
 # 相容版本：Helpers V3.9（已確認）
-- id: ai_05e_googlehome_scene_virtual_button_bridge
-  alias: 05E GoogleHome情境虛擬按鈕橋接AI (V3.0)
+- id: ai_100c_googlehome_scene_virtual_button_bridge
+  alias: 100C GoogleHome情境虛擬按鈕橋接AI (V3.0)
   description: Google Home 透過 helper 虛擬按鈕觸發情境自動化，避免 automation 僅被視為啟用開關。
   variables:
     automation_version: 'V3.0'
+    reset_delay_seconds: 1
   triggers:
     - trigger: state
       entity_id: input_boolean.google_scene_zao_an_trigger
@@ -61,7 +62,7 @@
               data:
                 skip_condition: true
     - delay:
-        seconds: 1
+        seconds: "{{ reset_delay_seconds }}"
     - action: input_boolean.turn_off
       data:
         entity_id: "{{ trigger.entity_id }}"
