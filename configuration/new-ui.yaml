@@ -40,7 +40,7 @@ views:
           ## 情境
       - type: grid
         title: 情境捷徑（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -68,22 +68,27 @@ views:
             tap_action:
               action: toggle
       - type: markdown
-        title: 多災防 / 地震通知與 HA 通知中心
+        title: 多災防 / 地震通知
         content: |
           {% set disaster = states('sensor.disaster') %}
           {% set earthquake = states('sensor.earthquake') %}
           ### 🚨 即時通知
           - 多災防：**{{ disaster }}**
           - 地震：**{{ earthquake }}**
-
-          > 下方直接顯示 HA 永久通知列表，可點「看過清除」一次清除。
-      - type: persistent-notification
-      - type: button
-        name: 看過清除（清空 HA 永久通知）
-        icon: mdi:notification-clear-all
-        tap_action:
-          action: perform-action
-          perform_action: persistent_notification.dismiss_all
+      - type: entities
+        title: HA 通知動作
+        show_header_toggle: false
+        entities:
+          - entity: sensor.disaster
+            name: 多災防通知
+          - entity: sensor.earthquake
+            name: 地震通知
+          - type: button
+            name: 看過清除（清空 HA 永久通知）
+            icon: mdi:notification-clear-all
+            tap_action:
+              action: perform-action
+              perform_action: persistent_notification.dismiss_all
       - type: markdown
         title: 區域統計（燈光 / 溫度 / 保全）
         content: |
@@ -136,7 +141,7 @@ views:
           - Aqara 網關：**{{ states('sensor.aqaradang_qian_qing_jing') }}**
       - type: grid
         title: 首頁常用裝置（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -189,6 +194,11 @@ views:
           ## 車庫頁面（首頁下一頁）
       - type: markdown
         content: |
+          ### 🚨 災防通知
+          - 多災防：**{{ states('sensor.disaster') }}**
+          - 地震：**{{ states('sensor.earthquake') }}**
+      - type: markdown
+        content: |
           {% set garage_lights = expand([
             'switch.che_ku_zhu_deng',
             'switch.men_kou_deng',
@@ -197,7 +207,7 @@ views:
           ### 💡 車庫亮燈數：**{{ garage_lights }}** 盞
       - type: grid
         title: 車庫控制（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -240,9 +250,15 @@ views:
           ]) | selectattr('state','eq','on') | list | count %}
           ## 客廳風格：溫暖木質 × 影音聚會
           ### 💡 客廳亮燈數：**{{ living_lights }}** 盞
+
+      - type: markdown
+        content: |
+          ### 🚨 災防通知
+          - 多災防：**{{ states('sensor.disaster') }}**
+          - 地震：**{{ states('sensor.earthquake') }}**
       - type: grid
         title: 客廳照明（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -300,9 +316,15 @@ views:
           ]) | selectattr('state','eq','on') | list | count %}
           ## 餐廳風格：明亮機能 × 快速操作
           ### 💡 餐廳/廚房亮燈數：**{{ dining_lights }}** 盞
+
+      - type: markdown
+        content: |
+          ### 🚨 災防通知
+          - 多災防：**{{ states('sensor.disaster') }}**
+          - 地震：**{{ states('sensor.earthquake') }}**
       - type: grid
         title: 餐廳/廚房控制（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -357,9 +379,15 @@ views:
           ]) | selectattr('state','eq','on') | list | count %}
           ## 頂樓風格：休憩夜間 × 閱讀沉浸
           ### 💡 頂樓亮燈數：**{{ top_lights }}** 盞
+
+      - type: markdown
+        content: |
+          ### 🚨 災防通知
+          - 多災防：**{{ states('sensor.disaster') }}**
+          - 地震：**{{ states('sensor.earthquake') }}**
       - type: grid
         title: 頂樓照明（方塊按鈕）
-        columns: 4
+        columns: 5
         square: true
         cards:
           - type: button
@@ -407,9 +435,15 @@ views:
             'switch.er_san_lou_lou_ti_deng',
             'switch.san_si_lou_lou_ti_deng',
             'switch.san_lou_lou_ti_deng',
-            'light.yeelink_color5_0fb7_light'
+            'light.si_lou_lou_ti_deng'
           ]) | selectattr('state','eq','on') | list | count %}
           ### 💡 樓梯亮燈數：**{{ stairs_lights }}** 盞
+
+      - type: markdown
+        content: |
+          ### 🚨 災防通知
+          - 多災防：**{{ states('sensor.disaster') }}**
+          - 地震：**{{ states('sensor.earthquake') }}**
       - type: grid
         columns: 4
         square: true
@@ -430,8 +464,8 @@ views:
             tap_action:
               action: toggle
           - type: button
-            entity: light.yeelink_color5_0fb7_light
-            name: 樓梯彩燈
+            entity: light.si_lou_lou_ti_deng
+            name: 四樓樓梯燈
 
   - title: 自動化與伺服器
     path: system
@@ -518,7 +552,7 @@ views:
           - 各房間新增亮燈數統計。
           - 首頁裝置改為方塊按鈕主視覺。
           - 保全狀態改讀取 `alarm_control_panel.54ef44cf58f9_alarm` 與 `sensor.aqaradang_qian_qing_jing`。
-          - 新增多災防/地震資訊、HA 通知直接顯示與「看過清除」按鈕。
+          - 修正災防通知區塊、移除不相容通知卡並優化看過清除按鈕大小。
 
           ## v2.2.0（2026-04-06）
           - 首頁恢復 HomeKit 按鈕模組風格（情境捷徑）。
