@@ -17,7 +17,13 @@
     os_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}"
     current_versions: >-
       {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}', true) %}
-      {{ versions_json | from_json }}
+      {% set parsed = versions_json | from_json %}
+      {% if parsed is mapping and (parsed | count > 0) %}
+        {{ parsed }}
+      {% else %}
+        {% set raw = state_attr('sensor.ai_version_compare_current', 'versions') %}
+        {{ raw if raw is mapping else dict() }}
+      {% endif %}
     previous_versions: "{{ state_attr('sensor.ai_version_snapshot_history', 'versions') | default({}, true) }}"
     previous_os_version: >-
       {% set old_item = previous_versions.get('system_operating_system_version') %}

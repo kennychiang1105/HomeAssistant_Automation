@@ -601,7 +601,7 @@ template:
             versions: >-
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
               {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
-              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set ns = namespace(versions=((versions | tojson | from_json) if versions is mapping else dict())) %}
               {% set _ = ns.versions.update({
                 'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
                 'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
@@ -612,7 +612,7 @@ template:
             versions_json: >-
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
               {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
-              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set ns = namespace(versions=((versions | tojson | from_json) if versions is mapping else dict())) %}
               {% set _ = ns.versions.update({
                 'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
                 'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
@@ -912,7 +912,13 @@ automation:
         {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
       current_versions: >-
         {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}', true) %}
-        {{ versions_json | from_json }}
+        {% set parsed = versions_json | from_json %}
+        {% if parsed is mapping and (parsed | count > 0) %}
+          {{ parsed }}
+        {% else %}
+          {% set raw = state_attr('sensor.ai_version_compare_current', 'versions') %}
+          {{ raw if raw is mapping else dict() }}
+        {% endif %}
       current_versions_count: "{{ current_versions | count }}"
       debug_message: >-
         目前基準寫入內容：
