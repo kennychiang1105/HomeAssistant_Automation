@@ -14,7 +14,7 @@ tts:
 group: !include groups.yaml
 automation: !include automations.yaml
 automation ai_managed: !include_dir_merge_list Automations
-script: !include ../scripts/scripts.yaml
+script: !include scripts.yaml
 script ai_managed: !include_dir_merge_named Scripts
 scene: !include scenes.yaml
 sensor: !include sensors.yaml
@@ -24,132 +24,15 @@ frontend:
 recorder: 
   commit_interval: 10
   purge_keep_days: 180
+  
+#####google home
 google_assistant:
   project_id: fluid-etching-332006
   service_account: !include google_assistant.json
   report_state: true
+  expose_by_default: false
   entity_config:
-    sensor.familyjia_ting_realfeel_temperature:
-      expose: false
-    sensor.sgp511_battery_temperature:
-      expose: false
-    cover.garage:
-      expose: false
-    media_player.netflixbo_fang_qi:
-      expose: false
-    media_player.tbcbo_fang_qi:
-      expose: false
-    media_player.android_tv_192_168_68_88:
-      expose: false
-    media_player.android_tv_192_168_68_104:
-      expose: false
-    media_player.tbcbo_fang_qi_2:
-      expose: false
-    light.mijia_group4_3249_light:
-      expose: false
-    light.mijia_group4_5664_light:
-      expose: false
-    light.mijia_group4_2144_light:
-      expose: false
-    light.mijia_group4_2545:
-      expose: false
-    media_player.sony_bravia_tv:
-      expose: false
-    remote.sony_bravia_tv:
-      expose: false
-    switch.zhu_deng_kai_guan:
-      expose: false
-    switch.si_lou_lou_ti_kai_guan_shang_2:
-      expose: false
-    switch.dc8e95fffe8d69a0_03:
-      expose: false
-    switch.wu_lou_kai_guan_xia_2:
-      expose: false
-    switch.dc8e95fffe8d6b8e_03:
-      expose: false
-    switch.dc8e95fffe957fe8_01:
-      expose: false
-    switch.dc8e95fffe957fe8_02:
-      expose: false
-    switch.dc8e95fffe957fe8_03:
-      expose: false
-    switch.e0798dfffeb3c1af_01:
-      expose: false
-    switch.dc8e95fffe83684d_02:
-      expose: false
-    switch.e0798dfffeb3c1af_03:
-      expose: false
-    switch.dc8e95fffe83684d_03:
-      expose: false
-    switch.chu_fang_kai_guan_2:
-      expose: false
-    switch.dc8e95fffe8d68f0_02:
-      expose: false
-    switch.chu_fang_kai_guan_3:
-      expose: false
-    switch.e0798dfffec10c5a_01:
-      expose: false
-    switch.e0798dfffec3163b_02:
-      expose: false
-    switch.e0798dfffec3163b_03:
-      expose: false
-    light.ke_ting_deng_zu_1_ha:
-      expose: false
-    light.ke_ting_deng_zu_2:
-      expose: false
-    light.ke_ting_deng_zu_3:
-      expose: false
-    light.ke_ting_deng_zu_quan:
-      expose: false
-    light.can_ting_deng_zu_1_ha:
-      expose: false
-    input_boolean.er_lou_men_suo_tong_bu_kai_guan:
-      expose: false
-    media_player.guang_bo_qun_zu_all:
-      expose: false
-    media_player.guang_bo_qun_zu_tong_zhi:
-      expose: false
-    input_button.di_zhen_xi_tong_guang_bo:
-      expose: false
-    input_button.tian_qi_jing_xun_guang_bo:
-      expose: false
-    input_boolean.aqara_zai_jia:
-      expose: false
-    input_boolean.aqara_li_jia:
-      expose: false
-    input_boolean.aqara_guan_bi:
-      expose: false
-    input_boolean.aqara_wan_an:
-      expose: false
-      
-#    switch.zhu_deng:
-#      expose: false
-#    switch.si_lou_lou_ti:
-#     expose: false
-#    switch.bi_deng:
-#      expose: false
-#    switch.shu_fang_deng:
-#      expose: false
-#    switch.lou_ti_deng:
-#      expose: false
-#    switch.lou_ti_deng_2:
-#      expose: false
-#    switch.yang_tai_deng:
-#      expose: false
-#    light.ding_lou_zhu_deng_1:
-#      expose: false
-#    light.ding_lou_zhu_deng_2:
-#      expose: false
-#    light.ding_lou_zhu_deng_3:
-#      expose: false
-#    light.ding_lou_zhu_deng_4:
-#      expose: false
-#    light.ding_lou_kan_deng:
-#      expose: false
-#    light.ding_lou_deng_zu_1:
-#      expose: false
-#    light.ding_lou_deng_zu_2:
-#      expose: false
+    
 
 #homekit:
 #  - name: HA Family 3
