@@ -20,9 +20,13 @@
       {{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}
 
     current_versions: >-
-      {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
       {% set merged = state_attr('sensor.ai_version_compare_current', 'versions') %}
-      {{ merged if merged is mapping else (versions if versions is mapping else dict()) }}
+      {% if merged is mapping %}
+        {{ merged }}
+      {% else %}
+        {% set merged_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}') %}
+        {{ merged_json | from_json }}
+      {% endif %}
     previous_versions: >-
       {% set versions = state_attr('sensor.ai_version_snapshot_history', 'versions') %}
       {{ versions if versions is mapping else dict() }}

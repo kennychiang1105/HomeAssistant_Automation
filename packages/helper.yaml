@@ -605,6 +605,17 @@ template:
                 'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
               }) %}
               {{ ns.versions }}
+            versions_json: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
+              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set _ = ns.versions.update({
+                'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
+                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              }) %}
+              {{ ns.versions | tojson }}
 
     - trigger:
         - platform: state
@@ -883,7 +894,12 @@ automation:
         {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
       current_versions: >-
         {% set versions = state_attr('sensor.ai_version_compare_current', 'versions') %}
-        {{ versions if versions is mapping else dict() }}
+        {% if versions is mapping %}
+          {{ versions }}
+        {% else %}
+          {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}') %}
+          {{ versions_json | from_json }}
+        {% endif %}
     action:
       - event: ai_version_snapshot_update
         event_data:
