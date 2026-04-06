@@ -19,20 +19,7 @@
     automation_package_version: "{{ states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定' }}"
     automation_framework_version: "{{ states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定' }}"
     registry_versions: "{{ state_attr('sensor.ai_version_registry_dynamic', 'versions') if state_attr('sensor.ai_version_registry_dynamic', 'versions') is mapping else dict() }}"
-    current_versions: >-
-      {% set ns = namespace(versions=dict()) %}
-      {% if registry_versions is mapping %}
-        {% for key, value in registry_versions.items() %}
-          {% set _ = ns.versions.update({key: value}) %}
-        {% endfor %}
-      {% endif %}
-      {% set _ = ns.versions.update({
-        'system_operating_system_version': {'name': 'Operating System版本', 'version': os_current_version, 'file': 'system_auto'},
-        'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
-        'manual_automation_package_version': {'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'},
-        'manual_automation_framework_version': {'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}
-      }) %}
-      {{ ns.versions }}
+    current_versions: "{{ dict((registry_versions if registry_versions is mapping else dict()), system_operating_system_version={'name': 'Operating System版本', 'version': os_current_version, 'file': 'system_auto'}, manual_homekit_framework_version={'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'}, manual_automation_package_version={'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'}, manual_automation_framework_version={'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}) }}"
     previous_versions: "{{ state_attr('sensor.ai_version_snapshot_history', 'versions') if state_attr('sensor.ai_version_snapshot_history', 'versions') is mapping else dict() }}"
     previous_os_version: >-
       {% set old_item = previous_versions.get('system_operating_system_version') %}
