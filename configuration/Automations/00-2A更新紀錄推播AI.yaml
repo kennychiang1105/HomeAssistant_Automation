@@ -16,15 +16,31 @@
       {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
     previous_ha_version: >-
       {{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}
+    ha_status_line: >-
+      {{ '• Home Assistant：目前版本 ' ~ ha_current_version ~ '（上次記錄：' ~ previous_ha_version ~ '）' }}
 
-    current_versions: >-
+    registry_versions: >-
       {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
       {{ versions if versions is mapping else dict() }}
+    homekit_framework_version: >-
+      {{ states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定' }}
+    automation_package_version: >-
+      {{ states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定' }}
+    automation_framework_version: >-
+      {{ states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定' }}
+    current_versions: >-
+      {% set ns = namespace(versions=(registry_versions if registry_versions is mapping else dict())) %}
+      {% set _ = ns.versions.update({
+        'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
+        'manual_automation_package_version': {'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'},
+        'manual_automation_framework_version': {'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}
+      }) %}
+      {{ ns.versions }}
     previous_versions: >-
       {% set versions = state_attr('sensor.ai_version_snapshot_history', 'versions') %}
       {{ versions if versions is mapping else dict() }}
     registry_ready: >-
-      {{ states('sensor.ai_version_registry_dynamic') == 'ok' and (current_versions | count > 0) }}
+      {{ states('sensor.ai_version_registry_dynamic') == 'ok' and (registry_versions | count > 0) }}
 
     changed_lines_text: >-
       {% set ns = namespace(lines=[]) %}
@@ -52,7 +68,7 @@
       {% endfor %}
 
       {{ ns.lines | join('\n') }}
-    has_changes: "{{ registry_ready and (changed_lines_text | trim != '') }}"
+    has_changes: "{{ (current_versions | count > 0) and (changed_lines_text | trim != '') }}"
 
   conditions: []
 
@@ -68,6 +84,8 @@
                 message: >-
                   【偵測到版本更新】
 
+                  {{ ha_status_line }}
+
                   {{ changed_lines_text }}
 
                   更新紀錄網址：{{ release_url }}
@@ -82,12 +100,13 @@
                     payload: >-
                       {% set messages = [
                         {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
-                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ changed_lines_text},
+                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text},
                         {"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}
                       ] %}
                       {{ messages | tojson }}
         - event: ai_version_snapshot_update
           event_data:
             ha_version: "{{ ha_current_version }}"
+            versions: "{{ current_versions }}"
             versions_json: "{{ current_versions | tojson }}"
             changed_lines_text: "{{ changed_lines_text }}"
