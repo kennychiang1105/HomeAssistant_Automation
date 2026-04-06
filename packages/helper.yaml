@@ -868,6 +868,11 @@ automation:
     trigger:
       - platform: state
         entity_id: input_button.ai_version_snapshot_clear
+    variables:
+      debug_message: >-
+        快照重置內容：
+        ha_version=V0.0
+        versions_count=0
     action:
       - event: ai_version_snapshot_update
         event_data:
@@ -881,6 +886,10 @@ automation:
           message: >-
             已重置 ai_version_snapshot_history 快照。
             下一次執行「00-2A更新紀錄推播AI」會重新建立基準版本。
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對記憶（Debug）
+          message: "{{ debug_message }}"
 
   - id: ui_ai_version_snapshot_set_baseline
     alias: 版本快照基準寫入器
@@ -900,6 +909,11 @@ automation:
           {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}') %}
           {{ versions_json | from_json }}
         {% endif %}
+      current_versions_count: "{{ current_versions | count }}"
+      debug_message: >-
+        目前基準寫入內容：
+        ha_version={{ ha_current_version }}
+        versions_count={{ current_versions_count }}
     action:
       - event: ai_version_snapshot_update
         event_data:
@@ -913,6 +927,10 @@ automation:
           message: >-
             已將目前版本寫入 ai_version_snapshot_history 作為比對基準。
             下一次執行「00-2A更新紀錄推播AI」不會因相同版本而重複通知。
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對基準（Debug）
+          message: "{{ debug_message }}"
 
   - id: ui_ai_leave_version_sync
     alias: AI離家版本同步器 v3.0

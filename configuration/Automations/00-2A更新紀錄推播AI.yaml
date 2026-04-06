@@ -40,7 +40,11 @@
       {% set ns = namespace(lines=[]) %}
 
       {% if previous_ha_version != ha_current_version %}
-        {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
+        {% if previous_ha_version == 'V0.0' %}
+          {% set ns.lines = ns.lines + ['• Home Assistant：新增版本記錄（目前版本 ' ~ ha_current_version ~ '）'] %}
+        {% else %}
+          {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
+        {% endif %}
       {% endif %}
 
       {% for key, item in (current_versions | dictsort) %}
@@ -49,7 +53,11 @@
         {% set new_version = item.version if item is mapping else '未知' %}
         {% set name = item.name if item is mapping else key %}
         {% if old_version != new_version %}
-          {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
+          {% if old_version == 'V0.0' %}
+            {% set ns.lines = ns.lines + ['• ' ~ name ~ '：新增自動化AI（版本 ' ~ new_version ~ '）'] %}
+          {% else %}
+            {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
+          {% endif %}
         {% endif %}
       {% endfor %}
 
