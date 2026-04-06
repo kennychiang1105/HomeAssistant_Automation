@@ -4,7 +4,7 @@
   description: 每日 18:00 比對 HA/AI 版本，僅在有更新時推播變更摘要（HA + LINE 一般通知）。
   mode: single
   triggers:
-    - trigger: time
+    - platform: time
       at: "18:00:00"
   variables:
     automation_version: "V3.2"
@@ -12,19 +12,11 @@
     release_url: "https://github.com/kennychiang1105/HomeAssistant_Automation/releases/"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
 
-    ha_current_version: >-
-      {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
-    previous_ha_version: >-
-      {{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}
-    os_current_version: >-
-      {{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}
-
-    current_versions: >-
-      {% set merged_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}') %}
-      {{ merged_json | from_json }}
-    previous_versions: >-
-      {% set versions = state_attr('sensor.ai_version_snapshot_history', 'versions') %}
-      {{ versions if versions is mapping else dict() }}
+    ha_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}"
+    previous_ha_version: "{{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}"
+    os_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}"
+    current_versions: "{{ state_attr('sensor.ai_version_compare_current', 'versions') | default({}, true) }}"
+    previous_versions: "{{ state_attr('sensor.ai_version_snapshot_history', 'versions') | default({}, true) }}"
     previous_os_version: >-
       {% set old_item = previous_versions.get('system_operating_system_version') %}
       {{ old_item.version if old_item is mapping else 'V0.0' }}
