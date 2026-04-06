@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.8）
+# Helpers（V3.9）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.9):
+#   • 新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）作為 automation 觸發中繼，避免 Google 將 automation 視為啟用開關。
 # 新增與強化 (V3.8):
 #   • 新增 command_line sensor：動態掃描 AI YAML 的 alias 版本，輸出 JSON 屬性（versions）。
 #   • 新增 trigger-based template sensor：保存 00-2A 的版本快照歷史（attributes 無 255 字元限制）。
@@ -209,6 +211,22 @@ input_boolean:
   ding_lou_xia_lou_qing_jing:
     name: 頂樓下樓情境
     icon: mdi:stairs-down
+
+  google_scene_zao_an_trigger:
+    name: Google 早安情境按鈕
+    icon: mdi:weather-sunset-up
+
+  google_scene_wan_an_trigger:
+    name: Google 晚安情境按鈕
+    icon: mdi:weather-night
+
+  google_scene_dao_jia_trigger:
+    name: Google 到家情境按鈕
+    icon: mdi:home-import-outline
+
+  google_scene_chu_men_trigger:
+    name: Google 出門情境按鈕
+    icon: mdi:home-export-outline
 
   debug_topfloor_kenny:
     name: Kenny 頂樓自動化 Debug 模式
