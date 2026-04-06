@@ -239,6 +239,15 @@ input_boolean:
   line_bot_custom_user_enable:
     name: LINE Bot_自訂ID啟用
     icon: mdi:account-edit
+
+input_button:
+  ai_version_snapshot_clear:
+    name: 清除更新紀錄比對記憶
+    icon: mdi:broom
+  ai_version_snapshot_set_baseline:
+    name: 目前版本設為比對基準
+    icon: mdi:target
+
 input_number:
   # 車牌辨識AI_Beta
   lpr_auto_close_delay_min:
@@ -494,6 +503,18 @@ input_text:
     name: AI離家版本字串
     icon: mdi:home-export-outline
     max: 120
+  homekit_framework_version_manual:
+    name: HomeKit架構版本（手動）
+    icon: mdi:apple
+    max: 60
+  automation_package_version_manual:
+    name: 自動化更新包版本（手動）
+    icon: mdi:package-variant-closed
+    max: 60
+  automation_framework_version_manual:
+    name: 自動化架構版本（手動）
+    icon: mdi:sitemap-outline
+    max: 60
 input_select:
   # LINE Bot 運作模式
   line_bot_mode:
@@ -528,13 +549,73 @@ template:
               {{ trigger.event.data.ha_version if trigger is defined else 'V0.0' }}
             versions: >-
               {% if trigger is defined %}
-                {% set payload = trigger.event.data.versions_json | default('{}') %}
-                {{ payload | from_json }}
+                {% set raw_versions = trigger.event.data.get('versions') %}
+                {% if raw_versions is mapping %}
+                  {{ raw_versions }}
+                {% else %}
+                  {% set payload = trigger.event.data.versions_json | default('{}') %}
+                  {{ payload | from_json }}
+                {% endif %}
               {% else %}
                 {{ dict() }}
               {% endif %}
             changed_lines_text: >-
               {{ trigger.event.data.changed_lines_text if trigger is defined else '' }}
+
+    - sensor:
+        - name: ai_version_snapshot_summary
+          unique_id: ai_version_snapshot_summary
+          icon: mdi:history
+          state: >-
+            {% set ha = state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) %}
+            {% set versions = state_attr('sensor.ai_version_snapshot_history', 'versions') %}
+            {% set count = versions | count if versions is mapping else 0 %}
+            {{ ha ~ ' / ' ~ count ~ '項版本' }}
+          attributes:
+            last_snapshot_at: >-
+              {{ states('sensor.ai_version_snapshot_history') }}
+            changed_lines_text: >-
+              {{ state_attr('sensor.ai_version_snapshot_history', 'changed_lines_text') | default('', true) }}
+
+    - sensor:
+        - name: ai_version_compare_current
+          unique_id: ai_version_compare_current
+          icon: mdi:source-branch-sync
+          state: >-
+            {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set core = state_attr('update.home_assistant_core_update', 'installed_version') %}
+            {{ core if core not in invalid_texts and core is not none else '未知' }}
+          attributes:
+            ha_version: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set core = state_attr('update.home_assistant_core_update', 'installed_version') %}
+              {{ core if core not in invalid_texts and core is not none else '未知' }}
+            os_version: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set os = state_attr('update.home_assistant_operating_system_update', 'installed_version') %}
+              {{ os if os not in invalid_texts and os is not none else '未知' }}
+            versions: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
+              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set _ = ns.versions.update({
+                'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
+                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              }) %}
+              {{ ns.versions }}
+            versions_json: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
+              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set _ = ns.versions.update({
+                'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
+                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              }) %}
+              {{ ns.versions | tojson }}
 
     - trigger:
         - platform: state
@@ -780,6 +861,77 @@ template:
               source_automation: automation.ai_auto_leave_system
 
 automation:
+  - id: ui_ai_version_snapshot_clear
+    alias: 版本快照記憶清除器
+    description: 按下按鈕後清空 00-2A 更新紀錄比對快照，方便重測推播流程
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.ai_version_snapshot_clear
+    variables:
+      debug_message: >-
+        快照重置內容：
+        ha_version=V0.0
+        versions_count=0
+    action:
+      - event: ai_version_snapshot_update
+        event_data:
+          ha_version: "V0.0"
+          versions: {}
+          versions_json: "{}"
+          changed_lines_text: ""
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對記憶已清除
+          message: >-
+            已重置 ai_version_snapshot_history 快照。
+            下一次執行「00-2A更新紀錄推播AI」會重新建立基準版本。
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對記憶（Debug）
+          message: "{{ debug_message }}"
+
+  - id: ui_ai_version_snapshot_set_baseline
+    alias: 版本快照基準寫入器
+    description: 按下按鈕後以目前版本寫入快照基準，不會觸發 00-2A 更新通知
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.ai_version_snapshot_set_baseline
+    variables:
+      ha_current_version: >-
+        {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
+      current_versions: >-
+        {% set versions = state_attr('sensor.ai_version_compare_current', 'versions') %}
+        {% if versions is mapping %}
+          {{ versions }}
+        {% else %}
+          {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}') %}
+          {{ versions_json | from_json }}
+        {% endif %}
+      current_versions_count: "{{ current_versions | count }}"
+      debug_message: >-
+        目前基準寫入內容：
+        ha_version={{ ha_current_version }}
+        versions_count={{ current_versions_count }}
+    action:
+      - event: ai_version_snapshot_update
+        event_data:
+          ha_version: "{{ ha_current_version }}"
+          versions: "{{ current_versions }}"
+          versions_json: "{{ current_versions | tojson }}"
+          changed_lines_text: ""
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對基準已寫入
+          message: >-
+            已將目前版本寫入 ai_version_snapshot_history 作為比對基準。
+            下一次執行「00-2A更新紀錄推播AI」不會因相同版本而重複通知。
+      - service: persistent_notification.create
+        data:
+          title: 更新紀錄比對基準（Debug）
+          message: "{{ debug_message }}"
+
   - id: ui_ai_leave_version_sync
     alias: AI離家版本同步器 v3.0
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
