@@ -1,0 +1,969 @@
+button_card_templates: !include button_card_templates.yaml
+
+
+#智慧家庭控制面板beta
+sidebar:
+  title: ""
+  digitalClock: true
+  clock: false
+  date: true
+  bottomcard: true
+  hideTopMenu: true
+  hideHassSidebar: false
+  digitalClockWithSeconds: true
+  dateFormat: YYYY MMMM DD
+  style: |
+    :host {
+        --sidebar-background: #9F5000;
+        --sidebar-text-color: #FCFCFC;
+     }
+    .sidebarMenu {
+         margin: 5px 0;
+         padding: 5px 0;
+     }
+    .digitalClock {
+
+        padding-left: 0px;
+        padding-bottom: 7px;
+        padding-top: 10px
+     }
+     h1.digitalClock {
+        font-size: 50px;
+        line-height: 65px;
+     }
+     .date {
+         text-align: center;
+     }
+     h1 {
+          text-align:center;
+      }
+# width in percentage (dont add the %)0,22,17.5
+  width:
+    mobile: 0
+    tablet: 30
+    desktop: 25
+
+
+  sidebarMenu:
+    - action: navigate
+      navigation_path: /lovelace-yaml/all
+      name: 總覽
+      active: true      
+      icon: mdi:home-automation
+    - action: navigate
+      navigation_path: /lovelace-yaml/1f
+      name: 1F一樓(未完成)
+      active: true      
+      icon: mdi:home-floor-1
+    - action: navigate
+      navigation_path: /lovelace-yaml/2f
+      name: 2F二樓(未完成)
+      active: true      
+      icon: mdi:home-floor-2
+    - action: navigate
+      navigation_path: /lovelace-yaml/3f
+      name: 3F三樓(未完成)
+      active: true      
+      icon: mdi:home-floor-3
+    - action: navigate
+      navigation_path: /lovelace-yaml/5f
+      name: 5F五樓(未完成)
+      active: true      
+      icon: mdi:home-floor-0
+    - action: navigate
+      navigation_path: /lovelace-yaml/camera
+      name: 攝影機
+      active: true
+      icon: mdi:cctv
+
+  template: |
+    <li>
+      {% if now().hour  < 5 %} 晚安 {{'\U0001F634'}}
+      {% elif now().hour < 12 %} 早安 {{'\u2615\uFE0F'}}
+      {% elif now().hour < 18 %} 午安 {{'\U0001F44B\U0001F3FB'}}
+      {% else %} 晚安 {{'\U0001F44B\U0001F3FB'}}{% endif %}
+    </li>
+    
+    <li>
+      外面氣溫
+      {{states('sensor.familyjia_ting_realfeel_temperature')}}°C </li> 
+    <li>
+      室內氣溫
+      {{states('sensor.kong_qi_qing_jing_ji_temperature')}}°C
+    </li>      
+    <li>
+      保全系統:
+      {% if state_attr('alarm_control_panel.lumi_mgl03_58f9_arming', 'arming.arming_mode')| float == 1 %}在家模式
+      {% elif state_attr('alarm_control_panel.lumi_mgl03_58f9_arming', 'arming.arming_mode')| float == 2 %}離家模式
+      {% elif state_attr('alarm_control_panel.lumi_mgl03_58f9_arming', 'arming.arming_mode')| float == 3 %}睡覺模式
+      {% elif state_attr('alarm_control_panel.lumi_mgl03_58f9_arming', 'arming.arming_mode')| float == 0 %}未啟用模式
+      {% else %}未知{% endif %} 
+    </li>    
+
+#    <li>
+#    {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}      
+#    <li>
+  bottomCard:
+    type: 'custom:mini-media-player'
+    cardOptions:
+      entity: media_player.can_ting
+      hide:
+        name: Homepod mini
+        power: false
+        source: false
+        volume: false
+        info: false
+    cardStyle: |
+      :host {
+        width: 100%;
+        position: ;
+        bottom: ;
+        left: 0;
+      }
+      .mmp__bg {
+       background: transparent
+      } 
+      .entity__info__media {
+       color: #010203;
+       word-break: break-word;
+      }       
+
+      
+      ha-card {
+        background: transparent;
+        color: #010203;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        margin-bottom: 0px;
+      .state {
+        font-size: 8px;
+      }
+views:
+  - title: "總覽"
+    panel: true
+    path: "all"
+    cards:
+      - type: "custom:homekit-card"
+        style: |
+          :host {
+            --tile-background: rgba(255, 255, 255, 0.8);
+            --tile-border-radius: 12px;
+            --tile-width: 100px;
+            --tile-height: 100px;
+            --tile-on-background: rgba(255, 255, 255, 1);
+            
+            --tile-name-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-name-text-color: rgba(0, 0, 0, 1);
+            
+            --tile-state-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-state-text-color: rgba(0, 0, 0, 1);
+            
+            --tile-state-changed-text-color: rgb(134, 134, 134);
+            --tile-unavailable-state-text-color: rgba(255, 0, 0, 1);
+            
+            --tile-value-text-color: rgba(255, 0, 0, 1);
+            
+            
+            --tile-icon-color: rgba(0, 0, 0, 0.3);
+            --tile-on-icon-color: #f7d959;
+            
+            
+            --tile-width-mobile: 90px;
+            --tile-height-mobile: 90px;
+      
+            --min-header-height: 150px;
+      
+            --tile-icon-size: 30px;
+      
+            --tile-image-radius: 100%
+      
+            --slider-width: 120px;
+            --slider-height: 120px;
+          }
+        home: true
+        rulesColor: rgb(158, 79, 0)
+        rules: |
+          <li>----------------------------------------------------------- </li>
+          <li>【災害系統】{{states('sensor.disaster')}} </li>
+          <li>----------------------------------------------------------- </li>
+          <li>【地震系統】{{states('sensor.earthquake')}} </li>
+          <li>----------------------------------------------------------- </li>
+          {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}
+          {% if states('cover.garage') | string == "opening" %} <li>-注意: 車庫鐵門已開啟! </li> {% endif %}
+#          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_gft') %} <li>今天 groenebak aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_papier') %} <li>今天 oudpapier aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_pmd') %} <li>今天 plastic aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_restafval') %} <li>今天 grijzebak aan de straat</li> {% endif %}
+        title: "家庭總覽"
+        useBrightness: true
+        useTemperature: true
+        useRGB: true
+        titleColor: "#FFF"
+        enableColumns: true
+        tileHoldAnimation: true
+        horizontalScroll: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 3     
+                entities:
+                  - title: 情境狀態
+                    entities: 
+                      - custom: 緊急按鈕
+                        name: 緊急按鈕
+                        icon: mdi:exit-run
+                        hideState: true
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.jin_ji_mo_shi
+                        popup:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.jin_ji_mo_shi
+                      - entity: cover.garage
+                        name: 車庫鐵門
+                        icon: mdi:garage
+                        offStates:
+                          - closed
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.tie_men_kai_guan
+                        popup:
+                      - entity: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+                        name: 二樓門鎖
+                        icon: mdi:door-closed-lock
+                        offStates:
+                          - off
+                          - Off
+                          - closed
+                          - 關閉
+
+              - column: 1
+                tileOnRow: 5     
+                entities:
+                  - title: 
+                    entities:             
+                      - custom: input_button.nig
+                        name: 晚安
+                        icon: mdi:weather-night
+                        hideState: true
+                        tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.wan_an_qing_jing
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.wan_an_qing_jing
+                      - custom: input_button.li_jia
+                        name: 離家
+                        icon: mdi:door-closed-lock
+                        hideState: true
+                        tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.101li_jia_qing_jing
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.101li_jia_qing_jing
+                      - custom: input_button.morning
+                        name: 早安
+                        icon: mdi:weather-sunny
+                        hideState: true
+                        tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.101zao_an_qing_jing
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.101zao_an_qing_jing
+                      - custom: input_button.dao_jia
+                        name: 到家
+                        icon: mdi:home-account
+                        hidestate: true
+                        tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.103dao_jia_qing_jing
+                        double_tap_action:
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.103dao_jia_qing_jing
+              - column: 2
+                tileOnRow: 5
+                entities:
+                  - title: 常用電燈
+                    entities: 
+                      - entity: light.can_ting_deng_zu_1_ha
+                        name: 餐廳燈組1
+                        icon: mdi:ceiling-light
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.yeelink_color5_4181_light
+                        name: 客廳小燈
+                        icon: mdi:globe-light
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.ke_ting_deng_zu_1_ha
+                        name: 客廳燈組一
+                        icon: mdi:lightbulb-multiple
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.ke_ting_deng_zu_2
+                        name: 客廳燈組二
+                        icon: mdi:lightbulb-multiple
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px   
+                      - entity: light.ke_ting_deng_zu_3
+                        name: 客廳燈組三
+                        icon: mdi:lightbulb-multiple
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px   
+          - row: 2
+            columns:
+              - column: 1
+                tileOnRow: 5     
+                entities:
+                  - title: 常用家電
+                    entities: 
+                      - entity: fan.ke_ting_dian_feng_shan
+                        name: 客廳電風扇
+                        icon: mdi:fan
+                        tap_action:
+                          action: call-service
+                          service: fan.toggle
+                          service_data:
+                            entity_id: fan.ke_ting_dian_feng_shan
+                      - entity: fan.kong_qi_qing_jing_ji
+                        name: 空氣清淨機
+                        icon: mdi:air-purifier
+                        tap_action:
+                          action: call-service
+                          service: fan.toggle
+                          service_data:
+                            entity_id: fan.kong_qi_qing_jing_ji
+                      - entity: media_player.sony_bravia_tv
+                        name: 客廳電視
+                        icon: mdi:television
+                        offStates:
+                          - "off"
+                          - "unavailable"
+                          - "paused"
+                        tap_action:
+                          action: call-service
+                          service:  media_player.toggle
+                          service_data:
+                            entity_id: media_player.sony_bravia_tv
+                      - entity: switch.0x00158d0003923796_plug
+                        name: 廚房智慧插座
+                        icon: mdi:power-socket-jp
+                        popup:
+                          type: custom:switch-popup-card
+                          noActiveState: '-'
+                          entity_value_path: state
+                          entities:
+                            - switch.0x00158d0003923796_plug
+                          buttons:
+                            - icon: "mdi:power-socket-us"
+                              value: "on"
+                              name: "ON"
+                              color: "#FFF"
+                              icon_color: "rgba(255,255,255,1)"
+                              service: switch.turn_on
+                              service_data:
+                                entity_id: switch.0x00158d0003923796_plug
+                            - icon: "mdi:power-socket-us"
+                              value: "off"
+                              name: "OFF"
+                              color: "#FFF"
+                              icon_color: "rgba(255,255,255,1)"
+                              service: switch.turn_off
+                              service_data:
+                                entity_id: switch.0x00158d0003923796_plug
+                      - entity: alarm_control_panel.0x54ef4410008d7276_alarm
+                        name: 保全系統
+                        icon: mdi:alarm-light
+                      
+                      - entity: media_player.can_ting
+                        name: 餐廳HomePod
+                        icon: mdi:speaker
+                        offStates:
+                          - "off"
+                          - "unavailable"
+                          - "paused"  
+              - column: 2
+                tileOnRow: 5     
+                entities:
+                  - title: 常用感測器
+                    entities: 
+                      - card: custom:mini-graph-card
+                        name: 客廳溫度
+                        animate: true
+                        noPadding: true
+                        cardOptions:
+                          entities:
+                            - sensor.kong_qi_qing_jing_ji_temperature
+                          name: 客廳溫度
+                      - card: custom:mini-graph-card
+                        name: 客廳濕度
+                        animate: true
+                        noPadding: true
+                        cardOptions:
+                          entities:
+                            - sensor.kong_qi_qing_jing_ji_humidity
+                          name: 客廳濕度
+                      - card: custom:mini-graph-card
+                        name: 客廳PM2.5
+                        font_size_header: 5
+                        font_size: 50
+                        animate: true
+                        noPadding: true
+                        cardOptions:
+                          entities:
+                            - sensor.kong_qi_qing_jing_ji_pm2_5
+                          name: 客廳空氣
+                          icon: mdi:air-filter
+                          font_size_header: 5
+                          font_size: 50
+                      # - card: custom:mini-graph-card
+                      #   name: 5F溫度
+                      #   animate: true
+                      #   noPadding: true
+                      #   cardOptions:
+                      #     entities:
+                      #       - sensor.5fwen_du_gan_ce_qi_test
+                      #     name: 5F溫度
+                      # - card: custom:mini-graph-card
+                      #   name: 5F濕度
+                      #   animate: true
+                      #   noPadding: true
+                      #   cardOptions:
+                      #     entities:
+                      #       - sensor.5fshi_du_gan_ce_qi_test
+                      #     name: 5F濕度
+                      # - card: custom:mini-graph-card
+                      #   name: 餐廳PM2.5
+                      #   font_size_header: 5
+                      #   font_size: 50
+                      #   animate: true
+                      #   noPadding: true
+                      #   cardOptions:
+                      #     entities:
+                      #       - sensor.5f_pm2_5gan_ce_qi_test
+                      #     name: 5F空氣
+                      #     icon: mdi:air-filter
+                      #     font_size_header: 5
+                      #     font_size: 50
+                      # - card: custom:mini-graph-card
+                      #   name: 5F氣壓
+                      #   font_size_header: 5
+                      #   font_size: 50
+                      #   animate: true
+                      #   noPadding: true
+                      #   cardOptions:
+                      #     entities:
+                      #       - sensor.5f_qi_ya_test
+                      #     name: 5F氣壓
+                      #     icon: mdi:air-filter
+                      #     font_size_header: 5
+                      #     font_size: 50
+####################################################################################
+  - title: "測試按鈕區"
+    path: "test"
+    panel: true
+    cards:
+      - type: "custom:homekit-card"
+        home: true
+        rules: |
+          {% if "Vandaag" in states('sensor.blink_gft') %} <li>Vandaag groenebak aan de straat</li> {% endif %}
+          {% if "Vandaag" in states('sensor.blink_papier') %} <li>Vandaag oudpapier aan de straat</li> {% endif %}
+          {% if "Vandaag" in states('sensor.blink_pmd') %} <li>Vandaag plastic aan de straat</li> {% endif %}
+          {% if "Vandaag" in states('sensor.blink_restafval') %} <li>Vandaag grijzebak aan de straat</li> {% endif %}
+          {% if states('sensor.current_lights_on') | float > 0 %} <li>{{states('sensor.current_lights_on')}} lampen aan</li> {% endif %}
+          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+        title: "Home"
+        useBrightness: false
+        useTemperature: false
+        useRGB: false
+        titleColor: "#FFF"
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: Lichtstrip
+                    popup:
+                      type: custom:light-popup-card
+                      scenesInARow: 2
+                      brightnessWidth: 130px
+                      brightnessHeight: 350px
+                      switchWidth: 110px
+                      switchHeight: 300px
+                    entities: 
+                      - entity: light.beganegrond
+                        name: Lichtstrip
+                        icon: mdi:led-strip-variant
+                        popupExtend:
+                          actions:
+                            - service: scene.turn_on
+                              service_data:
+                                entity_id: scene.ontspannen
+                              color: "#FDCA64"
+                              name: ontspannen
+                            - service: scene.turn_on
+                              service_data:
+                                entity_id: scene.helder
+                              color: "#FFE7C0"
+                              name: helder
+                            - service: scene.turn_on
+                              service_data:
+                                entity_id: scene.concentreren
+                              color: "#BBEEF3"
+                              name: concentreren
+                            - service: scene.turn_on
+                              service_data:
+                                entity_id: scene.energie
+                              color: "#8BCBDD"
+                              name: energie
+                      - entity: light.zithoek
+                        name: Zithoek
+                        icon: mdi:floor-lamp
+                      - entity: light.eettafel
+                        name: Eettafel
+                        icon: mdi:ceiling-light
+                      - entity: light.kookeiland
+                        name: Kookeiland
+                        icon: mdi:ceiling-light
+              - column: 2  
+                tileOnRow: 3
+                entities:
+                  - title: Buiten verlichting
+                    entities:
+                      - entity: light.voordeurlicht
+                        name: Voordeur
+                      - entity: light.buitenverlichting_achter
+                        name: Achter
+                      - entity: light.buitenverlichting_bomen
+                        spin: true
+                        name: Bomen
+          - row: 2
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: "Overig"
+                    entities:
+                      - card: custom:blinds-tile-card
+                        tap_action:
+                          action: more-info
+                          entity: input_number.blindone
+                        cardOptions:
+                          name: Luxaflex
+                          entities:
+                            - entity: input_number.blindone
+                              positions: 
+                                - 60
+                                - 0
+                                - -45
+                            - entity: input_number.blindtwo
+                              positions: 
+                                - 75
+                                - 0
+                                - -50
+                            - entity: input_number.blindthree
+                              positions: 
+                                - -65
+                                - 0
+                                - 50
+                      - card: custom:mini-graph-card
+                        noPadding: true
+                        cardOptions:
+                          entities:
+                            - sensor.wasmachine_energieverbruik
+                      - entity: binary_sensor.wasmachine_status
+                      - entity: weather.weersverwachting
+              - column: 2
+                tileOnRow: 3
+                entities:
+                  - title: Muziek
+                    entities:
+                      - entity: media_player.keuken
+                        icon: mdi:speaker-wireless
+                        offIcon: 'mdi:garage'
+                        offStates:
+                          - "off"
+                          - "unavailable"
+                          - "paused"
+                      - entity: media_player.woonkamer
+                        icon: mdi:speaker-wireless
+                        offStates:
+                          - "off"
+                          - "unavailable"
+                          - "paused"
+                      - entity: media_player.slaapkamer
+                        icon: mdi:speaker-wireless
+                        offStates:
+                          - "off"
+                          - "unavailable"
+                          - "paused"
+          - row: 3
+            columns:
+              - column: 3
+                entities:
+                  - title: Overig
+                    entities:
+                      - entity: switch.doorbell_chime_active
+                        spin: true
+                      - entity: switch.doorbell_chime
+                      - entity: switch.doorbell_restart
+                      - entity: binary_sensor.doorbell_button
+####################################################
+  - title: 攝影機
+    path: "camera"
+    cards:
+      - type: picture-entity
+        entity: camera.che_ku_she_ying_ji_mainstream
+        camera_view: live
+      - type: picture-entity
+        entity: camera.5fshe_ying_ji_mainstream
+        camera_view: live
+#####################################################
+  - title: "1F"
+    path: "1f"
+    panel: true
+    cards:
+      - type: "custom:homekit-card"
+        style: |
+          :host {
+            --tile-background: rgba(255, 255, 255, 0.8);
+            --tile-border-radius: 12px;
+            --tile-width: 100px;
+            --tile-height: 100px;
+            --tile-on-background: rgba(255, 255, 255, 1);
+            --tile-name-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-name-text-color: rgba(0, 0, 0, 1);
+            --tile-state-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-state-text-color: rgba(0, 0, 0, 1);
+            --tile-state-changed-text-color: rgb(134, 134, 134);
+            --tile-unavailable-state-text-color: rgba(255, 0, 0, 1);
+            --tile-value-text-color: rgba(255, 0, 0, 1);
+            --tile-icon-color: rgba(0, 0, 0, 0.3);
+            --tile-on-icon-color: #f7d959;
+            --tile-width-mobile: 90px;
+            --tile-height-mobile: 90px;
+            --min-header-height: 150px;
+            --tile-icon-size: 30px;
+            --tile-image-radius: 100%
+            --slider-width: 120px;
+            --slider-height: 120px;
+          }
+        home: true
+        rules: |
+#          {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}
+#          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_gft') %} <li>今天 groenebak aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_papier') %} <li>今天 oudpapier aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_pmd') %} <li>今天 plastic aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_restafval') %} <li>今天 grijzebak aan de straat</li> {% endif %}
+        title: "一樓車庫"
+        useBrightness: true
+        useTemperature: true
+        useRGB: true
+        titleColor: "#FFF"
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: 頂樓
+                    entities: 
+                      - entity: light.yeelink_lamp2_678c_light
+                        name: 檯燈
+                        icon: mdi:desk-lamp
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.yeelink_bslamp2_4329_light
+                        name: 床頭燈
+                        icon: mdi:bed-king
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+#####################################################
+  - title: "2F"
+    panel: true
+    path: "2f"
+    cards:
+      - type: "custom:homekit-card"
+        style: |
+          :host {
+            --tile-background: rgba(255, 255, 255, 0.8);
+            --tile-border-radius: 12px;
+            --tile-width: 100px;
+            --tile-height: 100px;
+            --tile-on-background: rgba(255, 255, 255, 1);
+            --tile-name-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-name-text-color: rgba(0, 0, 0, 1);
+            --tile-state-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-state-text-color: rgba(0, 0, 0, 1);
+            --tile-state-changed-text-color: rgb(134, 134, 134);
+            --tile-unavailable-state-text-color: rgba(255, 0, 0, 1);
+            --tile-value-text-color: rgba(255, 0, 0, 1);
+            --tile-icon-color: rgba(0, 0, 0, 0.3);
+            --tile-on-icon-color: #f7d959;
+            --tile-width-mobile: 90px;
+            --tile-height-mobile: 90px;
+            --min-header-height: 150px;
+            --tile-icon-size: 30px;
+            --tile-image-radius: 100%
+            --slider-width: 120px;
+            --slider-height: 120px;
+          }
+        home: true
+        rules: |
+#          {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}
+#          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_gft') %} <li>今天 groenebak aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_papier') %} <li>今天 oudpapier aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_pmd') %} <li>今天 plastic aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_restafval') %} <li>今天 grijzebak aan de straat</li> {% endif %}
+        title: "二樓"
+        useBrightness: true
+        useTemperature: true
+        useRGB: true
+        titleColor: "#FFF"
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: 頂樓
+                    entities: 
+                      - entity: light.yeelink_lamp2_678c_light
+                        name: 檯燈
+                        icon: mdi:desk-lamp
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.yeelink_bslamp2_4329_light
+                        name: 床頭燈
+                        icon: mdi:bed-king
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+#####################################################
+  - title: "3F"
+    path: "3f"  
+    panel: true
+    cards:
+      - type: "custom:homekit-card"
+        style: |
+          :host {
+            --tile-background: rgba(255, 255, 255, 0.8);
+            --tile-border-radius: 12px;
+            --tile-width: 100px;
+            --tile-height: 100px;
+            --tile-on-background: rgba(255, 255, 255, 1);
+            --tile-name-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-name-text-color: rgba(0, 0, 0, 1);
+            --tile-state-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-state-text-color: rgba(0, 0, 0, 1);
+            --tile-state-changed-text-color: rgb(134, 134, 134);
+            --tile-unavailable-state-text-color: rgba(255, 0, 0, 1);
+            --tile-value-text-color: rgba(255, 0, 0, 1);
+            --tile-icon-color: rgba(0, 0, 0, 0.3);
+            --tile-on-icon-color: #f7d959;
+            --tile-width-mobile: 90px;
+            --tile-height-mobile: 90px;
+            --min-header-height: 150px;
+            --tile-icon-size: 30px;
+            --tile-image-radius: 100%
+            --slider-width: 120px;
+            --slider-height: 120px;
+          }
+        home: true
+        rules: |
+#          {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}
+#          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_gft') %} <li>今天 groenebak aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_papier') %} <li>今天 oudpapier aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_pmd') %} <li>今天 plastic aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_restafval') %} <li>今天 grijzebak aan de straat</li> {% endif %}
+        title: "三樓臥室"
+        useBrightness: true
+        useTemperature: true
+        useRGB: true
+        titleColor: "#FFF"
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: 頂樓
+                    entities: 
+                      - entity: light.yeelink_lamp2_678c_light
+                        name: 檯燈
+                        icon: mdi:desk-lamp
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.yeelink_bslamp2_4329_light
+                        name: 床頭燈
+                        icon: mdi:bed-king
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+#####################################################
+  - title: "5F"
+    path: "5f"
+    panel: true
+    cards:
+      - type: "custom:homekit-card"
+        style: |
+          :host {
+            --tile-background: rgba(255, 255, 255, 0.8);
+            --tile-border-radius: 12px;
+            --tile-width: 100px;
+            --tile-height: 100px;
+            --tile-on-background: rgba(255, 255, 255, 1);
+            --tile-name-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-name-text-color: rgba(0, 0, 0, 1);
+            --tile-state-text-color: rgba(0, 0, 0, 0.4);
+            --tile-on-state-text-color: rgba(0, 0, 0, 1);
+            --tile-state-changed-text-color: rgb(134, 134, 134);
+            --tile-unavailable-state-text-color: rgba(255, 0, 0, 1);
+            --tile-value-text-color: rgba(255, 0, 0, 1);
+            --tile-icon-color: rgba(0, 0, 0, 0.3);
+            --tile-on-icon-color: #f7d959;
+            --tile-width-mobile: 90px;
+            --tile-height-mobile: 90px;
+            --min-header-height: 150px;
+            --tile-icon-size: 30px;
+            --tile-image-radius: 100%
+            --slider-width: 120px;
+            --slider-height: 120px;
+          }
+        home: true
+        rules: |
+         {% if states('sensor.lights_on5f') | float > 0 %} <li>-目前有{{states('sensor.lights_on5f')}}盞燈開啟 </li> {% endif %}
+#          {% if states('sensor.lights_on') | float > 0 %} <li>-目前有{{states('sensor.lights_on')}}盞燈開啟 </li> {% endif %}
+#          {% if states('sensor.current_media_players_on') | float > 0 %} <li>{{states('sensor.current_media_players_on')}} speakers aan</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_gft') %} <li>今天 groenebak aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_papier') %} <li>今天 oudpapier aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_pmd') %} <li>今天 plastic aan de straat</li> {% endif %}
+#          {% if "今天" in states('sensor.blink_restafval') %} <li>今天 grijzebak aan de straat</li> {% endif %}
+        title: "五樓房間"
+        useBrightness: true
+        useTemperature: true
+        useRGB: true
+        titleColor: "#FFF"
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: 頂樓
+                    entities: 
+                      - entity: light.yeelink_lamp2_678c_light
+                        name: 檯燈
+                        icon: mdi:desk-lamp
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+                      - entity: light.yeelink_bslamp2_4329_light
+                        name: 床頭燈
+                        icon: mdi:bed-king
+                        popup:
+                          type: 'custom:light-popup-card'
+                          scenesInARow: 2
+                          brightnessWidth: 130px
+                          brightnessHeight: 350px
+                          switchWidth: 110px
+                          switchHeight: 300px
+#####################################################                                                                                    
