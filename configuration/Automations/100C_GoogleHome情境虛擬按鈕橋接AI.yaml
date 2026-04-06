@@ -1,0 +1,70 @@
+# 相容版本：Helpers V3.9（已確認）
+- id: ai_100c_googlehome_scene_virtual_button_bridge
+  alias: 100C GoogleHome情境虛擬按鈕橋接AI (V3.0)
+  description: Google Home 透過 helper 虛擬按鈕觸發情境自動化，避免 automation 僅被視為啟用開關。
+  variables:
+    automation_version: 'V3.0'
+    reset_delay_seconds: 1
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.google_scene_zao_an_trigger
+      to: 'on'
+      id: zao_an
+    - trigger: state
+      entity_id: input_boolean.google_scene_wan_an_trigger
+      to: 'on'
+      id: wan_an
+    - trigger: state
+      entity_id: input_boolean.google_scene_dao_jia_trigger
+      to: 'on'
+      id: dao_jia
+    - trigger: state
+      entity_id: input_boolean.google_scene_chu_men_trigger
+      to: 'on'
+      id: chu_men
+  conditions: []
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: zao_an
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.101zao_an_qing_jing
+              data:
+                skip_condition: true
+        - conditions:
+            - condition: trigger
+              id: wan_an
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.wan_an_qing_jing
+              data:
+                skip_condition: true
+        - conditions:
+            - condition: trigger
+              id: dao_jia
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.103dao_jia_qing_jing
+              data:
+                skip_condition: true
+        - conditions:
+            - condition: trigger
+              id: chu_men
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.101li_jia_qing_jing
+              data:
+                skip_condition: true
+    - delay:
+        seconds: "{{ reset_delay_seconds }}"
+    - action: input_boolean.turn_off
+      data:
+        entity_id: "{{ trigger.entity_id }}"
+  mode: queued
+  max: 10
