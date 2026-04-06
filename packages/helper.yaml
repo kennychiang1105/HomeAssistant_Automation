@@ -549,7 +549,7 @@ template:
               {{ trigger.event.data.ha_version if trigger is defined else 'V0.0' }}
             versions: >-
               {% if trigger is defined %}
-                {% set raw_versions = trigger.event.data.versions %}
+                {% set raw_versions = trigger.event.data.get('versions') %}
                 {% if raw_versions is mapping %}
                   {{ raw_versions }}
                 {% else %}
@@ -576,6 +576,28 @@ template:
               {{ states('sensor.ai_version_snapshot_history') }}
             changed_lines_text: >-
               {{ state_attr('sensor.ai_version_snapshot_history', 'changed_lines_text') | default('', true) }}
+
+    - sensor:
+        - name: ai_version_compare_current
+          unique_id: ai_version_compare_current
+          icon: mdi:source-branch-sync
+          state: >-
+            {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
+          attributes:
+            ha_version: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
+            versions: >-
+              {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
+              {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
+              {% set ns = namespace(versions=(versions if versions is mapping else dict())) %}
+              {% set _ = ns.versions.update({
+                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              }) %}
+              {{ ns.versions }}
 
     - trigger:
         - platform: state
@@ -850,26 +872,11 @@ automation:
       - platform: state
         entity_id: input_button.ai_version_snapshot_set_baseline
     variables:
-      invalid_texts: ["unknown", "unavailable", "none", "None", ""]
       ha_current_version: >-
-        {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
-      registry_versions: >-
-        {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
-        {{ versions if versions is mapping else dict() }}
-      homekit_framework_version: >-
-        {{ states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定' }}
-      automation_package_version: >-
-        {{ states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定' }}
-      automation_framework_version: >-
-        {{ states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定' }}
+        {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
       current_versions: >-
-        {% set ns = namespace(versions=(registry_versions if registry_versions is mapping else dict())) %}
-        {% set _ = ns.versions.update({
-          'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
-          'manual_automation_package_version': {'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'},
-          'manual_automation_framework_version': {'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}
-        }) %}
-        {{ ns.versions }}
+        {% set versions = state_attr('sensor.ai_version_compare_current', 'versions') %}
+        {{ versions if versions is mapping else dict() }}
     action:
       - event: ai_version_snapshot_update
         event_data:
