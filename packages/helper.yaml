@@ -910,7 +910,9 @@ automation:
     variables:
       ha_current_version: >-
         {{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}
-      current_versions: "{{ state_attr('sensor.ai_version_compare_current', 'versions') | default({}, true) }}"
+      current_versions: >-
+        {% set versions_json = state_attr('sensor.ai_version_compare_current', 'versions_json') | default('{}', true) %}
+        {{ versions_json | from_json }}
       current_versions_count: "{{ current_versions | count }}"
       debug_message: >-
         目前基準寫入內容：
