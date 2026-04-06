@@ -13,27 +13,38 @@ views:
           - **餐廳｜明亮機能風**：燈光、廚房插座與環境
           - **頂樓｜休憩夜間風**：空調、風扇、閱讀與夜燈
           - **伺服器/自動化｜工程面板**：系統開關與設備維運
-      - type: grid
-        title: 一鍵情境
-        columns: 4
-        square: false
-        cards:
-          - type: tile
-            entity: input_boolean.google_scene_zao_an_trigger
-            name: 早安
-            icon: mdi:weather-sunny
-          - type: tile
-            entity: input_boolean.google_scene_wan_an_trigger
-            name: 晚安
-            icon: mdi:weather-night
-          - type: tile
-            entity: input_boolean.google_scene_dao_jia_trigger
-            name: 到家
-            icon: mdi:home-import-outline
-          - type: tile
-            entity: input_boolean.google_scene_chu_men_trigger
-            name: 出門
-            icon: mdi:home-export-outline
+      - type: custom:homekit-card
+        home: false
+        title: 情境捷徑（HomeKit 按鈕風格）
+        useBrightness: false
+        useTemperature: false
+        useRGB: false
+        enableColumns: true
+        statePositionTop: true
+        rows:
+          - row: 1
+            columns:
+              - column: 1
+                tileOnRow: 4
+                entities:
+                  - title: 一鍵情境
+                    entities:
+                      - entity: input_boolean.google_scene_zao_an_trigger
+                        name: 早安
+                        icon: mdi:weather-sunny
+                        hideState: true
+                      - entity: input_boolean.google_scene_wan_an_trigger
+                        name: 晚安
+                        icon: mdi:weather-night
+                        hideState: true
+                      - entity: input_boolean.google_scene_dao_jia_trigger
+                        name: 到家
+                        icon: mdi:home-import-outline
+                        hideState: true
+                      - entity: input_boolean.google_scene_chu_men_trigger
+                        name: 出門
+                        icon: mdi:home-export-outline
+                        hideState: true
       - type: horizontal-stack
         cards:
           - type: gauge
@@ -52,10 +63,53 @@ views:
         entities:
           - light.ke_ting_deng_zu_1_ha
           - light.can_ting_deng_zu_1_ha
-          - climate.ding_lou_kong_diao
           - fan.ke_ting_dian_feng_shan
           - fan.dmaker_p33_eabd_fan
           - cover.garage
+      - type: markdown
+        title: 區域統計（燈光 / 溫度 / 保全）
+        content: |
+          {% set living_lights = expand([
+            'light.yeelink_color5_4181_light',
+            'light.ke_ting_deng_zu_1_ha',
+            'light.ke_ting_deng_zu_2',
+            'light.ke_ting_deng_zu_3',
+            'switch.ke_ting_kan_deng',
+            'switch.ke_ting_bi_deng',
+            'switch.ke_ting_huan_rao_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
+          {% set dining_lights = expand([
+            'light.can_ting_deng_zu_1_ha',
+            'switch.chu_fang_deng',
+            'switch.ce_suo_deng',
+            'switch.lou_ti_deng',
+            'switch.can_ting_kan_deng',
+            'switch.can_ting_bi_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
+          {% set top_lights = expand([
+            'light.yeelink_lamp2_678c_light',
+            'light.yeelink_bslamp2_4329_light',
+            'light.ding_lou_deng_zu_1',
+            'light.ding_lou_deng_zu_2',
+            'light.ding_lou_kan_deng',
+            'switch.bi_deng',
+            'light.yeelink_color5_13b8_light',
+            'switch.yang_tai_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
+
+          ### 💡 各區域亮燈數
+          - 客廳：**{{ living_lights }}** 盞
+          - 餐廳/廚房：**{{ dining_lights }}** 盞
+          - 頂樓：**{{ top_lights }}** 盞
+
+          ### 🌡️ 即時溫度
+          - 客廳：**{{ states('sensor.kong_qi_qing_jing_ji_temperature') }}°C**
+          - 餐廳/廚房：**{{ states('sensor.kitchenm_wen_du') }}°C**
+          - 頂樓：**{{ states('sensor.5f_homepodmini_temperature') }}°C**
+
+          ### 🛡️ 保全狀態
+          - 主保全：**{{ states('alarm_control_panel.0x54ef4410008d7276_alarm') }}**
+          - 五樓保全自動化：**{{ states('automation.08_5_wu_lou_bao_quan_xi_tong') }}**
 
   - title: 客廳
     path: living-room
@@ -138,7 +192,7 @@ views:
 
   - title: 頂樓
     path: top-floor
-    icon: mdi:home-floor-5
+    icon: mdi:numeric-5-box
     cards:
       - type: markdown
         content: |
