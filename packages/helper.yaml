@@ -583,11 +583,35 @@ template:
           icon: mdi:source-branch-sync
           state: >-
             {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
-            {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
+            {% set candidates = [
+              states('sensor.current_version'),
+              states('sensor.home_assistant_core_version'),
+              states('sensor.ha_current_version'),
+              state_attr('update.home_assistant_core_update', 'installed_version')
+            ] %}
+            {% set ns = namespace(found='未知') %}
+            {% for item in candidates %}
+              {% if item not in invalid_texts and item is not none and ns.found == '未知' %}
+                {% set ns.found = item %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.found }}
           attributes:
             ha_version: >-
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
-              {{ states('sensor.current_version') if states('sensor.current_version') not in invalid_texts else '未知' }}
+              {% set candidates = [
+                states('sensor.current_version'),
+                states('sensor.home_assistant_core_version'),
+                states('sensor.ha_current_version'),
+                state_attr('update.home_assistant_core_update', 'installed_version')
+              ] %}
+              {% set ns = namespace(found='未知') %}
+              {% for item in candidates %}
+                {% if item not in invalid_texts and item is not none and ns.found == '未知' %}
+                  {% set ns.found = item %}
+                {% endif %}
+              {% endfor %}
+              {{ ns.found }}
             versions: >-
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
               {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
