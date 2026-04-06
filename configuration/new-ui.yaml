@@ -1,4 +1,4 @@
-title: 家庭中心 Beta
+title: 家庭中心 Beta v2.2.0
 views:
   - title: 總覽
     path: all
@@ -8,6 +8,8 @@ views:
       - type: markdown
         content: |
           # 🏠 智慧家庭總覽
+          **版本：v2.2.0（2026-04-06）**
+
           依照空間使用情境整理，採用「房間風格分區 + 常用控制優先」：
           - **客廳｜溫暖木質感**：照明、空氣品質、影音
           - **餐廳｜明亮機能風**：燈光、廚房插座與環境
@@ -283,3 +285,28 @@ views:
           - input_boolean.google_scene_wan_an_trigger
           - input_boolean.google_scene_dao_jia_trigger
           - input_boolean.google_scene_chu_men_trigger
+
+  - title: 版本紀錄
+    path: release-notes
+    icon: mdi:text-box-multiple
+    cards:
+      - type: markdown
+        title: Dashboard 版本資訊
+        content: |
+          # 家庭中心 Dashboard 版本紀錄
+          > 此頁用於維護介面版本與每次更新重點。
+
+          ---
+          ## v2.2.0（2026-04-06）
+          - 首頁恢復 **HomeKit 按鈕模組風格**（情境捷徑）。
+          - 首頁移除「頂樓空調」快捷項目。
+          - 頂樓分頁 icon 改為 `mdi:numeric-5-box`（5F 標示）。
+          - 新增首頁統計區塊：各區亮燈數 / 即時溫度 / 保全狀態。
+          - 新增「版本紀錄」頁面供後續更新追蹤。
+
+          ## v2.1.0（2026-04-06）
+          - 儀表板改為房間導向分頁：總覽、客廳、餐廳與廚房、樓梯與車庫、頂樓、系統、情境。
+          - 實體依 `configuration.yaml` 的 `google_assistant.entity_config` 房間映射整理。
+
+          ## v2.0.0（歷史）
+          - 舊版大規模自訂 `homekit-card + sidebar` 架構（目前已由新版取代）。
