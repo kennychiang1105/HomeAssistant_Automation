@@ -1,6 +1,6 @@
-title: 家庭中心 Beta v2.2.0
+title: 家庭中心 V3.0 Beta 3
 views:
-  - title: 總覽
+  - title: 首頁總覽
     path: all
     icon: mdi:home-analytics
     theme: Backend-selected
@@ -8,69 +8,106 @@ views:
       - type: markdown
         content: |
           # 🏠 智慧家庭總覽
-          **版本：v2.2.0（2026-04-06）**
+          **版本：V3.0 Beta 3（2026-04-06）**
 
-          依照空間使用情境整理，採用「房間風格分區 + 常用控制優先」：
-          - **客廳｜溫暖木質感**：照明、空氣品質、影音
-          - **餐廳｜明亮機能風**：燈光、廚房插座與環境
-          - **頂樓｜休憩夜間風**：空調、風扇、閱讀與夜燈
-          - **伺服器/自動化｜工程面板**：系統開關與設備維運
-      - type: custom:homekit-card
-        home: false
-        title: 情境捷徑（HomeKit 按鈕風格）
-        useBrightness: false
-        useTemperature: false
-        useRGB: false
-        enableColumns: true
-        statePositionTop: true
-        rows:
-          - row: 1
-            columns:
-              - column: 1
-                tileOnRow: 4
-                entities:
-                  - title: 一鍵情境
-                    entities:
-                      - entity: input_boolean.google_scene_zao_an_trigger
-                        name: 早安
-                        icon: mdi:weather-sunny
-                        hideState: true
-                      - entity: input_boolean.google_scene_wan_an_trigger
-                        name: 晚安
-                        icon: mdi:weather-night
-                        hideState: true
-                      - entity: input_boolean.google_scene_dao_jia_trigger
-                        name: 到家
-                        icon: mdi:home-import-outline
-                        hideState: true
-                      - entity: input_boolean.google_scene_chu_men_trigger
-                        name: 出門
-                        icon: mdi:home-export-outline
-                        hideState: true
-      - type: horizontal-stack
+          目前採用「首頁常用方塊按鈕 + 房間分頁」設計。
+      - type: grid
+        title: 系統狀態
+        columns: 4
+        square: false
         cards:
-          - type: gauge
+          - type: tile
+            entity: alarm_control_panel.54ef44cf58f9_alarm
+            name: 保全系統（伺服器）
+            icon: mdi:shield-home
+            color: teal
+          - type: tile
+            entity: sensor.aqaradang_qian_qing_jing
+            name: Aqara 網關
+            icon: mdi:shield-link-variant
+            color: cyan
+          - type: tile
             entity: sensor.kong_qi_qing_jing_ji_temperature
-            name: 客廳溫度
-            min: 10
-            max: 40
-          - type: gauge
-            entity: sensor.kong_qi_qing_jing_ji_humidity
-            name: 客廳濕度
-            min: 20
-            max: 90
-      - type: entities
-        title: 常用快速控制
-        show_header_toggle: false
-        entities:
-          - light.ke_ting_deng_zu_1_ha
-          - light.can_ting_deng_zu_1_ha
-          - fan.ke_ting_dian_feng_shan
-          - fan.dmaker_p33_eabd_fan
-          - cover.garage
+            name: 客廳環境
+            icon: mdi:air-filter
+          - type: tile
+            entity: sensor.earthquake
+            name: 地震通知
+            icon: mdi:pulse
+            color: red
+      - type: markdown
+        content: |
+          ## 情境
+      - type: grid
+        title: 情境捷徑（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: input_boolean.google_scene_zao_an_trigger
+            name: 早安
+            icon: mdi:weather-sunny
+            tap_action:
+              action: toggle
+          - type: button
+            entity: input_boolean.google_scene_dao_jia_trigger
+            name: 到家
+            icon: mdi:home-import-outline
+            tap_action:
+              action: toggle
+          - type: button
+            entity: input_boolean.google_scene_wan_an_trigger
+            name: 晚安
+            icon: mdi:weather-night
+            tap_action:
+              action: toggle
+          - type: button
+            entity: input_boolean.google_scene_chu_men_trigger
+            name: 出門
+            icon: mdi:home-export-outline
+            tap_action:
+              action: toggle
+      - type: markdown
+        title: 多災防 / 地震通知與 HA 永久通知
+        content: |
+          {% set disaster = states('sensor.disaster') %}
+          {% set earthquake = states('sensor.earthquake') %}
+          ### 🚨 即時通知
+          - 多災防：**{{ disaster }}**
+          - 地震：**{{ earthquake }}**
+
+          > 若要把目前內容寫入 HA 永久通知，請按下方「建立通知」按鈕。
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: button
+            name: 建立 HA 永久通知
+            icon: mdi:bell-badge
+            tap_action:
+              action: perform-action
+              perform_action: persistent_notification.create
+              data:
+                title: 多災防與地震通知
+                message: >-
+                  多災防：{{ states('sensor.disaster') }}\n地震：{{ states('sensor.earthquake') }}
+                notification_id: disaster_earthquake_status
+          - type: button
+            name: 清除通知
+            icon: mdi:bell-off
+            tap_action:
+              action: perform-action
+              perform_action: persistent_notification.dismiss
+              data:
+                notification_id: disaster_earthquake_status
       - type: markdown
         title: 區域統計（燈光 / 溫度 / 保全）
         content: |
+          {% set garage_lights = expand([
+            'switch.che_ku_zhu_deng',
+            'switch.men_kou_deng',
+            'switch.lu_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
           {% set living_lights = expand([
             'light.yeelink_color5_4181_light',
             'light.ke_ting_deng_zu_1_ha',
@@ -100,6 +137,7 @@ views:
           ]) | selectattr('state','eq','on') | list | count %}
 
           ### 💡 各區域亮燈數
+          - 車庫：**{{ garage_lights }}** 盞
           - 客廳：**{{ living_lights }}** 盞
           - 餐廳/廚房：**{{ dining_lights }}** 盞
           - 頂樓：**{{ top_lights }}** 盞
@@ -110,8 +148,96 @@ views:
           - 頂樓：**{{ states('sensor.5f_homepodmini_temperature') }}°C**
 
           ### 🛡️ 保全狀態
-          - 主保全：**{{ states('alarm_control_panel.0x54ef4410008d7276_alarm') }}**
-          - 五樓保全自動化：**{{ states('automation.08_5_wu_lou_bao_quan_xi_tong') }}**
+          - 伺服器保全：**{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}**
+          - Aqara 網關：**{{ states('sensor.aqaradang_qian_qing_jing') }}**
+      - type: grid
+        title: 首頁常用裝置（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: cover.garage
+            name: 車庫鐵門
+            icon: mdi:garage
+          - type: button
+            entity: switch.che_ku_zhu_deng
+            name: 車庫主燈
+            icon: mdi:lightbulb
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.chu_fang_deng
+            name: 廚房燈
+            icon: mdi:ceiling-light
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.0x00158d0003923796_plug
+            name: 廚房插座
+            icon: mdi:power-socket-us
+            tap_action:
+              action: toggle
+          - type: button
+            entity: light.ke_ting_deng_zu_1_ha
+            name: 客廳燈組一
+            icon: mdi:chandelier
+          - type: button
+            entity: light.ke_ting_deng_zu_2
+            name: 客廳燈組二
+            icon: mdi:chandelier
+          - type: button
+            entity: light.ke_ting_deng_zu_3
+            name: 客廳燈組三
+            icon: mdi:chandelier
+          - type: button
+            entity: fan.kong_qi_qing_jing_ji
+            name: 空氣清淨機
+            icon: mdi:air-filter
+            tap_action:
+              action: toggle
+
+  - title: 車庫
+    path: garage
+    icon: mdi:garage-variant
+    cards:
+      - type: markdown
+        content: |
+          ## 車庫頁面（首頁下一頁）
+      - type: markdown
+        content: |
+          {% set garage_lights = expand([
+            'switch.che_ku_zhu_deng',
+            'switch.men_kou_deng',
+            'switch.lu_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
+          ### 💡 車庫亮燈數：**{{ garage_lights }}** 盞
+      - type: grid
+        title: 車庫控制（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: cover.garage
+            name: 鐵門
+            icon: mdi:garage
+          - type: button
+            entity: switch.che_ku_zhu_deng
+            name: 車庫主燈
+            icon: mdi:lightbulb
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.men_kou_deng
+            name: 門口燈
+            icon: mdi:coach-lamp
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.lu_deng
+            name: 路燈
+            icon: mdi:street-light
+            tap_action:
+              action: toggle
 
   - title: 客廳
     path: living-room
@@ -119,33 +245,60 @@ views:
     cards:
       - type: markdown
         content: |
+          {% set living_lights = expand([
+            'light.yeelink_color5_4181_light',
+            'light.ke_ting_deng_zu_1_ha',
+            'light.ke_ting_deng_zu_2',
+            'light.ke_ting_deng_zu_3',
+            'switch.ke_ting_kan_deng',
+            'switch.ke_ting_bi_deng',
+            'switch.ke_ting_huan_rao_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
           ## 客廳風格：溫暖木質 × 影音聚會
-          主打「燈光層次 + 空氣舒適 + 娛樂控制」。
+          ### 💡 客廳亮燈數：**{{ living_lights }}** 盞
+      - type: grid
+        title: 客廳照明（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: light.yeelink_color5_4181_light
+            name: 客廳主燈
+          - type: button
+            entity: light.ke_ting_deng_zu_1_ha
+            name: 客廳燈組一
+          - type: button
+            entity: light.ke_ting_deng_zu_2
+            name: 客廳燈組二
+          - type: button
+            entity: light.ke_ting_deng_zu_3
+            name: 客廳燈組三
+          - type: button
+            entity: switch.ke_ting_kan_deng
+            name: 崁燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.ke_ting_bi_deng
+            name: 壁燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.ke_ting_huan_rao_deng
+            name: 環繞燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: media_player.sonydian_shi
+            name: 電視
       - type: entities
-        title: 客廳照明
-        entities:
-          - light.yeelink_color5_4181_light
-          - light.ke_ting_deng_zu_1_ha
-          - light.ke_ting_deng_zu_2
-          - light.ke_ting_deng_zu_3
-          - switch.ke_ting_kan_deng
-          - switch.ke_ting_bi_deng
-          - switch.ke_ting_huan_rao_deng
-      - type: entities
-        title: 客廳家電與影音
+        title: 客廳家電與環境
         entities:
           - fan.ke_ting_dian_feng_shan
           - fan.kong_qi_qing_jing_ji
           - media_player.ke_ting_homepod
-          - media_player.sonydian_shi
-      - type: entities
-        title: 客廳環境感測
-        entities:
           - sensor.kong_qi_qing_jing_ji_temperature
           - sensor.kong_qi_qing_jing_ji_humidity
-          - sensor.livingroom_homepodmini_temperature
-          - sensor.livingroom_homepodmini_humidity
-          - sensor.ke_ting_you_xiao_ti_gan_wen_du_homekitqiao_jie
 
   - title: 餐廳與廚房
     path: dining-kitchen
@@ -153,44 +306,54 @@ views:
     cards:
       - type: markdown
         content: |
+          {% set dining_lights = expand([
+            'light.can_ting_deng_zu_1_ha',
+            'switch.chu_fang_deng',
+            'switch.ce_suo_deng',
+            'switch.lou_ti_deng',
+            'switch.can_ting_kan_deng',
+            'switch.can_ting_bi_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
           ## 餐廳風格：明亮機能 × 快速操作
-          餐廳、廚房與周邊採「高頻操作優先」。
-      - type: entities
-        title: 餐廳/廚房照明與插座
-        entities:
-          - light.can_ting_deng_zu_1_ha
-          - switch.chu_fang_deng
-          - switch.ce_suo_deng
-          - switch.lou_ti_deng
-          - switch.can_ting_kan_deng
-          - switch.can_ting_bi_deng
-          - switch.0x00158d0003923796_plug
-      - type: entities
-        title: 餐廳/廚房感測
-        entities:
-          - sensor.kitchenm_wen_du
-          - sensor.kitchenm_shi_du
-          - sensor.kitchen_illuminance
-          - sensor.kitchenm_zhao_du
-
-  - title: 樓梯與車庫
-    path: stairs-garage
-    icon: mdi:garage-variant
-    cards:
-      - type: entities
-        title: 樓梯燈光
-        entities:
-          - switch.er_san_lou_lou_ti_deng
-          - switch.san_si_lou_lou_ti_deng
-          - switch.san_lou_lou_ti_deng
-          - light.yeelink_color5_0fb7_light
-      - type: entities
-        title: 車庫與周邊
-        entities:
-          - cover.garage
-          - switch.che_ku_zhu_deng
-          - switch.men_kou_deng
-          - switch.lu_deng
+          ### 💡 餐廳/廚房亮燈數：**{{ dining_lights }}** 盞
+      - type: grid
+        title: 餐廳/廚房控制（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: light.can_ting_deng_zu_1_ha
+            name: 餐廳燈
+          - type: button
+            entity: switch.chu_fang_deng
+            name: 廚房燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.ce_suo_deng
+            name: 廁所燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.lou_ti_deng
+            name: 樓梯燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.can_ting_kan_deng
+            name: 崁燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.can_ting_bi_deng
+            name: 壁燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.0x00158d0003923796_plug
+            name: 廚房插座
+            tap_action:
+              action: toggle
 
   - title: 頂樓
     path: top-floor
@@ -198,39 +361,93 @@ views:
     cards:
       - type: markdown
         content: |
+          {% set top_lights = expand([
+            'light.yeelink_lamp2_678c_light',
+            'light.yeelink_bslamp2_4329_light',
+            'light.ding_lou_deng_zu_1',
+            'light.ding_lou_deng_zu_2',
+            'light.ding_lou_kan_deng',
+            'switch.bi_deng',
+            'light.yeelink_color5_13b8_light',
+            'switch.yang_tai_deng'
+          ]) | selectattr('state','eq','on') | list | count %}
           ## 頂樓風格：休憩夜間 × 閱讀沉浸
-          以「空調風扇 + 閱讀燈光 + 安防」為核心。
+          ### 💡 頂樓亮燈數：**{{ top_lights }}** 盞
+      - type: grid
+        title: 頂樓照明（方塊按鈕）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: light.yeelink_lamp2_678c_light
+            name: 頂樓主燈
+          - type: button
+            entity: light.yeelink_bslamp2_4329_light
+            name: 閱讀燈
+          - type: button
+            entity: light.ding_lou_deng_zu_1
+            name: 頂樓燈組一
+          - type: button
+            entity: light.ding_lou_deng_zu_2
+            name: 頂樓燈組二
+          - type: button
+            entity: light.ding_lou_kan_deng
+            name: 崁燈
+          - type: button
+            entity: switch.bi_deng
+            name: 壁燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: light.yeelink_color5_13b8_light
+            name: 情境燈
+          - type: button
+            entity: switch.yang_tai_deng
+            name: 陽台燈
+            tap_action:
+              action: toggle
       - type: entities
         title: 頂樓舒適控制
         entities:
           - climate.ding_lou_kong_diao
           - fan.dmaker_p33_eabd_fan
           - switch.dmaker_p33_eabd_horizontal_swing
-          - switch.xiang_fen_ji_cha_zuo
-      - type: entities
-        title: 頂樓照明
-        entities:
-          - light.yeelink_lamp2_678c_light
-          - light.yeelink_bslamp2_4329_light
-          - light.ding_lou_deng_zu_1
-          - light.ding_lou_deng_zu_2
-          - light.ding_lou_kan_deng
-          - switch.bi_deng
-          - light.yeelink_color5_13b8_light
-          - switch.yang_tai_deng
-          - switch.sheng_dan_deng_cha_zuo
-      - type: entities
-        title: 頂樓感測與媒體
-        entities:
-          - media_player.ding_lou_homepod
-          - sensor.5f_homepodmini_temperature
-          - sensor.5f_homepodmini_humidity
-          - sensor.ding_lou_you_xiao_ti_gan_wen_du_homekitqiao_jie
-      - type: entities
-        title: 頂樓安全
-        entities:
-          - automation.106_2_mai_ke_feng
-          - automation.08_5_wu_lou_bao_quan_xi_tong
+
+  - title: 樓梯
+    path: stairs
+    icon: mdi:stairs
+    cards:
+      - type: markdown
+        content: |
+          {% set stairs_lights = expand([
+            'switch.er_san_lou_lou_ti_deng',
+            'switch.san_si_lou_lou_ti_deng',
+            'switch.san_lou_lou_ti_deng',
+            'light.yeelink_color5_0fb7_light'
+          ]) | selectattr('state','eq','on') | list | count %}
+          ### 💡 樓梯亮燈數：**{{ stairs_lights }}** 盞
+      - type: grid
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: switch.er_san_lou_lou_ti_deng
+            name: 二三樓樓梯燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.san_si_lou_lou_ti_deng
+            name: 三四樓樓梯燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: switch.san_lou_lou_ti_deng
+            name: 三樓樓梯燈
+            tap_action:
+              action: toggle
+          - type: button
+            entity: light.yeelink_color5_0fb7_light
+            name: 樓梯彩燈
 
   - title: 自動化與伺服器
     path: system
@@ -245,10 +462,6 @@ views:
           - input_boolean.notify_line_general_enable
           - input_boolean.notify_line_important_enable
           - input_boolean.notify_line_emergency_enable
-          - automation.10kong_qi_yan_zhong_tong_zhi
-          - automation.11kong_qi_yan_zhong_tong_zhi_yan_zhong
-          - automation.ai_08_5c_topfloor_stairs_motion_light
-          - automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2
       - type: entities
         title: 伺服器與網路設備
         entities:
@@ -265,26 +478,43 @@ views:
           - switch.can_ting_homepodcha_zuo
           - switch.ding_lou_homepodcha_zuo
           - switch.54ef44cf58f9_alarm_trigger
-          - input_boolean.wu_lou_she_ying_ji_kai_guan
-          - input_boolean.wu_lou_bao_quan_xi_tong_kai_guan
 
   - title: 情境模式
     path: scenes
     icon: mdi:palette
     cards:
-      - type: entities
-        title: 情境按鈕
-        show_header_toggle: false
-        entities:
-          - input_boolean.ding_lou_shang_lou_qing_jing
-          - input_boolean.ding_lou_xia_lou_qing_jing
-          - input_boolean.ding_lou_ye_deng_qing_jing
-          - input_boolean.ding_lou_yue_du_qing_jing
-          - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
-          - input_boolean.google_scene_zao_an_trigger
-          - input_boolean.google_scene_wan_an_trigger
-          - input_boolean.google_scene_dao_jia_trigger
-          - input_boolean.google_scene_chu_men_trigger
+      - type: grid
+        title: 情境按鈕（方塊）
+        columns: 4
+        square: true
+        cards:
+          - type: button
+            entity: input_boolean.ding_lou_shang_lou_qing_jing
+            name: 頂樓上樓
+          - type: button
+            entity: input_boolean.ding_lou_xia_lou_qing_jing
+            name: 頂樓下樓
+          - type: button
+            entity: input_boolean.ding_lou_ye_deng_qing_jing
+            name: 夜燈
+          - type: button
+            entity: input_boolean.ding_lou_yue_du_qing_jing
+            name: 閱讀
+          - type: button
+            entity: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+            name: 緊急模式
+          - type: button
+            entity: input_boolean.google_scene_zao_an_trigger
+            name: 早安
+          - type: button
+            entity: input_boolean.google_scene_wan_an_trigger
+            name: 晚安
+          - type: button
+            entity: input_boolean.google_scene_dao_jia_trigger
+            name: 到家
+          - type: button
+            entity: input_boolean.google_scene_chu_men_trigger
+            name: 出門
 
   - title: 版本紀錄
     path: release-notes
@@ -297,16 +527,15 @@ views:
           > 此頁用於維護介面版本與每次更新重點。
 
           ---
+          ## V3.0 Beta 3（2026-04-06）
+          - 版本號更新為 **V3.0 Beta 3**。
+          - 車庫頁移到首頁後第一個分頁。
+          - 首頁補回情境區塊與方塊按鈕。
+          - 各房間新增亮燈數統計。
+          - 首頁裝置改為方塊按鈕主視覺。
+          - 保全狀態改讀取 `alarm_control_panel.54ef44cf58f9_alarm` 與 `sensor.aqaradang_qian_qing_jing`。
+          - 新增多災防/地震資訊、HA 永久通知建立與清除按鈕。
+
           ## v2.2.0（2026-04-06）
-          - 首頁恢復 **HomeKit 按鈕模組風格**（情境捷徑）。
-          - 首頁移除「頂樓空調」快捷項目。
-          - 頂樓分頁 icon 改為 `mdi:numeric-5-box`（5F 標示）。
+          - 首頁恢復 HomeKit 按鈕模組風格（情境捷徑）。
           - 新增首頁統計區塊：各區亮燈數 / 即時溫度 / 保全狀態。
-          - 新增「版本紀錄」頁面供後續更新追蹤。
-
-          ## v2.1.0（2026-04-06）
-          - 儀表板改為房間導向分頁：總覽、客廳、餐廳與廚房、樓梯與車庫、頂樓、系統、情境。
-          - 實體依 `configuration.yaml` 的 `google_assistant.entity_config` 房間映射整理。
-
-          ## v2.0.0（歷史）
-          - 舊版大規模自訂 `homekit-card + sidebar` 架構（目前已由新版取代）。
