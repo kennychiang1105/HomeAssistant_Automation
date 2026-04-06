@@ -226,7 +226,7 @@ google_assistant:
       name: "壁燈"
       room: "頂樓"
       expose: true
-    switch.ding_lou_lou_ti_deng:
+    light.yeelink_color5_13b8_light:
       name: "頂樓樓梯燈"
       room: "頂樓"
       expose: true
