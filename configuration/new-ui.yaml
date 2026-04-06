@@ -68,7 +68,7 @@ views:
             tap_action:
               action: toggle
       - type: markdown
-        title: 多災防 / 地震通知與 HA 永久通知
+        title: 多災防 / 地震通知與 HA 通知中心
         content: |
           {% set disaster = states('sensor.disaster') %}
           {% set earthquake = states('sensor.earthquake') %}
@@ -76,30 +76,14 @@ views:
           - 多災防：**{{ disaster }}**
           - 地震：**{{ earthquake }}**
 
-          > 若要把目前內容寫入 HA 永久通知，請按下方「建立通知」按鈕。
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: button
-            name: 建立 HA 永久通知
-            icon: mdi:bell-badge
-            tap_action:
-              action: perform-action
-              perform_action: persistent_notification.create
-              data:
-                title: 多災防與地震通知
-                message: >-
-                  多災防：{{ states('sensor.disaster') }}\n地震：{{ states('sensor.earthquake') }}
-                notification_id: disaster_earthquake_status
-          - type: button
-            name: 清除通知
-            icon: mdi:bell-off
-            tap_action:
-              action: perform-action
-              perform_action: persistent_notification.dismiss
-              data:
-                notification_id: disaster_earthquake_status
+          > 下方直接顯示 HA 永久通知列表，可點「看過清除」一次清除。
+      - type: persistent-notification
+      - type: button
+        name: 看過清除（清空 HA 永久通知）
+        icon: mdi:notification-clear-all
+        tap_action:
+          action: perform-action
+          perform_action: persistent_notification.dismiss_all
       - type: markdown
         title: 區域統計（燈光 / 溫度 / 保全）
         content: |
@@ -534,7 +518,7 @@ views:
           - 各房間新增亮燈數統計。
           - 首頁裝置改為方塊按鈕主視覺。
           - 保全狀態改讀取 `alarm_control_panel.54ef44cf58f9_alarm` 與 `sensor.aqaradang_qian_qing_jing`。
-          - 新增多災防/地震資訊、HA 永久通知建立與清除按鈕。
+          - 新增多災防/地震資訊、HA 通知直接顯示與「看過清除」按鈕。
 
           ## v2.2.0（2026-04-06）
           - 首頁恢復 HomeKit 按鈕模組風格（情境捷徑）。
