@@ -25,14 +25,14 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.2)` | `ai_line_bot_quota_guard` | `V3.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.2)` | `ai_00_2a_release_note_push` | `V3.2` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
-| `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.0)` | `ai_05b_emergency_mode_notify_v3` | `V3.0` |
+| `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
-| `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.0)` | `ai_away_security_system` | `V3.0` |
+| `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3)` | `ai_auto_leave_system` | `V3.3` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
@@ -43,7 +43,7 @@
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.2)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.2` |
 | `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
-| `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.0)` | `ai_living_room_fan_anomaly_alert` | `V3.0` |
+| `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2)` | `ai_topfloor_fan_automation` | `V3.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0` |
 
@@ -116,7 +116,7 @@
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.3)` | `eq99` | `V3.3` |
+| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-03）
 - 05 系列中 `05B/05C/05D` 已拆分為 AI 管理檔案（`configuration/Automations/*AI.yaml`），`05A` 保留於 `configuration/automations.yaml` 手動流程。
@@ -151,6 +151,7 @@
 
 - 21A_客廳電風扇整合控制AI 升級至 `V3.1`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。
 - 廣播設備清理（2026-04）：已移除 `media_player.sony_bravia_tv` 相關音量/切源/狀態判斷流程，避免已下線設備造成自動化錯誤。
+- 廣播設備清理延伸修正（2026-04-08）：05B / 08-6 / 21B 與地震遠端 Script 移除已下線 TV remote 實體引用（`61eaa5fb8386221ba077bcb884e74573`），避免 `Unknown entity` 導致自動化與腳本設定失敗；版本升級為 05B V3.1、08-6 V3.1、21B V3.1、EQ Script V3.4。
 - 後續廣播更新約定：原 Sony TV 控制位置已統一改以 `# TVSPEAKERTODO:` 註記；未來導入新設備時，優先搜尋 `TVSPEAKERTODO` 後補上新設備音量與播放指令即可。
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。

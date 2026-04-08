@@ -263,10 +263,6 @@
         - light.yeelink_color5_0fb7_light
         - light.yeelink_color5_13b8_light
       action: light.turn_on
-    - type: turn_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - data: {}
       target:
         entity_id:
@@ -448,10 +444,6 @@
       device_id: b2cc0e2bcef2b1aab52dd0a881c16fbd
       entity_id: light.yeelink_color5_4181_light
       domain: light
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - device_id: ace03a7c2c374894e6f67149137e1a5c
       domain: alarm_control_panel
       entity_id: 34f7cca00e310ff1972c3159a59b0ad7
@@ -519,10 +511,6 @@
       device_id: b2cc0e2bcef2b1aab52dd0a881c16fbd
       entity_id: light.yeelink_color5_4181_light
       domain: light
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - device_id: ace03a7c2c374894e6f67149137e1a5c
       domain: alarm_control_panel
       entity_id: 34f7cca00e310ff1972c3159a59b0ad7
@@ -589,10 +577,6 @@
       domain: alarm_control_panel
       entity_id: alarm_control_panel.54ef44cf58f9_alarm
       type: arm_home
-    - type: turn_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
       enabled: false
     - data: {}
       target:
@@ -669,10 +653,6 @@
       device_id: eb63b778c213a304ae11ad007f62a129
       entity_id: 3d601792ca0c48d2b310fb7b919b366d
       domain: light
-    - type: turn_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
       enabled: false
     - data: {}
       target:
@@ -1176,11 +1156,8 @@
   conditions: []
   actions:
   - if:
-    - condition: device
-      type: is_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
+    - condition: template
+      value_template: '{{ true }}'
     then:
     - parallel:
       - data:
@@ -1232,11 +1209,6 @@
     else:
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - parallel:
-      - type: turn_on
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
-    - parallel:
       - data:
           volume_level: 0.6
         action: media_player.volume_set
@@ -1284,20 +1256,12 @@
         seconds: 20
         milliseconds: 0
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - delay:
         hours: 0
         minutes: 0
         seconds: 30
         milliseconds: 0
       enabled: true
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
@@ -2043,11 +2007,8 @@
       < 300 }}'
   actions:
   - if:
-    - condition: device
-      type: is_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
+    - condition: template
+      value_template: '{{ true }}'
     then:
     - parallel:
       - data:
@@ -2216,10 +2177,6 @@
         target:
           entity_id: automation.jin_ji_mo_shi
         action: automation.trigger
-      - type: turn_on
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
     - parallel:
       - data:
           volume_level: 0.65
@@ -2375,20 +2332,12 @@
         - media_player.ding_lou_homepod
         - media_player.ke_ting_homepod
       action: media_player.volume_set
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - delay:
         hours: 0
         minutes: 0
         seconds: 30
         milliseconds: 0
       enabled: true
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: queued
   max: 10
@@ -2465,11 +2414,8 @@
             seconds: 0
   actions:
   - if:
-    - condition: device
-      type: is_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
+    - condition: template
+      value_template: '{{ true }}'
     then:
     - parallel:
       - data:
@@ -2525,11 +2471,6 @@
         entity_id: media_player.ding_lou_homepod
     else:
     - parallel:
-      - type: turn_on
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
-    - parallel:
       - data:
           volume_level: 0.6
         action: media_player.volume_set
@@ -2581,20 +2522,12 @@
       action: media_player.volume_set
       target:
         entity_id: media_player.ding_lou_homepod
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - delay:
         hours: 0
         minutes: 0
         seconds: 30
         milliseconds: 0
       enabled: true
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
@@ -3239,11 +3172,8 @@
           title: 保全狀態警告
         action: notify.persistent_notification
   - if:
-    - condition: device
-      type: is_on
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
+    - condition: template
+      value_template: '{{ true }}'
     then:
     - parallel:
       - data:
@@ -3301,11 +3231,6 @@
         entity_id: media_player.ding_lou_homepod
     else:
     - parallel:
-      - type: turn_on
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
-    - parallel:
       - data:
           volume_level: 0.6
         action: media_player.volume_set
@@ -3359,20 +3284,12 @@
       action: media_player.volume_set
       target:
         entity_id: media_player.ding_lou_homepod
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     - delay:
         hours: 0
         minutes: 0
         seconds: 30
         milliseconds: 0
       enabled: true
-    - type: turn_off
-      device_id: fdcccfa405461070717b80a56a590960
-      entity_id: 61eaa5fb8386221ba077bcb884e74573
-      domain: remote
     # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10

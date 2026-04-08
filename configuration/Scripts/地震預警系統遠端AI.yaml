@@ -1,9 +1,9 @@
-# 相容版本：Helpers V3.5（已確認）
+# 相容版本：Helpers V3.9（已確認）
 'eq99':
-  alias: 地震預警系統(遠端)AI (V3.3)
+  alias: 地震預警系統(遠端)AI (V3.4)
   description: 地震預警通知與分級廣播；4級以上觸發緊急模式。
   variables:
-    automation_version: 'V3.3'
+    automation_version: 'V3.4'
     # 修正 1：將 level_text 移至上方，讓後續的 lv 可以正確引用它
     level_text: >-
       {{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}
@@ -164,19 +164,11 @@
           volume_level: 0.4
         target:
           entity_id: media_player.ding_lou_homepod
-      - type: turn_off
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
       - delay:
           hours: 0
           minutes: 0
           seconds: 30
           milliseconds: 0
-      - type: turn_off
-        device_id: fdcccfa405461070717b80a56a590960
-        entity_id: 61eaa5fb8386221ba077bcb884e74573
-        domain: remote
       # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single
   icon: mdi:earth
