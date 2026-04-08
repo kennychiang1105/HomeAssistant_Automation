@@ -1,16 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V3.0)
-# 相容版本：Helpers V3.0
+# 08-6離家保全系統AI (V3.1)
+# 相容版本：Helpers V3.9（已確認）
 # 更新紀錄（統一格式）：
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
+# - V3.1：移除已下線 TV remote 裝置依賴，避免 Unknown entity 導致設定失敗。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-6離家保全系統AI (V3.0)
+- alias: 08-6離家保全系統AI (V3.1)
   id: ai_away_security_system
   description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
   mode: single
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1"
     helpers_compat: "Helpers V3.0"
     notif_title_base: "【離家保全系統 {{ automation_version }}】"
     notif_title_important: >-
@@ -168,11 +169,8 @@
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
                       data: {}
                     - if:
-                        - condition: device
-                          type: is_on
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
+                        - condition: template
+                          value_template: '{{ true }}'
                       then:
                         - parallel:
                             - data:
@@ -323,10 +321,6 @@
                                               )}
                                             ] | tojson
                                           }}
-                            - type: turn_on
-                              device_id: fdcccfa405461070717b80a56a590960
-                              entity_id: 61eaa5fb8386221ba077bcb884e74573
-                              domain: remote
                         - parallel:
                             - data:
                                 volume_level: 0.65
@@ -405,20 +399,12 @@
                           action: media_player.volume_set
                           target:
                             entity_id: media_player.ding_lou_homepod
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
                     - action: notify.line_notification_group
                       data: {}
@@ -480,11 +466,8 @@
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
                       data: {}
                     - if:
-                        - condition: device
-                          type: is_on
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
+                        - condition: template
+                          value_template: '{{ true }}'
                       then:
                         - parallel:
                             - data:
@@ -635,10 +618,6 @@
                                               )}
                                             ] | tojson
                                           }}
-                            - type: turn_on
-                              device_id: fdcccfa405461070717b80a56a590960
-                              entity_id: 61eaa5fb8386221ba077bcb884e74573
-                              domain: remote
                         - parallel:
                             - data:
                                 volume_level: 0.65
@@ -717,20 +696,12 @@
                           action: media_player.volume_set
                           target:
                             entity_id: media_player.ding_lou_homepod
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - conditions:
                 - condition: and
@@ -790,11 +761,8 @@
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
                       data: {}
                     - if:
-                        - condition: device
-                          type: is_on
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
+                        - condition: template
+                          value_template: '{{ true }}'
                       then:
                         - parallel:
                             - data:
@@ -945,10 +913,6 @@
                                               )}
                                             ] | tojson
                                           }}
-                            - type: turn_on
-                              device_id: fdcccfa405461070717b80a56a590960
-                              entity_id: 61eaa5fb8386221ba077bcb884e74573
-                              domain: remote
                         - parallel:
                             - data:
                                 volume_level: 0.65
@@ -1027,18 +991,10 @@
                           action: media_player.volume_set
                           target:
                             entity_id: media_player.ding_lou_homepod
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - type: turn_off
-                          device_id: fdcccfa405461070717b80a56a590960
-                          entity_id: 61eaa5fb8386221ba077bcb884e74573
-                          domain: remote
                         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
