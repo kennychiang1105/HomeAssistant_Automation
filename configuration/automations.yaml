@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260406.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260408.yaml minus AI-managed aliases
 - id: '1634212146693'
   alias: 00-1自動重啟Home Assistant
   description: ''
