@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260408.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260410.yaml minus AI-managed aliases
 - id: '1634212146693'
   alias: 00-1自動重啟Home Assistant
   description: ''
@@ -126,7 +126,6 @@
       minutes: 0
       seconds: 15
       milliseconds: 0
-  # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   - data:
       entity_id: media_player.ba101
       message: 廣播系統測試
@@ -495,6 +494,11 @@
       device_id: 06bfb93dc808497c947434fb10e76b06
       entity_id: bf05a6742b374a44658f3e33b818d64b
       domain: fan
+    - action: remote.turn_off
+      metadata: {}
+      target:
+        entity_id: remote.ke_ting_dian_shi
+      data: {}
   mode: single
 - id: '1645806189647'
   alias: 102離家情境
@@ -565,6 +569,11 @@
         target:
           entity_id: input_boolean.aqara_li_jia
         data: {}
+    - action: remote.turn_off
+      metadata: {}
+      target:
+        entity_id: remote.ke_ting_dian_shi
+      data: {}
   mode: single
 - id: '1645806312615'
   alias: 101早安情境
@@ -856,7 +865,6 @@
       minutes: 0
       seconds: 20
       milliseconds: 0
-  # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single
 - id: '1690887532200'
   alias: 00-3 手動清理空間
@@ -1178,7 +1186,6 @@
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
         action: notify.persistent_notification
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
@@ -1207,7 +1214,6 @@
         seconds: 20
         milliseconds: 0
     else:
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - parallel:
       - data:
           volume_level: 0.6
@@ -1227,7 +1233,6 @@
           message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
           title: 鐵門狀態警告
         action: notify.persistent_notification
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
@@ -1255,14 +1260,12 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - delay:
         hours: 0
         minutes: 0
         seconds: 30
         milliseconds: 0
       enabled: true
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1691820750233'
@@ -2035,7 +2038,6 @@
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
         action: persistent_notification.create
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -2095,7 +2097,6 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2162,7 +2163,6 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2197,7 +2197,6 @@
           message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
         enabled: true
         action: persistent_notification.create
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -2257,7 +2256,6 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2324,7 +2322,6 @@
         minutes: 0
         seconds: 25
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       target:
@@ -2338,7 +2335,6 @@
         seconds: 30
         milliseconds: 0
       enabled: true
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: queued
   max: 10
 - id: '1705765755841'
@@ -2433,7 +2429,6 @@
             \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
         media_content_type: music
@@ -2463,7 +2458,6 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2490,7 +2484,6 @@
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
         action: notify.persistent_notification
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
         media_content_type: music
@@ -2516,7 +2509,6 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -2528,7 +2520,6 @@
         seconds: 30
         milliseconds: 0
       enabled: true
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1721459962917'
@@ -3191,7 +3182,6 @@
             \         \"text\":\"【緊急 Urgent\\n‼️】\\n五樓有人闖入⚠️\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -3223,7 +3213,6 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -3250,7 +3239,6 @@
           message: 五樓保全系統未解除狀態有人闖入，請注意。
           title: 保全狀態警告
         action: notify.persistent_notification
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         media:
           media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
@@ -3278,7 +3266,6 @@
         minutes: 0
         seconds: 20
         milliseconds: 0
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - data:
         volume_level: 0.4
       action: media_player.volume_set
@@ -3290,7 +3277,6 @@
         seconds: 30
         milliseconds: 0
       enabled: true
-    # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: parallel
   max: 10
 - id: '1747319755900'
