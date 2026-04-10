@@ -1,20 +1,21 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5C頂樓樓梯感應燈AI (V3.0)
+# 08-5C頂樓樓梯感應燈AI (V3.0.1)
 # 相容版本：Helpers V3.5（已確認）
-# 更新紀錄：
+# 更新紀錄（統一格式）：
+# - V3.0.1：修復主流程防呆時間，將 8 秒調整為 15 秒，降低關燈後延遲偵測造成誤重開機率。
 # - V3.0：由 configuration/automations.yaml 拆分為 AI 管理模組，重編標準 ID，
 #         並優化左側感應自動關燈邏輯（移除複雜 if/else，改為直接關燈流程），
 #         並在主流程加入 8 秒防呆，避免關燈後攝影機延遲訊號立刻重開。
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5c_topfloor_stairs_motion_light
-  alias: 08-5C頂樓樓梯感應燈AI (V3.0)
+  alias: 08-5C頂樓樓梯感應燈AI (V3.0.1)
   description: >
     頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，
     並在 2 分 30 秒後關閉相關燈具；若當時由此流程點亮坎燈，會一併嘗試關閉。
   mode: restart
   variables:
-    automation_version: V3.0
+    automation_version: V3.0.1
 
   triggers:
     - trigger: state
@@ -34,7 +35,7 @@
         {{
           (as_timestamp(now()) -
           as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light_auto_off', 'last_triggered') | default(0, true)))
-          > 8
+          > 15
         }}
 
   actions:
@@ -89,13 +90,13 @@
                     entity_id: light.ding_lou_kan_deng
 
 - id: ai_08_5c_topfloor_stairs_motion_light_auto_off
-  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.0)
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.0.1)
   description: >
     書房左側感應觸發後，於主流程觸發後 180 秒內執行輔助關燈流程。
     時間窗設定對齊原始邏輯（<180 秒；>2 秒條件保留為停用備援）。
   mode: single
   variables:
-    automation_version: V3.0
+    automation_version: V3.0.1
 
   triggers:
     - trigger: state

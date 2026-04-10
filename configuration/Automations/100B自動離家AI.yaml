@@ -1,15 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V3.3)
+# 100B自動離家AI (V3.3.1)
 # 相容版本：Helpers V3.7（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.1：修復 LINE 通知標題版本與編號顯示問題；統一移除「100B」顯示並改以 automation_version 動態帶入版本。
 # - V3.3：完整通知新增「本次已自動切換為離家情境」強調文案，僅在原先非離家且切換成功時顯示。
 # - V3.2：網關非離家時改為切換成功後續行完整門窗安全檢查流程，移除簡短成功通知，統一送出含門鎖電量摘要的詳細狀態通知。
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V3.3)
+- alias: 100B自動離家AI (V3.3.1)
   id: ai_auto_leave_system
-  description: "AI離家 V3.3"
+  description: "AI離家 V3.3.1"
   mode: single
 
   triggers:
@@ -73,15 +74,17 @@
               for: {minutes: 10}
 
   variables:
-    automation_version: "V3.3"
+    automation_version: "V3.3.1"
     helpers_compat: "Helpers V3.7"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
       {% set title = states('input_text.notif_title_100b_general') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.3】' }}
+      {% set clean = title|regex_replace('100B','')|trim %}
+      {{ clean if clean and clean|lower not in ['unknown','unavailable','none'] else '【AI離家系統 ' ~ automation_version ~ '】' }}
     notif_title_urgent: >-
       {% set title = states('input_text.notif_title_100b_urgent') %}
-      {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else '【AI離家系統 V3.3】' }}
+      {% set clean = title|regex_replace('100B','')|trim %}
+      {{ clean if clean and clean|lower not in ['unknown','unavailable','none'] else '【AI離家系統 ' ~ automation_version ~ '】' }}
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_only_general: >-
       {{ (notif_title_general if notif_title_general|trim else notif_title_base) }}
@@ -174,7 +177,7 @@
       {{ (batt_line_text|replace('\\n','\n')) if batt_line_text|default('')|trim else '' }}
     batt_line_text_line_safe: >-
       {{ batt_line_text_line|default('', true)|string }}
-    title_fallback_line: "【AI離家系統 V3.3】"
+    title_fallback_line: "【AI離家系統 {{ automation_version }}】"
 
   actions:
     - choose:
@@ -225,7 +228,8 @@
                             payload: >-
                               {% set base = title_fallback_line %}
                               {% set title_raw = states('input_text.notif_title_100b_urgent') %}
-                              {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                              {% set title_clean = title_raw|regex_replace('100B','')|trim %}
+                              {% set title_safe = title_clean if title_clean and title_clean|lower not in ['unknown','unavailable','none'] else base %}
                               {% set batt_txt = states('sensor.batt_line_text') %}
                               {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                               {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
@@ -284,7 +288,8 @@
                     payload: >-
                       {% set base = title_fallback_line %}
                       {% set title_raw = states('input_text.notif_title_100b_general') %}
-                      {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                      {% set title_clean = title_raw|regex_replace('100B','')|trim %}
+                      {% set title_safe = title_clean if title_clean and title_clean|lower not in ['unknown','unavailable','none'] else base %}
                       {% set batt_txt = states('sensor.batt_line_text') %}
                       {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                       {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
@@ -337,7 +342,8 @@
                     payload: >-
                       {% set base = title_fallback_line %}
                       {% set title_raw = states('input_text.notif_title_100b_urgent') %}
-                      {% set title_safe = title_raw if title_raw|trim and title_raw|lower not in ['unknown','unavailable','none'] else base %}
+                      {% set title_clean = title_raw|regex_replace('100B','')|trim %}
+                      {% set title_safe = title_clean if title_clean and title_clean|lower not in ['unknown','unavailable','none'] else base %}
                       {% set batt_txt = states('sensor.batt_line_text') %}
                       {% set batt_safe = (batt_txt|replace('\\n','\n')) if batt_txt|trim and batt_txt|lower not in ['unknown','unavailable','none'] else '' %}
                       {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
