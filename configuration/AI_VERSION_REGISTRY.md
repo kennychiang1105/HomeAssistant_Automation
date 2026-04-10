@@ -30,11 +30,11 @@
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3)` | `ai_auto_leave_system` | `V3.3` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3.1)` | `ai_auto_leave_system` | `V3.3.1` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
@@ -45,7 +45,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2)` | `ai_topfloor_fan_automation` | `V3.2` |
-| `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0` |
+| `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -112,11 +112,37 @@
    - 檢查 `sensor.ai_version_registry_dynamic` 的 `versions` 屬性是否可正常產生。
    - 檢查 18:00 後 `sensor.ai_version_snapshot_history` 屬性是否已更新為最新 JSON。
 
+### SOP-8：各獨立 AI 檔案頂部更新紀錄格式（每次更新必做）
+1. 每個 `*AI.yaml` 檔案最上方需採用與 `100B自動離家AI.yaml` 一致的區塊格式：
+   - 分隔線（`# ─────────────────────────────────────────────────────────────`）
+   - 第一行：`# 檔名 (Vx.y.z)`
+   - 第二行：`# 相容版本：Helpers Vx.y（已確認）`
+   - 第三行：`# 更新紀錄（統一格式）：`
+   - 後續以 `# - Vx.y.z：...` 由新到舊條列變更內容。
+2. 同檔版本升級時，必須同步更新：
+   - 頂部區塊版本。
+   - `alias` 版本。
+   - `variables.automation_version`。
+3. 若同檔含多個 automation 區塊，版本號需一致，避免 registry 與通知版本不一致。
+
+### SOP-9：版本號進位判斷規則（每次改版必做）
+1. 穩定版版本號一律使用 `Vx.y.z`（語意化管理）。
+2. **功能新增 / 行為擴充 / 流程重構**：升級次版本（`y + 1`，`z` 歸零），例如 `V3.3.1 -> V3.4.0`（可簡寫為 `V3.4`）。
+3. **Bug 修復 / 小幅校正 / 文案或同步修正**：升級修補版（`z + 1`），例如 `V3.3 -> V3.3.1`、`V3.0 -> V3.0.1`。
+4. 每次改版需在更新紀錄註明本次屬於「功能版」或「修補版」，並同步更新 alias、`variables.automation_version`、Registry 條目。
+
 ## 現況總表（Scripts）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-04-10）
+- `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.0.1`：主流程防呆由 8 秒調整為 15 秒，降低關燈後感測延遲造成誤重開。
+- `08-5H頂樓深夜熟睡情境AI` 修補版升級至 `V3.0.1`：改為下樓情境執行後 1 分鐘檢查床頭燈（`light.yeelink_bslamp2_4329_light`）是否關閉；若失敗自動重跑一次下樓流程，僅在確認成功後才恢復風扇狀態。
+- `100B自動離家AI` 修補版升級至 `V3.3.1`：LINE 通知標題統一移除「100B」編號顯示，並改以 `automation_version` 動態帶入版本，避免版本號未同步更新。
+- 新增 SOP-8：後續每個獨立 `*AI.yaml` 檔案頂部更新紀錄格式需參照 `100B自動離家AI.yaml`。
+- 新增 SOP-9：依「功能版 / 修補版」判斷版本進位，明確區分 `V3.4` 與 `V3.3.1` 類型升版。
 
 ## 本次調整（2026-03）
 - 05 系列中 `05B/05C/05D` 已拆分為 AI 管理檔案（`configuration/Automations/*AI.yaml`），`05A` 保留於 `configuration/automations.yaml` 手動流程。

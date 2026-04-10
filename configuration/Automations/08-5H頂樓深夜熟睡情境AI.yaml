@@ -1,15 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5H頂樓深夜熟睡情境AI (V3.0)
-# 相容版本：Helpers V3.6
+# 08-5H頂樓深夜熟睡情境AI (V3.0.1)
+# 相容版本：Helpers V3.6（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.1：修復下樓情境確認流程，改為 1 分鐘後檢查床頭燈；失敗時自動重跑一次下樓流程，僅在確認成功後恢復風扇狀態。
 # - V3.0：新增平日 03:00 / 假日 05:00 深夜熟睡情境；執行下樓情境並在 HomeKit 外部關閉風扇時做狀態救援（系統來源不視為手動關機）。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5H頂樓深夜熟睡情境AI (V3.0)
+- alias: 08-5H頂樓深夜熟睡情境AI (V3.0.1)
   id: ai_08_5h_topfloor_deep_sleep_scene_guard
-  description: 深夜熟睡情境定時執行下樓，並避免 HomeKit 連動關閉風扇造成 AI 溫控軌道偏移。
+  description: 深夜熟睡情境定時執行下樓，1 分鐘後複檢床頭燈確認是否成功，必要時重試一次，並避免 HomeKit 連動關閉風扇造成 AI 溫控軌道偏移。
   mode: single
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.0.1"
 
   triggers:
     - trigger: time
@@ -39,11 +40,29 @@
       target:
         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
 
-    # 等待 HomeKit/情境連動完成後，再判斷是否需要救援風扇
-    - delay: "00:00:08"
+    # 1 分鐘後以床頭燈關閉狀態確認下樓情境是否成功
+    - delay: "00:01:00"
+    - variables:
+        down_scene_success: "{{ is_state('light.yeelink_bslamp2_4329_light', 'off') }}"
+
+    # 若第一次未成功，重跑一次下樓流程後再次檢查
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ not down_scene_success }}"
+          sequence:
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+            - delay: "00:01:00"
 
     - choose:
         - conditions:
+            - condition: template
+              value_template: "{{ is_state('light.yeelink_bslamp2_4329_light', 'off') }}"
             - condition: template
               value_template: "{{ fan_was_on and is_state('fan.dmaker_p33_eabd_fan','off') and is_state('input_boolean.ding_lou_fan_manual_off_hold','off') }}"
             - condition: template
