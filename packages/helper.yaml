@@ -1019,12 +1019,13 @@ automation:
         attribute: friendly_name
     variables:
       automation_version: "V3.1"
+      ai_auto_leave_version_fallback: "V3.3.1"
     action:
       - variables:
           current_version: >-
             {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
-            {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 ' ~ automation_version }}
+            {% set invalids = ['unknown','unavailable','none','None', '', None] %}
+            {{ friendly if friendly not in invalids else 'AI離家 ' ~ ai_auto_leave_version_fallback }}
       - service: input_text.set_value
         target:
           entity_id: input_text.ai_leave_version_text
