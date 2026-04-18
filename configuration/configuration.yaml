@@ -46,8 +46,10 @@ logger:
     # 4. 隱藏 Google Assistant 同步 404 錯誤 (設為 critical 隱藏 error)
     homeassistant.components.google_assistant.http: critical
 
-    # (選擇性) 如果你也想暫時隱藏 Tapo 插件的崩潰錯誤，可以把下面這行開頭的 # 拿掉
-    custom_components.tapo: critical
+  filters:
+    homeassistant:
+      # 隱藏這個 Tapo 崩潰時產生的特定錯誤開頭
+      - "Error doing job: Task exception was never retrieved"
 
 #####google home
 google_assistant:
