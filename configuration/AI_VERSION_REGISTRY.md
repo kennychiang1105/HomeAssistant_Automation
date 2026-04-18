@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.9.2`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.9.4`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -138,6 +138,10 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-04-18）
+- Helper 套件修補版升級至 `V3.9.4`：修復 `sensor.ai_li_jia_ban_ben_template` 被 `homeassistant.update_entity` 強制更新時觸發 `NotImplementedError`；`AI離家版本同步器` 升級為 `v3.2` 並移除該強制更新動作，改由 trigger-based template 自然更新。
+- Helper 套件修補版升級至 `V3.9.3`：補上遺失的 `sensor.ai_li_jia_ban_ben_template` template 宣告，修復 `AI離家版本同步器` 強制更新時的 `Entity ... not found` 警告；同步將 `AI離家版本同步器` 升級為 `v3.1` 並新增 `variables.automation_version` 以符合 SOP。
 
 ## 本次調整（2026-04-10）
 - Helper 套件修補版升級至 `V3.9.2`：優化版本快照基準模板 `current_versions` 的初始化，改為直接使用 `registry_versions` mapping，移除迴圈逐筆複製以降低模板計算成本。

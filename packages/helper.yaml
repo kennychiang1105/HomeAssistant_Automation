@@ -1,6 +1,12 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.9.2）
+# Helpers（V3.9.4）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.9.4):
+#   • 修復 `sensor.ai_li_jia_ban_ben_template` 在 `homeassistant.update_entity` 強制更新時觸發 `NotImplementedError: Update method not implemented`。
+#   • `AI離家版本同步器` 升級至 `v3.2`：移除對 trigger-based template sensor 的強制更新，改由觸發器自然更新狀態。
+# 新增與強化 (V3.9.3):
+#   • 修復遺失的 template sensor：補上 `sensor.ai_li_jia_ban_ben_template`，避免「AI離家版本同步器」強制更新實體時出現 not found 警告。
+#   • `AI離家版本同步器` 升級至 `v3.1`，新增 `variables.automation_version` 並統一 fallback 版本字串引用。
 # 新增與強化 (V3.9.2):
 #   • 優化版本快照基準模板：`current_versions` 直接以 `registry_versions` 初始化，不再以迴圈逐筆複製，降低模板重複建構字典成本。
 # 新增與強化 (V3.9.1):
@@ -562,6 +568,28 @@ input_select:
       - EBH8030
 template:
     - trigger:
+        - platform: homeassistant
+          event: start
+        - platform: event
+          event_type: automation_reloaded
+        - platform: state
+          entity_id:
+            - automation.ai_auto_leave_system
+          attribute: friendly_name
+        - platform: state
+          entity_id:
+            - input_text.ai_leave_version_text
+      sensor:
+        - name: ai_li_jia_ban_ben_template
+          unique_id: ai_li_jia_ban_ben_template
+          icon: mdi:home-export-outline
+          state: >-
+            {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
+            {% set helper_version = states('input_text.ai_leave_version_text') %}
+            {% set invalids = ['unknown','unavailable','none','None','', None] %}
+            {{ friendly if friendly not in invalids else (helper_version if helper_version not in invalids else 'AI離家 V3.3.1') }}
+
+    - trigger:
         - platform: event
           event_type: ai_version_snapshot_update
       sensor:
@@ -981,7 +1009,7 @@ automation:
               message: "{{ debug_message }}"
 
   - id: ui_ai_leave_version_sync
-    alias: AI離家版本同步器 v3.0
+    alias: AI離家版本同步器 v3.2
     description: Home Assistant 啟動或自動離家版本更新時同步版本字串
     mode: single
     trigger:
@@ -992,20 +1020,20 @@ automation:
       - platform: state
         entity_id: automation.ai_auto_leave_system
         attribute: friendly_name
+    variables:
+      automation_version: "V3.2"
+      ai_auto_leave_version_fallback: "V3.3.1"
     action:
       - variables:
           current_version: >-
             {% set friendly = state_attr('automation.ai_auto_leave_system','friendly_name') %}
-            {% set invalids = ['unknown','unavailable', '', None] %}
-            {{ friendly if friendly not in invalids else 'AI離家 V3.0' }}
+            {% set invalids = ['unknown','unavailable','none','None', '', None] %}
+            {{ friendly if friendly not in invalids else 'AI離家 ' ~ ai_auto_leave_version_fallback }}
       - service: input_text.set_value
         target:
           entity_id: input_text.ai_leave_version_text
         data:
           value: "{{ current_version }}"
-      - service: homeassistant.update_entity
-        target:
-          entity_id: sensor.ai_li_jia_ban_ben_template
 
   - id: ui_line_notif_title_refresh
     alias: LINE通知標題同步器 v3.0
