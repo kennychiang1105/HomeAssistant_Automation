@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.9.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.9.2`
 
 ## 現況總表（Automations）
 
@@ -138,6 +138,7 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-04-10）
+- Helper 套件修補版升級至 `V3.9.2`：優化版本快照基準模板 `current_versions` 的初始化，改為直接使用 `registry_versions` mapping，移除迴圈逐筆複製以降低模板計算成本。
 - `22頂樓電風扇自動化AI` 修補版升級至 `V3.2.1`：修復 `t_eff` 在感測器暫時失效時（`none/unavailable`）造成 `float` 轉型錯誤，補強 `t_eff_valid` 判斷並加入安全預設值，避免自動化中斷。
 - Helper 套件修補版升級至 `V3.9.1`：將版本比對模板中的 `dict.update()` 全數改為安全的 `dict(...)` 重新指派寫法，修復新版 Jinja2 的 `SecurityError` 限制。
 - `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.0.1`：主流程防呆由 8 秒調整為 15 秒，降低關燈後感測延遲造成誤重開。

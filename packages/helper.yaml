@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.9.1）
+# Helpers（V3.9.2）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.9.2):
+#   • 優化版本快照基準模板：`current_versions` 直接以 `registry_versions` 初始化，不再以迴圈逐筆複製，降低模板重複建構字典成本。
 # 新增與強化 (V3.9.1):
 #   • 修復版本快照模板在新版 Jinja2 的安全限制：移除 `dict.update()`，改用 `dict(...)` 重新指派，避免 `SecurityError: access to attribute 'update' of 'dict' object is unsafe`。
 # 新增與強化 (V3.9):
@@ -942,12 +944,7 @@ automation:
       registry_versions: >-
         {{ state_attr('sensor.ai_version_registry_dynamic', 'versions') if state_attr('sensor.ai_version_registry_dynamic', 'versions') is mapping else dict() }}
       current_versions: >-
-        {% set ns = namespace(versions=dict()) %}
-        {% if registry_versions is mapping %}
-          {% for key, value in registry_versions.items() %}
-            {% set ns.versions = dict(ns.versions, **{key: value}) %}
-          {% endfor %}
-        {% endif %}
+        {% set ns = namespace(versions=(registry_versions if registry_versions is mapping else dict())) %}
         {% set ns.versions = dict(ns.versions,
           system_operating_system_version={'name': 'Operating System版本', 'version': os_current_version, 'file': 'system_auto'},
           manual_homekit_framework_version={'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
