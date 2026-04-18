@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260410.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260418.yaml minus AI-managed aliases
 - id: '1634212146693'
   alias: 00-1自動重啟Home Assistant
   description: ''
@@ -114,7 +114,7 @@
       line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
   - data:
       message: 廣播測試 廣播測試 TESTING
-      media_player_entity_id: media_player.ding_lou_homepod
+      media_player_entity_id: media_player.googletv8199
       cache: true
     enabled: true
     action: tts.speak
@@ -166,6 +166,21 @@
       payload: "{% set messages = [\n  {\"type\":\"text\",\"text\":\"推播通知測試\"},\n
         \ {\"type\":\"text\",\"text\":\"⏳ 即將進行地震預警系統測試\"},\n  {\"type\":\"text\",\"text\":\"將進行播音及警告測試，測試測試。\"}\n]
         %} {{ messages | tojson }}"
+  - action: media_player.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.googletv8199
+  - action: media_player.turn_off
+    metadata: {}
+    target:
+      device_id: e714f40b069c00487d69fe6bd35cf1a3
+    data: {}
+  - action: media_player.turn_on
+    metadata: {}
+    target:
+      entity_id: media_player.googletv8199
+    data: {}
   mode: single
 - id: '1644394919500'
   alias: 01地震災害系統
