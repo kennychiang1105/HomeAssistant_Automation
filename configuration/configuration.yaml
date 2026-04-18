@@ -31,7 +31,8 @@ logger:
     # --- 之前設定的過濾 ---
     homeassistant.components.rest: error
     homeassistant.components.rest.data: error
-
+    custom_components.xiaomi_miot: error
+    "card-mod.4.2.1": critical
     # --- 新增的過濾設定 ---
 
     # 1. 隱藏 Lovelace 儀表板的警告 (設為 error 隱藏 warning)
