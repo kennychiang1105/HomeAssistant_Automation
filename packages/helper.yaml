@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.9）
+# Helpers（V3.9.1）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.9.1):
+#   • 修復版本快照模板在新版 Jinja2 的安全限制：移除 `dict.update()`，改用 `dict(...)` 重新指派，避免 `SecurityError: access to attribute 'update' of 'dict' object is unsafe`。
 # 新增與強化 (V3.9):
 #   • 新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）作為 automation 觸發中繼，避免 Google 將 automation 視為啟用開關。
 # 新增與強化 (V3.8):
@@ -620,23 +622,23 @@ template:
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
               {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
               {% set ns = namespace(versions=((versions | tojson | from_json) if versions is mapping else dict())) %}
-              {% set _ = ns.versions.update({
-                'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
-                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
-                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
-                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
-              }) %}
+              {% set ns.versions = dict(ns.versions,
+                system_operating_system_version={'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
+                manual_homekit_framework_version={'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                manual_automation_package_version={'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                manual_automation_framework_version={'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              ) %}
               {{ ns.versions }}
             versions_json: >-
               {% set invalid_texts = ['unknown', 'unavailable', 'none', 'None', ''] %}
               {% set versions = state_attr('sensor.ai_version_registry_dynamic', 'versions') %}
               {% set ns = namespace(versions=((versions | tojson | from_json) if versions is mapping else dict())) %}
-              {% set _ = ns.versions.update({
-                'system_operating_system_version': {'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
-                'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
-                'manual_automation_package_version': {'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
-                'manual_automation_framework_version': {'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
-              }) %}
+              {% set ns.versions = dict(ns.versions,
+                system_operating_system_version={'name': 'Operating System版本', 'version': (state_attr('update.home_assistant_operating_system_update', 'installed_version') if state_attr('update.home_assistant_operating_system_update', 'installed_version') not in invalid_texts and state_attr('update.home_assistant_operating_system_update', 'installed_version') is not none else '未知'), 'file': 'system_auto'},
+                manual_homekit_framework_version={'name': 'HomeKit架構版本', 'version': (states('input_text.homekit_framework_version_manual') if states('input_text.homekit_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                manual_automation_package_version={'name': '自動化更新包版本', 'version': (states('input_text.automation_package_version_manual') if states('input_text.automation_package_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'},
+                manual_automation_framework_version={'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
+              ) %}
               {{ ns.versions | tojson }}
 
     - trigger:
@@ -943,15 +945,15 @@ automation:
         {% set ns = namespace(versions=dict()) %}
         {% if registry_versions is mapping %}
           {% for key, value in registry_versions.items() %}
-            {% set _ = ns.versions.update({key: value}) %}
+            {% set ns.versions = dict(ns.versions, **{key: value}) %}
           {% endfor %}
         {% endif %}
-        {% set _ = ns.versions.update({
-          'system_operating_system_version': {'name': 'Operating System版本', 'version': os_current_version, 'file': 'system_auto'},
-          'manual_homekit_framework_version': {'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
-          'manual_automation_package_version': {'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'},
-          'manual_automation_framework_version': {'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}
-        }) %}
+        {% set ns.versions = dict(ns.versions,
+          system_operating_system_version={'name': 'Operating System版本', 'version': os_current_version, 'file': 'system_auto'},
+          manual_homekit_framework_version={'name': 'HomeKit架構版本', 'version': homekit_framework_version, 'file': 'manual_input'},
+          manual_automation_package_version={'name': '自動化更新包版本', 'version': automation_package_version, 'file': 'manual_input'},
+          manual_automation_framework_version={'name': '自動化架構版本', 'version': automation_framework_version, 'file': 'manual_input'}
+        ) %}
         {{ ns.versions }}
       current_versions_count: "{{ current_versions | count }}"
       debug_message: >-

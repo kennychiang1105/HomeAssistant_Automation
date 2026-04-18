@@ -1,19 +1,20 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V3.2)
-# 相容版本：Helpers V3.6
+# 22頂樓電風扇自動化AI (V3.2.1)
+# 相容版本：Helpers V3.9.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.1（修補版）：修復 t_eff 為 none/unavailable 時的 float 轉型錯誤，補強 t_eff_valid 判斷並加入 t_eff 安全預設值避免自動化中斷。
 # - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V3.2)
+- alias: 22頂樓電風扇自動化AI (V3.2.1)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V3.2"
+    automation_version: "V3.2.1"
   trigger:
     - platform: state
       entity_id:
@@ -142,14 +143,17 @@
               {{ (hp_temp_feels_like if hp_valid_now else ac_temp) | float | round(2) }}
             {% endif %}
           {% endif %}
-        t_eff_valid: "{{ t_eff is not none }}"
+        t_eff_valid: >
+          {% set t_eff_text = (t_eff | string | lower | trim) %}
+          {{ t_eff is not none and t_eff_text not in ['none','unknown','unavailable',''] }}
+        t_eff_num: "{{ t_eff | float(ac_temp | float(0)) }}"
 
         # ---- 風量曲線（日間基準；終極平滑 profile；≤2.5% 級距；0.2°C 階梯）----
         pct_base_day: >
           {% if not t_eff_valid %}
             {{ fan_pct_now }}
           {% else %}
-            {% set t = t_eff | float %}
+            {% set t = t_eff_num | float(0) %}
             {% if t >= 31.3 %} 100
             {% elif t >= 31.1 %} 97.5
             {% elif t >= 30.9 %} 95
@@ -399,7 +403,7 @@
               value_template: "{{ t_eff_valid }}"
           sequence:
             - variables:
-                t_enter: "{{ t_eff | float }}"
+                t_enter: "{{ t_eff_num | float(0) }}"
                 high_open_c: "{{ enter_high_open_c_dyn }}"
             - choose:
                 - conditions:
@@ -472,7 +476,7 @@
                    and (trigger.to_state is not none and trigger.to_state.state == 'on')
                    and (trigger.from_state is not none and trigger.from_state.state == 'off') }}
             - condition: template
-              value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
+              value_template: "{{ t_eff_valid and (t_eff_num | float(0) < night_cold_off_c) }}"
             - condition: template
               value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
           sequence:
@@ -487,7 +491,7 @@
                   data:
                     title: "手動開啟 — 已啟用保留 1 小時"
                     message: >
-                      🙋‍♂️ t_eff={{ '%.1f'|format(t_eff|float) }}°C 低於 {{ night_cold_off_c }}°C；為避免立即自動關閉，已暫時保留 1 小時。
+                      🙋‍♂️ t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C 低於 {{ night_cold_off_c }}°C；為避免立即自動關閉，已暫時保留 1 小時。
 
     # 3) 任意時段「過冷關機」：需 t_eff 有效；執行後本輪 stop 防回彈
     - choose:
@@ -496,7 +500,7 @@
               entity_id: fan.dmaker_p33_eabd_fan
               state: "on"
             - condition: template
-              value_template: "{{ t_eff_valid and (t_eff | float < night_cold_off_c) }}"
+              value_template: "{{ t_eff_valid and (t_eff_num | float(0) < night_cold_off_c) }}"
             - condition: template
               value_template: "{{ not is_state('input_boolean.ding_lou_fan_manual_hold','on') }}"
           sequence:
@@ -514,7 +518,7 @@
                   data:
                     title: "頂樓風扇自動關閉（過冷）"
                     message: >
-                      🌙 t_eff={{ '%.1f'|format(t_eff|float) }}°C < 門檻 {{ night_cold_off_c }}°C（記憶=on）
+                      🌙 t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C < 門檻 {{ night_cold_off_c }}°C（記憶=on）
             - stop: "Stopped after cold_off to avoid immediate reopen in same run"
 
     # 4) 任意時段「回溫再開」：記憶=on 且 t_eff ≥ 門檻
@@ -527,7 +531,7 @@
               entity_id: input_boolean.ding_lou_fan_cold_off_memory
               state: "on"
             - condition: template
-              value_template: "{{ t_eff_valid and (t_eff | float >= morning_reopen_c) }}"
+              value_template: "{{ t_eff_valid and (t_eff_num | float(0) >= morning_reopen_c) }}"
           sequence:
             - service: fan.turn_on
               target:
@@ -543,7 +547,7 @@
                   data:
                     title: "頂樓風扇自動開啟（回溫）"
                     message: >
-                      ☀️ t_eff={{ '%.1f'|format(t_eff|float) }}°C ≥ {{ morning_reopen_c }}°C（清除記憶）
+                      ☀️ t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C ≥ {{ morning_reopen_c }}°C（清除記憶）
 
     # 4) 冷氣開啟 → 風扇同步 on（凍結與否皆可執行）
     - choose:
@@ -610,4 +614,4 @@
                   data:
                     title: "頂樓風扇風速調整"
                     message: >
-                      🔄 新風速={{ desired_pct }}%｜t_eff={{ '%.1f'|format(t_eff|float) }}°C
+                      🔄 新風速={{ desired_pct }}%｜t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C

@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.9`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.9.1`
 
 ## 現況總表（Automations）
 
@@ -44,7 +44,7 @@
 | `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
-| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2)` | `ai_topfloor_fan_automation` | `V3.2` |
+| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -138,6 +138,8 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-04-10）
+- `22頂樓電風扇自動化AI` 修補版升級至 `V3.2.1`：修復 `t_eff` 在感測器暫時失效時（`none/unavailable`）造成 `float` 轉型錯誤，補強 `t_eff_valid` 判斷並加入安全預設值，避免自動化中斷。
+- Helper 套件修補版升級至 `V3.9.1`：將版本比對模板中的 `dict.update()` 全數改為安全的 `dict(...)` 重新指派寫法，修復新版 Jinja2 的 `SecurityError` 限制。
 - `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.0.1`：主流程防呆由 8 秒調整為 15 秒，降低關燈後感測延遲造成誤重開。
 - `08-5H頂樓深夜熟睡情境AI` 修補版升級至 `V3.0.1`：改為下樓情境執行後 1 分鐘檢查床頭燈（`light.yeelink_bslamp2_4329_light`）是否關閉；若失敗自動重跑一次下樓流程，僅在確認成功後才恢復風扇狀態。
 - `100B自動離家AI` 修補版升級至 `V3.3.1`：LINE 通知標題統一移除「100B」編號顯示，並改以 `automation_version` 動態帶入版本，避免版本號未同步更新。
