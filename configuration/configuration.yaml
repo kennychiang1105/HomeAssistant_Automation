@@ -1,4 +1,4 @@
-### AI Configuration V1.0 ###
+### AI Configuration V3.0 ###
 
 homeassistant:
   packages: !include_dir_named packages
@@ -24,7 +24,13 @@ frontend:
 recorder: 
   commit_interval: 10
   purge_keep_days: 180
-  
+logger:
+  # 系統預設的日誌層級，通常維持 info 即可
+  default: info
+  logs:
+    # 將 REST 元件的層級提高到 error，藉此過濾掉 warning (警告)
+    homeassistant.components.rest: error
+    homeassistant.components.rest.data: error    
 #####google home
 google_assistant:
   project_id: fluid-etching-332006
@@ -66,7 +72,7 @@ google_assistant:
       name: "客廳 Homepod"
       room: "客廳"
       expose: true
-    media_player.sonydian_shi:
+    media_player.ke_ting_dian_shi:
       name: "電視"
       room: "客廳"
       expose: true
@@ -179,11 +185,19 @@ google_assistant:
       expose: true
 
     # ====== 【車庫】 ======
+    camera.g6_instant_high_resolution_channel:
+      name: "車庫攝影機"
+      room: "車庫"
+      expose: true
     switch.che_ku_zhu_deng:
       name: "車庫主燈"
       room: "車庫"
       expose: true
     # --- 頂樓 (5F) 環境與溫控 ---
+    camera.wu_lou_she_ying_ji_high:
+      name: "頂樓攝影機"
+      room: "頂樓"
+      expose: true
     climate.ding_lou_kong_diao:
       name: "頂樓空調"
       room: "頂樓"
