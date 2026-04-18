@@ -17,6 +17,7 @@
 
 ## 依賴版本
 - Helper 套件版本（`packages/helper.yaml`）：`V3.9.2`
+- configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
 
@@ -129,7 +130,7 @@
 1. 穩定版版本號一律使用 `Vx.y.z`（語意化管理）。
 2. **功能新增 / 行為擴充 / 流程重構**：升級次版本（`y + 1`，`z` 歸零），例如 `V3.3.1 -> V3.4.0`（可簡寫為 `V3.4`）。
 3. **Bug 修復 / 小幅校正 / 文案或同步修正**：升級修補版（`z + 1`），例如 `V3.3 -> V3.3.1`、`V3.0 -> V3.0.1`。
-4. 每次改版需在更新紀錄註明本次屬於「功能版」或「修補版」，並同步更新 alias、`variables.automation_version`、Registry 條目。
+4. 每次改版需在更新紀錄註明本次屬於「功能版」或「修補版」，並同步更新 alias、`variables.automation_version`、Registry 條目。(Helper與configuration套件版本每次確認之)
 5. 同一個PR或Codex同一次僅需更新一次版本號
 
 ## 現況總表（Scripts）
