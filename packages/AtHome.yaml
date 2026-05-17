@@ -6,6 +6,16 @@
 # - V3.0：建立家庭成員在家判斷、可替換追蹤裝置、在家統計與 AP MAC 位置判斷。
 
 
+input_text:
+  at_home_kenny_trackers:
+    name: AtHome Kenny 追蹤裝置清單
+  at_home_elay_trackers:
+    name: AtHome Elay 追蹤裝置清單
+  at_home_jerry_trackers:
+    name: AtHome Jerry 追蹤裝置清單
+  at_home_iris_trackers:
+    name: AtHome Iris 追蹤裝置清單
+
 template:
   - binary_sensor:
       - name: at_home_kenny
@@ -107,4 +117,3 @@ template:
       - name: at_home_iris_location
         unique_id: at_home_iris_location
         state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_iris_ap_mac')|lower,'未知') }}"
-

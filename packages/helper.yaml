@@ -472,14 +472,6 @@ input_text:
   ai_00_01_last_action:
     name: 00-01 系統穩定最後動作
     max: 255
-  at_home_kenny_trackers:
-    name: AtHome Kenny 追蹤裝置清單
-  at_home_elay_trackers:
-    name: AtHome Elay 追蹤裝置清單
-  at_home_jerry_trackers:
-    name: AtHome Jerry 追蹤裝置清單
-  at_home_iris_trackers:
-    name: AtHome Iris 追蹤裝置清單
   # LINE Bot 目標 ID
   line_bot_custom_user_id:
     name: LINE Bot_自訂目標ID
