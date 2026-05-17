@@ -721,30 +721,56 @@ template:
           unique_id: tesla_charger_homekit_status
           icon: mdi:ev-station
           state: >-
-            {% set st = states('sensor.tesla_wall_connector_status') %}
-            {% if st in ['充電（降壓）','charging_reduced','Charging (reduced)'] %}
+            {% set st_raw = states('sensor.tesla_wall_connector_status') %}
+            {% set st = st_raw | string | lower | trim %}
+            {% if st in ['charging_reduced', '充電（降壓）'] %}
               Luxgen充電中
-            {% elif st in ['充電中','charging','Charging'] %}
+            {% elif st in ['charging', '充電中'] %}
               Tesla充電中
-            {% elif st in ['車輛未連接','not_connected','Vehicle not connected','charging_finished','Charging finished'] %}
+            {% elif st in ['not_connected', 'vehicle not connected', 'charging_finished', 'charging finished', '車輛未連接'] %}
               無充電
-            {% elif st in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge','connected','Vehicle connected','negotiating','Negotiating connection'] %}
+            {% elif st in ['waiting_car', 'waiting for car', 'ready', 'ready to charge', 'connected', 'vehicle connected', 'negotiating', 'negotiating connection', '等待汽車', '準備充電'] %}
               充電器已連接準備充電
-            {% else %}
+            {% elif st in ['unknown', 'unavailable', 'none', ''] %}
               未知
+            {% else %}
+              未知（{{ st_raw }}）
             {% endif %}
 
         - name: luxgen_charging_homekit_presence
           unique_id: luxgen_charging_homekit_presence
           icon: mdi:car-electric
           state: >-
-            {{ '有人' if states('sensor.tesla_wall_connector_status') in ['充電（降壓）','charging_reduced','Charging (reduced)'] else '無人' }}
+            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+            {{ '有人' if st in ['charging_reduced', '充電（降壓）'] else '無人' }}
 
         - name: tesla_charging_homekit_presence
           unique_id: tesla_charging_homekit_presence
           icon: mdi:car-electric
           state: >-
-            {{ '有人' if states('sensor.tesla_wall_connector_status') in ['充電中','charging','Charging'] else '無人' }}
+            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+            {{ '有人' if st in ['charging', '充電中'] else '無人' }}
+
+      binary_sensor:
+        - name: luxgen_charging_homekit_occupancy
+          unique_id: luxgen_charging_homekit_occupancy
+          device_class: occupancy
+          state: >-
+            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+            {{ st in ['charging_reduced', '充電（降壓）'] }}
+
+        - name: tesla_charging_homekit_occupancy
+          unique_id: tesla_charging_homekit_occupancy
+          device_class: occupancy
+          state: >-
+            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+            {{ st in ['charging', '充電中'] }}
+
+        - name: tesla_wall_connector_vehicle_connected_homekit_occupancy
+          unique_id: tesla_wall_connector_vehicle_connected_homekit_occupancy
+          device_class: occupancy
+          state: >-
+            {{ is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'on') }}
 
     - trigger:
         - platform: state
