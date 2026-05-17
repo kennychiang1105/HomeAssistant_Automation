@@ -1090,3 +1090,27 @@ automation:
           value: "{{ gateway_alert_title }}"
 
 ###AI Automation help tools###
+
+
+input_text:
+  at_home_kenny_trackers:
+    name: AtHome Kenny 追蹤裝置清單
+  at_home_elay_trackers:
+    name: AtHome Elay 追蹤裝置清單
+  at_home_jerry_trackers:
+    name: AtHome Jerry 追蹤裝置清單
+  at_home_iris_trackers:
+    name: AtHome Iris 追蹤裝置清單
+
+input_datetime:
+  system_stability_restart_time:
+    name: 系統穩定自動重啟時間
+    has_date: false
+    has_time: true
+
+input_number:
+  system_stability_restart_interval_days:
+    name: 系統穩定自動重啟間隔天數
+    min: 1
+    max: 14
+    step: 1
