@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.9.4）
+# Helpers（V3.9.5）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.9.5):
+#   • AtHome AP MAC 顯示優化：成員離家時，`sensor.at_home_*_ap_mac` 由 `unknown` 改為 `離家`，避免誤判為裝置異常。
 # 新增與強化 (V3.9.4):
 #   • 修復 `sensor.ai_li_jia_ban_ben_template` 在 `homeassistant.update_entity` 強制更新時觸發 `NotImplementedError: Update method not implemented`。
 #   • `AI離家版本同步器` 升級至 `v3.2`：移除對 trigger-based template sensor 的強制更新，改由觸發器自然更新狀態。
@@ -1010,40 +1012,40 @@ template:
             {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
             {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_elay_ap_mac
           unique_id: at_home_elay_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_elay_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list %}
             {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_jerry_ap_mac
           unique_id: at_home_jerry_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list %}
             {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_iris_ap_mac
           unique_id: at_home_iris_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_iris_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
             {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_kenny_location
           unique_id: at_home_kenny_location
-          state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_kenny_ap_mac')|lower,'未知') }}"
+          state: "{{ '離家' if states('sensor.at_home_kenny_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_kenny_ap_mac')|lower,'未知') }}"
         - name: at_home_elay_location
           unique_id: at_home_elay_location
-          state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_elay_ap_mac')|lower,'未知') }}"
+          state: "{{ '離家' if states('sensor.at_home_elay_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_elay_ap_mac')|lower,'未知') }}"
         - name: at_home_jerry_location
           unique_id: at_home_jerry_location
-          state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_jerry_ap_mac')|lower,'未知') }}"
+          state: "{{ '離家' if states('sensor.at_home_jerry_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_jerry_ap_mac')|lower,'未知') }}"
         - name: at_home_iris_location
           unique_id: at_home_iris_location
-          state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_iris_ap_mac')|lower,'未知') }}"
+          state: "{{ '離家' if states('sensor.at_home_iris_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_iris_ap_mac')|lower,'未知') }}"
 
 automation:
   - id: ui_ai_version_snapshot_clear

@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.9.4`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.9.5`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -141,6 +141,7 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-05-17）
+- Helper 套件修補版升級至 `V3.9.5`：AtHome AP MAC 感測器在離家時由 `unknown` 改為 `離家`，並同步讓位置感測器顯示 `離家`。
 - `00-01系統回應穩定自動化AI` 修補版升級至 `V3.0.1`：補上完整 logbook（含主機重啟/小燕重載/Unifi Protect 監測結果）、恢復小燕網關看門狗，並移除依賴 initial 的 helper 設計。
 - AtHome helpers 已整合至 `packages/helper.yaml`，不再需要獨立 `packages/AtHome.yaml`。
 - 新增 `00-01系統回應穩定自動化AI (V3.0.1)`：合併原 `00-1` 與 `00-1B`，並加入 AtHome/鐵門觸發後 1 小時無相機狀態更新即重載 Unifi Protect integration 的看門狗。
