@@ -12,18 +12,17 @@
   variables:
     automation_version: "V3.0.1"
   triggers:
-    - trigger: time_pattern
-      minutes: "/5"
+    - trigger: time
+      at: input_datetime.system_stability_restart_time
+    - trigger: time
+      at: "04:17:00"
   conditions:
     - condition: template
       value_template: >-
-        {% set t = states('input_datetime.system_stability_restart_time') %}
-        {% set hhmm = t[:5] if t not in ['unknown','unavailable','none',''] else '04:17' %}
-        {% set now_hhmm = now().strftime('%H:%M') %}
         {% set interval = states('input_number.system_stability_restart_interval_days')|int(3) %}
         {% set anchor = as_datetime('2026-05-17 00:00:00') %}
         {% set days = ((now().date() - anchor.date()).days | int(0)) %}
-        {{ now_hhmm == hhmm and (days % interval == 0) }}
+        {{ (days % interval == 0) }}
   actions:
     - action: logbook.log
       data:
@@ -92,14 +91,14 @@
         - conditions:
             - condition: template
               value_template: >-
-                {% set refs = [
-                  states.camera.wu_lou_she_ying_ji_high,
-                  states.camera.g6_instant_high_resolution_channel,
-                  states.binary_sensor.wu_lou_she_ying_ji_motion,
-                  states.binary_sensor.wu_lou_she_ying_ji_is_dark
+                {% set entities = [
+                  'camera.wu_lou_she_ying_ji_high',
+                  'camera.g6_instant_high_resolution_channel',
+                  'binary_sensor.wu_lou_she_ying_ji_motion',
+                  'binary_sensor.wu_lou_she_ying_ji_is_dark'
                 ] %}
-                {% set latest = refs | map(attribute='last_changed') | list | sort | last %}
-                {{ (as_timestamp(now()) - as_timestamp(latest)) > 3600 }}
+                {% set latest = expand(entities) | map(attribute='last_changed') | list | sort | last %}
+                {{ (as_timestamp(now()) - as_timestamp(latest)) > 3600 if latest else false }}
           sequence:
             - action: logbook.log
               data:
