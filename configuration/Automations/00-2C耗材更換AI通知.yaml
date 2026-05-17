@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V3.0)
-# 相容版本：Helpers V3.11（已確認）
+# 00-2C耗材更換AI通知 (V3.0.1)
+# 相容版本：Helpers V3.11.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.1：修復定期摘要計時基準與上次回報時間寫回；電量提醒改為區間門檻避免跳點漏報。
 # - V3.0：新增濾芯與多裝置電量分級、去重通知與定期摘要。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2C耗材更換AI通知 (V3.0)
+- alias: 00-2C耗材更換AI通知 (V3.0.1)
   id: ai_00_2c_supply_battery_notify
   mode: queued
   triggers:
@@ -35,9 +36,7 @@
       at: input_datetime.supply_battery_report_time
   conditions: []
   variables:
-    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
-    general_line_on: "{{ is_state('input_boolean.notify_line_general_enable','on') and is_state('input_boolean.notify_supply_extra_line_enable','on') }}"
-    important_line_on: "{{ is_state('input_boolean.notify_line_important_enable','on') }}"
+    invalid_texts: ["unknown", "unavailable", "none", "None", ""]
   actions:
     - choose:
         - conditions: "{{ trigger.id in ['prep_filter_10','prep_filter_5','urgent_filter_0'] }}"
@@ -50,17 +49,37 @@
           sequence:
             - variables:
                 v: "{{ trigger.to_state.state|int(101) }}"
+                old_v: "{{ trigger.from_state.state|int(101) if trigger.from_state is not none else 101 }}"
+                stage_now: >-
+                  {% if v <= 0 %}0
+                  {% elif v <= 5 %}5
+                  {% elif v <= 10 %}10
+                  {% elif v <= 20 %}20
+                  {% else %}101
+                  {% endif %}
+                stage_old: >-
+                  {% if old_v <= 0 %}0
+                  {% elif old_v <= 5 %}5
+                  {% elif old_v <= 10 %}10
+                  {% elif old_v <= 20 %}20
+                  {% else %}101
+                  {% endif %}
             - if:
                 - condition: template
-                  value_template: "{{ v in [20,10,5,0] }}"
+                  value_template: "{{ v <= 20 and stage_now|int(101) < stage_old|int(101) }}"
               then:
                 - service: persistent_notification.create
                   data:
                     title: 裝置電量提醒
                     message: "{{ trigger.to_state.name }} 電量 {{ v }}%。"
-        - conditions: "{{ trigger.id == 'periodic_report' and ((as_timestamp(now()) - as_timestamp(states('input_datetime.ai_00_01_last_action_time'))) / 86400) >= (states('input_number.supply_battery_report_interval_days')|int(15)) }}"
+        - conditions: "{{ trigger.id == 'periodic_report' and (((as_timestamp(now()) - as_timestamp(states('input_datetime.supply_battery_last_report_time'), 0)) / 86400) >= (states('input_number.supply_battery_report_interval_days')|int(15))) }}"
           sequence:
             - service: persistent_notification.create
               data:
                 title: 每月耗材/電量摘要
                 message: "定期摘要已執行（每{{ states('input_number.supply_battery_report_interval_days') }}天）。"
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.supply_battery_last_report_time
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

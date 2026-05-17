@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.11）
+# Helpers（V3.11.1）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.11.1):
+#   • 修復 00-2C 定期摘要：新增獨立上次回報時間 helper，避免受 00-01 影響造成誤判與重複觸發。
 # 新增與強化 (V3.11):
 #   • 新增 00-2C 耗材更換通知 helpers：額外 LINE 開關、定期通知時刻與間隔天數。
 # 新增與強化 (V3.10):
@@ -178,6 +180,10 @@ input_datetime:
   supply_battery_report_time:
     name: 耗材電量定期回報時間
     has_date: false
+    has_time: true
+  supply_battery_last_report_time:
+    name: 耗材電量上次回報時間
+    has_date: true
     has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
