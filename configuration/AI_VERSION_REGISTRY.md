@@ -17,7 +17,6 @@
 
 ## 依賴版本
 - Helper 套件版本（`packages/helper.yaml`）：`V3.9.4`
-- AtHome 套件版本（`packages/AtHome.yaml`）：`V3.0.1`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -143,8 +142,7 @@
 
 ## 本次調整（2026-05-17）
 - `00-01系統回應穩定自動化AI` 修補版升級至 `V3.0.1`：補上完整 logbook（含主機重啟/小燕重載/Unifi Protect 監測結果）、恢復小燕網關看門狗，並移除依賴 initial 的 helper 設計。
-- `packages/AtHome.yaml` 修補版升級至 `V3.0.1`：移除 `input_text/input_number` initial，改用模板 fallback 預設 tracker。
-- 新增 `packages/AtHome.yaml (V3.0)`：提供 Kenny/Elay/Jerry/Iris 在家判斷、可替換 tracker 清單、在家人數/名單、有人在家/無人在家與 AP MAC 位置實體。
+- AtHome helpers 已整合至 `packages/helper.yaml`，不再需要獨立 `packages/AtHome.yaml`。
 - 新增 `00-01系統回應穩定自動化AI (V3.0.1)`：合併原 `00-1` 與 `00-1B`，並加入 AtHome/鐵門觸發後 1 小時無相機狀態更新即重載 Unifi Protect integration 的看門狗。
 - 原 `configuration/automations.yaml` 中 `00-1`、`00-1B` 已移除，改由 AI managed 檔案接管。
 

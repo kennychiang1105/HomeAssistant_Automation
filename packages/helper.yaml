@@ -466,6 +466,16 @@ input_number:
     step: 0.1
 
 input_text:
+  # AtHome 在家系統專用（可替換追蹤裝置）
+  at_home_kenny_trackers:
+    name: AtHome Kenny 追蹤裝置清單
+  at_home_elay_trackers:
+    name: AtHome Elay 追蹤裝置清單
+  at_home_jerry_trackers:
+    name: AtHome Jerry 追蹤裝置清單
+  at_home_iris_trackers:
+    name: AtHome Iris 追蹤裝置清單
+
   ai_00_01_last_event:
     name: 00-01 系統穩定最後事件
     max: 255
