@@ -47,7 +47,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V1.0)` | `ai_107_tesla_charger_status_notify` | `V1.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.0)` | `ai_107_tesla_charger_status_notify` | `V3.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -142,7 +142,7 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-05-17）
-- 新增 `107Tesla充電器狀態與通知AI (V1.0)`：加入 Tesla/Luxgen 充電開始與完成通知、00:02 與連接 6 小時未充電的重要提醒，並整合系統通知與 LINE 分級推播。
+- 新增 `107Tesla充電器狀態與通知AI (V3.0)`：加入 Tesla/Luxgen 充電開始與完成通知、00:02 與連接 6 小時未充電的重要提醒，並整合系統通知與 LINE 分級推播。
 - Helper 套件功能版升級至 `V3.10`：新增 Tesla 充電器 HomeKit helper（充電樁狀態 / Luxgen充電 / Tesla充電）與 Tesla 充電通知額外開關。
 
 - Helper 套件修補版升級至 `V3.9.5`：AtHome AP MAC 感測器在離家時由 `unknown` 改為 `離家`，並同步讓位置感測器顯示 `離家`。

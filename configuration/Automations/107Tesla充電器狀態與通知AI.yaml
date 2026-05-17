@@ -1,11 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V1.0)
+# 107Tesla充電器狀態與通知AI (V3.0)
 # 相容版本：Helpers V3.10（已確認）
 # 更新紀錄（統一格式）：
-# - V1.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
+# - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V1.0)
+- alias: 107Tesla充電器狀態與通知AI (V3.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -13,33 +13,63 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V1.0"
+    automation_version: "V3.0"
 
   trigger:
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
-      from: "充電中"
-      to: "充電（降壓）"
+      from:
+        - "充電中"
+        - "charging"
+        - "Charging"
+      to:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
       id: charge_start_luxgen
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
-      from: "充電（降壓）"
-      to: "充電中"
+      from:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
+      to:
+        - "充電中"
+        - "charging"
+        - "Charging"
       id: charge_start_tesla
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
-      from: "車輛未連接"
+      from:
+        - "車輛未連接"
+        - "not_connected"
+        - "Vehicle not connected"
+        - "charging_finished"
+        - "Charging finished"
       to:
         - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
         - "充電中"
+        - "charging"
+        - "Charging"
       id: charge_start_from_idle
 
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
       from:
         - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
         - "充電中"
-      to: "車輛未連接"
+        - "charging"
+        - "Charging"
+      to:
+        - "車輛未連接"
+        - "not_connected"
+        - "Vehicle not connected"
+        - "charging_finished"
+        - "Charging finished"
       id: charge_done
 
     - platform: time
@@ -51,6 +81,14 @@
       to:
         - "等待汽車"
         - "準備充電"
+        - "waiting_car"
+        - "Waiting for car"
+        - "ready"
+        - "Ready to charge"
+        - "connected"
+        - "Vehicle connected"
+        - "negotiating"
+        - "Negotiating connection"
       for: "06:00:00"
       id: prep_too_long
 
@@ -66,9 +104,9 @@
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
         vehicle_name: >-
-          {% if charger_status == '充電（降壓）' %}
+          {% if charger_status in ['充電（降壓）','charging_reduced','Charging (reduced)'] %}
             Luxgen
-          {% elif charger_status == '充電中' %}
+          {% elif charger_status in ['充電中','charging','Charging'] %}
             Tesla
           {% else %}
             未知車輛
@@ -167,7 +205,7 @@
               id: midnight_not_started
             - condition: template
               value_template: >-
-                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電']
+                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge','connected','Vehicle connected','negotiating','Negotiating connection']
                    or is_state('binary_sensor.tesla_wall_connector_vehicle_connected','on') }}
           sequence:
             - service: persistent_notification.create
