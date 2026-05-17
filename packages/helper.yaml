@@ -152,6 +152,10 @@ command_line:
       availability: "{{ value_json.state | default('error') == 'ok' }}"
 
 input_datetime:
+  system_stability_restart_time:
+    name: 系統穩定自動重啟時間
+    has_date: false
+    has_time: true
   last_disaster_broadcast:
     name: Last Disaster Broadcast
     has_date: true
@@ -281,6 +285,11 @@ input_button:
     icon: mdi:target
 
 input_number:
+  system_stability_restart_interval_days:
+    name: 系統穩定自動重啟間隔天數
+    min: 1
+    max: 14
+    step: 1
   # 車牌辨識AI_Beta
   lpr_auto_close_delay_min:
     name: LPR關門延遲（分鐘）
@@ -453,6 +462,14 @@ input_number:
     step: 0.1
 
 input_text:
+  at_home_kenny_trackers:
+    name: AtHome Kenny 追蹤裝置清單
+  at_home_elay_trackers:
+    name: AtHome Elay 追蹤裝置清單
+  at_home_jerry_trackers:
+    name: AtHome Jerry 追蹤裝置清單
+  at_home_iris_trackers:
+    name: AtHome Iris 追蹤裝置清單
   # LINE Bot 目標 ID
   line_bot_custom_user_id:
     name: LINE Bot_自訂目標ID
@@ -1088,29 +1105,3 @@ automation:
           entity_id: input_text.notif_title_gateway_alert
         data:
           value: "{{ gateway_alert_title }}"
-
-###AI Automation help tools###
-
-
-input_text:
-  at_home_kenny_trackers:
-    name: AtHome Kenny 追蹤裝置清單
-  at_home_elay_trackers:
-    name: AtHome Elay 追蹤裝置清單
-  at_home_jerry_trackers:
-    name: AtHome Jerry 追蹤裝置清單
-  at_home_iris_trackers:
-    name: AtHome Iris 追蹤裝置清單
-
-input_datetime:
-  system_stability_restart_time:
-    name: 系統穩定自動重啟時間
-    has_date: false
-    has_time: true
-
-input_number:
-  system_stability_restart_interval_days:
-    name: 系統穩定自動重啟間隔天數
-    min: 1
-    max: 14
-    step: 1
