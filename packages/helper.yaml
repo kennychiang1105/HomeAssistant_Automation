@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.9.5）
+# Helpers（V3.10）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.10):
+#   • 新增 Tesla 充電器 HomeKit helper：充電樁狀態 / Luxgen充電 / Tesla充電（有人/無人）映射。
+#   • 新增 Tesla 充電通知額外開關（LINE/系統），供 107 自動化獨立控管。
 # 新增與強化 (V3.9.5):
 #   • AtHome AP MAC 顯示優化：成員離家時，`sensor.at_home_*_ap_mac` 由 `unknown` 改為 `離家`，避免誤判為裝置異常。
 # 新增與強化 (V3.9.4):
@@ -270,6 +273,13 @@ input_boolean:
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
+
+  notify_tesla_charge_extra_line_enable:
+    name: Tesla充電通知_額外LINE啟用
+    icon: mdi:car-electric
+  notify_tesla_charge_extra_system_enable:
+    name: Tesla充電通知_額外系統通知啟用
+    icon: mdi:message-alert-outline
     
   line_bot_test_mode:
     name: LINE Bot_測試模式
@@ -701,6 +711,40 @@ template:
                 manual_automation_framework_version={'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
               ) %}
               {{ ns.versions | tojson }}
+
+    - trigger:
+        - platform: state
+          entity_id:
+            - sensor.tesla_wall_connector_status
+      sensor:
+        - name: tesla_charger_homekit_status
+          unique_id: tesla_charger_homekit_status
+          icon: mdi:ev-station
+          state: >-
+            {% set st = states('sensor.tesla_wall_connector_status') %}
+            {% if st == '充電（降壓）' %}
+              Luxgen充電中
+            {% elif st == '充電中' %}
+              Tesla充電中
+            {% elif st == '車輛未連接' %}
+              無充電
+            {% elif st in ['等待汽車', '準備充電'] %}
+              充電器已連接準備充電
+            {% else %}
+              未知
+            {% endif %}
+
+        - name: luxgen_charging_homekit_presence
+          unique_id: luxgen_charging_homekit_presence
+          icon: mdi:car-electric
+          state: >-
+            {{ '有人' if states('sensor.tesla_wall_connector_status') == '充電（降壓）' else '無人' }}
+
+        - name: tesla_charging_homekit_presence
+          unique_id: tesla_charging_homekit_presence
+          icon: mdi:car-electric
+          state: >-
+            {{ '有人' if states('sensor.tesla_wall_connector_status') == '充電中' else '無人' }}
 
     - trigger:
         - platform: state
