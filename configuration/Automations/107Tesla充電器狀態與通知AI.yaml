@@ -1,0 +1,264 @@
+# ─────────────────────────────────────────────────────────────
+# 107Tesla充電器狀態與通知AI (V3.0)
+# 相容版本：Helpers V3.10（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
+# ─────────────────────────────────────────────────────────────
+
+- alias: 107Tesla充電器狀態與通知AI (V3.0)
+  id: ai_107_tesla_charger_status_notify
+  description: >-
+    Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
+    相容版本：Helpers V3.10（已確認）。
+  mode: queued
+  max: 20
+  variables:
+    automation_version: "V3.0"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+
+  trigger:
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      from:
+        - "充電中"
+        - "charging"
+        - "Charging"
+      to:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
+      id: charge_start_luxgen
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      from:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
+      to:
+        - "充電中"
+        - "charging"
+        - "Charging"
+      id: charge_start_tesla
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      from:
+        - "車輛未連接"
+        - "not_connected"
+        - "Vehicle not connected"
+        - "charging_finished"
+        - "Charging finished"
+      to:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
+        - "充電中"
+        - "charging"
+        - "Charging"
+      id: charge_start_from_idle
+
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      from:
+        - "充電（降壓）"
+        - "charging_reduced"
+        - "Charging (reduced)"
+        - "充電中"
+        - "charging"
+        - "Charging"
+      to:
+        - "車輛未連接"
+        - "not_connected"
+        - "Vehicle not connected"
+        - "charging_finished"
+        - "Charging finished"
+      id: charge_done
+
+    - platform: time
+      at: "00:02:00"
+      id: midnight_not_started
+
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      to:
+        - "等待汽車"
+        - "準備充電"
+        - "waiting_car"
+        - "Waiting for car"
+        - "ready"
+        - "Ready to charge"
+        - "connected"
+        - "Vehicle connected"
+        - "negotiating"
+        - "Negotiating connection"
+      for: "06:00:00"
+      id: prep_too_long
+
+    - platform: state
+      entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
+      to: "on"
+      for: "06:00:00"
+      id: vehicle_connected_too_long
+
+  condition: []
+
+  action:
+    - variables:
+        charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
+        status_for_vehicle: >-
+          {% set now_st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
+            {{ trigger.from_state.state | string | lower | trim }}
+          {% else %}
+            {{ now_st }}
+          {% endif %}
+        vehicle_name: >-
+          {% set st = status_for_vehicle %}
+          {% if st in ['charging_reduced', '充電（降壓）'] %}
+            Luxgen
+          {% elif st in ['charging', '充電中'] %}
+            Tesla
+          {% else %}
+            車輛
+          {% endif %}
+        start_time: >-
+          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
+            {{ trigger.from_state.last_changed.strftime('%Y-%m-%d %H:%M:%S') }}
+          {% else %}
+            {% set s_obj = states.sensor.tesla_wall_connector_status %}
+            {% set ts = s_obj.last_changed if s_obj is not none else none %}
+            {{ ts.strftime('%Y-%m-%d %H:%M:%S') if ts is not none else '未知' }}
+          {% endif %}
+        now_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        handle_temp: "{{ states('sensor.tesla_wall_connector_handle_temperature') }}"
+        mcu_temp: "{{ states('sensor.tesla_wall_connector_mcu_temperature') }}"
+        pcb_temp: "{{ states('sensor.tesla_wall_connector_pcb_temperature') }}"
+        session_energy: "{{ states('sensor.tesla_wall_connector_session_energy') }}"
+
+    - choose:
+        - conditions:
+            - condition: trigger
+              id:
+                - charge_start_luxgen
+                - charge_start_tesla
+                - charge_start_from_idle
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "【Tesla充電器】一般 General 🪧"
+                message: >-
+                  {{ vehicle_name }} 開始充電（{{ now_time }}）。
+                  手把溫度 {{ handle_temp }}°C、MCU 溫度 {{ mcu_temp }}°C、PCB 溫度 {{ pcb_temp }}°C。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_general_enable
+                      state: "on"
+                    - condition: state
+                      entity_id: input_boolean.notify_tesla_charge_extra_line_enable
+                      state: "on"
+                  sequence:
+                    - service: notify.line_notification_group
+                      data:
+                        title: "【Tesla充電器】一般 General 🪧"
+                        message: >-
+                          {{ vehicle_name }} 開始充電（{{ now_time }}）。
+                          手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_tesla_charge_extra_system_enable
+                      state: "on"
+                  sequence:
+                    - service: persistent_notification.create
+                      data:
+                        title: "【Tesla充電器】一般 General 🪧（額外系統通知）"
+                        message: >-
+                          {{ vehicle_name }} 開始充電（{{ now_time }}）。
+
+        - conditions:
+            - condition: trigger
+              id: charge_done
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "【Tesla充電器】一般 General 🪧"
+                message: >-
+                  {{ vehicle_name }} 充電完成。
+                  開始時間 {{ start_time }}，結束時間 {{ now_time }}，用電量 {{ session_energy }}。
+                  手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_general_enable
+                      state: "on"
+                    - condition: state
+                      entity_id: input_boolean.notify_tesla_charge_extra_line_enable
+                      state: "on"
+                  sequence:
+                    - service: notify.line_notification_group
+                      data:
+                        title: "【Tesla充電器】一般 General 🪧"
+                        message: >-
+                          {{ vehicle_name }} 充電完成。
+                          開始 {{ start_time }}、結束 {{ now_time }}、用電量 {{ session_energy }}。
+                          手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_tesla_charge_extra_system_enable
+                      state: "on"
+                  sequence:
+                    - service: persistent_notification.create
+                      data:
+                        title: "【Tesla充電器】一般 General 🪧（額外系統通知）"
+                        message: >-
+                          {{ vehicle_name }} 充電完成：結束 {{ now_time }}、用電量 {{ session_energy }}。
+
+        - conditions:
+            - condition: trigger
+              id: midnight_not_started
+            - condition: template
+              value_template: >-
+                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge','connected','Vehicle connected','negotiating','Negotiating connection']
+                   or is_state('binary_sensor.tesla_wall_connector_vehicle_connected','on') }}
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "【Tesla充電器】重要 Important ⚠️"
+                message: >-
+                  {{ now_time }} 仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_important_enable
+                      state: "on"
+                  sequence:
+                    - service: notify.line_notification_group
+                      data:
+                        title: "【Tesla充電器】重要 Important ⚠️"
+                        message: >-
+                          目前疑似已接上但未開始充電，請檢查車輛狀況。
+
+        - conditions:
+            - condition: trigger
+              id:
+                - prep_too_long
+                - vehicle_connected_too_long
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "【Tesla充電器】重要 Important ⚠️"
+                message: >-
+                  已連接超過 6 小時仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_important_enable
+                      state: "on"
+                  sequence:
+                    - service: notify.line_notification_group
+                      data:
+                        title: "【Tesla充電器】重要 Important ⚠️"
+                        message: >-
+                          已連接超過 6 小時仍未開始充電，請檢查車輛狀況。
+      default: []
