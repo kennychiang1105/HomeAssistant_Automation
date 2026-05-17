@@ -1,0 +1,117 @@
+# ─────────────────────────────────────────────────────────────
+# 00-01系統回應穩定自動化AI (V3.0.1)
+# 相容版本：Helpers V3.9.4（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0.1：補上完整 logbook、恢復小燕網關穩定重載流程、移除依賴 initial 的設定。
+# - V3.0：合併 00-1 與 00-1B，加入在家/鐵門觸發的 Unifi Protect 無回應監測，並提供可調整重啟時間與間隔天數。
+
+- id: ai_00_01_system_stability_auto_restart
+  alias: 00-01系統回應穩定自動化AI (V3.0.1)
+  description: 依 helper 設定時間與間隔天數自動執行主機重啟。
+  mode: single
+  variables:
+    automation_version: "V3.0.1"
+  triggers:
+    - trigger: time_pattern
+      minutes: "/5"
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set t = states('input_datetime.system_stability_restart_time') %}
+        {% set hhmm = t[:5] if t not in ['unknown','unavailable','none',''] else '04:17' %}
+        {% set now_hhmm = now().strftime('%H:%M') %}
+        {% set interval = states('input_number.system_stability_restart_interval_days')|int(3) %}
+        {% set anchor = as_datetime('2026-05-17 00:00:00') %}
+        {% set days = ((now().date() - anchor.date()).days | int(0)) %}
+        {{ now_hhmm == hhmm and (days % interval == 0) }}
+  actions:
+    - action: logbook.log
+      data:
+        name: 00-01系統回應穩定自動化AI
+        message: >-
+          觸發週期重啟檢查成功，準備重啟主機（時間={{ now().strftime('%Y-%m-%d %H:%M:%S') }}；間隔={{ states('input_number.system_stability_restart_interval_days')|int(3) }} 天）。
+    - action: hassio.host_reboot
+      data: {}
+
+- id: ai_00_01_xiaoyan_gateway_watchdog
+  alias: 00-01系統回應穩定自動化AI_小燕網關看門狗 (V3.0.1)
+  description: 小燕開關事件 unavailable 或定時巡檢時，重載小燕 integration。
+  mode: single
+  variables:
+    automation_version: "V3.0.1"
+  triggers:
+    - trigger: state
+      entity_id:
+        - event.ke_ting_zhu_kai_guan_xia_3_button
+        - event.si_lou_kai_guan_xia_2_button
+        - event.chu_fang_kai_guan_3_button
+      to: unavailable
+      for: "00:01:00"
+    - trigger: time_pattern
+      hours: "/2"
+      minutes: "15"
+  actions:
+    - action: logbook.log
+      data:
+        name: 00-01系統回應穩定自動化AI
+        message: >-
+          小燕網關看門狗觸發（來源={{ trigger.entity_id if trigger.entity_id is defined else 'time_pattern' }}；時間={{ now().strftime('%Y-%m-%d %H:%M:%S') }}），執行 Integration 重載。
+    - action: homeassistant.reload_config_entry
+      data:
+        entry_id: 943e593a9b076c8f44717a2563e66182
+
+- id: ai_00_01_unifi_protect_watchdog
+  alias: 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V3.0.1)
+  description: 有人在家或鐵門狀態變化後，若 1 小時內攝影機相關狀態無變更則重載 Unifi Protect integration。
+  mode: single
+  variables:
+    automation_version: "V3.0.1"
+  triggers:
+    - trigger: state
+      entity_id:
+        - binary_sensor.at_home_anyone_home
+    - trigger: state
+      entity_id:
+        - cover.garage
+  conditions:
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: binary_sensor.at_home_anyone_home
+          state: "on"
+        - condition: template
+          value_template: "{{ trigger.entity_id == 'cover.garage' }}"
+  actions:
+    - action: logbook.log
+      data:
+        name: 00-01系統回應穩定自動化AI
+        message: >-
+          Unifi Protect 看門狗開始觀察 1 小時（觸發來源={{ trigger.entity_id }}；from={{ trigger.from_state.state if trigger.from_state else 'n/a' }}；to={{ trigger.to_state.state if trigger.to_state else 'n/a' }}）。
+    - delay: "01:00:00"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >-
+                {% set refs = [
+                  states.camera.wu_lou_she_ying_ji_high,
+                  states.camera.g6_instant_high_resolution_channel,
+                  states.binary_sensor.wu_lou_she_ying_ji_motion,
+                  states.binary_sensor.wu_lou_she_ying_ji_is_dark
+                ] %}
+                {% set latest = refs | map(attribute='last_changed') | list | sort | last %}
+                {{ (as_timestamp(now()) - as_timestamp(latest)) > 3600 }}
+          sequence:
+            - action: logbook.log
+              data:
+                name: 00-01系統回應穩定自動化AI
+                message: >-
+                  偵測 Unifi Protect 實體 1 小時無狀態變化，執行 reload_config_entry（{{ now().strftime('%Y-%m-%d %H:%M:%S') }}）。
+            - action: homeassistant.reload_config_entry
+              data:
+                entry_id: 01K250EX4JB7FE5YHS17YFRXJ0
+      default:
+        - action: logbook.log
+          data:
+            name: 00-01系統回應穩定自動化AI
+            message: >-
+              Unifi Protect 實體於 1 小時內仍有狀態更新，本次不需重載（{{ now().strftime('%Y-%m-%d %H:%M:%S') }}）。

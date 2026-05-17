@@ -1,0 +1,131 @@
+# ──────────────────────────────────────────────
+# AtHome 在家判斷套件（V3.0.1）
+# ──────────────────────────────────────────────
+# 更新紀錄：
+# - V3.0.1：移除 initial，改由模板內建預設 tracker 清單，避免重開機覆寫。
+# - V3.0：建立家庭成員在家判斷、可替換追蹤裝置、在家統計與 AP MAC 位置判斷。
+
+input_text:
+  at_home_kenny_trackers:
+    name: AtHome Kenny 追蹤裝置清單
+  at_home_elay_trackers:
+    name: AtHome Elay 追蹤裝置清單
+  at_home_jerry_trackers:
+    name: AtHome Jerry 追蹤裝置清單
+  at_home_iris_trackers:
+    name: AtHome Iris 追蹤裝置清單
+
+template:
+  - binary_sensor:
+      - name: at_home_kenny
+        unique_id: at_home_kenny
+        device_class: presence
+        state: >-
+          {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
+          {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+      - name: at_home_elay
+        unique_id: at_home_elay
+        device_class: presence
+        state: >-
+          {% set raw = states('input_text.at_home_elay_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list %}
+          {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+      - name: at_home_jerry
+        unique_id: at_home_jerry
+        device_class: presence
+        state: >-
+          {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list %}
+          {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+      - name: at_home_iris
+        unique_id: at_home_iris
+        device_class: presence
+        state: >-
+          {% set raw = states('input_text.at_home_iris_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
+          {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+      - name: at_home_anyone_home
+        unique_id: at_home_anyone_home
+        device_class: occupancy
+        state: "{{ states('sensor.at_home_count')|int(0) > 0 }}"
+      - name: at_home_nobody_home
+        unique_id: at_home_nobody_home
+        device_class: occupancy
+        state: "{{ states('sensor.at_home_count')|int(0) == 0 }}"
+
+    sensor:
+      - name: at_home_count
+        unique_id: at_home_count
+        unit_of_measurement: "人"
+        icon: mdi:account-group
+        state: >-
+          {{ [
+            is_state('binary_sensor.at_home_kenny','on'),
+            is_state('binary_sensor.at_home_elay','on'),
+            is_state('binary_sensor.at_home_jerry','on'),
+            is_state('binary_sensor.at_home_iris','on')
+          ] | select('eq', true) | list | count }}
+      - name: at_home_who_home
+        unique_id: at_home_who_home
+        icon: mdi:home-account
+        state: >-
+          {% set ns = namespace(names=[]) %}
+          {% if is_state('binary_sensor.at_home_kenny','on') %}{% set ns.names = ns.names + ['Kenny'] %}{% endif %}
+          {% if is_state('binary_sensor.at_home_elay','on') %}{% set ns.names = ns.names + ['Elay'] %}{% endif %}
+          {% if is_state('binary_sensor.at_home_jerry','on') %}{% set ns.names = ns.names + ['Jerry'] %}{% endif %}
+          {% if is_state('binary_sensor.at_home_iris','on') %}{% set ns.names = ns.names + ['Iris'] %}{% endif %}
+          {{ ns.names | join(', ') if ns.names|count > 0 else '無人在家' }}
+      - name: at_home_kenny_ap_mac
+        unique_id: at_home_kenny_ap_mac
+        state: >-
+          {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
+          {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+          {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+      - name: at_home_elay_ap_mac
+        unique_id: at_home_elay_ap_mac
+        state: >-
+          {% set raw = states('input_text.at_home_elay_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list %}
+          {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+          {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+      - name: at_home_jerry_ap_mac
+        unique_id: at_home_jerry_ap_mac
+        state: >-
+          {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list %}
+          {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+          {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+      - name: at_home_iris_ap_mac
+        unique_id: at_home_iris_ap_mac
+        state: >-
+          {% set raw = states('input_text.at_home_iris_trackers')|trim %}
+          {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
+          {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+          {{ state_attr(e.entity_id, 'ap_mac') if e else 'unknown' }}
+      - name: at_home_kenny_location
+        unique_id: at_home_kenny_location
+        state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_kenny_ap_mac')|lower,'未知') }}"
+      - name: at_home_elay_location
+        unique_id: at_home_elay_location
+        state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_elay_ap_mac')|lower,'未知') }}"
+      - name: at_home_jerry_location
+        unique_id: at_home_jerry_location
+        state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_jerry_ap_mac')|lower,'未知') }}"
+      - name: at_home_iris_location
+        unique_id: at_home_iris_location
+        state: "{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_iris_ap_mac')|lower,'未知') }}"
+
+input_datetime:
+  system_stability_restart_time:
+    name: 系統穩定自動重啟時間
+    has_date: false
+    has_time: true
+
+input_number:
+  system_stability_restart_interval_days:
+    name: 系統穩定自動重啟間隔天數
+    min: 1
+    max: 14
+    step: 1

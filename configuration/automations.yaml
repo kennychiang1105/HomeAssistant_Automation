@@ -1,27 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
 # Source: configuration/Automations/FullHistory/full_automations_20260516.yaml minus AI-managed aliases
-- id: '1634212146693'
-  alias: 00-1自動重啟Home Assistant
-  description: ''
-  triggers:
-  - at: 04:17:00
-    trigger: time
-    weekday:
-    - mon
-    - thu
-  conditions: []
-  actions:
-  - data:
-      addon: b54ae9a0_scrypted
-    enabled: false
-    action: hassio.addon_restart
-  - data: {}
-    enabled: true
-    action: hassio.host_reboot
-  - data: {}
-    action: homeassistant.restart
-    enabled: false
-  mode: single
 - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
@@ -1953,56 +1931,6 @@
       skip_condition: true
     target:
       entity_id: automation.tie_men_kai_guan
-  mode: single
-- id: '1692796922913'
-  alias: 00-1B 小燕開關不穩自動重啟Integration
-  description: ''
-  triggers:
-  - entity_id:
-    - event.ke_ting_zhu_kai_guan_xia_3_button
-    from:
-    to: unavailable
-    for:
-      hours: 0
-      minutes: 1
-      seconds: 0
-    trigger: state
-  - entity_id:
-    - event.si_lou_kai_guan_xia_2_button
-    from:
-    to: unavailable
-    for:
-      hours: 0
-      minutes: 1
-      seconds: 0
-    trigger: state
-  - entity_id:
-    - event.chu_fang_kai_guan_3_button
-    from:
-    to: unavailable
-    for:
-      hours: 0
-      minutes: 1
-      seconds: 0
-    trigger: state
-  - trigger: time_pattern
-    hours: /2
-    minutes: '15'
-  conditions: []
-  actions:
-  - data:
-      addon: b54ae9a0_scrypted
-    enabled: false
-    action: hassio.addon_restart
-  - data: {}
-    enabled: false
-    action: hassio.host_reboot
-  - data:
-      entry_id: 943e593a9b076c8f44717a2563e66182
-    action: homeassistant.reload_config_entry
-  - data:
-      entry_id: 943e593a9b076c8f44717a2563e66182
-    action: homeassistant.reload_config_entry
   mode: single
 - id: '1695260104831'
   alias: 03E苗栗疏散警報
