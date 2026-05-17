@@ -729,7 +729,9 @@ template:
               Luxgen充電中
             {% elif st in ['charging', '充電中'] %}
               Tesla充電中
-            {% elif st in ['not_connected', 'vehicle not connected', 'charging_finished', 'charging finished', '車輛未連接'] %}
+            {% elif st in ['charging_finished', 'charging finished', '充電完成'] %}
+              充電完成
+            {% elif st in ['not_connected', 'vehicle not connected', '車輛未連接'] %}
               無充電
             {% elif st in ['waiting_car', 'waiting for car', 'ready', 'ready to charge', 'connected', 'vehicle connected', 'negotiating', 'negotiating connection', '等待汽車', '準備充電'] %}
               充電器已連接準備充電
@@ -744,14 +746,14 @@ template:
           icon: mdi:car-electric
           state: >-
             {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ '有人' if st in ['charging_reduced', '充電（降壓）'] else '無人' }}
+            {{ '充電中' if st in ['charging_reduced', '充電（降壓）'] else '未充電' }}
 
         - name: tesla_charging_homekit_presence
           unique_id: tesla_charging_homekit_presence
           icon: mdi:car-electric
           state: >-
             {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ '有人' if st in ['charging', '充電中'] else '無人' }}
+            {{ '充電中' if st in ['charging', '充電中'] else '未充電' }}
 
       binary_sensor:
         - name: luxgen_charging_homekit_occupancy
