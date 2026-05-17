@@ -18,7 +18,8 @@
     release_url: "https://github.com/kennychiang1105/HomeAssistant_Automation/releases/"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
     manual_update_note: "{{ states('input_text.ai_manual_update_note') if states('input_text.ai_manual_update_note') not in invalid_texts else '' }}"
-    manual_note_block: "{{ '\n\n📝 手動補充更新說明\n' ~ manual_update_note if manual_update_note|trim != '' else '' }}"
+    manual_note_block: "{{ '📝 簡要更新說明\n' ~ manual_update_note if manual_update_note|trim != '' else '' }}"
+    manual_note_block_with_spacing: "{{ '\n\n' ~ manual_note_block if manual_note_block|trim != '' else '' }}"
     ha_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}"
     previous_ha_version: "{{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}"
     os_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}"
@@ -66,7 +67,7 @@
 
                   {{ ha_status_line }}
 
-                  {{ changed_lines_text }}{{ manual_note_block }}
+                  {{ changed_lines_text }}{{ manual_note_block_with_spacing }}
 
                   更新紀錄網址：{{ release_url }}
             - if:
@@ -80,9 +81,12 @@
                     payload: >-
                       {% set messages = [
                         {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
-                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text ~ manual_note_block},
-                        {"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}
+                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text}
                       ] %}
+                      {% if manual_note_block|trim != '' %}
+                        {% set messages = messages + [{"type":"text","text":manual_note_block}] %}
+                      {% endif %}
+                      {% set messages = messages + [{"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}] %}
                       {{ messages | tojson }}
 
         - event: ai_version_snapshot_update
