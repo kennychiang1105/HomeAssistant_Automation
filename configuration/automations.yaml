@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260516.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260517.yaml minus AI-managed aliases
 - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
