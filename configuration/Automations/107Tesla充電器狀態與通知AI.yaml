@@ -14,6 +14,7 @@
   max: 20
   variables:
     automation_version: "V3.0"
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 
   trigger:
     - platform: state
@@ -103,17 +104,30 @@
   action:
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
+        status_for_vehicle: >-
+          {% set now_st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
+            {{ trigger.from_state.state | string | lower | trim }}
+          {% else %}
+            {{ now_st }}
+          {% endif %}
         vehicle_name: >-
-          {% if charger_status in ['充電（降壓）','charging_reduced','Charging (reduced)'] %}
+          {% set st = status_for_vehicle %}
+          {% if st in ['charging_reduced', '充電（降壓）'] %}
             Luxgen
-          {% elif charger_status in ['充電中','charging','Charging'] %}
+          {% elif st in ['charging', '充電中'] %}
             Tesla
           {% else %}
-            未知車輛
+            車輛
           {% endif %}
         start_time: >-
-          {% set ts = states.sensor.tesla_wall_connector_status.last_changed %}
-          {{ ts.strftime('%Y-%m-%d %H:%M:%S') if ts is not none else '未知' }}
+          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
+            {{ trigger.from_state.last_changed.strftime('%Y-%m-%d %H:%M:%S') }}
+          {% else %}
+            {% set s_obj = states.sensor.tesla_wall_connector_status %}
+            {% set ts = s_obj.last_changed if s_obj is not none else none %}
+            {{ ts.strftime('%Y-%m-%d %H:%M:%S') if ts is not none else '未知' }}
+          {% endif %}
         now_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
         handle_temp: "{{ states('sensor.tesla_wall_connector_handle_temperature') }}"
         mcu_temp: "{{ states('sensor.tesla_wall_connector_mcu_temperature') }}"
@@ -143,7 +157,7 @@
                       entity_id: input_boolean.notify_tesla_charge_extra_line_enable
                       state: "on"
                   sequence:
-                    - service: notify.mobile_app_kennys_iphone
+                    - service: notify.line_notification_group
                       data:
                         title: "【Tesla充電器】一般 General 🪧"
                         message: >-
@@ -181,7 +195,7 @@
                       entity_id: input_boolean.notify_tesla_charge_extra_line_enable
                       state: "on"
                   sequence:
-                    - service: notify.mobile_app_kennys_iphone
+                    - service: notify.line_notification_group
                       data:
                         title: "【Tesla充電器】一般 General 🪧"
                         message: >-
@@ -219,7 +233,7 @@
                       entity_id: input_boolean.notify_line_important_enable
                       state: "on"
                   sequence:
-                    - service: notify.mobile_app_kennys_iphone
+                    - service: notify.line_notification_group
                       data:
                         title: "【Tesla充電器】重要 Important ⚠️"
                         message: >-
@@ -242,7 +256,7 @@
                       entity_id: input_boolean.notify_line_important_enable
                       state: "on"
                   sequence:
-                    - service: notify.mobile_app_kennys_iphone
+                    - service: notify.line_notification_group
                       data:
                         title: "【Tesla充電器】重要 Important ⚠️"
                         message: >-

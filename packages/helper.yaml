@@ -713,6 +713,8 @@ template:
               {{ ns.versions | tojson }}
 
     - trigger:
+        - platform: homeassistant
+          event: start
         - platform: state
           entity_id:
             - sensor.tesla_wall_connector_status
