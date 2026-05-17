@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2C耗材更換AI通知 (V3.0)
+# 相容版本：Helpers V3.11（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0：新增濾芯與多裝置電量分級、去重通知與定期摘要。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2C耗材更換AI通知 (V3.0)
+  id: ai_00_2c_supply_battery_notify
+  mode: queued
+  triggers:
+    - trigger: numeric_state
+      id: prep_filter_10
+      entity_id: sensor.kong_qi_qing_jing_ji_filter_life_remaining
+      below: 10
+    - trigger: numeric_state
+      id: prep_filter_5
+      entity_id: sensor.kong_qi_qing_jing_ji_filter_life_remaining
+      below: 5
+    - trigger: numeric_state
+      id: urgent_filter_0
+      entity_id: sensor.kong_qi_qing_jing_ji_filter_life_remaining
+      below: 1
+    - trigger: state
+      id: battery_change
+      entity_id:
+        - sensor.garage_battery
+        - sensor.ke_ting_men_suo_dian_liang_guo_lu
+        - sensor.shu_fang_gan_ying_kai_guan_battery
+        - sensor.0x00158d00023cd3dc_battery
+        - sensor.0x00158d00027d8a8e_battery
+        - sensor.08b95f06b466_battery
+        - sensor.28d1273d78cf_battery
+    - trigger: time
+      id: periodic_report
+      at: input_datetime.supply_battery_report_time
+  conditions: []
+  variables:
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    general_line_on: "{{ is_state('input_boolean.notify_line_general_enable','on') and is_state('input_boolean.notify_supply_extra_line_enable','on') }}"
+    important_line_on: "{{ is_state('input_boolean.notify_line_important_enable','on') }}"
+  actions:
+    - choose:
+        - conditions: "{{ trigger.id in ['prep_filter_10','prep_filter_5','urgent_filter_0'] }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: 耗材更換提醒
+                message: "空氣清淨機濾芯壽命：{{ states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') }}%。"
+        - conditions: "{{ trigger.id == 'battery_change' }}"
+          sequence:
+            - variables:
+                v: "{{ trigger.to_state.state|int(101) }}"
+            - if:
+                - condition: template
+                  value_template: "{{ v in [20,10,5,0] }}"
+              then:
+                - service: persistent_notification.create
+                  data:
+                    title: 裝置電量提醒
+                    message: "{{ trigger.to_state.name }} 電量 {{ v }}%。"
+        - conditions: "{{ trigger.id == 'periodic_report' and ((as_timestamp(now()) - as_timestamp(states('input_datetime.ai_00_01_last_action_time'))) / 86400) >= (states('input_number.supply_battery_report_interval_days')|int(15)) }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: 每月耗材/電量摘要
+                message: "定期摘要已執行（每{{ states('input_number.supply_battery_report_interval_days') }}天）。"

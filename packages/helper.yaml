@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.10）
+# Helpers（V3.11）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.11):
+#   • 新增 00-2C 耗材更換通知 helpers：額外 LINE 開關、定期通知時刻與間隔天數。
 # 新增與強化 (V3.10):
 #   • 新增 Tesla 充電器 HomeKit helper：充電樁狀態 / Luxgen充電 / Tesla充電（有人/無人）映射。
 #   • 新增 Tesla 充電通知額外開關（LINE/系統），供 107 自動化獨立控管。
@@ -173,6 +175,10 @@ input_datetime:
     name: 門鎖電量上次下降時間
     has_date: true
     has_time: true
+  supply_battery_report_time:
+    name: 耗材電量定期回報時間
+    has_date: false
+    has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
@@ -274,6 +280,11 @@ input_boolean:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
 
+
+
+  notify_supply_extra_line_enable:
+    name: 耗材更換通知_額外LINE啟用
+    icon: mdi:message-badge
   notify_tesla_charge_extra_line_enable:
     name: Tesla充電通知_額外LINE啟用
     icon: mdi:car-electric
@@ -314,6 +325,13 @@ input_number:
     step: 0.5
     unit_of_measurement: min
     icon: mdi:timer-sand
+
+  supply_battery_report_interval_days:
+    name: 耗材電量定期回報間隔天數
+    min: 1
+    max: 31
+    step: 1
+    unit_of_measurement: day
   # 風扇 AI 自動化：門檻 & 權重參數
   enter_low_close_c:
     name: 上樓_不開門檻(°C)
@@ -493,6 +511,9 @@ input_text:
     max: 255
   ai_00_01_last_action:
     name: 00-01 系統穩定最後動作
+    max: 255
+  ai_manual_update_note:
+    name: 00-2A手動更新說明
     max: 255
   # LINE Bot 目標 ID
   line_bot_custom_user_id:

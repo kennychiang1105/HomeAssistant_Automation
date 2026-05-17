@@ -1,5 +1,11 @@
-# 相容版本：Helpers V3.8（已確認）
-- alias: 00-2A更新紀錄推播AI (V3.2)
+# ─────────────────────────────────────────────────────────────
+# 00-2A更新紀錄推播AI (V3.3)
+# 相容版本：Helpers V3.11（已確認）
+# 更新紀錄（統一格式）：
+# - V3.3：新增手動更新說明欄位，推播時可附加人工補充內容。
+# - V3.2：改為動態掃描版本 + trigger-based template snapshot。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2A更新紀錄推播AI (V3.3)
   id: ai_00_2a_release_note_push
   description: 每日 18:00 比對 HA/AI 版本，僅在有更新時推播變更摘要（HA + LINE 一般通知）。
   mode: single
@@ -7,11 +13,12 @@
     - platform: time
       at: "18:00:00"
   variables:
-    automation_version: "V3.2"
+    automation_version: "V3.3"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     release_url: "https://github.com/kennychiang1105/HomeAssistant_Automation/releases/"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
-
+    manual_update_note: "{{ states('input_text.ai_manual_update_note') if states('input_text.ai_manual_update_note') not in invalid_texts else '' }}"
+    manual_note_block: "{{ '\n\n📝 手動補充更新說明\n' ~ manual_update_note if manual_update_note|trim != '' else '' }}"
     ha_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'ha_version') | default('未知', true) }}"
     previous_ha_version: "{{ state_attr('sensor.ai_version_snapshot_history', 'ha_version') | default('V0.0', true) }}"
     os_current_version: "{{ state_attr('sensor.ai_version_compare_current', 'os_version') | default('未知', true) }}"
@@ -26,18 +33,11 @@
       {{ old_item.version if old_item is mapping else 'V0.0' }}
     ha_status_line: >-
       {{ '• Home Assistant Core：目前版本 ' ~ ha_current_version ~ '（上次記錄：' ~ previous_ha_version ~ '）\n• Home Assistant OS：目前版本 ' ~ os_current_version ~ '（上次記錄：' ~ previous_os_version ~ '）' }}
-
     changed_lines_text: >-
       {% set ns = namespace(lines=[]) %}
-
       {% if previous_ha_version != ha_current_version %}
-        {% if previous_ha_version == 'V0.0' %}
-          {% set ns.lines = ns.lines + ['• Home Assistant：新增版本記錄（目前版本 ' ~ ha_current_version ~ '）'] %}
-        {% else %}
-          {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
-        {% endif %}
+        {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
       {% endif %}
-
       {% if current_versions is mapping %}
         {% for key, item in (current_versions | dictsort) %}
           {% set old_item = previous_versions.get(key) if previous_versions is mapping else none %}
@@ -45,30 +45,13 @@
           {% set new_version = item.version if item is mapping else '未知' %}
           {% set name = item.name if item is mapping else key %}
           {% if old_version != new_version %}
-            {% if old_version == 'V0.0' %}
-              {% set ns.lines = ns.lines + ['• ' ~ name ~ '：新增自動化AI（版本 ' ~ new_version ~ '）'] %}
-            {% else %}
-              {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
-            {% endif %}
+            {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
           {% endif %}
         {% endfor %}
       {% endif %}
-
-      {% if previous_versions is mapping %}
-        {% for key, old_item in (previous_versions | dictsort) %}
-          {% if current_versions is not mapping or key not in current_versions %}
-            {% set old_name = old_item.name if old_item is mapping else key %}
-            {% set old_version = old_item.version if old_item is mapping else '未知' %}
-            {% set ns.lines = ns.lines + ['• ' ~ old_name ~ '：已從 ' ~ old_version ~ ' 移除或停用'] %}
-          {% endif %}
-        {% endfor %}
-      {% endif %}
-
       {{ ns.lines | join('\n') }}
     has_changes: "{{ changed_lines_text | trim != '' }}"
-
   conditions: []
-
   actions:
     - if:
         - condition: template
@@ -83,7 +66,7 @@
 
                   {{ ha_status_line }}
 
-                  {{ changed_lines_text }}
+                  {{ changed_lines_text }}{{ manual_note_block }}
 
                   更新紀錄網址：{{ release_url }}
             - if:
@@ -97,10 +80,11 @@
                     payload: >-
                       {% set messages = [
                         {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
-                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text},
+                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text ~ manual_note_block},
                         {"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}
                       ] %}
                       {{ messages | tojson }}
+
         - event: ai_version_snapshot_update
           event_data:
             ha_version: "{{ ha_current_version }}"

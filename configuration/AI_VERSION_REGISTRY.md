@@ -16,16 +16,17 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.10`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.11`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.2)` | `ai_line_bot_quota_guard` | `V3.2` |
+| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.1)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.1` |
-| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.2)` | `ai_00_2a_release_note_push` | `V3.2` |
+| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0)` | `ai_00_2c_supply_battery_notify` | `V3.0` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -142,6 +143,11 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-05-17）
+- 新增 `00-2C耗材更換AI通知 (V3.0)`：整合空氣清淨機濾芯與多裝置電量分級通知，含定期摘要。
+- `00-2A更新紀錄推播AI` 升級至 `V3.3`：新增手動輸入更新說明欄位並附加於推播。
+- `00-2BLINE推播AI` 升級至 `V3.3`：低額度預警改為僅 Bot0，例行摘要改每月 1 日與 15 日。
+- Helper 套件功能版升級至 `V3.11`：新增 00-2C 所需 helper 與 00-2A 手動說明 input_text。
+
 - 新增 `107Tesla充電器狀態與通知AI (V3.0)`：加入 Tesla/Luxgen 充電開始與完成通知、00:02 與連接 6 小時未充電的重要提醒，並整合系統通知與 LINE 分級推播。
 - Helper 套件功能版升級至 `V3.10`：新增 Tesla 充電器 HomeKit helper（充電樁狀態 / Luxgen充電 / Tesla充電）與 Tesla 充電通知額外開關。
 
