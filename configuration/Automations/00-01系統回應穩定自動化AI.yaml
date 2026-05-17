@@ -29,6 +29,21 @@
         name: 00-01系統回應穩定自動化AI
         message: >-
           觸發週期重啟檢查成功，準備重啟主機（時間={{ now().strftime('%Y-%m-%d %H:%M:%S') }}；間隔={{ states('input_number.system_stability_restart_interval_days')|int(3) }} 天）。
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.ai_00_01_last_event
+      data:
+        value: "週期重啟觸發"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.ai_00_01_last_action
+      data:
+        value: "hassio.host_reboot"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ai_00_01_last_action_time
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     - action: hassio.host_reboot
       data: {}
 
@@ -55,6 +70,21 @@
         name: 00-01系統回應穩定自動化AI
         message: >-
           小燕網關看門狗觸發（來源={{ trigger.entity_id if trigger.entity_id is defined else 'time_pattern' }}；時間={{ now().strftime('%Y-%m-%d %H:%M:%S') }}），執行 Integration 重載。
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.ai_00_01_last_event
+      data:
+        value: "小燕網關看門狗觸發"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.ai_00_01_last_action
+      data:
+        value: "reload_config_entry:943e593a9b076c8f44717a2563e66182"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ai_00_01_last_action_time
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     - action: homeassistant.reload_config_entry
       data:
         entry_id: 943e593a9b076c8f44717a2563e66182
@@ -105,6 +135,21 @@
                 name: 00-01系統回應穩定自動化AI
                 message: >-
                   偵測 Unifi Protect 實體 1 小時無狀態變化，執行 reload_config_entry（{{ now().strftime('%Y-%m-%d %H:%M:%S') }}）。
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.ai_00_01_last_event
+              data:
+                value: "Unifi Protect 1小時無更新"
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.ai_00_01_last_action
+              data:
+                value: "reload_config_entry:01K250EX4JB7FE5YHS17YFRXJ0"
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.ai_00_01_last_action_time
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
             - action: homeassistant.reload_config_entry
               data:
                 entry_id: 01K250EX4JB7FE5YHS17YFRXJ0
@@ -114,3 +159,18 @@
             name: 00-01系統回應穩定自動化AI
             message: >-
               Unifi Protect 實體於 1 小時內仍有狀態更新，本次不需重載（{{ now().strftime('%Y-%m-%d %H:%M:%S') }}）。
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.ai_00_01_last_event
+          data:
+            value: "Unifi Protect 1小時內有更新"
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.ai_00_01_last_action
+          data:
+            value: "無需重載"
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: input_datetime.ai_00_01_last_action_time
+          data:
+            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

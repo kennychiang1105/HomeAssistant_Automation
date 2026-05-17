@@ -152,6 +152,10 @@ command_line:
       availability: "{{ value_json.state | default('error') == 'ok' }}"
 
 input_datetime:
+  ai_00_01_last_action_time:
+    name: 00-01 系統穩定最後執行時間
+    has_date: true
+    has_time: true
   system_stability_restart_time:
     name: 系統穩定自動重啟時間
     has_date: false
@@ -462,6 +466,12 @@ input_number:
     step: 0.1
 
 input_text:
+  ai_00_01_last_event:
+    name: 00-01 系統穩定最後事件
+    max: 255
+  ai_00_01_last_action:
+    name: 00-01 系統穩定最後動作
+    max: 255
   at_home_kenny_trackers:
     name: AtHome Kenny 追蹤裝置清單
   at_home_elay_trackers:
