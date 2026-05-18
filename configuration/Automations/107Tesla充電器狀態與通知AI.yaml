@@ -1,11 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.0)
+# 107Tesla充電器狀態與通知AI (V3.0.5)
 # 相容版本：Helpers V3.10（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.5：修補版。00:02 未充電提醒改為僅在「準備充電/等待汽車」狀態通知；若為充電完成狀態則不通知。
+# - V3.0.4：修補版。修正 session_energy 不會即時歸零問題，00:02 改以「今日 00:00 後是否有充電能量更新」判斷是否已有充電紀錄。
+# - V3.0.3：修補版。恢復 00:02 未充電提醒，但僅在當次尚無充電完成紀錄（session_energy=0）時通知，避免充電完成後誤報。
+# - V3.0.2：修補版。移除 00:02 未充電提醒避免「充電完成後插槍」誤報；新增 booting/ready/negotiating/error 未充電狀態，其中 error 立即發送重要通知。
+# - V3.0.1：修補版。充電完成但用電量為 0 時不通知；LINE 改走 script.send_line_to_user（Messaging API）避免 notify_line 失敗中斷。
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.0)
+- alias: 107Tesla充電器狀態與通知AI (V3.0.5)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -13,8 +18,10 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.0.5"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    line_title_general: "【Tesla充電器】一般 General 🪧"
+    line_title_important: "【Tesla充電器】重要 Important ⚠️"
 
   trigger:
     - platform: state
@@ -73,6 +80,8 @@
         - "Charging finished"
       id: charge_done
 
+
+
     - platform: time
       at: "00:02:00"
       id: midnight_not_started
@@ -90,8 +99,20 @@
         - "Vehicle connected"
         - "negotiating"
         - "Negotiating connection"
+        - "booting"
+        - "Booting"
+        - "error"
+        - "Error"
       for: "06:00:00"
       id: prep_too_long
+
+
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      to:
+        - "error"
+        - "Error"
+      id: error_state
 
     - platform: state
       entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
@@ -157,12 +178,14 @@
                       entity_id: input_boolean.notify_tesla_charge_extra_line_enable
                       state: "on"
                   sequence:
-                    - service: notify.line_notification_group
+                    - service: script.send_line_to_user
                       data:
-                        title: "【Tesla充電器】一般 General 🪧"
-                        message: >-
-                          {{ vehicle_name }} 開始充電（{{ now_time }}）。
-                          手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_general},
+                              {'type':'text','text': vehicle_name ~ ' 開始充電（' ~ now_time ~ '）。\n手把 ' ~ handle_temp ~ '°C、MCU ' ~ mcu_temp ~ '°C、PCB ' ~ pcb_temp ~ '°C。'}
+                            ] | tojson }}
             - choose:
                 - conditions:
                     - condition: state
@@ -178,6 +201,8 @@
         - conditions:
             - condition: trigger
               id: charge_done
+            - condition: template
+              value_template: "{{ (session_energy | float(0)) > 0 }}"
           sequence:
             - service: persistent_notification.create
               data:
@@ -195,13 +220,14 @@
                       entity_id: input_boolean.notify_tesla_charge_extra_line_enable
                       state: "on"
                   sequence:
-                    - service: notify.line_notification_group
+                    - service: script.send_line_to_user
                       data:
-                        title: "【Tesla充電器】一般 General 🪧"
-                        message: >-
-                          {{ vehicle_name }} 充電完成。
-                          開始 {{ start_time }}、結束 {{ now_time }}、用電量 {{ session_energy }}。
-                          手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_general},
+                              {'type':'text','text': vehicle_name ~ ' 充電完成。\n開始 ' ~ start_time ~ '、結束 ' ~ now_time ~ '、用電量 ' ~ session_energy ~ '。\n手把 ' ~ handle_temp ~ '°C、MCU ' ~ mcu_temp ~ '°C、PCB ' ~ pcb_temp ~ '°C。'}
+                            ] | tojson }}
             - choose:
                 - conditions:
                     - condition: state
@@ -214,13 +240,14 @@
                         message: >-
                           {{ vehicle_name }} 充電完成：結束 {{ now_time }}、用電量 {{ session_energy }}。
 
+
+
         - conditions:
             - condition: trigger
               id: midnight_not_started
             - condition: template
               value_template: >-
-                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge','connected','Vehicle connected','negotiating','Negotiating connection']
-                   or is_state('binary_sensor.tesla_wall_connector_vehicle_connected','on') }}
+                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge'] }}
           sequence:
             - service: persistent_notification.create
               data:
@@ -233,11 +260,38 @@
                       entity_id: input_boolean.notify_line_important_enable
                       state: "on"
                   sequence:
-                    - service: notify.line_notification_group
+                    - service: script.send_line_to_user
                       data:
-                        title: "【Tesla充電器】重要 Important ⚠️"
-                        message: >-
-                          目前疑似已接上但未開始充電，請檢查車輛狀況。
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_important},
+                              {'type':'text','text':'目前仍未開始充電，請檢查車輛狀況。'}
+                            ] | tojson }}
+
+        - conditions:
+            - condition: trigger
+              id: error_state
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "【Tesla充電器】重要 Important ⚠️"
+                message: >-
+                  Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_important_enable
+                      state: "on"
+                  sequence:
+                    - service: script.send_line_to_user
+                      data:
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_important},
+                              {'type':'text','text':'Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。'}
+                            ] | tojson }}
 
         - conditions:
             - condition: trigger
@@ -256,9 +310,12 @@
                       entity_id: input_boolean.notify_line_important_enable
                       state: "on"
                   sequence:
-                    - service: notify.line_notification_group
+                    - service: script.send_line_to_user
                       data:
-                        title: "【Tesla充電器】重要 Important ⚠️"
-                        message: >-
-                          已連接超過 6 小時仍未開始充電，請檢查車輛狀況。
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_important},
+                              {'type':'text','text':'已連接超過 6 小時仍未開始充電，請檢查車輛狀況。'}
+                            ] | tojson }}
       default: []
