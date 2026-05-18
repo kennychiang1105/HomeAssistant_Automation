@@ -48,7 +48,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.0)` | `ai_107_tesla_charger_status_notify` | `V3.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.0.4)` | `ai_107_tesla_charger_status_notify` | `V3.0.4` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -142,7 +142,13 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
+## 本次調整（2026-05-18）
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.0.4`：修正 `session_energy` 不會即時歸零問題，00:02 改以「今日 00:00 後是否有充電能量更新」判斷。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.0.3`：恢復 00:02 未充電提醒，但僅在尚無充電完成紀錄（session_energy=0）時通知，避免充電完成後誤報。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.0.2`：移除 00:02 未充電提醒避免充電完成後誤報，並新增 booting/ready/negotiating/error 未充電狀態（error 立即重要通知）。
+
 ## 本次調整（2026-05-17）
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.0.1`：充電完成但用電量為 0 不通知，LINE 改走 `script.send_line_to_user` 以避免 notify_line DNS 錯誤中斷。
 - 新增 `00-2C耗材更換AI通知 (V3.0.1)`：整合空氣清淨機濾芯與多裝置電量分級通知，含定期摘要。
 - `00-2A更新紀錄推播AI` 升級至 `V3.3`：新增手動輸入更新說明欄位並附加於推播。
 - `00-2BLINE推播AI` 升級至 `V3.3`：低額度預警改為僅 Bot0，例行摘要改每月 1 日與 15 日。
