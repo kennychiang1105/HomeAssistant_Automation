@@ -2,6 +2,7 @@
 # 00-2C耗材更換AI通知 (V3.0.2)
 # 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.2：同版增補。補上 battery replacement 大幅回升重設（+30%）與 automation_version 變數化標題，降低版本硬編碼維護成本。
 # - V3.0.2：同版增補。電量追蹤改為「各裝置最低電量記錄」；未達 90% 以上前不重設，避免 50%→55% 回彈重複通知。
 # - V3.0.2：修補版。避免 unknown/浮動回跳造成重複電量通知，並統一 LINE 通知發送方式為 script.send_line_to_user。
 # - V3.0.1：修復定期摘要計時基準與上次回報時間寫回；電量提醒改為區間門檻避免跳點漏報。
@@ -38,9 +39,10 @@
       at: input_datetime.supply_battery_report_time
   conditions: []
   variables:
+    automation_version: "V3.0.2"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
-    line_title_general: "【耗材更換系統AI V3.0.2】\n一般 General 🪧"
+    line_title_general: "【耗材更換系統AI ({{ automation_version }})】\n一般 General 🪧"
   actions:
     - choose:
         - conditions: "{{ trigger.id in ['prep_filter_10','prep_filter_5','urgent_filter_0'] }}"
@@ -83,7 +85,7 @@
                   value_template: "{{ v >= 0 and v <= 100 and lowest_helper|trim }}"
               then:
                 - choose:
-                    - conditions: "{{ v >= 90 }}"
+                    - conditions: "{{ v >= 90 or v > (lowest_saved + 30) }}"
                       sequence:
                         - service: input_number.set_value
                           target:
