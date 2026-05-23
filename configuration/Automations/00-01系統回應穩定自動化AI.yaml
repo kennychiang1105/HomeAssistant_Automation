@@ -1,21 +1,23 @@
 # ─────────────────────────────────────────────────────────────
-# 00-01系統回應穩定自動化AI (V3.0.1)
-# 相容版本：Helpers V3.9.4（已確認）
+# 00-01系統回應穩定自動化AI (V3.0.2)
+# 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.2：同版增補。固定重啟時刻改為可由 helper 調整（兩個時刻皆可自訂），維持與其他看門狗獨立。
+# - V3.0.2：修補版。主機重啟改為固定時間獨立觸發，移除與小燕/Unifi 看門狗共享時間來源，避免外部重載後重新計算。
 # - V3.0.1：補上完整 logbook、恢復小燕網關穩定重載流程、移除依賴 initial 的設定。
 # - V3.0：合併 00-1 與 00-1B，加入在家/鐵門觸發的 Unifi Protect 無回應監測，並提供可調整重啟時間與間隔天數。
 
 - id: ai_00_01_system_stability_auto_restart
-  alias: 00-01系統回應穩定自動化AI (V3.0.1)
+  alias: 00-01系統回應穩定自動化AI (V3.0.2)
   description: 依 helper 設定時間與間隔天數自動執行主機重啟。
   mode: single
   variables:
-    automation_version: "V3.0.1"
+    automation_version: "V3.0.2"
   triggers:
     - trigger: time
       at: input_datetime.system_stability_restart_time
     - trigger: time
-      at: "04:17:00"
+      at: input_datetime.system_stability_restart_time_2
   conditions:
     - condition: template
       value_template: >-

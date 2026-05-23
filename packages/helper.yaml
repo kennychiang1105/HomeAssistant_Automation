@@ -1,5 +1,5 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.11.1）
+# Helpers（V3.12.0）
 # ──────────────────────────────────────────────
 # 新增與強化 (V3.11.1):
 #   • 修復 00-2C 定期摘要：新增獨立上次回報時間 helper，避免受 00-01 影響造成誤判與重複觸發。
@@ -169,6 +169,10 @@ input_datetime:
     name: 系統穩定自動重啟時間
     has_date: false
     has_time: true
+  system_stability_restart_time_2:
+    name: 系統穩定自動重啟時間_2
+    has_date: false
+    has_time: true
   last_disaster_broadcast:
     name: Last Disaster Broadcast
     has_date: true
@@ -318,6 +322,48 @@ input_button:
     icon: mdi:target
 
 input_number:
+  supply_batt_lowest_garage:
+    name: 耗材電量最低值_車庫感測器
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_doorlock:
+    name: 耗材電量最低值_客廳門鎖
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_study_switch:
+    name: 耗材電量最低值_書房感應開關
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_23cd3dc:
+    name: 耗材電量最低值_23cd3dc
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_27d8a8e:
+    name: 耗材電量最低值_27d8a8e
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_08b95f06b466:
+    name: 耗材電量最低值_08b95f06b466
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_28d1273d78cf:
+    name: 耗材電量最低值_28d1273d78cf
+    min: 0
+    max: 100
+    step: 1
+    mode: box
   system_stability_restart_interval_days:
     name: 系統穩定自動重啟間隔天數
     min: 1
@@ -1137,16 +1183,40 @@ template:
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_kenny_location
           unique_id: at_home_kenny_location
-          state: "{{ '離家' if states('sensor.at_home_kenny_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_kenny_ap_mac')|lower,'未知') }}"
+          state: >-
+            {% set ap = states('sensor.at_home_kenny_ap_mac') %}
+            {% if ap == '離家' %}離家
+            {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
+              {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_kenny_ap_mac.last_changed, 0) %}
+              {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_elay_location
           unique_id: at_home_elay_location
-          state: "{{ '離家' if states('sensor.at_home_elay_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_elay_ap_mac')|lower,'未知') }}"
+          state: >-
+            {% set ap = states('sensor.at_home_elay_ap_mac') %}
+            {% if ap == '離家' %}離家
+            {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
+              {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_elay_ap_mac.last_changed, 0) %}
+              {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_jerry_location
           unique_id: at_home_jerry_location
-          state: "{{ '離家' if states('sensor.at_home_jerry_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_jerry_ap_mac')|lower,'未知') }}"
+          state: >-
+            {% set ap = states('sensor.at_home_jerry_ap_mac') %}
+            {% if ap == '離家' %}離家
+            {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
+              {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_jerry_ap_mac.last_changed, 0) %}
+              {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_iris_location
           unique_id: at_home_iris_location
-          state: "{{ '離家' if states('sensor.at_home_iris_ap_mac') == '離家' else {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(states('sensor.at_home_iris_ap_mac')|lower,'未知') }}"
+          state: >-
+            {% set ap = states('sensor.at_home_iris_ap_mac') %}
+            {% if ap == '離家' %}離家
+            {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
+              {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_iris_ap_mac.last_changed, 0) %}
+              {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
 
 automation:
   - id: ui_ai_version_snapshot_clear
@@ -1322,3 +1392,5 @@ automation:
           entity_id: input_text.notif_title_gateway_alert
         data:
           value: "{{ gateway_alert_title }}"
+# 新增與強化 (V3.12.0):
+#   • AtHome location 新增 unknown 緩衝：剛變 unknown 顯示「離家確認中」，持續 2 分鐘後才顯示「離家」。

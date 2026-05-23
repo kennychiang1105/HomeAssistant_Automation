@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.0.5)
-# 相容版本：Helpers V3.10（已確認）
+# 107Tesla充電器狀態與通知AI (V3.1.0)
+# 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.0：功能版。Tesla/Luxgen 通知格式統一為多則訊息（含版本號、換行與 emoji），補上 kWh（度）單位，並統一 LINE 發送方式與 100B 一致。
 # - V3.0.5：修補版。00:02 未充電提醒改為僅在「準備充電/等待汽車」狀態通知；若為充電完成狀態則不通知。
 # - V3.0.4：修補版。修正 session_energy 不會即時歸零問題，00:02 改以「今日 00:00 後是否有充電能量更新」判斷是否已有充電紀錄。
 # - V3.0.3：修補版。恢復 00:02 未充電提醒，但僅在當次尚無充電完成紀錄（session_energy=0）時通知，避免充電完成後誤報。
@@ -10,7 +11,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.0.5)
+- alias: 107Tesla充電器狀態與通知AI (V3.1.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -18,9 +19,9 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.0.5"
+    automation_version: "V3.1.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
-    line_title_general: "【Tesla充電器】一般 General 🪧"
+    line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【Tesla充電器】重要 Important ⚠️"
 
   trigger:
@@ -153,7 +154,7 @@
         handle_temp: "{{ states('sensor.tesla_wall_connector_handle_temperature') }}"
         mcu_temp: "{{ states('sensor.tesla_wall_connector_mcu_temperature') }}"
         pcb_temp: "{{ states('sensor.tesla_wall_connector_pcb_temperature') }}"
-        session_energy: "{{ states('sensor.tesla_wall_connector_session_energy') }}"
+        session_energy: "{{ states('sensor.tesla_wall_connector_session_energy')|float(0)|round(2) }}"
 
     - choose:
         - conditions:
@@ -184,7 +185,8 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': vehicle_name ~ ' 開始充電（' ~ now_time ~ '）。\n手把 ' ~ handle_temp ~ '°C、MCU ' ~ mcu_temp ~ '°C、PCB ' ~ pcb_temp ~ '°C。'}
+                              {'type':'text','text': '🪫 開始充電通知⚡\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ now_time},
+                              {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
             - choose:
                 - conditions:
@@ -209,7 +211,7 @@
                 title: "【Tesla充電器】一般 General 🪧"
                 message: >-
                   {{ vehicle_name }} 充電完成。
-                  開始時間 {{ start_time }}，結束時間 {{ now_time }}，用電量 {{ session_energy }}。
+                  開始時間 {{ start_time }}，結束時間 {{ now_time }}，用電量 {{ session_energy }} kWh（度）。
                   手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
             - choose:
                 - conditions:
@@ -226,7 +228,8 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': vehicle_name ~ ' 充電完成。\n開始 ' ~ start_time ~ '、結束 ' ~ now_time ~ '、用電量 ' ~ session_energy ~ '。\n手把 ' ~ handle_temp ~ '°C、MCU ' ~ mcu_temp ~ '°C、PCB ' ~ pcb_temp ~ '°C。'}
+                              {'type':'text','text': '🔋 充電完成通知 ✅\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ start_time ~ '\n結束時間 ' ~ now_time ~ '\n用電量 ' ~ session_energy ~ ' kWh（度）'},
+                              {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
             - choose:
                 - conditions:
