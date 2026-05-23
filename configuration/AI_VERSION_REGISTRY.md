@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.11.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.12.0`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -24,9 +24,9 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
-| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.1)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.1` |
+| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0.1)` | `ai_00_2c_supply_battery_notify` | `V3.0.1` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0.2)` | `ai_00_2c_supply_battery_notify` | `V3.0.2` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -48,7 +48,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.0.5)` | `ai_107_tesla_charger_status_notify` | `V3.0.5` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.0)` | `ai_107_tesla_charger_status_notify` | `V3.1.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -136,11 +136,38 @@
 4. 每次改版需在更新紀錄註明本次屬於「功能版」或「修補版」，並同步更新 alias、`variables.automation_version`、Registry 條目。(Helper與configuration套件版本每次確認之)
 5. 同一個PR或Codex同一次僅需更新一次版本號
 
+### SOP-10：LINE 發送可靠性防呆（每次涉及通知必做）
+1. **LINE 一律使用 `script.send_line_to_user`**（避免直接呼叫 `notify.line_*` 造成 DNS/整合暫時失效時中斷流程）。
+2. 發送前必做三項檢查：
+   - 目標 `user_id` 不可為 `unknown/unavailable/none/空字串`。
+   - 對應分級開關（一般/重要/緊急）必須為 `on`。
+   - 若有子系統額外開關（如 Tesla/耗材額外 LINE 開關）也必須為 `on`。
+3. payload 格式統一為 JSON message array（多則訊息），至少包含：
+   - 第 1 則：版本標題（例：`【系統名稱AI (Vx.y.z)】` + 等級行）。
+   - 第 2 則：事件主訊息（發生什麼事 + 關鍵時間/狀態）。
+   - 需要時第 3 則：補充資訊（溫度、電量、附註）。
+4. 任何一項檢查不通過時：
+   - 不可硬送 LINE。
+   - 必須留下 `persistent_notification` 或 logbook 記錄「未發送原因」（例：user_id 無效 / 開關關閉）。
+5. 新增或修改通知時，PR 必須附「最小驗證清單」：
+   - 一般/重要/緊急各至少 1 條 payload 範例。
+   - 開關關閉時不發送的驗證結果。
+   - `user_id` 無效時 fallback 記錄結果。
+
 ## 現況總表（Scripts）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-23）
+- `00-01系統回應穩定自動化AI` 升級至 `V3.0.2`：固定主機重啟改為獨立時刻觸發，避免受小燕/攝影機看門狗重載影響重新計時。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.1.0`：通知格式統一為分段多訊息（含版本、emoji、換行），並補上 `kWh（度）` 單位。
+- `00-2C耗材更換AI通知` 升級至 `V3.0.2`：修復 unknown/浮動造成重複電量提醒，LINE 發送方式統一為 `script.send_line_to_user`。
+- Helper 套件升級至 `V3.12.0`：AtHome location 新增 unknown 2 分鐘緩衝，先顯示「離家確認中」再切換「離家」。
+- 同次更新增補（版本號不變）：`00-01` 固定重啟時刻改為可調整兩個 helper 時間；`00-2C` 改為各裝置最低電量記錄（需 >=90% 才重設）；AtHome unknown 超過 10 分鐘顯示「異常」。
+- 同次更新增補（版本號不變）：新增 SOP-10「LINE 發送可靠性防呆」，明確規範 `script.send_line_to_user`、payload 格式與未發送 fallback 記錄。
+- 同次更新增補（版本號不變）：修正 `00-2C` 電池更換判斷，新增「較最低值回升 30% 以上視為更換」重設條件，並改為 `automation_version` 動態帶入標題。
 
 ## 本次調整（2026-05-18）
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.0.5`：00:02 僅在「準備充電/等待汽車」通知；充電完成狀態不通知。
