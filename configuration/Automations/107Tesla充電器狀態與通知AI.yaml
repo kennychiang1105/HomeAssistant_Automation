@@ -342,13 +342,7 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🧪 充電通知測試訊息
-充電車輛 ' ~ vehicle_name ~ '
-測試時間 ' ~ now_time},
-                              {'type':'text','text': '其他資訊：
-目前狀態 ' ~ charger_status ~ '
-手把溫度 ' ~ handle_temp ~ '°C
-MCU溫度 ' ~ mcu_temp ~ '°C
-PCB溫度 ' ~ pcb_temp ~ '°C'}
+                              {'type':'text','text': '🧪 充電通知測試訊息\n充電車輛 ' ~ vehicle_name ~ '\n測試時間 ' ~ now_time},
+                              {'type':'text','text': '其他資訊：\n目前狀態 ' ~ charger_status ~ '\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
       default: []
