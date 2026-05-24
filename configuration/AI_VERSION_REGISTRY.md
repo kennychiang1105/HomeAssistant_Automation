@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.12.0`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.12.1`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -48,7 +48,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.0)` | `ai_107_tesla_charger_status_notify` | `V3.1.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.3)` | `ai_107_tesla_charger_status_notify` | `V3.1.3` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -161,6 +161,10 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-05-23）
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.1.3`：開始通知調整為非充電狀態進入 charging/charging_reduced 即通知，移除對來源狀態過度限制；6 小時未充電維持待充狀態判斷；重要 LINE 通知標題統一含版本並新增測試通知按鈕。
+- Helper 套件升級至 `V3.12.1`：新增 `input_button.tesla_charger_notify_test` 供 Tesla 充電通知測試。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.1.2`：開始通知改為僅在 idle/未連接→charging(Tesla) 或 charging_reduced(Luxgen) 觸發；完成通知僅在 charging*→未連接/完成 觸發；移除車種互轉觸發並修正 6 小時未充電誤報。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.1.1`：修正 Tesla/Luxgen 互轉時開始/完成通知邏輯，並將「連接 6 小時未充電」限制在待充且無充電能量時才通知，避免誤報。
 - `00-01系統回應穩定自動化AI` 升級至 `V3.0.2`：固定主機重啟改為獨立時刻觸發，避免受小燕/攝影機看門狗重載影響重新計時。
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.1.0`：通知格式統一為分段多訊息（含版本、emoji、換行），並補上 `kWh（度）` 單位。
 - `00-2C耗材更換AI通知` 升級至 `V3.0.2`：修復 unknown/浮動造成重複電量提醒，LINE 發送方式統一為 `script.send_line_to_user`。
