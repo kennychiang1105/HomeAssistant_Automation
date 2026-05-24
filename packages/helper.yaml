@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.12.0）
+# Helpers（V3.12.1）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.12.1):
+#   • 新增 input_button.tesla_charger_notify_test，供 107Tesla充電器狀態與通知AI 發送測試通知。
 # 新增與強化 (V3.11.1):
 #   • 修復 00-2C 定期摘要：新增獨立上次回報時間 helper，避免受 00-01 影響造成誤判與重複觸發。
 # 新增與強化 (V3.11):
@@ -320,6 +322,9 @@ input_button:
   ai_version_snapshot_set_baseline:
     name: 目前版本設為比對基準
     icon: mdi:target
+  tesla_charger_notify_test:
+    name: Tesla充電通知測試
+    icon: mdi:flash-outline
 
 input_number:
   supply_batt_lowest_garage:
