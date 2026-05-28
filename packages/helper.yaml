@@ -191,6 +191,10 @@ input_datetime:
     name: 耗材電量上次回報時間
     has_date: true
     has_time: true
+  tesla_charger_start_time:
+    name: Tesla 充電器開始時間
+    has_date: true
+    has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:

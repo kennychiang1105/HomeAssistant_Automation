@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V3.0.2)
+# 00-2C耗材更換AI通知 (V3.0.3)
 # 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.3：修補版。修正濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
 # - V3.0.2：同版增補。補上 battery replacement 大幅回升重設（+30%）與 automation_version 變數化標題，降低版本硬編碼維護成本。
 # - V3.0.2：同版增補。電量追蹤改為「各裝置最低電量記錄」；未達 90% 以上前不重設，避免 50%→55% 回彈重複通知。
 # - V3.0.2：修補版。避免 unknown/浮動回跳造成重複電量通知，並統一 LINE 通知發送方式為 script.send_line_to_user。
@@ -45,7 +46,10 @@
     line_title_general: "【耗材更換系統AI ({{ automation_version }})】\n一般 General 🪧"
   actions:
     - choose:
-        - conditions: "{{ trigger.id in ['prep_filter_10','prep_filter_5','urgent_filter_0'] }}"
+        - conditions:
+            - "{{ trigger.id in ['prep_filter_10','prep_filter_5','urgent_filter_0'] }}"
+            - "{{ trigger.from_state is not none }}"
+            - "{{ trigger.from_state.state | float(-1) > trigger.to_state.state | float(-1) }}"
           sequence:
             - service: persistent_notification.create
               data:
@@ -62,7 +66,7 @@
                 - service: script.send_line_to_user
                   data:
                     user_id: "{{ line_bot_target_user_id }}"
-                    payload: "{{ [{'type':'text','text':line_title_general},{'type':'text','text':'🧰 耗材提醒\\n濾芯壽命：' ~ states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') ~ '%'}] | tojson }}"
+                    payload: "{{ [{'type':'text','text':line_title_general},{'type':'text','text':'🧰 耗材提醒\\n空氣清淨機濾芯壽命：' ~ states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') ~ '%'}] | tojson }}"
         - conditions: "{{ trigger.id == 'battery_change' }}"
           sequence:
             - variables:

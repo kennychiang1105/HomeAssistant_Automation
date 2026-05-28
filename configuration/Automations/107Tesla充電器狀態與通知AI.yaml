@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.1.3)
+# 107Tesla充電器狀態與通知AI (V3.1.4)
 # 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.4：修補版。修復充電狀態因為 unknown 而導致的多次重複開始通知與完成時間錯誤；移除冗餘的額外系統通知，使 HA 通知與 LINE 通知數量與資訊保持一致。
 # - V3.1.3：修補版。開始通知改為「任何非 charging/charging_reduced 狀態進入充電」皆觸發；統一所有 LINE 重要通知格式（含版本標題），並新增充電樁通知測試按鈕。
 # - V3.1.2：修補版。修正觸發條件只保留 idle→charging/charging_reduced 的開始通知與 charging*→not_connected/charging_finished 的完成通知；移除 Tesla/Luxgen 互轉觸發並修正 6 小時未充電誤報。
 # - V3.1.1：修補版。修正開始/完成通知觸發邏輯，新增 charging_reduced↔charging 互轉完成通知；6 小時未充電提醒僅在待充狀態且無充電能量時觸發，避免誤報。
@@ -14,7 +15,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.1.3)
+- alias: 107Tesla充電器狀態與通知AI (V3.1.4)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -22,7 +23,7 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.1.3"
+    automation_version: "V3.1.4"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -127,8 +128,8 @@
             車輛
           {% endif %}
         start_time: >-
-          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
-            {{ trigger.from_state.last_changed.strftime('%Y-%m-%d %H:%M:%S') }}
+          {% if trigger.id == 'charge_done' %}
+            {{ states('input_datetime.tesla_charger_start_time') }}
           {% else %}
             {% set s_obj = states.sensor.tesla_wall_connector_status %}
             {% set ts = s_obj.last_changed if s_obj is not none else none %}
@@ -149,8 +150,13 @@
             - condition: template
               value_template: >-
                 {{ trigger.from_state is not none and
-                   (trigger.from_state.state | string | lower | trim) not in ['charging','charging_reduced','充電中','充電（降壓）'] }}
+                   (trigger.from_state.state | string | lower | trim) not in ['unknown', 'unavailable', 'none', 'charging','charging_reduced','充電中','充電（降壓）'] }}
           sequence:
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.tesla_charger_start_time
+              data:
+                datetime: "{{ now_time }}"
             - service: persistent_notification.create
               data:
                 title: "【Tesla充電器】一般 General 🪧"
@@ -175,17 +181,6 @@
                               {'type':'text','text': '🪫 開始充電通知⚡\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ now_time},
                               {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: input_boolean.notify_tesla_charge_extra_system_enable
-                      state: "on"
-                  sequence:
-                    - service: persistent_notification.create
-                      data:
-                        title: "【Tesla充電器】一般 General 🪧（額外系統通知）"
-                        message: >-
-                          {{ vehicle_name }} 開始充電（{{ now_time }}）。
 
         - conditions:
             - condition: trigger
@@ -218,17 +213,6 @@
                               {'type':'text','text': '🔋 充電完成通知 ✅\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ start_time ~ '\n結束時間 ' ~ now_time ~ '\n用電量 ' ~ session_energy ~ ' kWh（度）'},
                               {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: input_boolean.notify_tesla_charge_extra_system_enable
-                      state: "on"
-                  sequence:
-                    - service: persistent_notification.create
-                      data:
-                        title: "【Tesla充電器】一般 General 🪧（額外系統通知）"
-                        message: >-
-                          {{ vehicle_name }} 充電完成：結束 {{ now_time }}、用電量 {{ session_energy }}。
 
 
 

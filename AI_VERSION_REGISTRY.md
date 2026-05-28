@@ -26,7 +26,7 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0.2)` | `ai_00_2c_supply_battery_notify` | `V3.0.2` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0.3)` | `ai_00_2c_supply_battery_notify` | `V3.0.3` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -48,7 +48,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.3)` | `ai_107_tesla_charger_status_notify` | `V3.1.3` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.4)` | `ai_107_tesla_charger_status_notify` | `V3.1.4` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -159,6 +159,12 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-28）
+- `00-2C耗材更換AI通知` 升級至 `V3.0.3`：修復濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.1.4`：修復充電狀態因為 unknown 而導致的多次重複開始通知與完成時間錯誤；移除冗餘的額外系統通知，使 HA 通知與 LINE 通知數量與資訊保持一致。
+- `00-01系統回應穩定自動化AI` 維持 `V3.0.2`：確認週期重啟維持 `hassio.host_reboot` 全機重啟，而非單純重載。
+- Helper 套件：新增 `input_datetime.tesla_charger_start_time` 供 107Tesla 精準記錄開始時間。
 
 ## 本次調整（2026-05-23）
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.1.3`：開始通知調整為非充電狀態進入 charging/charging_reduced 即通知，移除對來源狀態過度限制；6 小時未充電維持待充狀態判斷；重要 LINE 通知標題統一含版本並新增測試通知按鈕。
