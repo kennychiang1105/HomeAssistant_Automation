@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.12.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.12.2`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -48,7 +48,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.1.4)` | `ai_107_tesla_charger_status_notify` | `V3.1.4` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.0)` | `ai_107_tesla_charger_status_notify` | `V3.2.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 
 ## 維護約定
@@ -159,6 +159,10 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-29）
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.2.0`：充電完成改以 charging/charging_reduced 離開至未連接或等待/準備狀態判斷，並結合當次插槍已充電記憶避免午夜與 6 小時未充電誤報。
+- Helper 套件升級至 `V3.12.2`：新增 `input_boolean.tesla_charger_session_charged`，記錄當次插槍期間是否已開始充電。
 
 ## 本次調整（2026-05-28）
 - `00-2C耗材更換AI通知` 升級至 `V3.0.3`：修復濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
