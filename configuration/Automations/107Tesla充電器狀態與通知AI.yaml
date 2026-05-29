@@ -178,7 +178,7 @@
             - condition: template
               value_template: >-
                 {{ from_status_normalized in disconnected_states and
-                   to_status_normalized in connected_wait_states }}
+                   to_status_normalized not in disconnected_states }}
           sequence:
             - service: input_boolean.turn_off
               target:
