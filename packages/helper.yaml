@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.12.1）
+# Helpers（V3.12.2）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.12.2):
+#   • 新增 input_boolean.tesla_charger_session_charged，記錄 Tesla 充電器當次插槍期間是否已充過電，避免完成後誤報未充電。
 # 新增與強化 (V3.12.1):
 #   • 新增 input_button.tesla_charger_notify_test，供 107Tesla充電器狀態與通知AI 發送測試通知。
 # 新增與強化 (V3.11.1):
@@ -307,6 +309,9 @@ input_boolean:
   notify_tesla_charge_extra_system_enable:
     name: Tesla充電通知_額外系統通知啟用
     icon: mdi:message-alert-outline
+  tesla_charger_session_charged:
+    name: Tesla充電器_本次插槍已充電
+    icon: mdi:battery-check
     
   line_bot_test_mode:
     name: LINE Bot_測試模式

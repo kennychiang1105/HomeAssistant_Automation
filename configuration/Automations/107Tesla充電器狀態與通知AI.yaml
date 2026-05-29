@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.1.4)
-# 相容版本：Helpers V3.12.0（已確認）
+# 107Tesla充電器狀態與通知AI (V3.2.0)
+# 相容版本：Helpers V3.12.2（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.0：修補版。新增當次插槍已充電記憶 helper，修復充飽後狀態退回等待/準備時未發完成通知與午夜/6小時未充電誤報；狀態屬性更新不再觸發流程。
 # - V3.1.4：修補版。修復充電狀態因為 unknown 而導致的多次重複開始通知與完成時間錯誤；移除冗餘的額外系統通知，使 HA 通知與 LINE 通知數量與資訊保持一致。
 # - V3.1.3：修補版。開始通知改為「任何非 charging/charging_reduced 狀態進入充電」皆觸發；統一所有 LINE 重要通知格式（含版本標題），並新增充電樁通知測試按鈕。
 # - V3.1.2：修補版。修正觸發條件只保留 idle→charging/charging_reduced 的開始通知與 charging*→not_connected/charging_finished 的完成通知；移除 Tesla/Luxgen 互轉觸發並修正 6 小時未充電誤報。
@@ -15,15 +16,15 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.1.4)
+- alias: 107Tesla充電器狀態與通知AI (V3.2.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
-    相容版本：Helpers V3.10（已確認）。
+    相容版本：Helpers V3.12.2（已確認）。
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.1.4"
+    automation_version: "V3.2.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -45,24 +46,11 @@
         - "Charging (reduced)"
       id: charge_start_luxgen
 
+    # 充電完成需捕捉「充飽後退回等待/準備」與「拔槍」兩種軌跡，
+    # 因此不限制 from/to，改在 action 依 from_state/to_state 精準判斷。
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
-      from:
-        - "充電（降壓）"
-        - "charging_reduced"
-        - "Charging (reduced)"
-        - "充電中"
-        - "charging"
-        - "Charging"
-      to:
-        - "車輛未連接"
-        - "not_connected"
-        - "Vehicle not connected"
-        - "charging_finished"
-        - "Charging finished"
       id: charge_done
-
-
 
     - platform: time
       at: "00:02:00"
@@ -88,7 +76,6 @@
       for: "06:00:00"
       id: prep_too_long
 
-
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
       to:
@@ -106,21 +93,26 @@
       entity_id: input_button.tesla_charger_notify_test
       id: notify_test_button
 
-  condition: []
+  condition:
+    - condition: template
+      value_template: >-
+        {{ trigger.from_state is not defined or trigger.to_state is not defined or
+           trigger.from_state is none or trigger.to_state is none or
+           trigger.from_state.state != trigger.to_state.state }}
 
   action:
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
         status_for_vehicle: >-
           {% set now_st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-          {% if trigger.id == 'charge_done' and trigger.from_state is not none %}
+          {% if trigger.id == 'charge_done' and trigger.from_state is defined and trigger.from_state is not none %}
             {{ trigger.from_state.state | string | lower | trim }}
           {% else %}
             {{ now_st }}
           {% endif %}
         vehicle_name: >-
           {% set st = status_for_vehicle %}
-          {% if st in ['charging_reduced', '充電（降壓）'] %}
+          {% if st in ['charging_reduced', 'charging (reduced)', '充電（降壓）'] %}
             Luxgen
           {% elif st in ['charging', '充電中'] %}
             Tesla
@@ -140,6 +132,57 @@
         mcu_temp: "{{ states('sensor.tesla_wall_connector_mcu_temperature') }}"
         pcb_temp: "{{ states('sensor.tesla_wall_connector_pcb_temperature') }}"
         session_energy: "{{ states('sensor.tesla_wall_connector_session_energy')|float(0)|round(2) }}"
+        from_status_normalized: >-
+          {{ trigger.from_state.state | string | lower | trim if trigger.from_state is defined and trigger.from_state is not none else '' }}
+        to_status_normalized: >-
+          {{ trigger.to_state.state | string | lower | trim if trigger.to_state is defined and trigger.to_state is not none else '' }}
+        charging_states:
+          - "充電中"
+          - "charging"
+          - "充電（降壓）"
+          - "charging_reduced"
+          - "charging (reduced)"
+        disconnected_states:
+          - "車輛未連接"
+          - "not_connected"
+          - "vehicle not connected"
+          - "charging_finished"
+          - "charging finished"
+        connected_wait_states:
+          - "等待汽車"
+          - "準備充電"
+          - "waiting_car"
+          - "waiting for car"
+          - "ready"
+          - "ready to charge"
+          - "connected"
+          - "vehicle connected"
+        pending_states:
+          - "等待汽車"
+          - "準備充電"
+          - "waiting_car"
+          - "waiting for car"
+          - "ready"
+          - "ready to charge"
+          - "connected"
+          - "vehicle connected"
+          - "negotiating"
+          - "negotiating connection"
+          - "booting"
+          - "error"
+
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: charge_done
+            - condition: template
+              value_template: >-
+                {{ from_status_normalized in disconnected_states and
+                   to_status_normalized not in disconnected_states }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.tesla_charger_session_charged
 
     - choose:
         - conditions:
@@ -149,9 +192,12 @@
                 - charge_start_tesla
             - condition: template
               value_template: >-
-                {{ trigger.from_state is not none and
-                   (trigger.from_state.state | string | lower | trim) not in ['unknown', 'unavailable', 'none', 'charging','charging_reduced','充電中','充電（降壓）'] }}
+                {{ trigger.from_state is defined and trigger.from_state is not none and
+                   from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states) }}
           sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.tesla_charger_session_charged
             - service: input_datetime.set_datetime
               target:
                 entity_id: input_datetime.tesla_charger_start_time
@@ -185,8 +231,15 @@
         - conditions:
             - condition: trigger
               id: charge_done
+            - condition: state
+              entity_id: input_boolean.tesla_charger_session_charged
+              state: "on"
             - condition: template
-              value_template: "{{ (session_energy | float(0)) > 0 }}"
+              value_template: >-
+                {{ (session_energy | float(0)) > 0 and
+                   from_status_normalized in charging_states and
+                   (to_status_normalized in disconnected_states or
+                    to_status_normalized in connected_wait_states) }}
           sequence:
             - service: persistent_notification.create
               data:
@@ -219,9 +272,12 @@
         - conditions:
             - condition: trigger
               id: midnight_not_started
+            - condition: state
+              entity_id: input_boolean.tesla_charger_session_charged
+              state: "off"
             - condition: template
               value_template: >-
-                {{ states('sensor.tesla_wall_connector_status') in ['等待汽車', '準備充電','waiting_car','Waiting for car','ready','Ready to charge'] }}
+                {{ charger_status | string | lower | trim in pending_states }}
           sequence:
             - service: persistent_notification.create
               data:
@@ -274,11 +330,12 @@
               id:
                 - prep_too_long
                 - vehicle_connected_too_long
+            - condition: state
+              entity_id: input_boolean.tesla_charger_session_charged
+              state: "off"
             - condition: template
               value_template: >-
-                {% set st = states('sensor.tesla_wall_connector_status') %}
-                {% set wait_states = ['等待汽車','準備充電','waiting_car','Waiting for car','ready','Ready to charge','connected','Vehicle connected','negotiating','Negotiating connection','booting','Booting'] %}
-                {{ st in wait_states }}
+                {{ charger_status | string | lower | trim in pending_states }}
           sequence:
             - service: persistent_notification.create
               data:
