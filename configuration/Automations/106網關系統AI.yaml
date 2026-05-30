@@ -1,13 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V3.1)
+# 106網關系統AI (V3.1)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106B網關異常警告AI (V3.1)
+- alias: 106網關系統AI (V3.1)
   id: ai_gateway_anomaly_guard
-  description: 保全情境重置、網關同步與異常告警
+  description: 保全情境重置、網關同步與異常防禦
   mode: single
 
   triggers:
@@ -83,7 +83,7 @@
                   系統將強制切換為「在家情境」，並同步實體網關為在家警戒。
             - if:
                 - condition: template
-                  value_template: "{{ is_state('input_boolean.notify_line_emergency_enable','on') and line_bot_target_user_id|trim|lower not in ['unknown','unavailable','none','null',''] }}"
+                  value_template: "{{ line_emergency_enabled and line_user_valid }}"
               then:
                 - service: script.send_line_to_user
                   data:
@@ -113,7 +113,7 @@
                   - input_boolean.aqara_chu_fa
             - service: alarm_control_panel.alarm_arm_home
               target:
-                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                entity_id: "{{ alarm_entity }}"
 
         - alias: 分流 B-1 - 特殊解除後安全歸位
           conditions:
@@ -122,7 +122,7 @@
           sequence:
             - service: alarm_control_panel.alarm_disarm
               target:
-                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                entity_id: "{{ alarm_entity }}"
             - delay:
                 seconds: 2
             - service: input_boolean.turn_on
@@ -137,7 +137,7 @@
                   - input_boolean.aqara_chu_fa
             - service: alarm_control_panel.alarm_arm_home
               target:
-                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                entity_id: "{{ alarm_entity }}"
             - service: persistent_notification.create
               data:
                 title: "{{ notif_title_alert }}"
@@ -155,7 +155,7 @@
                   sequence:
                     - service: alarm_control_panel.alarm_arm_home
                       target:
-                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                        entity_id: "{{ alarm_entity }}"
                     - service: input_boolean.turn_off
                       target:
                         entity_id:
@@ -169,7 +169,7 @@
                   sequence:
                     - service: alarm_control_panel.alarm_arm_night
                       target:
-                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                        entity_id: "{{ alarm_entity }}"
                     - service: input_boolean.turn_off
                       target:
                         entity_id:
@@ -183,7 +183,7 @@
                   sequence:
                     - service: alarm_control_panel.alarm_arm_away
                       target:
-                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                        entity_id: "{{ alarm_entity }}"
                     - service: input_boolean.turn_off
                       target:
                         entity_id:
@@ -197,7 +197,7 @@
                   sequence:
                     - service: alarm_control_panel.alarm_trigger
                       target:
-                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                        entity_id: "{{ alarm_entity }}"
                     - service: input_boolean.turn_off
                       target:
                         entity_id:
@@ -223,7 +223,7 @@
               - input_boolean.aqara_chu_fa
         - service: alarm_control_panel.alarm_arm_home
           target:
-            entity_id: alarm_control_panel.54ef44cf58f9_alarm
+            entity_id: "{{ alarm_entity }}"
         - service: persistent_notification.create
           data:
             title: "{{ notif_title_alert }}"

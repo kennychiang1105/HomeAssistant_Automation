@@ -45,7 +45,7 @@
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3` |
-| `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.1)` | `ai_gateway_anomaly_guard` | `V3.1` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1)` | `ai_gateway_anomaly_guard` | `V3.1` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
@@ -163,9 +163,9 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-05-30 晚間追加）
-- `106B網關異常警告AI` 升級至 `V3.1`：接管並合併舊版 106 網關同步邏輯，移除舊自動化 ID `1690898378439`，以異常攔截 / 常規同步 / 解除歸位 / 無情境歸位分流避免 Race Condition，LINE 緊急通知依 SOP-10 走 `script.send_line_to_user` 並保留未發送 fallback。
-- 新增 `08-7A自動晚安情境AI (V3.0)`：於 21:00 後或 03:00 前，二樓 AP/人員綜合判定無人時自動執行晚安情境。
-- `104-3鐵門判斷未關提醒及作動AI` 升級至 `V3.3`：自動關門前新增車庫 AP 人員綜合判定，偵測有人時取消關門且不影響逾時未關提醒。
+- `106網關系統AI` 升級至 `V3.1`：正式改名並接管舊版 106 網關同步邏輯，移除舊自動化 ID `1690898378439`，以異常攔截 / 常規同步 / 解除歸位 / 無情境歸位分流避免 Race Condition，LINE 緊急通知依 SOP-10 走 `script.send_line_to_user` 並保留未發送 fallback。
+- 新增 `08-7A自動晚安情境AI (V3.0)`：於 21:00 後或 03:00 前，二樓 AP/人員綜合判定無人且晚安情境尚未啟用時自動執行晚安情境。
+- `104-3鐵門判斷未關提醒及作動AI` 升級至 `V3.3`：自動關門前新增車庫 AP 人員綜合判定，偵測有人時取消關門且不影響逾時未關提醒；車庫主燈變化排除 unknown/unavailable 抖動，AP 攔截補 LINE 結果通知。
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.2`：攝影機防呆冷卻由 15 秒縮短至 10 秒，燈具實體狀態防呆由 5 秒縮短至 2 秒。
 
 ## 本次調整（2026-05-30 追加修補）

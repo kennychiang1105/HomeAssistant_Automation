@@ -25,7 +25,7 @@
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | ✅ 可對上 |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_cycle_calibration` | ✅ 可對上 |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0 Beta 1)` | `ai_lpr_recognition` | ✅ 可對上 |
-| `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | ✅ 可對上 |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1)` | `ai_gateway_anomaly_guard` | ✅ 可對上 |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.0)` | `ai_living_room_fan_integrated_control` | ✅ 可對上 |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.0)` | `ai_living_room_fan_anomaly_alert` | ✅ 可對上 |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.0)` | `ai_topfloor_fan_automation` | ✅ 可對上 |
@@ -52,7 +52,7 @@
 - 建議再抽象為 script/template（若尚未全抽）。
 
 ### 2.4 風扇/保全/門鎖是高耦合區
-- `21A/21B/22/08-5F/08-6/100B/100C1/100C2/106B` 彼此透過 helpers 互相影響。
+- `21A/21B/22/08-5F/08-6/100B/100C1/100C2/106` 彼此透過 helpers 互相影響。
 - 優化時需先鎖定共用實體契約，避免「修一壞三」。
 
 ---
@@ -93,7 +93,7 @@
 
 ### Phase 3（高風險，行為優化）
 1. 風扇三件組（21A/21B/22）做狀態機化（明確 state + cooldown + override）。
-2. 保全鏈路（08-6/100B/106B）做事件流整理（trigger → 判斷 → 通知）。
+2. 保全鏈路（08-6/100B/106）做事件流整理（trigger → 判斷 → 通知）。
 3. 建立回歸測試清單（手動測試腳本 + 觸發矩陣）。
 
 ---

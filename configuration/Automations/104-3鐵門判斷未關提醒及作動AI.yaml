@@ -2,7 +2,7 @@
 # 104-3鐵門判斷未關提醒及作動AI (V3.3)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
-# - V3.3：功能版；自動關門前新增車庫 AP 人員綜合判定，偵測有人時攔截關門並保留逾時提醒。
+# - V3.3：功能版；自動關門前新增車庫 AP 人員綜合判定，偵測有人時攔截關門並保留逾時提醒；車庫主燈變化排除 unknown/unavailable 抖動，AP 攔截補 LINE 結果通知。
 # - V3.2：LINE 通知改為「【智慧保全通知】」分級標題；10 分鐘提醒改為緊急、自動關門結果改為重要；移除技術參數文字（如 automation.tie_men_kai_guan）。
 # - V3.1：改以 automation.tie_men_kai_guan 執行關門；修正執行期變數時機；LINE 改用 line_bot_target_user_id + tojson。
 # - V3.0：由「08鐵門判斷未關提醒V2」獨立重構；新增 10 分鐘提醒後 2 分鐘關門觀察與自動關門/取消通知。
@@ -93,6 +93,12 @@
         - id: garage_light_changed
           platform: state
           entity_id: switch.che_ku_zhu_deng
+          not_to:
+            - unknown
+            - unavailable
+          not_from:
+            - unknown
+            - unavailable
         - id: garage_wifi_occupied
           platform: state
           entity_id: binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan
@@ -214,6 +220,27 @@
                 title: "鐵門自動關門結果（{{ automation_version }}）"
                 message: "已執行自動關門：觀察期內無人車移動、車庫主燈狀態未變化，且車庫 AP 判定無人（執行 automation.tie_men_kai_guan）。"
           else:
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_important_enable
+                  state: "on"
+                - condition: template
+                  value_template: "{{ line_user_valid }}"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set messages = [
+                        {"type":"text","text": notif_title_important},
+                        {"type":"text","text":"⛔ 已取消本次鐵門自動關閉。\n原因：偵測到車庫 AP 仍有人員連線。"},
+                        {"type":"text","text":"安全優先：系統未執行關門，原本的逾時未關提醒不受影響。"}
+                      ] %} {{ messages | tojson }}
+              else:
+                - service: persistent_notification.create
+                  data:
+                    title: "鐵門 LINE 未發送（{{ automation_version }}）"
+                    message: "重要 LINE 未發送：重要通知開關未開啟或 LINE user_id 無效。"
             - service: persistent_notification.create
               data:
                 title: "鐵門自動關門已取消（{{ automation_version }}）"
