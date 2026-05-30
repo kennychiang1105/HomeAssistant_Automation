@@ -34,7 +34,7 @@
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.1)` | `ai_topfloor_stairs_scene` | `V3.3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.0` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -51,7 +51,7 @@
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.2)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.2` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.3)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.3` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -161,6 +161,11 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-30 Code Review 修補）
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.0.3`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
+- `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.4.1`：精簡輔助關燈條件，移除被 `elapsed >= 2.5` 覆蓋的 `elapsed > 10` 冗餘判斷，邏輯行為不變。
+- LINE 通知檢查：本次只調整 08-7A 觸發補洞與 08-5C 條件可讀性，未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 或繞過 `script.send_line_to_user` 的呼叫；SOP-10 無需新增 payload。
 
 ## 本次調整（2026-05-30 Tesla 完成通知與網關重啟靜音）
 - `107Tesla充電器狀態與通知AI` 修補版升級至 `V3.2.2`：充電完成通知於用電量上方新增「充電用時 X時X分鐘」；一般 LINE 仍使用 `script.send_line_to_user`，並保留一般分級開關、Tesla 額外 LINE 開關與 user_id 有效性檢查，不通過時留下 `persistent_notification` 未發送原因，符合 SOP-10。
