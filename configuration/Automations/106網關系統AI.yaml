@@ -1,11 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 106網關系統AI (V3.1)
+# 106網關系統AI (V3.1.1)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.1：修補版；HA 重開機觸發時僅執行網關/情境同步，不發送 persistent notification 或 LINE 通知，避免重啟校正產生多餘訊息。
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106網關系統AI (V3.1)
+- alias: 106網關系統AI (V3.1.1)
   id: ai_gateway_anomaly_guard
   description: 保全情境重置、網關同步與異常防禦
   mode: single
@@ -25,7 +26,7 @@
       event_type: automation_reloaded
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V3.1.1"
     helpers_compat: "Helpers V3.14"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"
@@ -36,6 +37,7 @@
     line_user_valid: >-
       {{ line_bot_target_user_id|trim|lower not in ['unknown','unavailable','none','null',''] }}
     line_emergency_enabled: "{{ is_state('input_boolean.notify_line_emergency_enable','on') }}"
+    is_ha_start: "{{ trigger is defined and trigger.platform is defined and trigger.platform == 'homeassistant' }}"
     aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
     aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
     aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
@@ -74,33 +76,38 @@
             - condition: template
               value_template: "{{ aqara_active_count|int >= 2 }}"
           sequence:
-            - service: persistent_notification.create
-              data:
-                title: "{{ notif_title_alert }}"
-                message: |-
-                  保全情境異常（{{ automation_version }}）
-                  目前同時開啟：{{ aqara_active_labels }}
-                  系統將強制切換為「在家情境」，並同步實體網關為在家警戒。
-            - if:
-                - condition: template
-                  value_template: "{{ line_emergency_enabled and line_user_valid }}"
-              then:
-                - service: script.send_line_to_user
-                  data:
-                    user_id: "{{ line_bot_target_user_id }}"
-                    payload: >-
-                      {% set messages = [
-                        {"type":"text","text": notif_title_alert ~ "\n緊急 Emergency 🚨"},
-                        {"type":"text","text": "⚠️ 保全系統偵測到多個情境同時開啟。\n目前狀態：" ~ aqara_active_labels},
-                        {"type":"text","text": "系統已改由在家情境接管，並同步網關回到在家警戒。"}
-                      ] %}
-                      {{ messages | tojson }}
-              else:
-                - service: persistent_notification.create
-                  data:
-                    title: "{{ notif_title_alert }} LINE 未發送"
-                    message: >-
-                      緊急 LINE 未發送：{% if not line_emergency_enabled %}緊急通知開關未開啟{% else %}LINE user_id 無效{% endif %}。
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ not (is_ha_start | bool(false)) }}"
+                  sequence:
+                    - service: persistent_notification.create
+                      data:
+                        title: "{{ notif_title_alert }}"
+                        message: |-
+                          保全情境異常（{{ automation_version }}）
+                          目前同時開啟：{{ aqara_active_labels }}
+                          系統將強制切換為「在家情境」，並同步實體網關為在家警戒。
+                    - if:
+                        - condition: template
+                          value_template: "{{ line_emergency_enabled and line_user_valid }}"
+                      then:
+                        - service: script.send_line_to_user
+                          data:
+                            user_id: "{{ line_bot_target_user_id }}"
+                            payload: >-
+                              {% set messages = [
+                                {"type":"text","text": notif_title_alert ~ "\n緊急 Emergency 🚨"},
+                                {"type":"text","text": "⚠️ 保全系統偵測到多個情境同時開啟。\n目前狀態：" ~ aqara_active_labels},
+                                {"type":"text","text": "系統已改由在家情境接管，並同步網關回到在家警戒。"}
+                              ] %}
+                              {{ messages | tojson }}
+                      else:
+                        - service: persistent_notification.create
+                          data:
+                            title: "{{ notif_title_alert }} LINE 未發送"
+                            message: >-
+                              緊急 LINE 未發送：{% if not line_emergency_enabled %}緊急通知開關未開啟{% else %}LINE user_id 無效{% endif %}。
             - service: input_boolean.turn_on
               target:
                 entity_id: input_boolean.aqara_zai_jia
@@ -138,10 +145,15 @@
             - service: alarm_control_panel.alarm_arm_home
               target:
                 entity_id: "{{ alarm_entity }}"
-            - service: persistent_notification.create
-              data:
-                title: "{{ notif_title_alert }}"
-                message: "已依解除情境先解除網關，隨後自動回到在家情境並同步在家警戒。"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ not (is_ha_start | bool(false)) }}"
+                  sequence:
+                    - service: persistent_notification.create
+                      data:
+                        title: "{{ notif_title_alert }}"
+                        message: "已依解除情境先解除網關，隨後自動回到在家情境並同步在家警戒。"
 
         - alias: 分流 B - 常規同步（唯一情境）
           conditions:
@@ -205,10 +217,15 @@
                           - input_boolean.aqara_wan_an
                           - input_boolean.aqara_li_jia
                           - input_boolean.aqara_guan_bi
-            - service: persistent_notification.create
-              data:
-                title: "{{ notif_title_alert }}"
-                message: "已依唯一啟用的 {{ active_scene_label }} 同步實體網關，並清理其餘未啟用情境開關。"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ not (is_ha_start | bool(false)) }}"
+                  sequence:
+                    - service: persistent_notification.create
+                      data:
+                        title: "{{ notif_title_alert }}"
+                        message: "已依唯一啟用的 {{ active_scene_label }} 同步實體網關，並清理其餘未啟用情境開關。"
 
       default:
         - service: input_boolean.turn_on
@@ -224,7 +241,12 @@
         - service: alarm_control_panel.alarm_arm_home
           target:
             entity_id: "{{ alarm_entity }}"
-        - service: persistent_notification.create
-          data:
-            title: "{{ notif_title_alert }}"
-            message: "未偵測到有效保全情境或重啟校正時無回應，已同步虛擬情境與實體網關回到在家警戒。"
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ not (is_ha_start | bool(false)) }}"
+              sequence:
+                - service: persistent_notification.create
+                  data:
+                    title: "{{ notif_title_alert }}"
+                    message: "未偵測到有效保全情境或重啟校正時無回應，已同步虛擬情境與實體網關回到在家警戒。"
