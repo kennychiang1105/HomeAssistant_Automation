@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.14）
+# Helpers（V3.14.1）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.14.1):
+#   • 新增車庫與二樓區域綜合占用 binary_sensor，沿用 AtHome AP MAC 判斷，補齊 104-3 與 08-7A 依賴實體。
 # 新增與強化 (V3.14):
 #   • 新增 input_select.topfloor_webhook_mode，統一控制頂樓 Webhook 判斷模式：綜合模式 / Webhook模式 / 原本模式。
 # 新增與強化 (V3.13):
@@ -1179,6 +1181,52 @@ template:
           unique_id: at_home_nobody_home
           device_class: occupancy
           state: "{{ states('sensor.at_home_count')|int(0) == 0 }}"
+        - name: che_ku_wa_fi_gan_ying_zong_he_pan_duan
+          unique_id: che_ku_wa_fi_gan_ying_zong_he_pan_duan
+          device_class: occupancy
+          state: >-
+            {% set garage_ap = 'd0:21:f9:1f:1a:30' %}
+            {{ [
+              states('sensor.at_home_kenny_ap_mac')|lower,
+              states('sensor.at_home_elay_ap_mac')|lower,
+              states('sensor.at_home_jerry_ap_mac')|lower,
+              states('sensor.at_home_iris_ap_mac')|lower
+            ] | select('eq', garage_ap) | list | count > 0 }}
+          attributes:
+            friendly_name: 車庫 Wi-Fi 感應綜合判斷
+            area: 車庫
+            source: AtHome AP MAC
+            matched_people: >-
+              {% set garage_ap = 'd0:21:f9:1f:1a:30' %}
+              {% set ns = namespace(names=[]) %}
+              {% if states('sensor.at_home_kenny_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Kenny'] %}{% endif %}
+              {% if states('sensor.at_home_elay_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Elay'] %}{% endif %}
+              {% if states('sensor.at_home_jerry_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Jerry'] %}{% endif %}
+              {% if states('sensor.at_home_iris_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Iris'] %}{% endif %}
+              {{ ns.names | join(', ') if ns.names|count > 0 else '無' }}
+        - name: er_lou_ping_mu_gan_ying_zong_he_pan_duan
+          unique_id: er_lou_ping_mu_gan_ying_zong_he_pan_duan
+          device_class: occupancy
+          state: >-
+            {% set second_floor_ap = '60:22:32:9c:82:55' %}
+            {{ [
+              states('sensor.at_home_kenny_ap_mac')|lower,
+              states('sensor.at_home_elay_ap_mac')|lower,
+              states('sensor.at_home_jerry_ap_mac')|lower,
+              states('sensor.at_home_iris_ap_mac')|lower
+            ] | select('eq', second_floor_ap) | list | count > 0 }}
+          attributes:
+            friendly_name: 二樓坪幕感應綜合判斷
+            area: 二樓 (客廳/廚房/廁所)
+            source: AtHome AP MAC
+            matched_people: >-
+              {% set second_floor_ap = '60:22:32:9c:82:55' %}
+              {% set ns = namespace(names=[]) %}
+              {% if states('sensor.at_home_kenny_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Kenny'] %}{% endif %}
+              {% if states('sensor.at_home_elay_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Elay'] %}{% endif %}
+              {% if states('sensor.at_home_jerry_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Jerry'] %}{% endif %}
+              {% if states('sensor.at_home_iris_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Iris'] %}{% endif %}
+              {{ ns.names | join(', ') if ns.names|count > 0 else '無' }}
 
       sensor:
         - name: at_home_count
