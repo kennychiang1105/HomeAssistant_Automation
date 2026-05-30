@@ -49,7 +49,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.0)` | `ai_107_tesla_charger_status_notify` | `V3.2.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.1)` | `ai_107_tesla_charger_status_notify` | `V3.2.1` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.1)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.1` |
 
@@ -161,6 +161,9 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-30 Tesla 充電記憶修補）
+- `107Tesla充電器狀態與通知AI` 升級至 `V3.2.1`：修補版。插槍後若直接進入 `charging` / `charging_reduced`，`charge_done` 的當次已充電記憶重設流程會排除充電中狀態，避免 `input_boolean.tesla_charger_session_charged` 先開啟又瞬間關閉；LINE 發送維持 `script.send_line_to_user`，補齊 user_id 有效性檢查、一般/重要分級開關與 Tesla 額外開關判斷，以及未發送原因 `persistent_notification` fallback，符合 SOP-10。
 
 ## 本次調整（2026-05-30 樓梯燈防呆邏輯修補）
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.4`：修正輔助關燈 8～180 秒防呆取值方式，改從主流程與備援舊 ID 的 `last_triggered` 中取最新時間，避免 `or` 只取第一個非空時間而忽略近期備援點燈紀錄；本次未新增或修改 LINE 發送流程，SOP-10 不適用但已確認 08-5C 無直接 `notify.line_*` 呼叫。
