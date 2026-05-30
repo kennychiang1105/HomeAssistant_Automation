@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.12.2）
+# Helpers（V3.14）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.14):
+#   • 新增 input_select.topfloor_webhook_mode，統一控制頂樓 Webhook 判斷模式：綜合模式 / Webhook模式 / 原本模式。
+# 新增與強化 (V3.13):
+#   • 新增五樓跨線 Webhook 推理 helpers：三條跨線最後觸發時間、書房最後進出時間與五樓保全手動解除開關；LINE 重要通知與 Kenny 在家判斷沿用既有全域 helper。
 # 新增與強化 (V3.12.2):
 #   • 新增 input_boolean.tesla_charger_session_charged，記錄 Tesla 充電器當次插槍期間是否已充過電，避免完成後誤報未充電。
 # 新增與強化 (V3.12.1):
@@ -197,6 +201,26 @@ input_datetime:
     name: Tesla 充電器開始時間
     has_date: true
     has_time: true
+  topfloor_bedroom_line_last_triggered:
+    name: 頂樓房間門口跨線最後觸發
+    has_date: true
+    has_time: true
+  topfloor_studyroom_line_last_triggered:
+    name: 頂樓書房門口跨線最後觸發
+    has_date: true
+    has_time: true
+  topfloor_stairs_line_last_triggered:
+    name: 頂樓樓梯跨線最後觸發
+    has_date: true
+    has_time: true
+  topfloor_study_last_entered:
+    name: 書房推理最後進入時間
+    has_date: true
+    has_time: true
+  topfloor_study_last_exited:
+    name: 書房推理最後離開時間
+    has_date: true
+    has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
@@ -279,6 +303,11 @@ input_boolean:
     name: Kenny 頂樓自動化 Debug 模式
     icon: mdi:bug
     #initial: off
+
+  wu_lou_bao_quan_jie_chu_kai_guan:
+    name: 五樓保全手動解除/復位開關
+    icon: mdi:shield-off-outline
+
 
   # 車牌辨識AI_Beta
   lpr_debug_notify:
@@ -676,6 +705,13 @@ input_text:
     icon: mdi:sitemap-outline
     max: 60
 input_select:
+  topfloor_webhook_mode:
+    name: 頂樓 Webhook 判斷模式
+    options:
+      - 綜合模式
+      - Webhook模式
+      - 原本模式
+    icon: mdi:source-branch-sync
   # LINE Bot 運作模式
   line_bot_mode:
     name: LINE Bot 模式
@@ -798,7 +834,6 @@ template:
                 manual_automation_framework_version={'name': '自動化架構版本', 'version': (states('input_text.automation_framework_version_manual') if states('input_text.automation_framework_version_manual') not in invalid_texts else '未設定'), 'file': 'manual_input'}
               ) %}
               {{ ns.versions | tojson }}
-
     - trigger:
         - platform: homeassistant
           event: start

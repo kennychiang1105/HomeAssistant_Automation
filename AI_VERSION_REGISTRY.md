@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.12.2`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.14`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -32,9 +32,10 @@
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
-| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.1)` | `ai_topfloor_stairs_scene` | `V3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.0.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.0.1` |
-| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.1)` | `ai_08_5g_study_motion_light` | `V3.1` |
+| `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3` |
+| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3)` | `ai_topfloor_stairs_scene` | `V3.3` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3` |
+| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3)` | `ai_08_5g_study_motion_light` | `V3.3` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3.1)` | `ai_auto_leave_system` | `V3.3.1` |
@@ -159,6 +160,18 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-30 追加）
+- `08-5A五樓保全系統AI` 升級至 `V3.3`：威脅判斷改為只使用 `5fbedroomline` / `5fstudyroomline` / `5fstairsline` 的 Webhook 時間鏈，避免原感應器造成保全誤報。
+- `08-5C` / `08-5F` / `08-5G` 升級至 `V3.3`：新增 `input_select.topfloor_webhook_mode` 統一模式選擇，可切換「綜合模式」（Webhook + 原本）、「Webhook模式」（只用 Webhook）、「原本模式」（回到原本判斷）。
+- Helper 套件功能版升級至 `V3.14`：新增 `input_select.topfloor_webhook_mode` 供頂樓 Webhook 判斷模式統一切換。
+
+## 本次調整（2026-05-30）
+- `08-5C頂樓樓梯感應燈AI` 升級至 `V3.2`：新增三條跨線 Webhook 補燈與樓梯提前亮燈，房門/書房門補燈直接繞過冷卻防呆並以 `mode: restart` 刷新 2 分 30 秒倒數。
+- `08-5F頂樓自動上下樓情境AI` 升級至 `V3.2`：完整保留原攝影機、AP、光源、保護窗與 Debug 判定流程，額外新增跨線時間鏈作為上/下樓秒級加速選項。
+- `08-5G書房燈感應AI` 升級至 `V3.2`：完整保留原實體動態感應、AP 與攝影機延長判定，額外新增進書房秒開燈、靜坐防熄滅攔截、離開書房回房秒關與下樓 3 分鐘守候模式。
+- 新增 `08-5A五樓保全系統AI (V3.2)`：將 `configuration/automations.yaml` 內原兩個 `08-5A 五樓保全系統`（含 Auto Beta）與 Webhook 加速補強獨立拆分至 AI 管理檔案，原手動/自動保全邏輯保留。
+- Helper 套件功能版升級至 `V3.13`：新增五樓跨線最後觸發時間、書房進出推理時間與五樓保全手動解除開關；LINE 重要通知沿用 `input_boolean.notify_line_important_enable`，Kenny 在家判斷沿用既有 `binary_sensor.at_home_kenny`。
 
 ## 本次調整（2026-05-29）
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.2.0`：充電完成改以 charging/charging_reduced 離開至未連接或等待/準備狀態判斷，並結合當次插槍已充電記憶避免午夜與 6 小時未充電誤報。
