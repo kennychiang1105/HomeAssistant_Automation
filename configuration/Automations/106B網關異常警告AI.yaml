@@ -1,12 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 106B網關異常警告AI (V3.0)
-# 相容版本：Helpers V3.0
+# 106B網關異常警告AI (V3.1)
+# 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106B網關異常警告AI (V3.0)
+- alias: 106B網關異常警告AI (V3.1)
   id: ai_gateway_anomaly_guard
-  description: 保全情境重置與異常告警
+  description: 保全情境重置、網關同步與異常告警
   mode: single
 
   triggers:
@@ -17,205 +18,213 @@
         - input_boolean.aqara_li_jia
         - input_boolean.aqara_guan_bi
         - input_boolean.aqara_chu_fa
+      to: "on"
     - platform: homeassistant
       event: start
     - platform: event
       event_type: automation_reloaded
 
   variables:
-    automation_version: "V3.0"
-    helpers_compat: "Helpers V3.0"
+    automation_version: "V3.1"
+    helpers_compat: "Helpers V3.14"
+    alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"
     notif_title_alert: >-
       {% set title = states('input_text.notif_title_gateway_alert') %}
       {{ title if title|trim and title|lower not in ['unknown','unavailable','none'] else notif_title_base }}
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    line_user_valid: >-
+      {{ line_bot_target_user_id|trim|lower not in ['unknown','unavailable','none','null',''] }}
+    line_emergency_enabled: "{{ is_state('input_boolean.notify_line_emergency_enable','on') }}"
     aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
     aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
     aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
     aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
     aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-    aqara_scene_label_helper_raw: "{{ states('sensor.aqaradang_qian_qing_jing')|string }}"
-    aqara_scene_label_attr_raw: "{{ state_attr('sensor.aqaradang_qian_qing_jing','active_labels')|string }}"
-    aqara_scene_label_helper: >-
-      {% set label = aqara_scene_label_helper_raw|trim %}
-      {% set invalids = ['unknown','unavailable','none','null','', None, 'None', '未設定情境'] %}
-      {% if label|lower in invalids %}
-        {{ '' }}
-      {% else %}
-        {{ label }}
-      {% endif %}
-    aqara_scene_label_attr: >-
-      {% set label = aqara_scene_label_attr_raw|trim %}
-      {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-      {% if label|lower in invalids %}
-        {{ '' }}
-      {% else %}
-        {{ label }}
-      {% endif %}
-    aqara_state_label: >-
-      {% if is_state('input_boolean.aqara_li_jia','on') %}離家情境
-      {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
-      {% elif is_state('input_boolean.aqara_zai_jia','on') %}在家情境
-      {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
-      {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
-      {% else %}情境未知{% endif %}
+    aqara_active_count: >-
+      {{
+        (1 if is_state('input_boolean.aqara_zai_jia','on') else 0)
+        + (1 if is_state('input_boolean.aqara_wan_an','on') else 0)
+        + (1 if is_state('input_boolean.aqara_li_jia','on') else 0)
+        + (1 if is_state('input_boolean.aqara_guan_bi','on') else 0)
+        + (1 if is_state('input_boolean.aqara_chu_fa','on') else 0)
+      }}
     aqara_active_labels: >-
       {% set labels = [] %}
-      {% if is_state('input_boolean.aqara_zai_jia','on') %}
-        {% set labels = labels + ['在家情境'] %}
-      {% endif %}
-      {% if is_state('input_boolean.aqara_wan_an','on') %}
-        {% set labels = labels + ['晚安情境'] %}
-      {% endif %}
-      {% if is_state('input_boolean.aqara_li_jia','on') %}
-        {% set labels = labels + ['離家情境'] %}
-      {% endif %}
-      {% if is_state('input_boolean.aqara_guan_bi','on') %}
-        {% set labels = labels + ['網關解除情境'] %}
-      {% endif %}
-      {% if is_state('input_boolean.aqara_chu_fa','on') %}
-        {% set labels = labels + ['網關觸發情境'] %}
-      {% endif %}
-      {{ labels|join('、') if labels else '' }}
-    aqara_scene_label_safe: >-
-      {% if aqara_scene_label_helper|trim %}{{ aqara_scene_label_helper|trim }}
-      {% elif aqara_scene_label_attr|trim %}{{ aqara_scene_label_attr|trim }}
-      {% elif aqara_active_labels|trim %}{{ aqara_active_labels|trim }}
-      {% else %}{{ aqara_state_label }}{% endif %}
-    anomaly_detected: >-
-      {{
-        (
-          (1 if aqara_zai_jia_on else 0)
-          + (1 if aqara_wan_an_on else 0)
-          + (1 if aqara_li_jia_on else 0)
-          + (1 if aqara_guan_bi_on else 0)
-          + (1 if aqara_chu_fa_on else 0)
-        ) >= 2
-      }}
+      {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set labels = labels + ['在家情境'] %}{% endif %}
+      {% if is_state('input_boolean.aqara_wan_an','on') %}{% set labels = labels + ['晚安情境'] %}{% endif %}
+      {% if is_state('input_boolean.aqara_li_jia','on') %}{% set labels = labels + ['離家情境'] %}{% endif %}
+      {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set labels = labels + ['網關解除情境'] %}{% endif %}
+      {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set labels = labels + ['網關觸發情境'] %}{% endif %}
+      {{ labels|join('、') if labels else '未設定情境' }}
+    active_scene_label: >-
+      {% if is_state('input_boolean.aqara_zai_jia','on') %}在家情境
+      {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
+      {% elif is_state('input_boolean.aqara_li_jia','on') %}離家情境
+      {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
+      {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
+      {% else %}未設定情境{% endif %}
 
-  conditions:
-    - condition: template
-      value_template: "{{ anomaly_detected }}"
+  conditions: []
 
   actions:
-    - service: notify.persistent_notification
-      data:
-        title: "{{ notif_title_alert }}"
-        message: |-
-          保全情境異常（{{ automation_version }}）
-          目前同時開啟：{{ aqara_scene_label_safe }}
-          將自動切換為「在家情境」，並同步伺服器網關為 arm_home。
+    - choose:
+        - alias: 分流 A - 異常攔截（同時開啟 2 個以上情境）
+          conditions:
+            - condition: template
+              value_template: "{{ aqara_active_count|int >= 2 }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "{{ notif_title_alert }}"
+                message: |-
+                  保全情境異常（{{ automation_version }}）
+                  目前同時開啟：{{ aqara_active_labels }}
+                  系統將強制切換為「在家情境」，並同步實體網關為在家警戒。
+            - if:
+                - condition: template
+                  value_template: "{{ is_state('input_boolean.notify_line_emergency_enable','on') and line_bot_target_user_id|trim|lower not in ['unknown','unavailable','none','null',''] }}"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set messages = [
+                        {"type":"text","text": notif_title_alert ~ "\n緊急 Emergency 🚨"},
+                        {"type":"text","text": "⚠️ 保全系統偵測到多個情境同時開啟。\n目前狀態：" ~ aqara_active_labels},
+                        {"type":"text","text": "系統已改由在家情境接管，並同步網關回到在家警戒。"}
+                      ] %}
+                      {{ messages | tojson }}
+              else:
+                - service: persistent_notification.create
+                  data:
+                    title: "{{ notif_title_alert }} LINE 未發送"
+                    message: >-
+                      緊急 LINE 未發送：{% if not line_emergency_enabled %}緊急通知開關未開啟{% else %}LINE user_id 無效{% endif %}。
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.aqara_zai_jia
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.aqara_wan_an
+                  - input_boolean.aqara_li_jia
+                  - input_boolean.aqara_guan_bi
+                  - input_boolean.aqara_chu_fa
+            - service: alarm_control_panel.alarm_arm_home
+              target:
+                entity_id: alarm_control_panel.54ef44cf58f9_alarm
 
-    - if:
-        - condition: state
-          entity_id: input_boolean.notify_line_emergency_enable
-          state: "on"
-      then:
-        - service: script.send_line_to_user
+        - alias: 分流 B-1 - 特殊解除後安全歸位
+          conditions:
+            - condition: template
+              value_template: "{{ aqara_active_count|int == 1 and is_state('input_boolean.aqara_guan_bi','on') }}"
+          sequence:
+            - service: alarm_control_panel.alarm_disarm
+              target:
+                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+            - delay:
+                seconds: 2
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.aqara_zai_jia
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.aqara_wan_an
+                  - input_boolean.aqara_li_jia
+                  - input_boolean.aqara_guan_bi
+                  - input_boolean.aqara_chu_fa
+            - service: alarm_control_panel.alarm_arm_home
+              target:
+                entity_id: alarm_control_panel.54ef44cf58f9_alarm
+            - service: persistent_notification.create
+              data:
+                title: "{{ notif_title_alert }}"
+                message: "已依解除情境先解除網關，隨後自動回到在家情境並同步在家警戒。"
+
+        - alias: 分流 B - 常規同步（唯一情境）
+          conditions:
+            - condition: template
+              value_template: "{{ aqara_active_count|int == 1 }}"
+          sequence:
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ is_state('input_boolean.aqara_zai_jia','on') }}"
+                  sequence:
+                    - service: alarm_control_panel.alarm_arm_home
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                    - service: input_boolean.turn_off
+                      target:
+                        entity_id:
+                          - input_boolean.aqara_wan_an
+                          - input_boolean.aqara_li_jia
+                          - input_boolean.aqara_guan_bi
+                          - input_boolean.aqara_chu_fa
+                - conditions:
+                    - condition: template
+                      value_template: "{{ is_state('input_boolean.aqara_wan_an','on') }}"
+                  sequence:
+                    - service: alarm_control_panel.alarm_arm_night
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                    - service: input_boolean.turn_off
+                      target:
+                        entity_id:
+                          - input_boolean.aqara_zai_jia
+                          - input_boolean.aqara_li_jia
+                          - input_boolean.aqara_guan_bi
+                          - input_boolean.aqara_chu_fa
+                - conditions:
+                    - condition: template
+                      value_template: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
+                  sequence:
+                    - service: alarm_control_panel.alarm_arm_away
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                    - service: input_boolean.turn_off
+                      target:
+                        entity_id:
+                          - input_boolean.aqara_zai_jia
+                          - input_boolean.aqara_wan_an
+                          - input_boolean.aqara_guan_bi
+                          - input_boolean.aqara_chu_fa
+                - conditions:
+                    - condition: template
+                      value_template: "{{ is_state('input_boolean.aqara_chu_fa','on') }}"
+                  sequence:
+                    - service: alarm_control_panel.alarm_trigger
+                      target:
+                        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+                    - service: input_boolean.turn_off
+                      target:
+                        entity_id:
+                          - input_boolean.aqara_zai_jia
+                          - input_boolean.aqara_wan_an
+                          - input_boolean.aqara_li_jia
+                          - input_boolean.aqara_guan_bi
+            - service: persistent_notification.create
+              data:
+                title: "{{ notif_title_alert }}"
+                message: "已依唯一啟用的 {{ active_scene_label }} 同步實體網關，並清理其餘未啟用情境開關。"
+
+      default:
+        - service: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.aqara_zai_jia
+        - service: input_boolean.turn_off
+          target:
+            entity_id:
+              - input_boolean.aqara_wan_an
+              - input_boolean.aqara_li_jia
+              - input_boolean.aqara_guan_bi
+              - input_boolean.aqara_chu_fa
+        - service: alarm_control_panel.alarm_arm_home
+          target:
+            entity_id: alarm_control_panel.54ef44cf58f9_alarm
+        - service: persistent_notification.create
           data:
-            user_id: "{{ line_bot_target_user_id }}"
-            payload: >-
-              {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
-              {% set scene = scene_raw|trim %}
-              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
-              {% set messages = [
-                {"type":"text","text": notif_title_alert},
-                {"type":"text","text": '緊急 Urgent ‼️'},
-                {"type":"text","text": (
-                  '⚠️ 保全系統偵測到多個情境同時開啟。'
-                  ~ "\n目前狀態：" ~ scene_safe
-                  ~ "\n將自動切換為在家情境並同步伺服器網關。"
-                )}
-              ] %}
-              {{ messages | tojson }}
-
-    - service: input_boolean.turn_on
-      target:
-        entity_id: input_boolean.aqara_zai_jia
-
-    - service: input_boolean.turn_off
-      target:
-        entity_id:
-          - input_boolean.aqara_wan_an
-          - input_boolean.aqara_li_jia
-          - input_boolean.aqara_guan_bi
-          - input_boolean.aqara_chu_fa
-
-    - service: alarm_control_panel.alarm_arm_home
-      target:
-        entity_id: alarm_control_panel.54ef44cf58f9_alarm
-
-    - delay:
-        seconds: 2
-
-    - variables:
-        resolved_labels: >-
-          {% set labels = [] %}
-          {% if is_state('input_boolean.aqara_zai_jia','on') %}
-            {% set labels = labels + ['在家情境'] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_wan_an','on') %}
-            {% set labels = labels + ['晚安情境'] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_li_jia','on') %}
-            {% set labels = labels + ['離家情境'] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_guan_bi','on') %}
-            {% set labels = labels + ['網關解除情境'] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_chu_fa','on') %}
-            {% set labels = labels + ['網關觸發情境'] %}
-          {% endif %}
-          {{ labels|join('、') if labels else '' }}
-        resolved_count: >-
-          {% set labels = [] %}
-          {% if is_state('input_boolean.aqara_zai_jia','on') %}
-            {% set labels = labels + [1] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_wan_an','on') %}
-            {% set labels = labels + [1] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_li_jia','on') %}
-            {% set labels = labels + [1] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_guan_bi','on') %}
-            {% set labels = labels + [1] %}
-          {% endif %}
-          {% if is_state('input_boolean.aqara_chu_fa','on') %}
-            {% set labels = labels + [1] %}
-          {% endif %}
-          {{ labels|length }}
-
-    - service: notify.persistent_notification
-      data:
-        title: "{{ notif_title_alert }}"
-        message: |-
-          保全情境異常已自動排除。
-          目前啟用：{{ aqara_scene_label_safe }}
-          伺服器網關已同步為 arm_home。
-
-    - if:
-        - condition: state
-          entity_id: input_boolean.notify_line_emergency_enable
-          state: "on"
-      then:
-        - service: script.send_line_to_user
-          data:
-            user_id: "{{ line_bot_target_user_id }}"
-            payload: >-
-              {% set scene_raw = states('sensor.aqara_dang_qian_qing_jing')|string %}
-              {% set scene = scene_raw|trim %}
-              {% set invalids = ['unknown','unavailable','none','null','', None, 'None'] %}
-              {% set scene_safe = scene if scene|lower not in invalids else aqara_state_label %}
-              {% set messages = [
-                {"type":"text","text": notif_title_alert},
-                {"type":"text","text": '緊急 Urgent ‼️'},
-                {"type":"text","text": (
-                  '✅ 保全情境異常已自動排除。'
-                  ~ "\n目前啟用：" ~ scene_safe
-                  ~ "\n伺服器網關已同步為 arm_home。"
-                )}
-              ] %}
-              {{ messages | tojson }}
+            title: "{{ notif_title_alert }}"
+            message: "未偵測到有效保全情境或重啟校正時無回應，已同步虛擬情境與實體網關回到在家警戒。"
