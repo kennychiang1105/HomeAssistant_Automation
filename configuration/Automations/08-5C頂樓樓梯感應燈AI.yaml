@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5C頂樓樓梯感應燈AI (V3.3.2)
-# 相容版本：Helpers V3.14（已確認）
+# 08-5C頂樓樓梯感應燈AI (V3.3.4)
+# 相容版本：Helpers V3.14.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.4：修補版；輔助關燈 8～180 秒防呆改取主流程與備援舊 ID 的最新 last_triggered，避免舊主流程時間遮蔽近期備援點燈紀錄。
+# - V3.3.3：修補版；重新啟用輔助關燈時間差防呆，主流程點燈後 8 秒內禁止書房左側感應器觸發輔助關燈，避免剛出房間關門誤關樓梯燈。
 # - V3.3.2：修補版；縮短攝影機冷卻防呆為 10 秒，並將燈具狀態判定防呆縮短為 2 秒。
 # - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，避免模板 UndefinedError。
 # - V3.3：功能版；接入 input_select.topfloor_webhook_mode，可切換綜合模式、Webhook模式或原本模式。
@@ -13,13 +15,13 @@
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5c_topfloor_stairs_motion_light
-  alias: 08-5C頂樓樓梯感應燈AI (V3.3.2)
+  alias: 08-5C頂樓樓梯感應燈AI (V3.3.4)
   description: >
     頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，
     並在 2 分 30 秒後關閉相關燈具；若當時由此流程點亮坎燈，會一併嘗試關閉。
   mode: restart
   variables:
-    automation_version: V3.3.2
+    automation_version: V3.3.4
     webhook_mode: "{{ states('input_select.topfloor_webhook_mode') | default('綜合模式', true) }}"
     webhook_enabled: "{{ webhook_mode in ['綜合模式', 'Webhook模式'] }}"
     original_enabled: "{{ webhook_mode in ['綜合模式', '原本模式'] }}"
@@ -152,13 +154,13 @@
                     entity_id: light.ding_lou_kan_deng
 
 - id: ai_08_5c_topfloor_stairs_motion_light_auto_off
-  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.3.2)
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.3.4)
   description: >
-    書房左側感應觸發後，於主流程觸發後 180 秒內執行輔助關燈流程。
-    時間窗設定對齊原始邏輯（<180 秒；>2 秒條件保留為停用備援）。
+    書房左側感應觸發後，僅在主流程觸發後 8～180 秒內執行輔助關燈流程。
+    主流程剛點燈後 8 秒內禁止輔助關燈，避免剛出房間關門或路過造成誤關。
   mode: single
   variables:
-    automation_version: V3.3.2
+    automation_version: V3.3.4
 
   triggers:
     - trigger: state
@@ -171,19 +173,20 @@
       value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', '原本模式'] }}"
     - condition: template
       value_template: >-
-        {% set last_triggered =
-          state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
-          or state_attr('automation.a08_5cauto','last_triggered')
-          or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
-        {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) < 180 }}
+        {% set trigger_timestamps = [
+          as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered'), none),
+          as_timestamp(state_attr('automation.a08_5cauto','last_triggered'), none),
+          as_timestamp(state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered'), none)
+        ] | select('ne', none) | list %}
+        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) < 180 }}
     - condition: template
       value_template: >-
-        {% set last_triggered =
-          state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered')
-          or state_attr('automation.a08_5cauto','last_triggered')
-          or state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered') %}
-        {{ last_triggered is not none and (as_timestamp(now()) - as_timestamp(last_triggered)) > 2 }}
-      enabled: false
+        {% set trigger_timestamps = [
+          as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered'), none),
+          as_timestamp(state_attr('automation.a08_5cauto','last_triggered'), none),
+          as_timestamp(state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered'), none)
+        ] | select('ne', none) | list %}
+        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) > 8 }}
 
   actions:
     - parallel:

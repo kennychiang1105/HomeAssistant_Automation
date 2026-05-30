@@ -34,7 +34,7 @@
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.1)` | `ai_topfloor_stairs_scene` | `V3.3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3.2)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3.2` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3.4)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3.4` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -161,6 +161,12 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-30 樓梯燈防呆邏輯修補）
+- `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.4`：修正輔助關燈 8～180 秒防呆取值方式，改從主流程與備援舊 ID 的 `last_triggered` 中取最新時間，避免 `or` 只取第一個非空時間而忽略近期備援點燈紀錄；本次未新增或修改 LINE 發送流程，SOP-10 不適用但已確認 08-5C 無直接 `notify.line_*` 呼叫。
+
+## 本次調整（2026-05-30 樓梯燈誤關修補）
+- `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.3`：重新啟用輔助關燈時間差防呆，主流程點燈後 8 秒內禁止書房左側感應器觸發輔助關燈，避免剛出房間關門或路過造成樓梯燈誤關；本次未新增或修改 LINE 發送流程，SOP-10 不適用但已確認無直接 `notify.line_*` 呼叫。
 
 ## 本次調整（2026-05-30 深夜補強）
 - Helper 套件修補版升級至 `V3.14.1`：新增 `binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan` 與 `binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan`，沿用 AtHome AP MAC 區域判斷邏輯，補齊 104-3 與 08-7A 依賴實體。
