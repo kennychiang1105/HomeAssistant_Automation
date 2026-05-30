@@ -1,0 +1,238 @@
+# ─────────────────────────────────────────────────────────────
+# 08-5A五樓保全系統AI (V3.3.1)
+# 相容版本：Helpers V3.14（已確認）
+# 更新紀錄（統一格式）：
+# - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，並修復 LINE user_id unknown 時 fallback 失效。
+# - V3.3：功能版；五樓保全威脅判斷改為只使用三條跨線 Webhook 時間鏈，移除原感應器威脅觸發以避免誤報；保留手動/自動保全模式、手動解除復位與 SOP-10 LINE 防呆。
+# - V3.2：功能版；由 configuration/automations.yaml 獨立拆分為 AI 管理檔案，保留原手動強防禦與 Auto Beta 流程，並納入 Webhook 加速補強、手動解除與 SOP-10 LINE 防呆輔助。
+# ─────────────────────────────────────────────────────────────
+
+- id: ai_08_5a_5f_security_webhook_guard
+  alias: 08-5A 五樓保全系統AI Webhook精準防禦 (V3.3.1)
+  description: >
+    五樓保全 AI 管理流程：只利用 5fbedroomline / 5fstudyroomline / 5fstairsline
+    的跨線時間鏈判斷是否進入房間防區，避免原感應器造成誤報；支援手動強防禦、無人在家自動盯防、手動解除復位與 LINE 分級防呆。
+  mode: restart
+  variables:
+    automation_version: V3.3.1
+    trigger_kind: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
+    now_ts: "{{ as_timestamp(now()) }}"
+    last_bedroom_ts: "{{ as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
+    last_study_ts: "{{ as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) }}"
+    last_stairs_ts: "{{ as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) }}"
+    bedroom_zone_alarm: >-
+      {{ (trigger_kind == 'bedroom_line' and (now_ts | float - [last_study_ts | float, last_stairs_ts | float] | max) <= 15)
+         or (trigger_kind in ['studyroom_line', 'stairs_line'] and (now_ts | float - last_bedroom_ts | float) <= 15) }}
+    line_user_id: >-
+      {% set uid = states('sensor.line_bot_target_user_id') %}
+      {{ uid if uid not in ['unknown', 'unavailable', 'none', 'None', ''] else 'C26ff4e9d30159ba5264a1676f46f8f86' }}
+    line_user_valid: "{{ line_user_id not in ['unknown', 'unavailable', 'none', 'None', '', none] }}"
+    manual_guard: "{{ is_state('input_boolean.wu_lou_bao_quan_xi_tong_kai_guan', 'on') }}"
+    auto_guard: "{{ is_state('input_boolean.wu_lou_bao_quan_xi_tong_kai_guan', 'off') and is_state('binary_sensor.at_home_kenny', 'off') }}"
+    defense_active: "{{ manual_guard or auto_guard }}"
+    important_line_allowed: "{{ is_state('input_boolean.notify_line_important_enable', 'on') }}"
+    emergency_line_allowed: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
+  triggers:
+    - id: manual_clear
+      trigger: state
+      entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+      to: 'on'
+    - id: bedroom_line
+      platform: webhook
+      webhook_id: 5fbedroomline
+      local_only: false
+    - id: studyroom_line
+      platform: webhook
+      webhook_id: 5fstudyroomline
+      local_only: false
+    - id: stairs_line
+      platform: webhook
+      webhook_id: 5fstairsline
+      local_only: false
+  conditions: []
+  actions:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger_kind == 'manual_clear' }}"
+          sequence:
+            - action: media_player.media_stop
+              target:
+                entity_id:
+                  - media_player.guang_bo_qun_zu_all
+                  - media_player.ke_ting_homepod
+                  - media_player.ding_lou_homepod
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+            - action: persistent_notification.create
+              data:
+                title: 五樓保全手動解除
+                message: 已停止警報音與語音播放，手動解除開關已自動復位。
+            - stop: 手動解除優先，已終止本次保全流程。
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger_kind == 'bedroom_line' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_bedroom_line_last_triggered
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger_kind == 'studyroom_line' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_studyroom_line_last_triggered
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger_kind == 'stairs_line' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_stairs_line_last_triggered
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ not defense_active }}"
+          sequence:
+            - stop: 五樓保全防禦未成立，忽略本次 Webhook 跨線。
+        - conditions:
+            - condition: template
+              value_template: "{{ not bedroom_zone_alarm }}"
+          sequence:
+            - stop: Webhook 時間鏈未推理為進入房間防區，避免誤報。
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ manual_guard and line_user_valid and emergency_line_allowed }}"
+          sequence:
+            - action: script.send_line_to_user
+              data:
+                user_id: "{{ line_user_id }}"
+                payload: >-
+                  [
+                    {"type":"text","text":"【五樓保全系統AI (V3.3.1)】緊急 Urgent ‼️"},
+                    {"type":"text","text":"五樓保全警告：手動模式防守中，Webhook 判定房間防區遭強行闖入！"},
+                    {"type":"text","text":"系統已立即播放警報與語音警告，請盡快確認五樓狀況。"}
+                  ]
+        - conditions:
+            - condition: template
+              value_template: "{{ auto_guard and line_user_valid and important_line_allowed }}"
+          sequence:
+            - action: script.send_line_to_user
+              data:
+                user_id: "{{ line_user_id }}"
+                payload: >-
+                  [
+                    {"type":"text","text":"【五樓保全系統AI (V3.3.1)】重要 Important ❗"},
+                    {"type":"text","text":"五樓保全提示：無人在家自動盯防中，Webhook 判定房間防區有人員進入。"},
+                    {"type":"text","text":"本次判定只使用跨線時間鏈，已避開一般感應器誤報。"}
+                  ]
+      default:
+        - action: persistent_notification.create
+          data:
+            title: 五樓保全 LINE 未發送
+            message: Webhook 精準報警已成立，但 LINE user_id 無效或對應分級開關關閉。
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ manual_guard }}"
+          sequence:
+            - action: media_player.volume_set
+              target:
+                entity_id:
+                  - media_player.ke_ting_homepod
+                  - media_player.ding_lou_homepod
+              data:
+                volume_level: 0.65
+            - action: media_player.play_media
+              target:
+                entity_id: media_player.guang_bo_qun_zu_all
+              data:
+                media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
+                media_content_type: music
+            - delay: "00:00:13"
+            - action: tts.speak
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
+                cache: true
+                message: 五樓保全警告，房間防區已觸發，請立即離開。
+    - wait_for_trigger:
+        - id: leave_5f_by_stairs
+          platform: webhook
+          webhook_id: 5fstairsline
+          local_only: false
+        - id: manual_clear_during_alarm
+          trigger: state
+          entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+          to: 'on'
+      timeout: "00:10:00"
+      continue_on_timeout: true
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ wait.trigger is defined and wait.trigger is not none and wait.trigger.id == 'manual_clear_during_alarm' }}"
+          sequence:
+            - action: media_player.media_stop
+              target:
+                entity_id:
+                  - media_player.guang_bo_qun_zu_all
+                  - media_player.ke_ting_homepod
+                  - media_player.ding_lou_homepod
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+            - stop: 警報期間收到手動解除，已終止。
+    - wait_for_trigger:
+        - trigger: state
+          entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+          to: 'off'
+          for: "00:02:00"
+      timeout: "00:05:00"
+      continue_on_timeout: true
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+              state: 'off'
+              for: "00:02:00"
+          sequence:
+            - action: media_player.media_stop
+              target:
+                entity_id:
+                  - media_player.guang_bo_qun_zu_all
+                  - media_player.ke_ting_homepod
+                  - media_player.ding_lou_homepod
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ line_user_valid and (manual_guard or important_line_allowed) }}"
+                  sequence:
+                    - action: script.send_line_to_user
+                      data:
+                        user_id: "{{ line_user_id }}"
+                        payload: >-
+                          [
+                            {"type":"text","text":"【五樓保全系統AI (V3.3.1)】重要 Important ❗"},
+                            {"type":"text","text":"五樓保全回報：疑似人員已離開，防區持續 2 分鐘無動靜。"},
+                            {"type":"text","text":"警報已自動解除，系統重新回復盯防。"}
+                          ]
+              default:
+                - action: persistent_notification.create
+                  data:
+                    title: 五樓保全復位 LINE 未發送
+                    message: 自動解除通知未發送：user_id 無效或對應 LINE 開關關閉。
+            - action: persistent_notification.create
+              data:
+                title: 五樓保全自動解除
+                message: 五樓防區持續 2 分鐘無動靜，警報已自動停止並回復盯防。
