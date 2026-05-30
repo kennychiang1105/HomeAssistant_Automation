@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5C頂樓樓梯感應燈AI (V3.3.4)
+# 08-5C頂樓樓梯感應燈AI (V3.4.1)
 # 相容版本：Helpers V3.14.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.1：修補版；精簡輔助關燈條件，移除已被 elapsed >= 2.5 覆蓋的 elapsed > 10 冗餘判斷，行為不變。
+# - V3.4.0：功能版；輔助關燈改依主流程來源判斷，書房線/樓梯線直接放行，臥室線/攝影機 2.5 秒內攔截、2.5～10 秒放行，10 秒後一律放行。
 # - V3.3.4：修補版；輔助關燈 3 ～180 秒防呆改取主流程與備援舊 ID 的最新 last_triggered，避免舊主流程時間遮蔽近期備援點燈紀錄。
 # - V3.3.3：修補版；重新啟用輔助關燈時間差防呆，主流程點燈後 8 秒內禁止書房左側感應器觸發輔助關燈，避免剛出房間關門誤關樓梯燈。
 # - V3.3.2：修補版；縮短攝影機冷卻防呆為 10 秒，並將燈具狀態判定防呆縮短為 2 秒。
@@ -15,13 +17,13 @@
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5c_topfloor_stairs_motion_light
-  alias: 08-5C頂樓樓梯感應燈AI (V3.3.4)
+  alias: 08-5C頂樓樓梯感應燈AI (V3.4.1)
   description: >
     頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，
     並在 2 分 30 秒後關閉相關燈具；若當時由此流程點亮坎燈，會一併嘗試關閉。
   mode: restart
   variables:
-    automation_version: V3.3.4
+    automation_version: V3.4.1
     webhook_mode: "{{ states('input_select.topfloor_webhook_mode') | default('綜合模式', true) }}"
     webhook_enabled: "{{ webhook_mode in ['綜合模式', 'Webhook模式'] }}"
     original_enabled: "{{ webhook_mode in ['綜合模式', '原本模式'] }}"
@@ -154,13 +156,14 @@
                     entity_id: light.ding_lou_kan_deng
 
 - id: ai_08_5c_topfloor_stairs_motion_light_auto_off
-  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.3.4)
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.4.1)
   description: >
-    書房左側感應觸發後，僅在主流程觸發後 8～180 秒內執行輔助關燈流程。
-    主流程剛點燈後 8 秒內禁止輔助關燈，避免剛出房間關門或路過造成誤關。
+    書房左側感應觸發後，僅在主流程觸發後 180 秒內執行輔助關燈流程。
+    若主流程最近由書房線或樓梯線觸發則直接放行；若由臥室線或攝影機觸發，
+    2.5 秒內視為出房轉身關門誤觸並攔截，2.5～10 秒視為走入臥室連續動作並放行，10 秒後一律放行。
   mode: single
   variables:
-    automation_version: V3.3.4
+    automation_version: V3.4.1
 
   triggers:
     - trigger: state
@@ -178,15 +181,27 @@
           as_timestamp(state_attr('automation.a08_5cauto','last_triggered'), none),
           as_timestamp(state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered'), none)
         ] | select('ne', none) | list %}
-        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) < 180 }}
-    - condition: template
-      value_template: >-
-        {% set trigger_timestamps = [
-          as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light','last_triggered'), none),
-          as_timestamp(state_attr('automation.a08_5cauto','last_triggered'), none),
-          as_timestamp(state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered'), none)
-        ] | select('ne', none) | list %}
-        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) > 3 }}
+        {% if trigger_timestamps | length == 0 %}
+          false
+        {% else %}
+          {% set latest_ts = trigger_timestamps | max %}
+          {% set elapsed = as_timestamp(now()) - latest_ts %}
+          {% set bedroom_ts = as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) %}
+          {% set study_ts = as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) %}
+          {% set stairs_ts = as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) %}
+          {% set tolerance = 3 %}
+          {% set is_study_or_stairs_source = (
+            (study_ts > 0 and ((latest_ts - study_ts) | abs) <= tolerance and study_ts >= bedroom_ts)
+            or
+            (stairs_ts > 0 and ((latest_ts - stairs_ts) | abs) <= tolerance and stairs_ts >= bedroom_ts)
+          ) %}
+          {{
+            elapsed < 180 and (
+              is_study_or_stairs_source
+              or elapsed >= 2.5
+            )
+          }}
+        {% endif %}
 
   actions:
     - parallel:

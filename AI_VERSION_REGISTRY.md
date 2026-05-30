@@ -34,7 +34,7 @@
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.1)` | `ai_topfloor_stairs_scene` | `V3.3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3.4)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3.4` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -45,13 +45,13 @@
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1)` | `ai_gateway_anomaly_guard` | `V3.1` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1.1)` | `ai_gateway_anomaly_guard` | `V3.1.1` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.1)` | `ai_107_tesla_charger_status_notify` | `V3.2.1` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.1)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.1` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.3)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.3` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -162,6 +162,20 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
+## 本次調整（2026-05-30 Code Review 修補）
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.0.3`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
+- `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.4.1`：精簡輔助關燈條件，移除被 `elapsed >= 2.5` 覆蓋的 `elapsed > 10` 冗餘判斷，邏輯行為不變。
+- LINE 通知檢查：本次只調整 08-7A 觸發補洞與 08-5C 條件可讀性，未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 或繞過 `script.send_line_to_user` 的呼叫；SOP-10 無需新增 payload。
+
+## 本次調整（2026-05-30 Tesla 完成通知與網關重啟靜音）
+- `107Tesla充電器狀態與通知AI` 修補版升級至 `V3.2.2`：充電完成通知於用電量上方新增「充電用時 X時X分鐘」；一般 LINE 仍使用 `script.send_line_to_user`，並保留一般分級開關、Tesla 額外 LINE 開關與 user_id 有效性檢查，不通過時留下 `persistent_notification` 未發送原因，符合 SOP-10。
+- `106網關系統AI` 修補版升級至 `V3.1.1`：HA 重開機觸發時只執行情境/網關同步，不發送 persistent notification 或 LINE；非 HA 重啟的異常攔截 LINE 仍走 `script.send_line_to_user` 並保留緊急分級開關、user_id 防呆與未發送 fallback，符合 SOP-10。
+
+## 本次調整（2026-05-30 樓梯燈與晚安情境調整）
+- `08-5C頂樓樓梯感應燈AI` 功能版升級至 `V3.4.0`：輔助關燈改依主流程最近來源分流；書房線/樓梯線直接放行，臥室線/攝影機 2.5 秒內攔截、2.5～10 秒放行，超過 10 秒一律放行。
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.0.2`：移除 night_check 定時觸發，二樓無人等待改為 30 秒，並取消執行訊息通知。
+- LINE 通知檢查：本次兩份自動化皆未新增或修改 LINE 發送；08-7A 反而移除執行訊息通知，因此 SOP-10 無需新增 payload，且不會出現繞過 `script.send_line_to_user` 的 LINE 呼叫。
+
 ## 本次調整（2026-05-30 Tesla 充電記憶修補）
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.2.1`：修補版。插槍後若直接進入 `charging` / `charging_reduced`，`charge_done` 的當次已充電記憶重設流程會排除充電中狀態，避免 `input_boolean.tesla_charger_session_charged` 先開啟又瞬間關閉；LINE 發送維持 `script.send_line_to_user`，補齊 user_id 有效性檢查、一般/重要分級開關與 Tesla 額外開關判斷，以及未發送原因 `persistent_notification` fallback，符合 SOP-10。
 
@@ -190,7 +204,6 @@
 - `08-5C` / `08-5F` / `08-5G` 升級至 `V3.3`：新增 `input_select.topfloor_webhook_mode` 統一模式選擇，可切換「綜合模式」（Webhook + 原本）、「Webhook模式」（只用 Webhook）、「原本模式」（回到原本判斷）。
 - Helper 套件功能版升級至 `V3.14`：新增 `input_select.topfloor_webhook_mode` 供頂樓 Webhook 判斷模式統一切換。
 
-## 本次調整（2026-05-30）
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.2`：新增三條跨線 Webhook 補燈與樓梯提前亮燈，房門/書房門補燈直接繞過冷卻防呆並以 `mode: restart` 刷新 2 分 30 秒倒數。
 - `08-5F頂樓自動上下樓情境AI` 升級至 `V3.2`：完整保留原攝影機、AP、光源、保護窗與 Debug 判定流程，額外新增跨線時間鏈作為上/下樓秒級加速選項。
 - `08-5G書房燈感應AI` 升級至 `V3.2`：完整保留原實體動態感應、AP 與攝影機延長判定，額外新增進書房秒開燈、靜坐防熄滅攔截、離開書房回房秒關與下樓 3 分鐘守候模式。
