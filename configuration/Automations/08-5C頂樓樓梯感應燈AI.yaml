@@ -186,7 +186,7 @@
           as_timestamp(state_attr('automation.a08_5cauto','last_triggered'), none),
           as_timestamp(state_attr('automation.08_5cding_lou_lou_ti_gan_ying_deng','last_triggered'), none)
         ] | select('ne', none) | list %}
-        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) > 8 }}
+        {{ trigger_timestamps | length > 0 and (as_timestamp(now()) - (trigger_timestamps | max)) > 4 }}
 
   actions:
     - parallel:
