@@ -34,7 +34,7 @@
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.1)` | `ai_topfloor_stairs_scene` | `V3.3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3.1` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.3.2)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.3.2` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -44,13 +44,14 @@
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
-| `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.2)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.2` |
-| `configuration/Automations/106B網關異常警告AI.yaml` | `106B網關異常警告AI (V3.0)` | `ai_gateway_anomaly_guard` | `V3.0` |
+| `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1)` | `ai_gateway_anomaly_guard` | `V3.1` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.0)` | `ai_107_tesla_charger_status_notify` | `V3.2.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -160,6 +161,12 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-30 晚間追加）
+- `106網關系統AI` 升級至 `V3.1`：正式改名並接管舊版 106 網關同步邏輯，移除舊自動化 ID `1690898378439`，以異常攔截 / 常規同步 / 解除歸位 / 無情境歸位分流避免 Race Condition，LINE 緊急通知依 SOP-10 走 `script.send_line_to_user` 並保留未發送 fallback。
+- 新增 `08-7A自動晚安情境AI (V3.0)`：於 21:00 後或 03:00 前，二樓 AP/人員綜合判定無人且晚安情境尚未啟用時自動執行晚安情境。
+- `104-3鐵門判斷未關提醒及作動AI` 升級至 `V3.3`：自動關門前新增車庫 AP 人員綜合判定，偵測有人時取消關門且不影響逾時未關提醒；車庫主燈變化排除 unknown/unavailable 抖動，AP 攔截補 LINE 結果通知。
+- `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.2`：攝影機防呆冷卻由 15 秒縮短至 10 秒，燈具實體狀態防呆由 5 秒縮短至 2 秒。
 
 ## 本次調整（2026-05-30 追加修補）
 - `08-5A` / `08-5C` / `08-5F` / `08-5G` 修補版升級至 `V3.3.1`：補強手動執行時 `trigger` 未定義防呆，修正 08-5F 下樓 3 分鐘保護窗後 AP 複檢改用即時狀態，並修復 08-5A LINE user_id 為 unknown 時 fallback 失效。

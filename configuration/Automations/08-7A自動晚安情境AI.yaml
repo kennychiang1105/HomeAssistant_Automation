@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────
+# 08-7A自動晚安情境AI (V3.0)
+# 相容版本：Helpers V3.14（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0：功能版；新增跨夜時間自動晚安情境，於 21:00 後或 03:00 前且二樓無人時執行晚安情境；以單一跨夜 time 條件與晚安 helper off 防止重複觸發。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-7A自動晚安情境AI (V3.0)
+  id: ai_08_7a_auto_goodnight_scene
+  description: >
+    晚間 21:00 後至凌晨 03:00 前，若二樓 AP/人員綜合判定連續 5 分鐘無人，
+    或於 21:00 定時校正時已無人，則自動執行晚安情境。
+  mode: single
+
+  triggers:
+    - id: second_floor_empty
+      platform: state
+      entity_id: binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan
+      to: "off"
+      for:
+        minutes: 5
+    - id: night_check
+      platform: time
+      at: "21:00:00"
+
+  conditions:
+    - condition: time
+      after: "20:59:59"
+      before: "03:00:00"
+    - condition: state
+      entity_id: binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.aqara_wan_an
+      state: "off"
+
+  variables:
+    automation_version: "V3.0"
+    helpers_compat: "Helpers V3.14"
+
+  actions:
+    - service: automation.trigger
+      target:
+        entity_id: automation.wan_an_qing_jing
+      data:
+        skip_condition: false
+    - service: persistent_notification.create
+      data:
+        title: "08-7A自動晚安情境AI（{{ automation_version }}）"
+        message: >-
+          已確認目前為晚安時段且二樓無人，系統已自動執行晚安情境。
