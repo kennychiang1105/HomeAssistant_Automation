@@ -1,20 +1,21 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5A五樓保全系統AI (V3.3)
+# 08-5A五樓保全系統AI (V3.3.1)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，並修復 LINE user_id unknown 時 fallback 失效。
 # - V3.3：功能版；五樓保全威脅判斷改為只使用三條跨線 Webhook 時間鏈，移除原感應器威脅觸發以避免誤報；保留手動/自動保全模式、手動解除復位與 SOP-10 LINE 防呆。
 # - V3.2：功能版；由 configuration/automations.yaml 獨立拆分為 AI 管理檔案，保留原手動強防禦與 Auto Beta 流程，並納入 Webhook 加速補強、手動解除與 SOP-10 LINE 防呆輔助。
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5a_5f_security_webhook_guard
-  alias: 08-5A 五樓保全系統AI Webhook精準防禦 (V3.3)
+  alias: 08-5A 五樓保全系統AI Webhook精準防禦 (V3.3.1)
   description: >
     五樓保全 AI 管理流程：只利用 5fbedroomline / 5fstudyroomline / 5fstairsline
     的跨線時間鏈判斷是否進入房間防區，避免原感應器造成誤報；支援手動強防禦、無人在家自動盯防、手動解除復位與 LINE 分級防呆。
   mode: restart
   variables:
-    automation_version: V3.3
-    trigger_kind: "{{ trigger.id | default('unknown') }}"
+    automation_version: V3.3.1
+    trigger_kind: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
     now_ts: "{{ as_timestamp(now()) }}"
     last_bedroom_ts: "{{ as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
     last_study_ts: "{{ as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) }}"
@@ -22,7 +23,9 @@
     bedroom_zone_alarm: >-
       {{ (trigger_kind == 'bedroom_line' and (now_ts | float - [last_study_ts | float, last_stairs_ts | float] | max) <= 15)
          or (trigger_kind in ['studyroom_line', 'stairs_line'] and (now_ts | float - last_bedroom_ts | float) <= 15) }}
-    line_user_id: "{{ states('sensor.line_bot_target_user_id') | default('C26ff4e9d30159ba5264a1676f46f8f86', true) }}"
+    line_user_id: >-
+      {% set uid = states('sensor.line_bot_target_user_id') %}
+      {{ uid if uid not in ['unknown', 'unavailable', 'none', 'None', ''] else 'C26ff4e9d30159ba5264a1676f46f8f86' }}
     line_user_valid: "{{ line_user_id not in ['unknown', 'unavailable', 'none', 'None', '', none] }}"
     manual_guard: "{{ is_state('input_boolean.wu_lou_bao_quan_xi_tong_kai_guan', 'on') }}"
     auto_guard: "{{ is_state('input_boolean.wu_lou_bao_quan_xi_tong_kai_guan', 'off') and is_state('binary_sensor.at_home_kenny', 'off') }}"
@@ -116,7 +119,7 @@
                 user_id: "{{ line_user_id }}"
                 payload: >-
                   [
-                    {"type":"text","text":"【五樓保全系統AI (V3.3)】緊急 Urgent ‼️"},
+                    {"type":"text","text":"【五樓保全系統AI (V3.3.1)】緊急 Urgent ‼️"},
                     {"type":"text","text":"五樓保全警告：手動模式防守中，Webhook 判定房間防區遭強行闖入！"},
                     {"type":"text","text":"系統已立即播放警報與語音警告，請盡快確認五樓狀況。"}
                   ]
@@ -129,7 +132,7 @@
                 user_id: "{{ line_user_id }}"
                 payload: >-
                   [
-                    {"type":"text","text":"【五樓保全系統AI (V3.3)】重要 Important ❗"},
+                    {"type":"text","text":"【五樓保全系統AI (V3.3.1)】重要 Important ❗"},
                     {"type":"text","text":"五樓保全提示：無人在家自動盯防中，Webhook 判定房間防區有人員進入。"},
                     {"type":"text","text":"本次判定只使用跨線時間鏈，已避開一般感應器誤報。"}
                   ]
@@ -220,7 +223,7 @@
                         user_id: "{{ line_user_id }}"
                         payload: >-
                           [
-                            {"type":"text","text":"【五樓保全系統AI (V3.3)】重要 Important ❗"},
+                            {"type":"text","text":"【五樓保全系統AI (V3.3.1)】重要 Important ❗"},
                             {"type":"text","text":"五樓保全回報：疑似人員已離開，防區持續 2 分鐘無動靜。"},
                             {"type":"text","text":"警報已自動解除，系統重新回復盯防。"}
                           ]

@@ -1,13 +1,14 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5F頂樓自動上下樓情境AI (V3.3)
+# 08-5F頂樓自動上下樓情境AI (V3.3.1)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，並修正 3 分鐘保護窗後 AP 複檢使用即時狀態。
 # - V3.3：功能版；接入 input_select.topfloor_webhook_mode，可切換綜合模式、Webhook模式或原本模式。
 # - V3.2：功能版；完整保留原攝影機、AP、光源、保護窗與 Debug 判定流程，新增三條跨線 Webhook 作為秒級方向推理加速選項。
 # - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V3.3)
+- alias: 08-5F頂樓自動上下樓情境AI (V3.3.1)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -65,14 +66,15 @@
     - condition: template
       value_template: >-
         {% set mode = states('input_select.topfloor_webhook_mode') | default('綜合模式', true) %}
-        {{ trigger.id == 't_leave_ai_confirmed' or
-           (mode in ['綜合模式', 'Webhook模式'] and trigger.id in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line']) or
+        {% set tid = trigger.id if trigger is defined and trigger is not none else 'unknown' %}
+        {{ tid == 't_leave_ai_confirmed' or
+           (mode in ['綜合模式', 'Webhook模式'] and tid in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line']) or
            (mode in ['綜合模式', '原本模式'] and is_state('device_tracker.iphone_17_pro_max_kenny', 'home')) }}
   actions:
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger.id | default('') in ['t_bedroom_line', 't_studyroom_line'] }}"
+              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id in ['t_bedroom_line', 't_studyroom_line'] }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
@@ -81,7 +83,7 @@
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ trigger.id == 't_bedroom_line' }}"
+                      value_template: "{{ trigger is defined and trigger is not none and trigger.id == 't_bedroom_line' }}"
                   sequence:
                     - action: input_datetime.set_datetime
                       target:
@@ -90,7 +92,7 @@
                         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
                 - conditions:
                     - condition: template
-                      value_template: "{{ trigger.id == 't_studyroom_line' }}"
+                      value_template: "{{ trigger is defined and trigger is not none and trigger.id == 't_studyroom_line' }}"
                   sequence:
                     - action: input_datetime.set_datetime
                       target:
@@ -124,7 +126,7 @@
             - stop: Webhook 房門/書房線已記錄，等待下一條跨線補足方向。
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger.id | default('') == 't_stairs_line' }}"
+              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id == 't_stairs_line' }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
@@ -155,7 +157,9 @@
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ not upstairs_phone_raw }}"
+                              value_template: >-
+                                {% set live_iphone_ap = (state_attr(iphone_entity, 'ap_mac') | default('')) | lower %}
+                                {{ live_iphone_ap not in ap_list }}
                           sequence:
                             - action: input_boolean.turn_on
                               target:
@@ -177,7 +181,7 @@
                     - stop: Webhook 下樓保護窗結束，AP 複檢仍在五樓或已被返回訊號重啟。
             - stop: Webhook 樓梯線已記錄，等待房門/書房線補足方向。
     - variables:
-        _trig: "{{ (trigger.id | default('unknown')) | string }}"
+        _trig: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
         _iphone_ap_s: "{{ (iphone_ap | default('none')) | string }}"
         _snap_json: |
           {{
@@ -241,7 +245,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ trigger.id in ['t_cam'] and lamp_was_on_recently }}"
+              value_template: "{{ trigger is defined and trigger is not none and trigger.id in ['t_cam'] and lamp_was_on_recently }}"
           sequence:
             - action: timer.start
               target:
@@ -722,7 +726,7 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V3.3"
+    automation_version: "V3.3.1"
     iphone_entity: >
       {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
