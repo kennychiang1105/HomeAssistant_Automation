@@ -33,8 +33,8 @@
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
-| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.1)` | `ai_topfloor_stairs_scene` | `V3.3.1` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.1)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.1` |
+| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.2)` | `ai_topfloor_stairs_scene` | `V3.3.2` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.5` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
@@ -161,6 +161,11 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-05-31 頂樓 Webhook 靜默與樓梯燈救援）
+- `08-5F頂樓自動上下樓情境AI` 修補版升級至 `V3.3.2`：將睡眠靜默窗納入 Webhook 跨線判定前置條件，深夜熟睡時間完全忽略三條跨線 Webhook 訊號；原本 AP/攝影機流程與離家事件判斷維持不變。
+- `08-5C頂樓樓梯感應燈AI` 功能版升級至 `V3.4.5`：主流程 Webhook 補燈同步納入睡眠靜默窗並避免 Webhook 觸發落入原本攝影機分支；自動關閉 AI 改為 Conditions 僅保留「綜合/原本模式 + 主流程 180 秒內點亮」安全閥，Actions 分流為 A 軌跡完好秒關與 B 預設 22 秒攝影機動態清除救援流，並保留坎燈防誤關複檢。
+- LINE 通知檢查：本次未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 呼叫；SOP-10 無需新增 payload，且既有 `script.send_line_to_user` 規範未受影響。
 
 ## 本次調整（2026-05-30 Code Review 修補）
 - `08-7A自動晚安情境AI` 修補版升級至 `V3.0.3`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
