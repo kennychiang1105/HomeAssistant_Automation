@@ -63,13 +63,13 @@
     - condition: or
       conditions:
         - condition: template
-          value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
+          value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
         - condition: and
           conditions:
             - condition: template
               value_template: "{{ original_enabled }}"
             - condition: template
-              value_template: "{{ trigger is defined and trigger is not none and trigger.id == 'camera_person' }}"
+              value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 'camera_person' }}"
             - condition: state
               entity_id: light.yeelink_color5_13b8_light
               state: 'off'
@@ -87,7 +87,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
+              value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
           sequence:
             - parallel:
                 - action: light.turn_on
@@ -202,7 +202,7 @@
                 {{ bedroom_ts > 0 and (as_timestamp(now()) - bedroom_ts) <= 5 }}
             - condition: template
               value_template: >-
-                {% set from_state = trigger.from_state if trigger is defined and trigger is not none else none %}
+                {% set from_state = trigger.from_state if trigger is defined and trigger is not none and trigger.from_state is defined else none %}
                 {{ from_state is not none and from_state.state == 'off' and (as_timestamp(now()) - as_timestamp(from_state.last_changed)) >= 10 }}
           sequence:
             - parallel:

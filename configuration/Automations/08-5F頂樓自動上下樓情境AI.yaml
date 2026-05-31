@@ -67,7 +67,7 @@
     - condition: template
       value_template: >-
         {% set mode = states('input_select.topfloor_webhook_mode') | default('綜合模式', true) %}
-        {% set tid = trigger.id if trigger is defined and trigger is not none else 'unknown' %}
+        {% set tid = trigger.id if trigger is defined and trigger is not none and trigger.id is defined else 'unknown' %}
         {% set webhook_trigger = tid in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line'] %}
         {% set s = states('input_number.sleep_silent_start_min') | int(150) %}
         {% set e = states('input_number.sleep_silent_end_min') | int(540) %}
@@ -80,7 +80,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id in ['t_bedroom_line', 't_studyroom_line'] }}"
+              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['t_bedroom_line', 't_studyroom_line'] }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
@@ -89,7 +89,7 @@
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ trigger is defined and trigger is not none and trigger.id == 't_bedroom_line' }}"
+                      value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 't_bedroom_line' }}"
                   sequence:
                     - action: input_datetime.set_datetime
                       target:
@@ -98,7 +98,7 @@
                         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
                 - conditions:
                     - condition: template
-                      value_template: "{{ trigger is defined and trigger is not none and trigger.id == 't_studyroom_line' }}"
+                      value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 't_studyroom_line' }}"
                   sequence:
                     - action: input_datetime.set_datetime
                       target:
@@ -132,7 +132,7 @@
             - stop: Webhook 房門/書房線已記錄，等待下一條跨線補足方向。
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id == 't_stairs_line' }}"
+              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 't_stairs_line' }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
@@ -187,7 +187,7 @@
                     - stop: Webhook 下樓保護窗結束，AP 複檢仍在五樓或已被返回訊號重啟。
             - stop: Webhook 樓梯線已記錄，等待房門/書房線補足方向。
     - variables:
-        _trig: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
+        _trig: "{{ trigger.id if trigger is defined and trigger is not none and trigger.id is defined else 'unknown' }}"
         _iphone_ap_s: "{{ (iphone_ap | default('none')) | string }}"
         _snap_json: |
           {{
@@ -251,7 +251,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ trigger is defined and trigger is not none and trigger.id in ['t_cam'] and lamp_was_on_recently }}"
+              value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['t_cam'] and lamp_was_on_recently }}"
           sequence:
             - action: timer.start
               target:
