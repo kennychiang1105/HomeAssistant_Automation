@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260530.yaml minus AI-managed aliases
+# Source: configuration/Automations/FullHistory/full_automations_20260531.yaml minus AI-managed aliases
 - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
@@ -3171,4 +3171,53 @@
     entity_id: 0429a720357553bef49083e49bdf393b
     type: set_hvac_mode
     hvac_mode: 'off'
+  mode: single
+- id: '1780217033634'
+  alias: 801-簡單感應燈系列-01-廁所感應燈(開/關)
+  description: ''
+  triggers:
+  - trigger: motion.detected
+    target:
+      entity_id: binary_sensor.e406bf25caa1_motion
+    options:
+      behavior: any
+      for: 00:00:00
+  - trigger: motion.cleared
+    target:
+      entity_id: binary_sensor.e406bf25caa1_motion
+    options:
+      behavior: any
+      for:
+        hours: 0
+        minutes: 21
+        seconds: 0
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.e406bf25caa1_motion
+        state:
+        - 'off'
+        for:
+          hours: 0
+          minutes: 20
+          seconds: 0
+      sequence:
+      - action: switch.turn_off
+        metadata: {}
+        target:
+          entity_id: switch.ce_suo_deng
+        data: {}
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.e406bf25caa1_motion
+        state:
+        - 'on'
+      sequence:
+      - action: switch.turn_on
+        metadata: {}
+        target:
+          entity_id: switch.ce_suo_deng
+        data: {}
   mode: single
