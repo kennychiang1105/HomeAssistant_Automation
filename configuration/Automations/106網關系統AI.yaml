@@ -1,12 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 106網關系統AI (V3.1.1)
-# 相容版本：Helpers V3.14（已確認）
+# 106網關系統AI (V3.2.0)
+# 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.0：功能版；Actions 最前方加入 1 秒 Debounce，並將 Aqara 情境數量與標籤改到延遲後即時求值，避免離家/在家互搶時使用 0 秒舊狀態。
 # - V3.1.1：修補版；HA 重開機觸發時僅執行網關/情境同步，不發送 persistent notification 或 LINE 通知，避免重啟校正產生多餘訊息。
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106網關系統AI (V3.1.1)
+- alias: 106網關系統AI (V3.2.0)
   id: ai_gateway_anomaly_guard
   description: 保全情境重置、網關同步與異常防禦
   mode: single
@@ -26,8 +27,8 @@
       event_type: automation_reloaded
 
   variables:
-    automation_version: "V3.1.1"
-    helpers_compat: "Helpers V3.14"
+    automation_version: "V3.2.0"
+    helpers_compat: "Helpers V3.15"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"
     notif_title_alert: >-
@@ -38,38 +39,36 @@
       {{ line_bot_target_user_id|trim|lower not in ['unknown','unavailable','none','null',''] }}
     line_emergency_enabled: "{{ is_state('input_boolean.notify_line_emergency_enable','on') }}"
     is_ha_start: "{{ trigger is defined and trigger.platform is defined and trigger.platform == 'homeassistant' }}"
-    aqara_zai_jia_on: "{{ is_state('input_boolean.aqara_zai_jia','on') | bool }}"
-    aqara_wan_an_on: "{{ is_state('input_boolean.aqara_wan_an','on') | bool }}"
-    aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') | bool }}"
-    aqara_guan_bi_on: "{{ is_state('input_boolean.aqara_guan_bi','on') | bool }}"
-    aqara_chu_fa_on: "{{ is_state('input_boolean.aqara_chu_fa','on') | bool }}"
-    aqara_active_count: >-
-      {{
-        (1 if is_state('input_boolean.aqara_zai_jia','on') else 0)
-        + (1 if is_state('input_boolean.aqara_wan_an','on') else 0)
-        + (1 if is_state('input_boolean.aqara_li_jia','on') else 0)
-        + (1 if is_state('input_boolean.aqara_guan_bi','on') else 0)
-        + (1 if is_state('input_boolean.aqara_chu_fa','on') else 0)
-      }}
-    aqara_active_labels: >-
-      {% set labels = [] %}
-      {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set labels = labels + ['在家情境'] %}{% endif %}
-      {% if is_state('input_boolean.aqara_wan_an','on') %}{% set labels = labels + ['晚安情境'] %}{% endif %}
-      {% if is_state('input_boolean.aqara_li_jia','on') %}{% set labels = labels + ['離家情境'] %}{% endif %}
-      {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set labels = labels + ['網關解除情境'] %}{% endif %}
-      {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set labels = labels + ['網關觸發情境'] %}{% endif %}
-      {{ labels|join('、') if labels else '未設定情境' }}
-    active_scene_label: >-
-      {% if is_state('input_boolean.aqara_zai_jia','on') %}在家情境
-      {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
-      {% elif is_state('input_boolean.aqara_li_jia','on') %}離家情境
-      {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
-      {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
-      {% else %}未設定情境{% endif %}
 
   conditions: []
 
   actions:
+    - delay: "00:00:01"
+    - variables:
+        aqara_active_count: >-
+          {{
+            (1 if is_state('input_boolean.aqara_zai_jia','on') else 0)
+            + (1 if is_state('input_boolean.aqara_wan_an','on') else 0)
+            + (1 if is_state('input_boolean.aqara_li_jia','on') else 0)
+            + (1 if is_state('input_boolean.aqara_guan_bi','on') else 0)
+            + (1 if is_state('input_boolean.aqara_chu_fa','on') else 0)
+          }}
+        aqara_active_labels: >-
+          {% set labels = [] %}
+          {% if is_state('input_boolean.aqara_zai_jia','on') %}{% set labels = labels + ['在家情境'] %}{% endif %}
+          {% if is_state('input_boolean.aqara_wan_an','on') %}{% set labels = labels + ['晚安情境'] %}{% endif %}
+          {% if is_state('input_boolean.aqara_li_jia','on') %}{% set labels = labels + ['離家情境'] %}{% endif %}
+          {% if is_state('input_boolean.aqara_guan_bi','on') %}{% set labels = labels + ['網關解除情境'] %}{% endif %}
+          {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set labels = labels + ['網關觸發情境'] %}{% endif %}
+          {{ labels|join('、') if labels else '未設定情境' }}
+        active_scene_label: >-
+          {% if is_state('input_boolean.aqara_zai_jia','on') -%}在家情境
+          {%- elif is_state('input_boolean.aqara_wan_an','on') -%}晚安情境
+          {%- elif is_state('input_boolean.aqara_li_jia','on') -%}離家情境
+          {%- elif is_state('input_boolean.aqara_guan_bi','on') -%}網關解除情境
+          {%- elif is_state('input_boolean.aqara_chu_fa','on') -%}網關觸發情境
+          {%- else -%}未設定情境
+          {%- endif %}
     - choose:
         - alias: 分流 A - 異常攔截（同時開啟 2 個以上情境）
           conditions:

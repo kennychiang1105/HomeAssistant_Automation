@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.14.1）
+# Helpers（V3.15）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.15):
+#   • 新增 input_boolean.sleep_silent_active，供頂樓熟睡情境手動鎖定；08-5F 會在自動下樓或離家複檢成立時自動復歸。
 # 新增與強化 (V3.14.1):
 #   • 新增車庫與二樓區域綜合占用 binary_sensor，沿用 AtHome AP MAC 判斷，補齊 104-3 與 08-7A 依賴實體。
 # 新增與強化 (V3.14):
@@ -284,6 +286,10 @@ input_boolean:
   ding_lou_xia_lou_qing_jing:
     name: 頂樓下樓情境
     icon: mdi:stairs-down
+
+  sleep_silent_active:
+    name: 頂樓深夜熟睡手動鎖
+    icon: mdi:sleep
 
   google_scene_zao_an_trigger:
     name: Google 早安情境按鈕
