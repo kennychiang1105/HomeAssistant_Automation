@@ -115,7 +115,7 @@
                     - condition: template
                       value_template: "{{ recent_stairs_before_room_fast }}"
                     - condition: template
-                      value_template: "{{ not sleep_silent_active }}"
+                      value_template: "{{ not (sleep_silent_active | bool) }}"
                   sequence:
                     - action: input_boolean.turn_on
                       target:
@@ -335,7 +335,7 @@
             - condition: template
               value_template: "{{ lights_all_off }}"
             - condition: template
-              value_template: "{{ not sleep_silent_active }}"
+              value_template: "{{ not (sleep_silent_active | bool) }}"
           sequence:
             - action: input_boolean.turn_on
               target:
@@ -551,7 +551,7 @@
                           - condition: template
                             value_template: "{{ lights_all_off }}"
                           - condition: template
-                            value_template: "{{ not sleep_silent_active }}"
+                            value_template: "{{ not (sleep_silent_active | bool) }}"
                         sequence:
                           - action: input_boolean.turn_on
                             target:
@@ -665,12 +665,12 @@
                     - condition: template
                       value_template: "{{ lights_all_off }}"
                     - condition: template
-                      value_template: "{{ not sleep_silent_active }}"
+                      value_template: "{{ not (sleep_silent_active | bool) }}"
                   sequence:
                     - wait_template: >
                         {{ upstairs_present_up and ((not recent_light_off) or
                         dark_15s) and
-                           (not guard_active) and lights_all_off and (not sleep_silent_active) }}
+                           (not guard_active) and lights_all_off and (not (sleep_silent_active | bool)) }}
                       timeout: >
                         {{ '%02d:%02d:%02d'|format((tail_grace_up_sec//3600),
                         ((tail_grace_up_sec%3600)//60), (tail_grace_up_sec%60)) }}

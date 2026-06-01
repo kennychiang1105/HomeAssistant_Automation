@@ -62,12 +62,13 @@
           {% if is_state('input_boolean.aqara_chu_fa','on') %}{% set labels = labels + ['網關觸發情境'] %}{% endif %}
           {{ labels|join('、') if labels else '未設定情境' }}
         active_scene_label: >-
-          {% if is_state('input_boolean.aqara_zai_jia','on') %}在家情境
-          {% elif is_state('input_boolean.aqara_wan_an','on') %}晚安情境
-          {% elif is_state('input_boolean.aqara_li_jia','on') %}離家情境
-          {% elif is_state('input_boolean.aqara_guan_bi','on') %}網關解除情境
-          {% elif is_state('input_boolean.aqara_chu_fa','on') %}網關觸發情境
-          {% else %}未設定情境{% endif %}
+          {% if is_state('input_boolean.aqara_zai_jia','on') -%}在家情境
+          {%- elif is_state('input_boolean.aqara_wan_an','on') -%}晚安情境
+          {%- elif is_state('input_boolean.aqara_li_jia','on') -%}離家情境
+          {%- elif is_state('input_boolean.aqara_guan_bi','on') -%}網關解除情境
+          {%- elif is_state('input_boolean.aqara_chu_fa','on') -%}網關觸發情境
+          {%- else -%}未設定情境
+          {%- endif %}
     - choose:
         - alias: 分流 A - 異常攔截（同時開啟 2 個以上情境）
           conditions:
