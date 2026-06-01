@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5F頂樓自動上下樓情境AI (V3.3.2)
-# 相容版本：Helpers V3.14.1（已確認）
+# 08-5F頂樓自動上下樓情境AI (V3.4.0)
+# 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.0：功能版；新增 input_boolean.sleep_silent_active 手動熟睡鎖，上樓判定全面納入熟睡中拒絕，且所有自動下樓/離家複檢成立時自動復歸熟睡鎖。
 # - V3.3.2：修補版；將睡眠靜默窗納入 Webhook 跨線前置條件，深夜完全忽略 Webhook 訊號並保留原本 AP/攝影機流程。
 # - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，並修正 3 分鐘保護窗後 AP 複檢使用即時狀態。
 # - V3.3：功能版；接入 input_select.topfloor_webhook_mode，可切換綜合模式、Webhook模式或原本模式。
@@ -9,7 +10,7 @@
 # - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V3.3.2)
+- alias: 08-5F頂樓自動上下樓情境AI (V3.4.0)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -72,7 +73,9 @@
         {% set s = states('input_number.sleep_silent_start_min') | int(150) %}
         {% set e = states('input_number.sleep_silent_end_min') | int(540) %}
         {% set n = now().hour * 60 + now().minute %}
-        {% set sleep_silent = (n >= s and n < e) if s <= e else (n >= s or n < e) %}
+        {% set time_sleep_silent = (n >= s and n < e) if s <= e else (n >= s or n < e) %}
+        {% set manual_sleep_silent = is_state('input_boolean.sleep_silent_active', 'on') %}
+        {% set sleep_silent = time_sleep_silent or manual_sleep_silent %}
         {{ tid == 't_leave_ai_confirmed' or
            (mode in ['綜合模式', 'Webhook模式'] and webhook_trigger and not sleep_silent) or
            (mode in ['綜合模式', '原本模式'] and is_state('device_tracker.iphone_17_pro_max_kenny', 'home')) }}
@@ -111,6 +114,8 @@
                 - conditions:
                     - condition: template
                       value_template: "{{ recent_stairs_before_room_fast }}"
+                    - condition: template
+                      value_template: "{{ not sleep_silent_active }}"
                   sequence:
                     - action: input_boolean.turn_on
                       target:
@@ -170,6 +175,9 @@
                             - action: input_boolean.turn_on
                               target:
                                 entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+                            - action: input_boolean.turn_off
+                              target:
+                                entity_id: input_boolean.sleep_silent_active
                             - action: input_boolean.turn_off
                               target:
                                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -275,6 +283,9 @@
                     - action: input_boolean.turn_on
                       target:
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+                    - action: input_boolean.turn_off
+                      target:
+                        entity_id: input_boolean.sleep_silent_active
                     - action: input_boolean.turn_off
                       target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -398,6 +409,9 @@
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                     - action: input_boolean.turn_off
                       target:
+                        entity_id: input_boolean.sleep_silent_active
+                    - action: input_boolean.turn_off
+                      target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                     - action: timer.start
                       target:
@@ -471,6 +485,9 @@
                     - action: input_boolean.turn_on
                       target:
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+                    - action: input_boolean.turn_off
+                      target:
+                        entity_id: input_boolean.sleep_silent_active
                     - action: input_boolean.turn_off
                       target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -613,6 +630,9 @@
                                       entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                                   - action: input_boolean.turn_off
                                     target:
+                                      entity_id: input_boolean.sleep_silent_active
+                                  - action: input_boolean.turn_off
+                                    target:
                                       entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                                   - action: timer.start
                                     target:
@@ -710,6 +730,9 @@
                                 entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                             - action: input_boolean.turn_off
                               target:
+                                entity_id: input_boolean.sleep_silent_active
+                            - action: input_boolean.turn_off
+                              target:
                                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                             - action: timer.start
                               target:
@@ -732,7 +755,7 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V3.3.2"
+    automation_version: "V3.4.0"
     iphone_entity: >
       {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
@@ -806,11 +829,8 @@
     _now_minute_of_day: "{{ now().hour*60 + now().minute }}"
     sleep_silent_active: >
       {% set s = sleep_silent_start_min|int %} {% set e = sleep_silent_end_min|int
-      %} {% set n = _now_minute_of_day|int %} {% if s <= e %}
-        {{ n >= s and n < e }}
-      {% else %}
-        {{ n >= s or  n < e }}
-      {% endif %}
+      %} {% set n = _now_minute_of_day|int %} {% set time_silent = (n >= s and n < e) if s <= e else (n >= s or n < e) %}
+      {{ is_state('input_boolean.sleep_silent_active', 'on') or time_silent }}
     guard_active: "{{ not is_state('timer.topfloor_down_intent_guard','idle') }}"
     lock_up_active: "{{ not is_state('timer.topfloor_lock_after_up','idle') }}"
     lock_down_active: "{{ not is_state('timer.topfloor_lock_after_down','idle') }}"

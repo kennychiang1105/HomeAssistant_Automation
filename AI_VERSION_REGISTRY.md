@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.14.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.15`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -33,7 +33,7 @@
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
-| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.3.2)` | `ai_topfloor_stairs_scene` | `V3.3.2` |
+| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.4.0)` | `ai_topfloor_stairs_scene` | `V3.4.0` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.5` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
@@ -45,7 +45,7 @@
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.1.1)` | `ai_gateway_anomaly_guard` | `V3.1.1` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.2.0)` | `ai_gateway_anomaly_guard` | `V3.2.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
@@ -161,6 +161,12 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-06-01 網關防抖與頂樓熟睡手動鎖）
+- `106網關系統AI` 功能版升級至 `V3.2.0`：Actions 最前方新增 1 秒 Debounce，並將 Aqara 情境數量、情境標籤與唯一情境名稱移至 delay 後的 action variables 即時求值，避免離家/在家開關互搶時使用觸發 0 秒舊狀態。
+- `08-5F頂樓自動上下樓情境AI` 功能版升級至 `V3.4.0`：新增 `input_boolean.sleep_silent_active` 熟睡手動鎖；Webhook、AP、攝影機與尾隨寬限的所有上樓成立路徑均需 `not sleep_silent_active`，自動下樓與 AI 離家複檢成立時會自動復歸該 helper。
+- Helper 套件升級至 `V3.15`：新增 `input_boolean.sleep_silent_active`，供手機/情境手動維持熟睡狀態。
+- LINE 通知檢查：本次未新增或修改 LINE 發送流程；`106網關系統AI` 既有緊急 LINE 仍維持 `script.send_line_to_user`、緊急分級開關、user_id 防呆與未發送 fallback，未新增直接 `notify.line_*` 呼叫，符合 SOP-10。
 
 ## 本次調整（2026-05-31 頂樓 Webhook 靜默與樓梯燈救援）
 - `08-5F頂樓自動上下樓情境AI` 修補版升級至 `V3.3.2`：將睡眠靜默窗納入 Webhook 跨線判定前置條件，深夜熟睡時間完全忽略三條跨線 Webhook 訊號；原本 AP/攝影機流程與離家事件判斷維持不變。
