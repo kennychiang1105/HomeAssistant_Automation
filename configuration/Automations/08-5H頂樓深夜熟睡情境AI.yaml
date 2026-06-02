@@ -2,7 +2,7 @@
 # 08-5H頂樓深夜熟睡情境AI (V3.1.0)
 # 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
-# - V3.1.0：功能版；執行深夜下樓情境前先記錄頂樓深夜熟睡手動鎖狀態，情境執行與重試後皆恢復 input_boolean.sleep_silent_active 原本開關狀態。
+# - V3.1.0：功能版；執行深夜下樓情境前先記錄頂樓深夜熟睡手動鎖狀態，情境執行與重試後皆恢復 input_boolean.sleep_silent_active 原本開關狀態，並以模板 action 精簡復原流程。
 # - V3.0.2：修正下樓情境重試判斷的變數作用域問題，改為直接檢查床頭燈實際狀態，避免重試條件沿用舊值。
 # - V3.0.1：修復下樓情境確認流程，改為 1 分鐘後檢查床頭燈；失敗時自動重跑一次下樓流程，僅在確認成功後恢復風扇狀態。
 # - V3.0：新增平日 03:00 / 假日 05:00 深夜熟睡情境；執行下樓情境並在 HomeKit 外部關閉風扇時做狀態救援（系統來源不視為手動關機）。
@@ -42,18 +42,9 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ sleep_silent_was_on | bool }}"
-          sequence:
-            - action: input_boolean.turn_on
-              target:
-                entity_id: input_boolean.sleep_silent_active
-      default:
-        - action: input_boolean.turn_off
-          target:
-            entity_id: input_boolean.sleep_silent_active
+    - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+      target:
+        entity_id: input_boolean.sleep_silent_active
 
     # 1 分鐘後以床頭燈關閉狀態確認下樓情境是否成功
     - delay: "00:01:00"
@@ -70,18 +61,9 @@
             - action: input_boolean.turn_off
               target:
                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ sleep_silent_was_on | bool }}"
-                  sequence:
-                    - action: input_boolean.turn_on
-                      target:
-                        entity_id: input_boolean.sleep_silent_active
-              default:
-                - action: input_boolean.turn_off
-                  target:
-                    entity_id: input_boolean.sleep_silent_active
+            - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+              target:
+                entity_id: input_boolean.sleep_silent_active
             - delay: "00:01:00"
 
     - choose:
@@ -97,18 +79,9 @@
               target:
                 entity_id: fan.dmaker_p33_eabd_fan
 
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ sleep_silent_was_on | bool }}"
-          sequence:
-            - action: input_boolean.turn_on
-              target:
-                entity_id: input_boolean.sleep_silent_active
-      default:
-        - action: input_boolean.turn_off
-          target:
-            entity_id: input_boolean.sleep_silent_active
+    - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+      target:
+        entity_id: input_boolean.sleep_silent_active
 
     - action: input_boolean.turn_off
       target:

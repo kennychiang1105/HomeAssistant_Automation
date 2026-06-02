@@ -163,7 +163,7 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 ## 本次調整（2026-06-02 頂樓深夜熟睡手動鎖保留）
-- `08-5H頂樓深夜熟睡情境AI` 功能版升級至 `V3.1.0`：深夜熟睡定時下樓前先記錄 `input_boolean.sleep_silent_active` 原始狀態，第一次下樓、重試下樓與流程結尾都會恢復原本開關，避免 08-5F 自動下樓復歸邏輯把手動熟睡鎖關掉。
+- `08-5H頂樓深夜熟睡情境AI` 功能版升級至 `V3.1.0`：深夜熟睡定時下樓前先記錄 `input_boolean.sleep_silent_active` 原始狀態，第一次下樓、重試下樓與流程結尾都會以模板 action 恢復原本開關，避免 08-5F 自動下樓復歸邏輯把手動熟睡鎖關掉。
 - Helper 相容性檢查：沿用 Helper 套件 `V3.15` 既有 `input_boolean.sleep_silent_active`，本次未新增 helper，依賴版本維持 `V3.15`。
 - LINE 通知檢查：本次未新增或修改 LINE 發送流程，`08-5H頂樓深夜熟睡情境AI` 仍無 LINE 推播且未新增直接 `notify.line_*` 呼叫；SOP-10 無需新增 payload，符合 LINE 發送可靠性防呆要求。
 
