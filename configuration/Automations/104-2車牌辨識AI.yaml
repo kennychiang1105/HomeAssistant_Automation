@@ -1,14 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V3.0)
-# 相容版本：Helpers V3.5（已確認）
-# 更新紀錄：
+# 104-2車牌辨識AI (V3.1.0)
+# 相容版本：Helpers V3.16（已確認）
+# 更新紀錄（統一格式）：
+# - V3.1.0：功能版；沿用 LPR Debug 開關控管預備/取消類永久通知，新增車牌開門通知 Helper 控管實際自動開門通知；實際自動關門仍保留永久通知。
 # - V3.0：正式版；安全緩衝時間由 90 秒下修為 45 秒。
 # - V3.0 (RC1)：車輛駛出安全緩衝由 2 分鐘調整為 1.5 分鐘（90 秒），其餘流程不變。
 # - V3.0 Beta 3：手動開門後一旦取得駛出憑證立即進入 2 分鐘安全緩衝；憑證等待上限由 10 分鐘下修為 6 分鐘。
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V3.0)
+- alias: 104-2車牌辨識AI (V3.1.0)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、REA9519）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -36,7 +37,7 @@
       to: "open"
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V3.1.0"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -52,6 +53,7 @@
     gate_state: "{{ states('cover.garage') }}"
     debug_on: "{{ is_state('input_boolean.lpr_debug_notify','on') }}"
     auto_close_enabled: "{{ is_state('input_boolean.lpr_auto_close_enable','on') }}"
+    open_notify_enabled: "{{ is_state('input_boolean.lpr_open_notify_enable','on') }}"
     
     # 安防與感測器群
     aqara_li_jia_on: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
@@ -105,13 +107,18 @@
                     - service: cover.open_cover
                       target:
                         entity_id: cover.garage
-                    - service: persistent_notification.create
-                      data:
-                        title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
-                        message: >-
-                          時間：{{ event_time }}
-                          車牌：{{ plate }}（{{ car_name }}）
-                          指令：開門 (因鐵門為關閉狀態)
+                    - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ open_notify_enabled | bool(false) }}"
+                          sequence:
+                            - service: persistent_notification.create
+                              data:
+                                title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
+                                message: >-
+                                  時間：{{ event_time }}
+                                  車牌：{{ plate }}（{{ car_name }}）
+                                  指令：開門 (因鐵門為關閉狀態)
                 # 條件不符：門已開或非 Arm Away -> 僅通知
                 - conditions:
                     - condition: template
@@ -120,7 +127,7 @@
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ debug_on }}"
+                              value_template: "{{ debug_on | bool(false) }}"
                           sequence:
                             - service: persistent_notification.create
                               data:
@@ -146,7 +153,7 @@
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ debug_on }}"
+                      value_template: "{{ debug_on | bool(false) }}"
                   sequence:
                     - service: persistent_notification.create
                       data:
@@ -196,7 +203,7 @@
                             - choose:
                                 - conditions:
                                     - condition: template
-                                      value_template: "{{ debug_on }}"
+                                      value_template: "{{ debug_on | bool(false) }}"
                                   sequence:
                                     - service: persistent_notification.create
                                       data:
@@ -205,7 +212,7 @@
                             - stop: "Canceled because no car left"
                         - conditions:
                             - condition: template
-                              value_template: "{{ wait.trigger is not none and debug_on }}"
+                              value_template: "{{ wait.trigger is not none and (debug_on | bool(false)) }}"
                           sequence:
                             - service: persistent_notification.create
                               data:
@@ -230,7 +237,7 @@
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ debug_on }}"
+                              value_template: "{{ debug_on | bool(false) }}"
                           sequence:
                             - service: persistent_notification.create
                               data:
@@ -258,7 +265,7 @@
                     - choose:
                         - conditions:
                             - condition: template
-                              value_template: "{{ auto_close_enabled }}"
+                              value_template: "{{ auto_close_enabled | bool(false) }}"
                           sequence:
                             - service: cover.close_cover
                               target:
@@ -269,7 +276,7 @@
                                 message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
                         - conditions:
                             - condition: template
-                              value_template: "{{ not auto_close_enabled }}"
+                              value_template: "{{ (not (auto_close_enabled | bool(false))) and (debug_on | bool(false)) }}"
                           sequence:
                             - service: persistent_notification.create
                               data:
@@ -278,7 +285,7 @@
                 # 不符合條件
                 - conditions:
                     - condition: template
-                      value_template: "{{ not (gate_still_open and arm_away_later and nobody_later) }}"
+                      value_template: "{{ (not (gate_still_open and arm_away_later and nobody_later)) and (debug_on | bool(false)) }}"
                   sequence:
                     - service: persistent_notification.create
                       data:

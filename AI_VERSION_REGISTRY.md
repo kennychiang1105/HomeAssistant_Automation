@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.15`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.16`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -43,9 +43,9 @@
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
-| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.0)` | `ai_lpr_recognition` | `V3.0` |
+| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.0)` | `ai_lpr_recognition` | `V3.1.0` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.2.0)` | `ai_gateway_anomaly_guard` | `V3.2.0` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.0)` | `ai_gateway_anomaly_guard` | `V3.3.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
@@ -95,6 +95,8 @@
 1. 同一事件流若會觸發多段通知，需加上流程控制（`choose` / `stop` / 去重旗標）避免重複推播。
 2. 「狀態說明通知」與「自動化結果通知」若可合併，優先合併為單一通知。
 3. 通知需包含當前關鍵情境（例如目前情境狀態），降低使用者二次查詢成本。
+4. 清理、同步、預備判斷、取消原因等除錯型 `persistent_notification`，應優先由該系統 Debug Helper 控管；只有實際自動執行的開門、關門、告警、維安動作才預設保留永久通知。
+5. Debug Helper 只控制原本不送 LINE 的除錯/清理訊息是否建立永久通知；不可因 Debug 開啟而新增 LINE 發送路徑。
 
 
 ### SOP-7：更新紀錄推播（00-2A）運作原理與更新點（每次改版必做）
@@ -139,19 +141,20 @@
 5. 同一個PR或Codex同一次僅需更新一次版本號
 
 ### SOP-10：LINE 發送可靠性防呆（每次涉及通知必做）
-1. **LINE 一律使用 `script.send_line_to_user`**（避免直接呼叫 `notify.line_*` 造成 DNS/整合暫時失效時中斷流程）。
-2. 發送前必做三項檢查：
+1. 修改 `persistent_notification` 或 Debug 通知時，需確認是否新增 LINE 路徑；若該訊息原本不送 LINE，Debug 開啟後也不得送 LINE。
+2. **LINE 一律使用 `script.send_line_to_user`**（避免直接呼叫 `notify.line_*` 造成 DNS/整合暫時失效時中斷流程）。
+3. 發送前必做三項檢查：
    - 目標 `user_id` 不可為 `unknown/unavailable/none/空字串`。
    - 對應分級開關（一般/重要/緊急）必須為 `on`。
    - 若有子系統額外開關（如 Tesla/耗材額外 LINE 開關）也必須為 `on`。
-3. payload 格式統一為 JSON message array（多則訊息），至少包含：
+4. payload 格式統一為 JSON message array（多則訊息），至少包含：
    - 第 1 則：版本標題（例：`【系統名稱AI (Vx.y.z)】` + 等級行）。
    - 第 2 則：事件主訊息（發生什麼事 + 關鍵時間/狀態）。
    - 需要時第 3 則：補充資訊（溫度、電量、附註）。
-4. 任何一項檢查不通過時：
+5. 任何一項檢查不通過時：
    - 不可硬送 LINE。
    - 必須留下 `persistent_notification` 或 logbook 記錄「未發送原因」（例：user_id 無效 / 開關關閉）。
-5. 新增或修改通知時，PR 必須附「最小驗證清單」：
+6. 新增或修改通知時，PR 必須附「最小驗證清單」：
    - 一般/重要/緊急各至少 1 條 payload 範例。
    - 開關關閉時不發送的驗證結果。
    - `user_id` 無效時 fallback 記錄結果。
@@ -161,6 +164,12 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-06-03 Debug 通知開關與車牌開門通知）
+- `106網關系統AI` 功能版升級至 `V3.3.0`：新增 `input_boolean.gateway_debug_notify`，將解除歸位、唯一情境同步與無情境歸位等清理型永久通知改為 Debug 開啟時才發送；異常攔截緊急 LINE 維持原有 `script.send_line_to_user`、緊急分級開關與 user_id 防呆，Debug 不新增 LINE 路徑。
+- `104-2車牌辨識AI` 功能版升級至 `V3.1.0`：沿用 `input_boolean.lpr_debug_notify` 控管預備/取消類永久通知，將「🙂（預備）條件式關門：不關」改為 Debug 開啟才通知；新增 `input_boolean.lpr_open_notify_enable` 控管實際 LPR 自動開門永久通知，實際自動關門仍保留永久通知。
+- Helper 套件功能版升級至 `V3.16`：新增網關 Debug 通知開關與 LPR 車牌開門通知開關。
+- SOP 更新：新增 Debug Helper / 清理型永久通知規範，並補充 Debug 不得把原本未送 LINE 的通知升級成 LINE；LINE 通知檢查確認本次未新增任何 `notify.line_*` 或 LPR LINE 路徑，106 既有 LINE 仍符合 SOP-10。
 
 ## 本次調整（2026-06-01 網關防抖與頂樓熟睡手動鎖）
 - `106網關系統AI` 功能版升級至 `V3.2.0`：Actions 最前方新增 1 秒 Debounce，並將 Aqara 情境數量、情境標籤與唯一情境名稱移至 delay 後的 action variables 即時求值，避免離家/在家開關互搶時使用觸發 0 秒舊狀態。
