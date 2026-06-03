@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.15）
+# Helpers（V3.16）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.16):
+#   • 新增 input_boolean.gateway_debug_notify，供 106網關系統AI 控管清理/同步類永久通知。
+#   • 新增 input_boolean.lpr_open_notify_enable，供 104-2車牌辨識AI 控管實際車牌自動開門永久通知。
 # 新增與強化 (V3.15):
 #   • 新增 input_boolean.sleep_silent_active，供頂樓熟睡情境手動鎖定；08-5F 會在自動下樓或離家複檢成立時自動復歸。
 # 新增與強化 (V3.14.1):
@@ -291,6 +294,10 @@ input_boolean:
     name: 頂樓深夜熟睡手動鎖
     icon: mdi:sleep
 
+  gateway_debug_notify:
+    name: 網關系統_Debug通知
+    icon: mdi:shield-bug-outline
+
   google_scene_zao_an_trigger:
     name: Google 早安情境按鈕
     icon: mdi:weather-sunset-up
@@ -325,6 +332,9 @@ input_boolean:
     name: LPR自動關門（啟用後才會真的關門）
     icon: mdi:garage
     #initial: false
+  lpr_open_notify_enable:
+    name: LPR車牌開門通知
+    icon: mdi:garage-alert
   notify_line_general_enable:
     name: LINE通知啟用_一般
     icon: mdi:bell-outline
