@@ -50,7 +50,7 @@
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
-| `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.0.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.0.1` |
+| `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.3)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.3` |
 
 ## 維護約定
@@ -161,6 +161,11 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（2026-06-02 頂樓深夜熟睡手動鎖保留）
+- `08-5H頂樓深夜熟睡情境AI` 功能版升級至 `V3.1.0`：深夜熟睡定時下樓前先記錄 `input_boolean.sleep_silent_active` 原始狀態，第一次下樓、重試下樓與流程結尾都會以模板 action 恢復原本開關，避免 08-5F 自動下樓復歸邏輯把手動熟睡鎖關掉。
+- Helper 相容性檢查：沿用 Helper 套件 `V3.15` 既有 `input_boolean.sleep_silent_active`，本次未新增 helper，依賴版本維持 `V3.15`。
+- LINE 通知檢查：本次未新增或修改 LINE 發送流程，`08-5H頂樓深夜熟睡情境AI` 仍無 LINE 推播且未新增直接 `notify.line_*` 呼叫；SOP-10 無需新增 payload，符合 LINE 發送可靠性防呆要求。
 
 ## 本次調整（2026-06-01 網關防抖與頂樓熟睡手動鎖）
 - `106網關系統AI` 功能版升級至 `V3.2.0`：Actions 最前方新增 1 秒 Debounce，並將 Aqara 情境數量、情境標籤與唯一情境名稱移至 delay 後的 action variables 即時求值，避免離家/在家開關互搶時使用觸發 0 秒舊狀態。
