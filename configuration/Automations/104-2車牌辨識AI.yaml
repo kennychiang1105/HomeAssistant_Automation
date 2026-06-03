@@ -260,7 +260,7 @@
                 # 符合條件
                 - conditions:
                     - condition: template
-                      value_template: "{{ gate_still_open and arm_away_later and nobody_later }}"
+                      value_template: "{{ (gate_still_open | bool(false)) and (arm_away_later | bool(false)) and (nobody_later | bool(false)) }}"
                   sequence:
                     - choose:
                         - conditions:
@@ -285,12 +285,12 @@
                 # 不符合條件
                 - conditions:
                     - condition: template
-                      value_template: "{{ (not (gate_still_open and arm_away_later and nobody_later)) and (debug_on | bool(false)) }}"
+                      value_template: "{{ (not ((gate_still_open | bool(false)) and (arm_away_later | bool(false)) and (nobody_later | bool(false)))) and (debug_on | bool(false)) }}"
                   sequence:
                     - service: persistent_notification.create
                       data:
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
-                          條件未滿足：保全={{ 'Arm Away' if arm_away_later else '非 Arm Away' }}、
-                          現場動靜={{ '平靜無人' if nobody_later else '有動靜' }}、鐵門={{ '仍開啟' if gate_still_open else '已關閉' }}。
+                          條件未滿足：保全={{ 'Arm Away' if (arm_away_later | bool(false)) else '非 Arm Away' }}、
+                          現場動靜={{ '平靜無人' if (nobody_later | bool(false)) else '有動靜' }}、鐵門={{ '仍開啟' if (gate_still_open | bool(false)) else '已關閉' }}。
       default: []
