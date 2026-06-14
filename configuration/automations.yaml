@@ -53,34 +53,6 @@
     target:
       device_id: c01a1336ef43795fd0679631c3e6ce62
   mode: single
-- id: '1634979045293'
-  alias: 06空氣清淨機-濾網壽命
-  description: ''
-  triggers:
-  - type: value
-    device_id: 06bfb93dc808497c947434fb10e76b06
-    entity_id: sensor.kong_qi_qing_jing_ji_filter_life_remaining
-    domain: sensor
-    below: 5
-    trigger: device
-  conditions: []
-  actions:
-  - data:
-      message: 小米空氣清淨機Pro濾網壽命低於5%，請盡速更換!
-      title: 空氣清淨機-濾網壽命低
-    action: notify.persistent_notification
-  - data:
-      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n  {\n      \"type\": \"text\",\n      \"text\": \"【智慧家庭通知】一般 General
-        \U0001FAA7\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"小米空氣清淨機Pro，\\n濾網壽命低於5%，\\n請盡速更換!\"\n
-        \ },\n  {\n      \"type\": \"text\",\n      \"text\": \"空氣清淨機-濾網壽命低\"\n  }\n]\n"
-    enabled: true
-    action: script.send_line_to_user
-  - data:
-      message: 小米空氣清淨機Pro濾網壽命低於5%，請盡速更換!
-      title: 空氣清淨機-濾網壽命低
-    action: notify.notify
-  mode: single
 - id: '1643737297436'
   alias: 00-2廣播系統測試
   description: ''
@@ -3148,14 +3120,8 @@
   mode: restart
 - id: '1758897392331'
   alias: 08-5I頂樓空調關閉確認
-  description: ''
+  description: Kenny 與 iPad 均離家時自動關閉頂樓空調；已移除 Apple Watch 依賴並改用中文 Location Helper。
   triggers:
-  - type: turned_on
-    device_id: 41e159f0016bdc22701bd5eee5c5a94f
-    entity_id: 6ce0d0bac380be731c57ae011aecbd53
-    domain: binary_sensor
-    trigger: device
-    enabled: false
   - trigger: state
     entity_id:
     - binary_sensor.wu_lou_she_ying_ji_person_detected
@@ -3166,91 +3132,35 @@
     to: closed
   - trigger: state
     entity_id:
-    - device_tracker.iphone_17_pro_max_kenny
-    to:
+    - sensor.at_home_kenny_location
+    to: 離家
     for:
       hours: 0
       minutes: 5
       seconds: 0
   - trigger: state
     entity_id:
-    - device_tracker.apple_watch_ultra_3_kenny
-    to:
-  - trigger: state
-    entity_id:
-    - device_tracker.ipad_pro_2024_kenny
-    to:
+    - sensor.at_home_kenny_ipad_location
+    to: 離家
   conditions:
   - condition: and
     conditions:
     - condition: state
-      entity_id: device_tracker.iphone_17_pro_max_kenny
-      state: not_home
+      entity_id: sensor.at_home_kenny_location
+      state: 離家
       for:
         hours: 0
-        minutes: 3
+        minutes: 5
         seconds: 0
     - condition: state
-      entity_id: device_tracker.apple_watch_ultra_3_kenny
-      state: not_home
-    - condition: state
-      entity_id: device_tracker.ipad_pro_2024_kenny
-      state: not_home
+      entity_id: sensor.at_home_kenny_ipad_location
+      state: 離家
   actions:
   - device_id: dcfa3452c09bf5a13b556d8954f72a43
     domain: climate
     entity_id: 0429a720357553bef49083e49bdf393b
     type: set_hvac_mode
     hvac_mode: 'off'
-  mode: single
-- id: '1780217033634'
-  alias: 801-簡單感應燈系列-01-廁所感應燈(開/關)
-  description: ''
-  triggers:
-  - trigger: motion.detected
-    target:
-      entity_id: binary_sensor.e406bf25caa1_motion
-    options:
-      behavior: any
-      for: 00:00:00
-  - trigger: motion.cleared
-    target:
-      entity_id: binary_sensor.e406bf25caa1_motion
-    options:
-      behavior: any
-      for:
-        hours: 0
-        minutes: 21
-        seconds: 0
-  conditions: []
-  actions:
-  - choose:
-    - conditions:
-      - condition: state
-        entity_id: binary_sensor.e406bf25caa1_motion
-        state:
-        - 'off'
-        for:
-          hours: 0
-          minutes: 20
-          seconds: 0
-      sequence:
-      - action: switch.turn_off
-        metadata: {}
-        target:
-          entity_id: switch.ce_suo_deng
-        data: {}
-    - conditions:
-      - condition: state
-        entity_id: binary_sensor.e406bf25caa1_motion
-        state:
-        - 'on'
-      sequence:
-      - action: switch.turn_on
-        metadata: {}
-        target:
-          entity_id: switch.ce_suo_deng
-        data: {}
   mode: single
 - id: '1781414206841'
   alias: 800-開關系列-13 Aqara魔方-客餐廳多工開關

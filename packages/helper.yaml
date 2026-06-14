@@ -1,6 +1,13 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.16）
+# Helpers（V3.17.1）
 # ──────────────────────────────────────────────
+# 修正 (V3.17.1):
+#   • 修正 input_select.lpr_last_plate 重複 EBH8030 選項，並移除 Kenny iPad AP template 未使用變數。
+#
+# 新增與強化 (V3.17):
+#   • 新增廁所感應燈手動關閉模式、耗材電量一鍵測試按鈕、廁所人體感應器/新客廳 Aqara 魔方最低電量記錄，以及 Kenny iPad 中文 Location helper。
+#   • 車牌代號舊家用車牌全域更名為 EBH8030。
+#
 # 新增與強化 (V3.16):
 #   • 新增 input_boolean.gateway_debug_notify，供 106網關系統AI 控管清理/同步類永久通知。
 #   • 新增 input_boolean.lpr_open_notify_enable，供 104-2車牌辨識AI 控管實際車牌自動開門永久通知。
@@ -370,6 +377,9 @@ input_boolean:
   ai_version_snapshot_debug_enable:
     name: 更新紀錄快照_Debug通知
     icon: mdi:bug-outline
+  toilet_light_manual_override_mode:
+    name: 廁所感應燈_手動關閉模式
+    icon: mdi:lightbulb-off-outline
 
 input_button:
   ai_version_snapshot_clear:
@@ -381,6 +391,9 @@ input_button:
   tesla_charger_notify_test:
     name: Tesla充電通知測試
     icon: mdi:flash-outline
+  battery_system_test_trigger:
+    name: 耗材電量系統一鍵測試
+    icon: mdi:battery-heart-variant
 
 input_number:
   supply_batt_lowest_garage:
@@ -421,6 +434,18 @@ input_number:
     mode: box
   supply_batt_lowest_28d1273d78cf:
     name: 耗材電量最低值_28d1273d78cf
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_toilet_motion:
+    name: 耗材電量最低值_廁所人體感應器
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_living_room_cube_new:
+    name: 耗材電量最低值_客廳Aqara魔方EBH8030
     min: 0
     max: 100
     step: 1
@@ -746,7 +771,6 @@ input_select:
     options:
       - 未偵測
       - EAK8030
-      - REA9519
       - EBH8030
 template:
     - trigger:
@@ -1302,7 +1326,20 @@ template:
             {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
               {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_kenny_ap_mac.last_changed, 0) %}
               {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
-            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'客廳','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
+        - name: at_home_kenny_ipad_ap_mac
+          unique_id: at_home_kenny_ipad_ap_mac
+          state: >-
+            {{ state_attr('device_tracker.ipad_pro_2024_kenny', 'ap_mac') if is_state('device_tracker.ipad_pro_2024_kenny','home') else '離家' }}
+        - name: at_home_kenny_ipad_location
+          unique_id: at_home_kenny_ipad_location
+          state: >-
+            {% set ap = states('sensor.at_home_kenny_ipad_ap_mac') %}
+            {% if ap == '離家' %}離家
+            {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
+              {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_kenny_ipad_ap_mac.last_changed, 0) %}
+              {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'客廳','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_elay_location
           unique_id: at_home_elay_location
           state: >-
@@ -1311,7 +1348,7 @@ template:
             {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
               {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_elay_ap_mac.last_changed, 0) %}
               {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
-            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'客廳','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_jerry_location
           unique_id: at_home_jerry_location
           state: >-
@@ -1320,7 +1357,7 @@ template:
             {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
               {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_jerry_ap_mac.last_changed, 0) %}
               {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
-            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'客廳','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
         - name: at_home_iris_location
           unique_id: at_home_iris_location
           state: >-
@@ -1329,7 +1366,7 @@ template:
             {% elif ap|string|lower in ['unknown','unavailable','none',''] %}
               {% set ap_age = as_timestamp(now()) - as_timestamp(states.sensor.at_home_iris_ap_mac.last_changed, 0) %}
               {{ '離家確認中' if ap_age < 120 else ('離家' if ap_age < 600 else '異常') }}
-            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'二樓 (客廳/廚房/廁所)','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
+            {% else %}{{ {'d0:21:f9:1f:1a:30':'車庫','60:22:32:9c:82:55':'客廳','60:22:32:3a:ac:34':'三樓臥室','70:a7:41:e4:54:1f':'四樓Jerry房間','d0:21:f9:f2:fc:4c':'四樓Elay房間','70:a7:41:e4:5a:bf':'頂樓Kenny房間'}.get(ap|lower,'未知') }}{% endif %}
 
 automation:
   - id: ui_ai_version_snapshot_clear

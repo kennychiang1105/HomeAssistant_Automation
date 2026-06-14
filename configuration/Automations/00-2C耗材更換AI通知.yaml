@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V3.0.3)
-# 相容版本：Helpers V3.12.0（已確認）
+# 00-2C耗材更換AI通知 (V3.1.0)
+# 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.0：功能版。清理舊 Aqara 魔方電量，新增廁所人體感應器與新客廳 Aqara 魔方監控，並加入一鍵測試健康度報告（Persistent Notification + LINE）。
 # - V3.0.3：修補版。修正濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
 # - V3.0.2：同版增補。補上 battery replacement 大幅回升重設（+30%）與 automation_version 變數化標題，降低版本硬編碼維護成本。
 # - V3.0.2：同版增補。電量追蹤改為「各裝置最低電量記錄」；未達 90% 以上前不重設，避免 50%→55% 回彈重複通知。
@@ -9,7 +10,7 @@
 # - V3.0.1：修復定期摘要計時基準與上次回報時間寫回；電量提醒改為區間門檻避免跳點漏報。
 # - V3.0：新增濾芯與多裝置電量分級、去重通知與定期摘要。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2C耗材更換AI通知 (V3.0.2)
+- alias: 00-2C耗材更換AI通知 (V3.1.0)
   id: ai_00_2c_supply_battery_notify
   mode: queued
   triggers:
@@ -31,16 +32,19 @@
         - sensor.garage_battery
         - sensor.ke_ting_men_suo_dian_liang_guo_lu
         - sensor.shu_fang_gan_ying_kai_guan_battery
-        - sensor.0x00158d00023cd3dc_battery
-        - sensor.0x00158d00027d8a8e_battery
+        - sensor.0x158d00027d8a8e_battery
+        - sensor.e406bf25caa1_battery
         - sensor.08b95f06b466_battery
         - sensor.28d1273d78cf_battery
     - trigger: time
       id: periodic_report
       at: input_datetime.supply_battery_report_time
+    - trigger: state
+      id: test_report
+      entity_id: input_button.battery_system_test_trigger
   conditions: []
   variables:
-    automation_version: "V3.0.2"
+    automation_version: "V3.1.0"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【耗材更換系統AI ({{ automation_version }})】\n一般 General 🪧"
@@ -77,8 +81,8 @@
                       'sensor.garage_battery':'input_number.supply_batt_lowest_garage',
                       'sensor.ke_ting_men_suo_dian_liang_guo_lu':'input_number.supply_batt_lowest_doorlock',
                       'sensor.shu_fang_gan_ying_kai_guan_battery':'input_number.supply_batt_lowest_study_switch',
-                      'sensor.0x00158d00023cd3dc_battery':'input_number.supply_batt_lowest_23cd3dc',
-                      'sensor.0x00158d00027d8a8e_battery':'input_number.supply_batt_lowest_27d8a8e',
+                      'sensor.0x158d00027d8a8e_battery':'input_number.supply_batt_lowest_living_room_cube_new',
+                      'sensor.e406bf25caa1_battery':'input_number.supply_batt_lowest_toilet_motion',
                       'sensor.08b95f06b466_battery':'input_number.supply_batt_lowest_08b95f06b466',
                       'sensor.28d1273d78cf_battery':'input_number.supply_batt_lowest_28d1273d78cf'
                     }.get(trigger.entity_id, '')
@@ -130,6 +134,51 @@
                                   data:
                                     user_id: "{{ line_bot_target_user_id }}"
                                     payload: "{{ [{'type':'text','text':line_title_general},{'type':'text','text':'🔋 裝置電量提醒\\n' ~ trigger.to_state.name ~ '：' ~ v ~ '%'}] | tojson }}"
+        - conditions: "{{ trigger.id == 'test_report' }}"
+          sequence:
+            - variables:
+                battery_report: >-
+                  {% set devices = {
+                    '車庫感測器':'sensor.garage_battery',
+                    '客廳門鎖':'sensor.ke_ting_men_suo_dian_liang_guo_lu',
+                    '書房感應開關':'sensor.shu_fang_gan_ying_kai_guan_battery',
+                    '客廳 Aqara 魔方':'sensor.0x158d00027d8a8e_battery',
+                    '廁所人體感應器':'sensor.e406bf25caa1_battery',
+                    '08b95f06b466':'sensor.08b95f06b466_battery',
+                    '28d1273d78cf':'sensor.28d1273d78cf_battery'
+                  } %}
+                  {% set ns = namespace(lines=[]) %}
+                  {% for name, entity in devices.items() %}
+                    {% set raw = states(entity) %}
+                    {% set pct = raw | int(-1) %}
+                    {% set advice = '請更換電池' if pct >= 0 and pct <= 20 else ('電量偏低，請準備備品' if pct > 20 and pct <= 35 else ('健康' if pct > 35 else '資料異常，請檢查')) %}
+                    {% set ns.lines = ns.lines + ['• ' ~ name ~ '：' ~ raw ~ '% — ' ~ advice] %}
+                  {% endfor %}
+                  {{ ns.lines | join('\n') }}
+                line_user_valid: "{{ line_bot_target_user_id|string|trim|lower not in ['unknown','unavailable','none',''] }}"
+            - service: persistent_notification.create
+              data:
+                title: "耗材電量系統一鍵測試"
+                message: "{{ battery_report }}"
+            - if:
+                - condition: state
+                  entity_id: input_boolean.notify_line_general_enable
+                  state: "on"
+                - condition: state
+                  entity_id: input_boolean.notify_supply_extra_line_enable
+                  state: "on"
+                - condition: template
+                  value_template: "{{ line_user_valid }}"
+              then:
+                - service: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: "{{ [{'type':'text','text':line_title_general},{'type':'text','text':'🔋 耗材電量健康度測試報告'},{'type':'text','text':battery_report}] | tojson }}"
+              else:
+                - service: persistent_notification.create
+                  data:
+                    title: "耗材電量測試 LINE 未發送"
+                    message: "未發送原因：LINE 分級/耗材開關關閉或 user_id 無效。"
         - conditions: "{{ trigger.id == 'periodic_report' and (((as_timestamp(now()) - as_timestamp(states('input_datetime.supply_battery_last_report_time'), 0)) / 86400) >= (states('input_number.supply_battery_report_interval_days')|int(15))) }}"
           sequence:
             - service: persistent_notification.create

@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────
+# 08-8B_廁所感應燈AI (V3.0.1)
+# 相容版本：Helpers V3.17.1（已確認）
+# 更新紀錄（統一格式）：
+# - V3.0.1：修補版；長按切換與 flash_count 判斷統一使用 manual_override_entity 變數，避免 helper 實體硬編碼分散。
+# - V3.0.0：功能版；從舊式 automations.yaml 獨立為 AI 感應燈，新增手動關閉模式 helper、1 分鐘智慧關燈與長按事件視覺回饋。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-8B_廁所感應燈AI (V3.0.1)
+  id: ai_08_8b_toilet_motion_light
+  description: >
+    廁所人體感應自動開燈；無人 1 分鐘且未啟用手動關閉模式時自動關燈。
+    長按事件切換手動關閉模式，並以燈光閃爍 4 次/2 次回饋。
+  mode: restart
+
+  triggers:
+    - id: motion_on
+      platform: state
+      entity_id: binary_sensor.e406bf25caa1_motion
+      to: "on"
+    - id: motion_off
+      platform: state
+      entity_id: binary_sensor.e406bf25caa1_motion
+      to: "off"
+      for: "00:01:00"
+    - id: long_press
+      platform: event
+      event_type: ce_suo_deng_long_press
+
+  variables:
+    automation_version: "V3.0.1"
+    helpers_compat: "Helpers V3.17.1"
+    manual_override_entity: input_boolean.toilet_light_manual_override_mode
+
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: motion_on
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.ce_suo_deng
+
+        - conditions:
+            - condition: trigger
+              id: motion_off
+            - condition: template
+              value_template: "{{ is_state(manual_override_entity, 'off') }}"
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.ce_suo_deng
+
+        - conditions:
+            - condition: trigger
+              id: long_press
+          sequence:
+            - service: input_boolean.toggle
+              target:
+                entity_id: "{{ manual_override_entity }}"
+            - delay: "00:00:01"
+            - variables:
+                flash_count: "{{ 4 if is_state(manual_override_entity,'on') else 2 }}"
+            - repeat:
+                count: "{{ flash_count }}"
+                sequence:
+                  - service: switch.turn_off
+                    target:
+                      entity_id: switch.ce_suo_deng
+                  - delay: "00:00:00.25"
+                  - service: switch.turn_on
+                    target:
+                      entity_id: switch.ce_suo_deng
+                  - delay: "00:00:00.25"

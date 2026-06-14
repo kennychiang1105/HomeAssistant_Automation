@@ -1,11 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 21A_客廳電風扇整合控制AI (V3.1)
-# 相容版本：Helpers V3.6
+# 21A_客廳電風扇整合控制AI (V3.2.1)
+# 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.1：修補版；動態兒童鎖補上低溫解鎖遲滯，Kenny 不在二樓主控制區時 t_eff < 30.0°C 會主動解鎖，t_eff > 30.5°C 才上鎖。
+# - V3.2.0：功能版；移除開燈連動，新增 Kenny 二樓主控制區動態兒童鎖，夏季風速曲線整體上移 2.3°C，非夏季減成擴大為 -10% 並移除最低限制。
 # - V3.1：新增手動調速防護罩（下次開機解除），補強 null-safe 觸發判斷與 manual actor 偵測，避免 AI 覆蓋手動風速。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 21A_客廳電風扇整合控制AI (V3.1)
+- alias: 21A_客廳電風扇整合控制AI (V3.2.1)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -28,17 +30,16 @@
       attribute: percentage
       id: fan_speed_change
     - platform: state
-      entity_id: light.yeelink_color5_4181_light
-      to: "on"
-      id: light_on
-    - platform: state
       entity_id:
         - input_boolean.living_room_fan_auto_speed_mode
         - input_boolean.living_room_fan_prevent_off_mode
       id: mode_change
+    - platform: state
+      entity_id: sensor.at_home_kenny_location
+      id: location_change
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V3.2.1"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
@@ -90,14 +91,14 @@
       {% else %}
         {% set t = t_eff | float %}
         {% set summer_pct = 0 %}
-        {% if t > 29.0 %}      {% set summer_pct = 100 %}
-        {% elif t > 28.5 %}    {% set summer_pct = 90 %}
-        {% elif t > 28.0 %}    {% set summer_pct = 80 %}
-        {% elif t > 27.5 %}    {% set summer_pct = 70 %}
-        {% elif t > 27.0 %}    {% set summer_pct = 60 %}
-        {% elif t > 26.5 %}    {% set summer_pct = 50 %}
-        {% elif t > 26.0 %}    {% set summer_pct = 40 %}
-        {% elif t > 25.5 %}    {% set summer_pct = 30 %}
+        {% if t > 31.3 %}      {% set summer_pct = 100 %}
+        {% elif t > 30.8 %}    {% set summer_pct = 90 %}
+        {% elif t > 30.3 %}    {% set summer_pct = 80 %}
+        {% elif t > 29.8 %}    {% set summer_pct = 70 %}
+        {% elif t > 29.3 %}    {% set summer_pct = 60 %}
+        {% elif t > 28.8 %}    {% set summer_pct = 50 %}
+        {% elif t > 28.3 %}    {% set summer_pct = 40 %}
+        {% elif t > 27.8 %}    {% set summer_pct = 30 %}
         {% else %}              {% set summer_pct = 20 %}
         {% endif %}
 
@@ -107,7 +108,7 @@
           {% if summer_pct == 100 %}
             {{ 100 }}
           {% else %}
-            {{ [summer_pct - 5, 20] | max }}
+            {{ summer_pct - 10 }}
           {% endif %}
         {% endif %}
       {% endif %}
@@ -199,30 +200,34 @@
                   sequence:
                     - stop: "Auto-speed mode allows manual turn off"
 
-        # === PRIORITY 4: 夏季模式開燈 (自動風速模式) ===
+        # === PRIORITY 4: 動態兒童鎖（依 Kenny 位置與體感溫度） ===
         - conditions:
             - condition: trigger
-              id: light_on
-            - "{{ auto_speed_mode }}"
-            - "{{ summer_mode }}"
-            - "{{ not snooze_active }}"
-            - "{{ is_state('fan.ke_ting_dian_feng_shan', 'off') }}"
+              id:
+                - sensor_change
+                - location_change
+            - "{{ t_eff_valid }}"
           sequence:
-            - service: fan.turn_on
-              target:
-                entity_id: fan.ke_ting_dian_feng_shan
-            - if:
-                - "{{ debug_notify }}"
-              then:
-                - service: notify.persistent_notification
-                  data:
-                    title: "客廳風扇 (Debug)"
-                    message: "夏季模式下，因燈光開啟而連動開啟風扇。"
+            - choose:
+                - conditions:
+                    - "{{ states('sensor.at_home_kenny_location') in ['客廳', '廚房', '廁所'] or (t_eff | float(0) < 30.0) }}"
+                  sequence:
+                    - service: xiaomi_miio_fan.fan_set_child_lock_off
+                      target:
+                        entity_id: fan.ke_ting_dian_feng_shan
+                - conditions:
+                    - "{{ t_eff | float(0) > 30.5 }}"
+                  sequence:
+                    - service: xiaomi_miio_fan.fan_set_child_lock_on
+                      target:
+                        entity_id: fan.ke_ting_dian_feng_shan
 
         # === PRIORITY 5: 體感溫度調整 (自動風速模式) ===
         - conditions:
             - condition: trigger
-              id: sensor_change
+              id:
+                - sensor_change
+                - location_change
             - "{{ t_eff_valid }}"
           sequence:
             - if:

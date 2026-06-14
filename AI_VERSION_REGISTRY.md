@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.16`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.17.1`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -26,7 +26,7 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.0.3)` | `ai_00_2c_supply_battery_notify` | `V3.0.3` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.0)` | `ai_00_2c_supply_battery_notify` | `V3.1.0` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -38,20 +38,21 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.3.1)` | `ai_auto_leave_system` | `V3.3.1` |
+| `configuration/Automations/08-8B_廁所感應燈AI.yaml` | `08-8B_廁所感應燈AI (V3.0.1)` | `ai_08_8b_toilet_motion_light` | `V3.0.1` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.0)` | `ai_auto_leave_system` | `V3.4.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
-| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.0)` | `ai_lpr_recognition` | `V3.1.0` |
+| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.1)` | `ai_lpr_recognition` | `V3.1.1` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.0)` | `ai_gateway_anomaly_guard` | `V3.3.0` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.1)` | `ai_living_room_fan_integrated_control` | `V3.1` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
-| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.2.1)` | `ai_topfloor_fan_automation` | `V3.2.1` |
+| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.0.3)` | `ai_08_7a_auto_goodnight_scene` | `V3.0.3` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.1.1)` | `ai_08_7a_auto_goodnight_scene` | `V3.1.1` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -165,9 +166,34 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
+
+
+
+## 本次調整（2026-06-14 Code Review 修補）
+- Helper 套件修補版升級至 `V3.17.1`：移除 `input_select.lpr_last_plate` 重複 `EBH8030` 選項，避免 Home Assistant input_select 驗證失敗；同時移除 Kenny iPad AP template 未使用變數。
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.1.1`：修正離家安全重檢條件，重檢後 Kenny 仍為 `離家` 時不再取消晚安情境，僅回到 `客廳` / `廚房` / `廁所` / `車庫` 才停止。
+- `08-8B_廁所感應燈AI` 修補版升級至 `V3.0.1`：長按切換與閃爍次數判斷統一使用 `manual_override_entity` 變數，移除硬編碼分散。
+- LINE 通知檢查：本次只修正 helper options、template 死碼與自動化條件/變數引用，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
+
+## 本次調整（2026-06-14 21A 兒童鎖低溫解鎖確認）
+- `21A_客廳電風扇整合控制AI` 修補版升級至 `V3.2.1`：確認並補強動態兒童鎖低溫解鎖遲滯；Kenny 在二樓主控制區（客廳/廚房/廁所）一律解鎖，Kenny 不在主控制區時 `t_eff > 30.5°C` 才上鎖，並在 `t_eff < 30.0°C` 主動解鎖，30.0～30.5°C 保持現狀避免抖動。
+- LINE 通知檢查：本次只調整 21A 兒童鎖控制 service，未新增或修改 persistent notification / LINE 發送路徑，未出現 `notify.line_*` 或直接 LINE 呼叫；既有耗材一鍵測試 LINE 路徑仍符合 SOP-10。
+
+## 本次調整（2026-06-14 夏季風扇、Location 與耗材/燈控 AI 擴充）
+- `21A_客廳電風扇整合控制AI` 功能版升級至 `V3.2.0`：移除開燈連動、加入 Kenny 主控制區動態兒童鎖、夏季曲線上移 2.3°C，非夏季減成改 -10% 並放開最低限制。
+- `22頂樓電風扇自動化AI` 功能版升級至 `V3.3.0`：日間曲線門檻全數上調 0.2°C，睡眠降速改用 `input_boolean.sleep_silent_active`，睡眠/非夏季減成擴大為 -10%。
+- 新增 `08-8B_廁所感應燈AI (V3.0.0)`：廁所感應燈 AI 化，支援 1 分鐘無人關燈、長按事件切換手動關閉模式與 4/2 次閃爍回饋；舊 `automations.yaml` 廁所感應燈已移除。
+- `00-2C耗材更換AI通知` 功能版升級至 `V3.1.0`：電量監控清單移除舊 Aqara 魔方，加入廁所人體感應器與新客廳 Aqara 魔方，並新增耗材電量一鍵測試報告。
+- `08-7A自動晚安情境AI` 功能版升級至 `V3.1.0`：晚安時段延長至 05:00，二樓無人防抖提高至 90 秒，並加入 Location Helper 安全重檢取消機制。
+- `100B自動離家AI` 功能版升級至 `V3.4.0`：離家判斷全面改用 `sensor.at_home_XXX_location` 中文狀態，所有家庭成員「離家」滿 4 分 10 秒才觸發。
+- `104-2車牌辨識AI` 修補版升級至 `V3.1.1`：車牌/設備代號 `舊家用車牌` 全域更名為 `EBH8030`，Webhook ID 與通知文字同步。
+- Helper 套件功能版升級至 `V3.17`：新增廁所手動關閉模式、耗材測試按鈕、兩個最低電量記錄 helper、Kenny iPad 中文 Location helper，並記錄車牌更名。
+- Location 架構字典：`sensor.at_home_XXX_location` 使用中文位置狀態（`客廳`、`廚房`、`廁所`、`車庫`、`離家`、`離家確認中` 等），`binary_sensor.at_home_XXX` 維持在家布林狀態，供未來 AI 情境防抖與安全閘使用。
+- LINE 通知檢查：本次新增的耗材一鍵測試 LINE 路徑使用 `script.send_line_to_user`、一般分級開關、耗材額外開關與 user_id 有效性檢查；檢查不通過時建立 persistent notification 記錄未發送原因，符合 SOP-10。
+
 ## 本次調整（2026-06-03 Debug 通知開關與車牌開門通知）
 - `106網關系統AI` 功能版升級至 `V3.3.0`：新增 `input_boolean.gateway_debug_notify`，將解除歸位、唯一情境同步與無情境歸位等清理型永久通知改為 Debug 開啟時才發送；異常攔截緊急 LINE 維持原有 `script.send_line_to_user`、緊急分級開關與 user_id 防呆，Debug 不新增 LINE 路徑。
-- `104-2車牌辨識AI` 功能版升級至 `V3.1.0`：沿用 `input_boolean.lpr_debug_notify` 控管預備/取消類永久通知，將「🙂（預備）條件式關門：不關」改為 Debug 開啟才通知；新增 `input_boolean.lpr_open_notify_enable` 控管實際 LPR 自動開門永久通知，實際自動關門仍保留永久通知。
+- `104-2車牌辨識AI` 功能版升級至 `V3.1.1`：沿用 `input_boolean.lpr_debug_notify` 控管預備/取消類永久通知，將「🙂（預備）條件式關門：不關」改為 Debug 開啟才通知；新增 `input_boolean.lpr_open_notify_enable` 控管實際 LPR 自動開門永久通知，實際自動關門仍保留永久通知。
 - Helper 套件功能版升級至 `V3.16`：新增網關 Debug 通知開關與 LPR 車牌開門通知開關。
 - SOP 更新：新增 Debug Helper / 清理型永久通知規範，並補充 Debug 不得把原本未送 LINE 的通知升級成 LINE；LINE 通知檢查確認本次未新增任何 `notify.line_*` 或 LPR LINE 路徑，106 既有 LINE 仍符合 SOP-10。
 
@@ -183,7 +209,7 @@
 - LINE 通知檢查：本次未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 呼叫；SOP-10 無需新增 payload，且既有 `script.send_line_to_user` 規範未受影響。
 
 ## 本次調整（2026-05-30 Code Review 修補）
-- `08-7A自動晚安情境AI` 修補版升級至 `V3.0.3`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.1.0`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
 - `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.4.1`：精簡輔助關燈條件，移除被 `elapsed >= 2.5` 覆蓋的 `elapsed > 10` 冗餘判斷，邏輯行為不變。
 - LINE 通知檢查：本次只調整 08-7A 觸發補洞與 08-5C 條件可讀性，未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 或繞過 `script.send_line_to_user` 的呼叫；SOP-10 無需新增 payload。
 
@@ -235,7 +261,7 @@
 - Helper 套件升級至 `V3.12.2`：新增 `input_boolean.tesla_charger_session_charged`，記錄當次插槍期間是否已開始充電。
 
 ## 本次調整（2026-05-28）
-- `00-2C耗材更換AI通知` 升級至 `V3.0.3`：修復濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
+- `00-2C耗材更換AI通知` 升級至 `V3.1.0`：修復濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.1.4`：修復充電狀態因為 unknown 而導致的多次重複開始通知與完成時間錯誤；移除冗餘的額外系統通知，使 HA 通知與 LINE 通知數量與資訊保持一致。
 - `00-01系統回應穩定自動化AI` 維持 `V3.0.2`：確認週期重啟維持 `hassio.host_reboot` 全機重啟，而非單純重載。
 - Helper 套件：新增 `input_datetime.tesla_charger_start_time` 供 107Tesla 精準記錄開始時間。
@@ -281,11 +307,11 @@
 
 ## 本次調整（2026-04-10）
 - Helper 套件修補版升級至 `V3.9.2`：優化版本快照基準模板 `current_versions` 的初始化，改為直接使用 `registry_versions` mapping，移除迴圈逐筆複製以降低模板計算成本。
-- `22頂樓電風扇自動化AI` 修補版升級至 `V3.2.1`：修復 `t_eff` 在感測器暫時失效時（`none/unavailable`）造成 `float` 轉型錯誤，補強 `t_eff_valid` 判斷並加入安全預設值，避免自動化中斷。
+- `22頂樓電風扇自動化AI` 修補版升級至 `V3.3.0`：修復 `t_eff` 在感測器暫時失效時（`none/unavailable`）造成 `float` 轉型錯誤，補強 `t_eff_valid` 判斷並加入安全預設值，避免自動化中斷。
 - Helper 套件修補版升級至 `V3.9.1`：將版本比對模板中的 `dict.update()` 全數改為安全的 `dict(...)` 重新指派寫法，修復新版 Jinja2 的 `SecurityError` 限制。
 - `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.0.1`：主流程防呆由 8 秒調整為 15 秒，降低關燈後感測延遲造成誤重開。
 - `08-5H頂樓深夜熟睡情境AI` 修補版升級至 `V3.0.1`：改為下樓情境執行後 1 分鐘檢查床頭燈（`light.yeelink_bslamp2_4329_light`）是否關閉；若失敗自動重跑一次下樓流程，僅在確認成功後才恢復風扇狀態。
-- `100B自動離家AI` 修補版升級至 `V3.3.1`：LINE 通知標題統一移除「100B」編號顯示，並改以 `automation_version` 動態帶入版本，避免版本號未同步更新。
+- `100B自動離家AI` 修補版升級至 `V3.4.0`：LINE 通知標題統一移除「100B」編號顯示，並改以 `automation_version` 動態帶入版本，避免版本號未同步更新。
 - 新增 SOP-8：後續每個獨立 `*AI.yaml` 檔案頂部更新紀錄格式需參照 `100B自動離家AI.yaml`。
 - 新增 SOP-9：依「功能版 / 修補版」判斷版本進位，明確區分 `V3.4` 與 `V3.3.1` 類型升版。
 
@@ -320,7 +346,7 @@
 - 100C2客廳門鎖電量分級通知AI 升級至 `V3.1`：換電池校正時同步重設 `input_datetime.doorlock_batt_last_drop_time`，避免跨循環舊時間戳導致剩餘天數短暫顯示 0。
 - Helper 升級至 `V3.7`：新增 `input_datetime.doorlock_batt_last_drop_time`，並修正剩餘天數估算改採 helper 時間戳，避免 HA 重啟重置 `last_changed` 造成天數反彈。
 
-- 21A_客廳電風扇整合控制AI 升級至 `V3.1`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。
+- 21A_客廳電風扇整合控制AI 升級至 `V3.2.0`：導入手動調速防護罩（下次開機解除）、manual actor 判斷與 null-safe 條件，避免 AI 與手動調速互搶。
 - 廣播設備清理（2026-04）：已移除 `media_player.sony_bravia_tv` 相關音量/切源/狀態判斷流程，避免已下線設備造成自動化錯誤。
 - 廣播設備清理延伸修正（2026-04-08）：05B / 08-6 / 21B 與地震遠端 Script 移除已下線 TV remote 實體引用（`61eaa5fb8386221ba077bcb884e74573`），避免 `Unknown entity` 導致自動化與腳本設定失敗；版本升級為 05B V3.1、08-6 V3.1、21B V3.1、EQ Script V3.4。
 - 後續廣播更新約定：原 Sony TV 控制位置已統一改以 `# TVSPEAKERTODO:` 註記；未來導入新設備時，優先搜尋 `TVSPEAKERTODO` 後補上新設備音量與播放指令即可。
