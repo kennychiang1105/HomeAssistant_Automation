@@ -1,9 +1,6 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.17.2）
+# Helpers（V3.17.1）
 # ──────────────────────────────────────────────
-# 修正 (V3.17.2):
-#   • 新增 AtHome Kenny iPad 獨立追蹤裝置清單，供 iPad Location helper 可替換裝置；確認 iPad 不納入在家/無人與二樓/車庫綜合占用判斷。
-#
 # 修正 (V3.17.1):
 #   • 修正 input_select.lpr_last_plate 重複 EBH8030 選項，並移除 Kenny iPad AP template 未使用變數。
 #
@@ -1196,6 +1193,13 @@ template:
           state: >-
             {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
+            {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+        - name: at_home_kenny_ipad
+          unique_id: at_home_kenny_ipad
+          device_class: presence
+          state: >-
+            {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
+            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_elay
           unique_id: at_home_elay
