@@ -1,6 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260531.yaml minus AI-managed aliases
-- id: '1634978660168'
+# Source: configuration/Automations/FullHistory/full_automations_20260613.yaml minus AI-managed - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
   triggers:
@@ -1399,22 +1398,50 @@
 - id: '1692452366469'
   alias: 800-開關系列-8客廳主開關下2/客廳外開關下1-客廳風扇切換
   description: ''
-  trigger:
-  - platform: device
-    domain: terncy
+  triggers:
+  - domain: terncy
     device_id: d6e4551be6bf3fd520f5111e4f02a6cf
     type: long_press
-  - platform: device
-    domain: terncy
+    trigger: device
+  - domain: terncy
     device_id: ee6aa6ce640f7123b2469280a5c34a7f
     type: long_press
-  condition: []
-  action:
-  - action: fan.turn_on
-    target:
-      entity_id:
-      - fan.ke_ting_dian_feng_shan
-    data: {}
+    trigger: device
+  conditions: []
+  actions:
+  - sequence:
+    - choose:
+      - conditions:
+        - condition: fan.is_on
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          options:
+            behavior: any
+            for: 00:00:00
+        sequence:
+        - action: fan.turn_off
+          metadata: {}
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          data: {}
+      - conditions:
+        - condition: fan.is_off
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          options:
+            behavior: any
+            for: 00:00:00
+        sequence:
+        - action: fan.turn_on
+          metadata: {}
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          data: {}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 3
+        milliseconds: 0
   mode: single
 - id: '1692452863496'
   alias: 800-開關系列-0B 客廳主開關下3-早安到家
@@ -2266,6 +2293,10 @@
         device_id: b2cc0e2bcef2b1aab52dd0a881c16fbd
         entity_id: 768da0ba0daed651f60249ede9b80f42
         domain: light
+        for:
+          hours: 0
+          minutes: 1
+          seconds: 0
       - condition: device
         type: is_on
         device_id: 06c41a1060821fec0d9a660acb3ee9fa
@@ -3221,3 +3252,143 @@
           entity_id: switch.ce_suo_deng
         data: {}
   mode: single
+- id: '1781414206841'
+  alias: 800-開關系列-13 Aqara魔方-客餐廳多工開關
+  description: 使用 Aqara 魔方（Aqara 網關狀態版）控制客餐廳燈光、風扇與情境切換
+  triggers:
+  - entity_id: binary_sensor.0x158d00027d8a8e_action
+    trigger: state
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.to_state.state not in ['''', ''off'', ''unknown'',
+      ''unavailable''] }}'
+  actions:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.to_state.state in [''rotate'', ''rotate_left'',
+          ''rotate_right''] }}'
+      sequence:
+      - choose:
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 4 }}'
+          sequence:
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 3 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 2 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 1 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 0 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id: light.yeelink_color5_4181_light
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.to_state.state == ''move'' }}'
+      sequence:
+      - action: light.toggle
+        target:
+          entity_id: light.can_ting_deng_zu_1_ha
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.to_state.state in [''shake'', ''shake_air''] }}'
+      sequence:
+      - if:
+        - condition: time
+          after: 05:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
+        then:
+        - data:
+            skip_condition: true
+          target:
+            entity_id: automation.101zao_an_qing_jing
+          action: automation.trigger
+        else:
+        - data:
+            skip_condition: true
+          target:
+            entity_id: automation.103dao_jia_qing_jing
+          action: automation.trigger
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.to_state.state == ''flip90'' }}'
+      sequence:
+      - action: fan.turn_on
+        target:
+          entity_id: fan.ke_ting_dian_feng_shan
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.to_state.state == ''flip180'' }}'
+      sequence:
+      - action: fan.turn_off
+        target:
+          entity_id: fan.ke_ting_dian_feng_shan
+  mode: restart
