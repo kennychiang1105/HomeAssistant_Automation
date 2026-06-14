@@ -38,7 +38,7 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/08-8B_廁所感應燈AI.yaml` | `08-8B_廁所感應燈AI (V3.0.1)` | `ai_08_8b_toilet_motion_light` | `V3.0.1` |
+| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.1)` | `ai_08_8b_toilet_motion_light` | `V3.0.1` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.0)` | `ai_auto_leave_system` | `V3.4.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
@@ -182,7 +182,7 @@
 ## 本次調整（2026-06-14 Code Review 修補）
 - Helper 套件修補版升級至 `V3.17.1`：移除 `input_select.lpr_last_plate` 重複 `EBH8030` 選項，避免 Home Assistant input_select 驗證失敗；同時移除 Kenny iPad AP template 未使用變數。
 - `08-7A自動晚安情境AI` 修補版升級至 `V3.1.1`：修正離家安全重檢條件，重檢後 Kenny 仍為 `離家` 時不再取消晚安情境，僅回到 `客廳` / `廚房` / `廁所` / `車庫` 才停止。
-- `08-8B_廁所感應燈AI` 修補版升級至 `V3.0.1`：長按切換與閃爍次數判斷統一使用 `manual_override_entity` 變數，移除硬編碼分散。
+- `08-8B廁所感應燈AI` 修補版升級至 `V3.0.1`：長按切換與閃爍次數判斷統一使用 `manual_override_entity` 變數，移除硬編碼分散。
 - LINE 通知檢查：本次只修正 helper options、template 死碼與自動化條件/變數引用，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
 
 ## 本次調整（2026-06-14 21A 兒童鎖低溫解鎖確認）
@@ -192,7 +192,7 @@
 ## 本次調整（2026-06-14 夏季風扇、Location 與耗材/燈控 AI 擴充）
 - `21A_客廳電風扇整合控制AI` 功能版升級至 `V3.2.0`：移除開燈連動、加入 Kenny 主控制區動態兒童鎖、夏季曲線上移 2.3°C，非夏季減成改 -10% 並放開最低限制。
 - `22頂樓電風扇自動化AI` 功能版升級至 `V3.3.0`：日間曲線門檻全數上調 0.2°C，睡眠降速改用 `input_boolean.sleep_silent_active`，睡眠/非夏季減成擴大為 -10%。
-- 新增 `08-8B_廁所感應燈AI (V3.0.0)`：廁所感應燈 AI 化，支援 1 分鐘無人關燈、長按事件切換手動關閉模式與 4/2 次閃爍回饋；舊 `automations.yaml` 廁所感應燈已移除。
+- 新增 `08-8B廁所感應燈AI (V3.0.0)`：廁所感應燈 AI 化，支援 1 分鐘無人關燈、長按事件切換手動關閉模式與 4/2 次閃爍回饋；舊 `automations.yaml` 廁所感應燈已移除。
 - `00-2C耗材更換AI通知` 功能版升級至 `V3.1.0`：電量監控清單移除舊 Aqara 魔方，加入廁所人體感應器與新客廳 Aqara 魔方，並新增耗材電量一鍵測試報告。
 - `08-7A自動晚安情境AI` 功能版升級至 `V3.1.0`：晚安時段延長至 05:00，二樓無人防抖提高至 90 秒，並加入 Location Helper 安全重檢取消機制。
 - `100B自動離家AI` 功能版升級至 `V3.4.0`：離家判斷全面改用 `sensor.at_home_XXX_location` 中文狀態，所有家庭成員「離家」滿 4 分 10 秒才觸發。
