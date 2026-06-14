@@ -124,6 +124,140 @@
 #   • 車牌辨識 (LPR)：新增車牌辨識自動化與相關設定。
 # ──────────────────────────────────────────────
 
+# ==========================================
+# 廚房環境感測器整合 (Packages 獨立套件檔)
+# ==========================================
+# ==========================================
+# 廚房環境感測器整合 (MQTT 獨立設定檔)
+# 所有 ID 已更新為 kitchenmqtt_ 開頭
+# 所有實體預設歸類至「廚房」房間
+# ==========================================
+
+mqtt:
+  sensor:
+    - name: "廚房 溫度"
+      unique_id: kitchenmqtt_temperature
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+      value_template: "{{ value_json.Temperature }}"
+      device: &kitchen_device
+        identifiers: "kitchen_mqtt_env_sensor"
+        name: "廚房環境感測器"
+        suggested_area: "廚房"
+
+    - name: "廚房 濕度"
+      unique_id: kitchenmqtt_humidity
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "%"
+      device_class: humidity
+      state_class: measurement
+      value_template: "{{ value_json.Humidity }}"
+      device: *kitchen_device
+
+    - name: "廚房 CO2"
+      unique_id: kitchenmqtt_co2
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "ppm"
+      device_class: carbon_dioxide
+      state_class: measurement
+      value_template: "{{ value_json.CO2 }}"
+      device: *kitchen_device
+
+    - name: "廚房 甲醛 (CH2O)"
+      unique_id: kitchenmqtt_ch2o
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "mg/m³"
+      state_class: measurement
+      value_template: "{{ value_json.CH2O }}"
+      device: *kitchen_device
+
+    - name: "廚房 TVOC"
+      unique_id: kitchenmqtt_tvoc
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "ppb"
+      state_class: measurement
+      value_template: "{{ value_json.TVOC }}"
+      device: *kitchen_device
+
+    - name: "廚房 一氧化碳 (CO)"
+      unique_id: kitchenmqtt_co
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "ppm"
+      device_class: carbon_monoxide
+      state_class: measurement
+      value_template: "{{ value_json.CO }}"
+      device: *kitchen_device
+
+    # --- PM 陣列拆解 ---
+    - name: "廚房 PM1.0"
+      unique_id: kitchenmqtt_pm1_0
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "µg/m³"
+      device_class: pm1
+      state_class: measurement
+      value_template: "{{ value_json.PM[0] }}"
+      device: *kitchen_device
+
+    - name: "廚房 PM2.5"
+      unique_id: kitchenmqtt_pm2_5
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "µg/m³"
+      device_class: pm25
+      state_class: measurement
+      value_template: "{{ value_json.PM[1] }}"
+      device: *kitchen_device
+
+    - name: "廚房 PM10"
+      unique_id: kitchenmqtt_pm10
+      state_topic: "JRHOME/env"
+      unit_of_measurement: "µg/m³"
+      device_class: pm10
+      state_class: measurement
+      value_template: "{{ value_json.PM[2] }}"
+      device: *kitchen_device
+
+  # === HomeKit 警報橋接專區 ===
+  binary_sensor:
+    - name: "廚房一氧化碳危險"
+      unique_id: kitchenmqtt_co_homekit_alarm
+      device_class: safety
+      state_topic: "JRHOME/env"
+      device: *kitchen_device
+      value_template: >
+        {% if value_json.CO is defined and value_json.CO | float(0) > 9 %}
+          ON
+        {% else %}
+          OFF
+        {% endif %}
+
+    - name: "廚房空氣品質危險"
+      unique_id: kitchenmqtt_pm25_homekit_alarm
+      device_class: safety
+      state_topic: "JRHOME/env"
+      device: *kitchen_device
+      value_template: >
+        {% if (value_json.PM is defined and value_json.PM[1] | float(0) > 35) or (value_json.CO2 is defined and value_json.CO2 | float(0) > 1000) %}
+          ON
+        {% else %}
+          OFF
+        {% endif %}
+
+    - name: "廚房甲醛危險"
+      unique_id: kitchenmqtt_ch2o_homekit_alarm
+      device_class: safety
+      state_topic: "JRHOME/env"
+      device: *kitchen_device
+      value_template: >
+        {% if value_json.CH2O is defined and value_json.CH2O | float(0) > 0.08 %}
+          ON
+        {% else %}
+          OFF
+        {% endif %}
+
+
+###原本helper
 timer:
   garage_light_manual_off_cooldown:
     name: 車庫燈手動關閉冷卻
