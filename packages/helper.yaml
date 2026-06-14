@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.17.1）
+# Helpers（V3.17.2）
 # ──────────────────────────────────────────────
+# 修正 (V3.17.2):
+#   • 耗材電量 helper 顯示名稱修正：08b95f06b466 改為廚房小米人體傳感器、28d1273d78cf 改為廁所夜燈、廁所人體感應器改為二樓廁所人體感應器。
+#
 # 修正 (V3.17.1):
 #   • 修正 input_select.lpr_last_plate 重複 EBH8030 選項，並移除 Kenny iPad AP template 未使用變數。
 #
@@ -427,19 +430,19 @@ input_number:
     step: 1
     mode: box
   supply_batt_lowest_08b95f06b466:
-    name: 耗材電量最低值_08b95f06b466
+    name: 耗材電量最低值_廚房小米人體傳感器
     min: 0
     max: 100
     step: 1
     mode: box
   supply_batt_lowest_28d1273d78cf:
-    name: 耗材電量最低值_28d1273d78cf
+    name: 耗材電量最低值_廁所夜燈
     min: 0
     max: 100
     step: 1
     mode: box
   supply_batt_lowest_toilet_motion:
-    name: 耗材電量最低值_廁所人體感應器
+    name: 耗材電量最低值_二樓廁所人體感應器
     min: 0
     max: 100
     step: 1
@@ -637,6 +640,8 @@ input_text:
   # AtHome 在家系統專用（可替換追蹤裝置）
   at_home_kenny_trackers:
     name: AtHome Kenny 追蹤裝置清單
+  at_home_kenny_ipad_trackers:
+    name: AtHome Kenny iPad 追蹤裝置清單
   at_home_elay_trackers:
     name: AtHome Elay 追蹤裝置清單
   at_home_jerry_trackers:
@@ -1192,6 +1197,13 @@ template:
             {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
+        - name: at_home_kenny_ipad
+          unique_id: at_home_kenny_ipad
+          device_class: presence
+          state: >-
+            {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
+            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
+            {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_elay
           unique_id: at_home_elay
           device_class: presence
@@ -1330,7 +1342,10 @@ template:
         - name: at_home_kenny_ipad_ap_mac
           unique_id: at_home_kenny_ipad_ap_mac
           state: >-
-            {{ state_attr('device_tracker.ipad_pro_2024_kenny', 'ap_mac') if is_state('device_tracker.ipad_pro_2024_kenny','home') else '離家' }}
+            {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
+            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
+            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_kenny_ipad_location
           unique_id: at_home_kenny_ipad_location
           state: >-
