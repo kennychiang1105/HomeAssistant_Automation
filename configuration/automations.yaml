@@ -1,5 +1,4 @@
-# UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260613.yaml minus AI-managed - id: '1634978660168'
+- id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
   triggers:
@@ -3120,7 +3119,7 @@
   mode: restart
 - id: '1758897392331'
   alias: 08-5I頂樓空調關閉確認
-  description: Kenny 與 iPad 均離家時自動關閉頂樓空調；已移除 Apple Watch 依賴並改用中文 Location Helper。
+  description: 'Kenny 與 iPad 均離家時自動關閉頂樓空調；已移除 Apple Watch 依賴並改用中文 Location Helper。'
   triggers:
   - trigger: state
     entity_id:
