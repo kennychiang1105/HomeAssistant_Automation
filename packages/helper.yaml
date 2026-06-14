@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.17.1）
+# Helpers（V3.17.2）
 # ──────────────────────────────────────────────
+# 修正 (V3.17.2):
+#   • 耗材電量 helper 顯示名稱修正：08b95f06b466 改為廚房小米人體傳感器、28d1273d78cf 改為廁所夜燈、廁所人體感應器改為二樓廁所人體感應器。
+#
 # 修正 (V3.17.1):
 #   • 修正 input_select.lpr_last_plate 重複 EBH8030 選項，並移除 Kenny iPad AP template 未使用變數。
 #
@@ -427,19 +430,19 @@ input_number:
     step: 1
     mode: box
   supply_batt_lowest_08b95f06b466:
-    name: 耗材電量最低值_08b95f06b466
+    name: 耗材電量最低值_廚房小米人體傳感器
     min: 0
     max: 100
     step: 1
     mode: box
   supply_batt_lowest_28d1273d78cf:
-    name: 耗材電量最低值_28d1273d78cf
+    name: 耗材電量最低值_廁所夜燈
     min: 0
     max: 100
     step: 1
     mode: box
   supply_batt_lowest_toilet_motion:
-    name: 耗材電量最低值_廁所人體感應器
+    name: 耗材電量最低值_二樓廁所人體感應器
     min: 0
     max: 100
     step: 1

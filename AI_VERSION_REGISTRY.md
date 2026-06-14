@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.17.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.17.2`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -26,7 +26,7 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.0)` | `ai_00_2c_supply_battery_notify` | `V3.1.0` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.1)` | `ai_00_2c_supply_battery_notify` | `V3.1.1` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -167,6 +167,11 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 
+
+## 本次調整（2026-06-14 耗材電量防抖與名稱修補）
+- `00-2C耗材更換AI通知` 修補版升級至 `V3.1.1`：耗材電量 state trigger 加入 10 秒防抖；客廳 Aqara 魔方與其他裝置測試報告遇 `unknown/unavailable` 時沿用對應最低電量 helper 的上次有效值，避免偶發 Unknown 造成誤判。
+- Helper 套件修補版升級至 `V3.17.2`：修正耗材電量 helper 顯示名稱，`08b95f06b466` 改為「廚房小米人體傳感器」、`28d1273d78cf` 改為「廁所夜燈」、廁所人體感應器改為「二樓廁所人體感應器」。
+- LINE 通知檢查：耗材濾芯、耗材電量與一鍵測試 LINE 路徑均使用 `script.send_line_to_user`，並檢查一般分級開關、耗材額外開關與 `user_id` 有效性；任一檢查不通過會建立 persistent notification 記錄未發送原因，符合 SOP-10。
 
 ## 本次調整（2026-06-14 Kenny iPad AtHome Helper 修補）
 - Helper 套件版本維持 `V3.17.1` 不升版：新增/確認 `input_text.at_home_kenny_ipad_trackers` 與 `binary_sensor.at_home_kenny_ipad`，讓 Kenny iPad 與 `binary_sensor.at_home_kenny` 使用不同追蹤清單並完全獨立。
