@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.17.1`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.17.2`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -168,6 +168,10 @@
 
 
 
+## 本次調整（2026-06-14 Kenny iPad AtHome Helper 修補）
+- Helper 套件修補版升級至 `V3.17.2`：新增 `input_text.at_home_kenny_ipad_trackers` 作為 AtHome Kenny iPad 獨立追蹤裝置清單，`sensor.at_home_kenny_ipad_ap_mac` 與 `sensor.at_home_kenny_ipad_location` 改走此清單並預設回退 `device_tracker.ipad_pro_2024_kenny`。
+- 確認 iPad helper 僅供額外 double check 使用，未納入 `binary_sensor.at_home_nobody_home`、`binary_sensor.at_home_anyone_home`、`binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan`、`binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan` 等在家/占用判斷。
+- LINE 通知檢查：本次只新增 helper 與調整 template 來源，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
 
 ## 本次調整（2026-06-14 Code Review 修補）
 - Helper 套件修補版升級至 `V3.17.1`：移除 `input_select.lpr_last_plate` 重複 `EBH8030` 選項，避免 Home Assistant input_select 驗證失敗；同時移除 Kenny iPad AP template 未使用變數。
