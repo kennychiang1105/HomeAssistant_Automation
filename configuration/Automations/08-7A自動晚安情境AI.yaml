@@ -1,14 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 08-7A自動晚安情境AI (V3.1.0)
-# 相容版本：Helpers V3.17（已確認）
+# 08-7A自動晚安情境AI (V3.1.1)
+# 相容版本：Helpers V3.17.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.1：修補版；離家/離家確認中 30 秒重檢後僅在回到二樓主控制區或車庫時取消，避免 Kenny 維持離家時永遠無法執行晚安情境。
 # - V3.1.0：功能版；晚安時段延長至 05:00，二樓無人防抖提高至 90 秒，並加入 Location Helper 離家/車庫/二樓控制區安全重檢與取消防禦。
 # - V3.0.3：修補版；恢復 21:00 night_check 定時觸發，避免二樓在晚安時段開始前已無人時漏跑晚安情境；保留二樓無人 30 秒與無執行訊息通知。
 # - V3.0.2：修補版；移除 21:00 night_check 定時觸發，二樓無人等待改為 30 秒，並取消執行訊息通知。
 # - V3.0.1：修補版；補齊二樓坪幕感應綜合判斷 helper 依賴，沿用 AtHome AP MAC 區域判斷邏輯。
 # - V3.0：功能版；新增跨夜時間自動晚安情境，於 21:00 後或 03:00 前且二樓無人時執行晚安情境；以單一跨夜 time 條件與晚安 helper off 防止重複觸發。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-7A自動晚安情境AI (V3.1.0)
+- alias: 08-7A自動晚安情境AI (V3.1.1)
   id: ai_08_7a_auto_goodnight_scene
   description: >
     晚間 21:00 後至凌晨 05:00 前，若二樓 AP/人員綜合判定連續 90 秒無人，
@@ -38,8 +39,8 @@
       state: "off"
 
   variables:
-    automation_version: "V3.1.0"
-    helpers_compat: "Helpers V3.17"
+    automation_version: "V3.1.1"
+    helpers_compat: "Helpers V3.17.1"
 
   actions:
     - choose:
@@ -50,7 +51,7 @@
             - delay: "00:00:30"
             - if:
                 - condition: template
-                  value_template: "{{ states('sensor.at_home_kenny_location') in ['離家', '客廳', '廚房', '廁所', '車庫'] }}"
+                  value_template: "{{ states('sensor.at_home_kenny_location') in ['客廳', '廚房', '廁所', '車庫'] }}"
               then:
                 - stop: "Location safety guard cancelled auto goodnight after recheck"
         - conditions:

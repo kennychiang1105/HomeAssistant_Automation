@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.17`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.17.1`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -38,7 +38,7 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/08-8B_廁所感應燈AI.yaml` | `08-8B_廁所感應燈AI (V3.0.0)` | `ai_08_8b_toilet_motion_light` | `V3.0.0` |
+| `configuration/Automations/08-8B_廁所感應燈AI.yaml` | `08-8B_廁所感應燈AI (V3.0.1)` | `ai_08_8b_toilet_motion_light` | `V3.0.1` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.0)` | `ai_auto_leave_system` | `V3.4.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
@@ -52,7 +52,7 @@
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.1.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.1.0` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.1.1)` | `ai_08_7a_auto_goodnight_scene` | `V3.1.1` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -167,6 +167,13 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 
+
+
+## 本次調整（2026-06-14 Code Review 修補）
+- Helper 套件修補版升級至 `V3.17.1`：移除 `input_select.lpr_last_plate` 重複 `EBH8030` 選項，避免 Home Assistant input_select 驗證失敗；同時移除 Kenny iPad AP template 未使用變數。
+- `08-7A自動晚安情境AI` 修補版升級至 `V3.1.1`：修正離家安全重檢條件，重檢後 Kenny 仍為 `離家` 時不再取消晚安情境，僅回到 `客廳` / `廚房` / `廁所` / `車庫` 才停止。
+- `08-8B_廁所感應燈AI` 修補版升級至 `V3.0.1`：長按切換與閃爍次數判斷統一使用 `manual_override_entity` 變數，移除硬編碼分散。
+- LINE 通知檢查：本次只修正 helper options、template 死碼與自動化條件/變數引用，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
 
 ## 本次調整（2026-06-14 21A 兒童鎖低溫解鎖確認）
 - `21A_客廳電風扇整合控制AI` 修補版升級至 `V3.2.1`：確認並補強動態兒童鎖低溫解鎖遲滯；Kenny 在二樓主控制區（客廳/廚房/廁所）一律解鎖，Kenny 不在主控制區時 `t_eff > 30.5°C` 才上鎖，並在 `t_eff < 30.0°C` 主動解鎖，30.0～30.5°C 保持現狀避免抖動。

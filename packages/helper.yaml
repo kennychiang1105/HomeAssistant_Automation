@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.17）
+# Helpers（V3.17.1）
 # ──────────────────────────────────────────────
+# 修正 (V3.17.1):
+#   • 修正 input_select.lpr_last_plate 重複 EBH8030 選項，並移除 Kenny iPad AP template 未使用變數。
+#
 # 新增與強化 (V3.17):
 #   • 新增廁所感應燈手動關閉模式、耗材電量一鍵測試按鈕、廁所人體感應器/新客廳 Aqara 魔方最低電量記錄，以及 Kenny iPad 中文 Location helper。
 #   • 車牌代號舊家用車牌全域更名為 EBH8030。
@@ -769,7 +772,6 @@ input_select:
       - 未偵測
       - EAK8030
       - EBH8030
-      - EBH8030
 template:
     - trigger:
         - platform: homeassistant
@@ -1328,7 +1330,6 @@ template:
         - name: at_home_kenny_ipad_ap_mac
           unique_id: at_home_kenny_ipad_ap_mac
           state: >-
-            {% set e = states.device_tracker.ipad_pro_2024_kenny if states.device_tracker is defined else none %}
             {{ state_attr('device_tracker.ipad_pro_2024_kenny', 'ap_mac') if is_state('device_tracker.ipad_pro_2024_kenny','home') else '離家' }}
         - name: at_home_kenny_ipad_location
           unique_id: at_home_kenny_ipad_location
