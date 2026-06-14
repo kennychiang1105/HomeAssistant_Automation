@@ -1,81 +1,42 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V3.3.1)
-# 相容版本：Helpers V3.7（已確認）
+# 100B自動離家AI (V3.4.0)
+# 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.0：功能版；離家判斷改由 sensor.at_home_XXX_location 中文狀態驅動，所有家庭成員皆為「離家」滿 4 分 10 秒後才執行離家網關與保全切換。
 # - V3.3.1：修復 LINE 通知標題版本與編號顯示問題；統一移除「100B」顯示並改以 automation_version 動態帶入版本。
 # - V3.3：完整通知新增「本次已自動切換為離家情境」強調文案，僅在原先非離家且切換成功時顯示。
 # - V3.2：網關非離家時改為切換成功後續行完整門窗安全檢查流程，移除簡短成功通知，統一送出含門鎖電量摘要的詳細狀態通知。
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V3.3.1)
+- alias: 100B自動離家AI (V3.4.0)
   id: ai_auto_leave_system
-  description: "AI離家 V3.3.1"
+  description: "AI離家 V3.4.0"
   mode: single
 
   triggers:
-    - entity_id: device_tracker.iphone_17_pro_max_kenny
-      to: not_home
-      for: {seconds: 10}
-      trigger: state
-    - entity_id: device_tracker.iphone_13_pro_max_iris_2
-      to: not_home
-      for: {seconds: 10}
-      trigger: state
-    - entity_id: device_tracker.iphone_16_jerry
-      to: not_home
-      for: {seconds: 10}
-      trigger: state
-    - entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
-      to: not_home
-      for: {seconds: 10}
-      trigger: state
+    - id: all_locations_away
+      platform: template
+      value_template: >-
+        {{ states('sensor.at_home_kenny_location') == '離家'
+           and states('sensor.at_home_elay_location') == '離家'
+           and states('sensor.at_home_jerry_location') == '離家'
+           and states('sensor.at_home_iris_location') == '離家' }}
+      for:
+        minutes: 4
+        seconds: 10
 
   conditions:
-    - condition: and
-      conditions:
-        - condition: state
-          entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
-          state: not_home
-        - condition: state
-          entity_id: device_tracker.iphone_17_pro_max_kenny
-          state: not_home
-        - condition: state
-          entity_id: device_tracker.iphone_13_pro_max_iris_2
-          state: not_home
-        - condition: state
-          entity_id: device_tracker.iphone_16_jerry
-          state: not_home
-    - condition: or
-      conditions:
-        - condition: not
-          conditions:
-            - condition: state
-              entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
-              state: not_home
-              for: {minutes: 10}
-        - condition: not
-          conditions:
-            - condition: state
-              entity_id: device_tracker.iphone_17_pro_max_kenny
-              state: not_home
-              for: {minutes: 10}
-        - condition: not
-          conditions:
-            - condition: state
-              entity_id: device_tracker.iphone_13_pro_max_iris_2
-              state: not_home
-              for: {minutes: 10}
-        - condition: not
-          conditions:
-            - condition: state
-              entity_id: device_tracker.iphone_16_jerry
-              state: not_home
-              for: {minutes: 10}
+    - condition: template
+      value_template: >-
+        {{ states('sensor.at_home_kenny_location') == '離家'
+           and states('sensor.at_home_elay_location') == '離家'
+           and states('sensor.at_home_jerry_location') == '離家'
+           and states('sensor.at_home_iris_location') == '離家' }}
 
   variables:
-    automation_version: "V3.3.1"
-    helpers_compat: "Helpers V3.7"
+    automation_version: "V3.4.0"
+    helpers_compat: "Helpers V3.17"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
       {% set title = states('input_text.notif_title_100b_general') %}

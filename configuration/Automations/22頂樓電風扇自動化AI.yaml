@@ -1,20 +1,21 @@
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V3.2.1)
-# 相容版本：Helpers V3.9.1（已確認）
+# 22頂樓電風扇自動化AI (V3.3.0)
+# 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.0（功能版）：風速曲線門檻全數上調 0.2°C，睡眠降速改由 sleep_silent_active 控制，睡眠與非夏季減成擴大為 -10% 並移除睡眠最低限制。
 # - V3.2.1（修補版）：修復 t_eff 為 none/unavailable 時的 float 轉型錯誤，補強 t_eff_valid 判斷並加入 t_eff 安全預設值避免自動化中斷。
 # - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V3.2.1)
+- alias: 22頂樓電風扇自動化AI (V3.3.0)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V3.2.1"
+    automation_version: "V3.3.0"
   trigger:
     - platform: state
       entity_id:
@@ -121,9 +122,8 @@
           {% set age_h = (now().timestamp() - ts_h) | int if ts_h else 999999 %}
           {{ (not hp_valid_now) and ((age_t < 900) or (age_h < 900)) }}
 
-        # ---- 睡眠時段（夜間）：23:00–07:30 ----
-        is_sleep: >
-          {{ ('23:00' <= hhmm <= '23:59') or ('00:00' <= hhmm <= '07:30') }}
+        # ---- 睡眠靜默：改由手動熟睡鎖控制 ----
+        is_sleep: "{{ is_state('input_boolean.sleep_silent_active','on') }}"
 
         # ---- 上樓必開門檻（固定 26.1°C）----
         enter_high_open_c_dyn: 26.1
@@ -154,54 +154,53 @@
             {{ fan_pct_now }}
           {% else %}
             {% set t = t_eff_num | float(0) %}
-            {% if t >= 31.3 %} 100
-            {% elif t >= 31.1 %} 97.5
-            {% elif t >= 30.9 %} 95
-            {% elif t >= 30.7 %} 92.5
-            {% elif t >= 30.5 %} 90
-            {% elif t >= 30.3 %} 87.5
-            {% elif t >= 30.1 %} 85
-            {% elif t >= 29.9 %} 82.5
-            {% elif t >= 29.7 %} 80
-            {% elif t >= 29.5 %} 77.5
-            {% elif t >= 29.3 %} 75
-            {% elif t >= 29.1 %} 72.5
-            {% elif t >= 28.9 %} 70
-            {% elif t >= 28.7 %} 67.5
-            {% elif t >= 28.5 %} 65
-            {% elif t >= 28.3 %} 62.5
-            {% elif t >= 28.1 %} 60
-            {% elif t >= 27.9 %} 57.5
-            {% elif t >= 27.7 %} 55
-            {% elif t >= 27.5 %} 52.5
-            {% elif t >= 27.3 %} 50
-            {% elif t >= 27.1 %} 47.5
-            {% elif t >= 26.9 %} 45
-            {% elif t >= 26.7 %} 42.5
-            {% elif t >= 26.5 %} 40
-            {% elif t >= 26.3 %} 37.5
-            {% elif t >= 26.1 %} 35
-            {% elif t >= 25.9 %} 32.5
-            {% elif t >= 25.7 %} 30
+            {% if t >= 31.5 %} 100
+            {% elif t >= 31.3 %} 97.5
+            {% elif t >= 31.1 %} 95
+            {% elif t >= 30.9 %} 92.5
+            {% elif t >= 30.7 %} 90
+            {% elif t >= 30.5 %} 87.5
+            {% elif t >= 30.3 %} 85
+            {% elif t >= 30.1 %} 82.5
+            {% elif t >= 29.9 %} 80
+            {% elif t >= 29.7 %} 77.5
+            {% elif t >= 29.5 %} 75
+            {% elif t >= 29.3 %} 72.5
+            {% elif t >= 29.1 %} 70
+            {% elif t >= 28.9 %} 67.5
+            {% elif t >= 28.7 %} 65
+            {% elif t >= 28.5 %} 62.5
+            {% elif t >= 28.3 %} 60
+            {% elif t >= 28.1 %} 57.5
+            {% elif t >= 27.9 %} 55
+            {% elif t >= 27.7 %} 52.5
+            {% elif t >= 27.5 %} 50
+            {% elif t >= 27.3 %} 47.5
+            {% elif t >= 27.1 %} 45
+            {% elif t >= 26.9 %} 42.5
+            {% elif t >= 26.7 %} 40
+            {% elif t >= 26.5 %} 37.5
+            {% elif t >= 26.3 %} 35
+            {% elif t >= 26.1 %} 32.5
+            {% elif t >= 25.9 %} 30
             {% else %} 30 {% endif %}
           {% endif %}
-        # 夜間 -5%，最低 25%
+        # 睡眠靜默 -10%，不設最低限制
         pct_sleep_tuned: >
           {% if not t_eff_valid %}
             {{ pct_base_day }}
           {% else %}
-            {% set p = (pct_base_day | float) - (5 if is_sleep else 0) %}
-            {% set p2 = [p, 25] | max %}
-            {{ p2 }}
+            {% set p = (pct_base_day | float) - (10 if is_sleep else 0) %}
+            {{ p }}
           {% endif %}
-        # 非夏季模式：除>90% 外統一 -5%
+        # 非夏季模式：除>90% 外統一 -10%
         pct_summer_tuned: >
           {% if not summer_mode %}
             {% set p = pct_sleep_tuned | float %}
             {% if p > 90 %}
               {{ p }}
             {% else %}
-              {{ [p - 5, 0] | max }}
+              {{ [p - 10, 0] | max }}
             {% endif %}
           {% else %}
             {{ pct_sleep_tuned }}
