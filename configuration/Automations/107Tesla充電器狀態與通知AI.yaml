@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.2.2)
-# 相容版本：Helpers V3.12.2（已確認）
+# 107Tesla充電器狀態與通知AI (V3.2.4)
+# 相容版本：Helpers V3.18.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.4：修補版。移除不存在的 sensor.tesla_wall_connector_power，改以 sensor.tesla_wall_connector_total_power 上升判斷本次插槍已有充電；拔槍時重置旗標讓同日第二車可再通知。
+# - V3.2.3：修補版。新增拔槍/功率低於 1W 且連線狀態變更時重置當日完成旗標，支援同日多車連續充電完成通知。
 # - V3.2.2：修補版。充電完成通知在用電量上方新增充電用時（X時X分鐘），LINE 一般通知維持 script.send_line_to_user 與分級/額外開關/user_id 防呆。
 # - V3.2.1：修補版。插槍後若直接進入 charging/charging_reduced，不再由 charge_done 重設當次已充電記憶；同步補齊 LINE 發送 user_id 防呆與未發送原因紀錄，符合 SOP-10。
 # - V3.2.0：修補版。新增當次插槍已充電記憶 helper，修復充飽後狀態退回等待/準備時未發完成通知與午夜/6小時未充電誤報；狀態屬性更新不再觸發流程。
@@ -18,15 +20,15 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.2.2)
+- alias: 107Tesla充電器狀態與通知AI (V3.2.4)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
-    相容版本：Helpers V3.12.2（已確認）。
+    相容版本：Helpers V3.18.0（已確認）。
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.2.2"
+    automation_version: "V3.2.4"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -92,6 +94,15 @@
       id: vehicle_connected_too_long
 
     - platform: state
+      entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
+      to: "off"
+      id: vehicle_disconnected_reset
+
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_total_power
+      id: total_power_rising
+
+    - platform: state
       entity_id: input_button.tesla_charger_notify_test
       id: notify_test_button
 
@@ -143,6 +154,13 @@
         mcu_temp: "{{ states('sensor.tesla_wall_connector_mcu_temperature') }}"
         pcb_temp: "{{ states('sensor.tesla_wall_connector_pcb_temperature') }}"
         session_energy: "{{ states('sensor.tesla_wall_connector_session_energy')|float(0)|round(2) }}"
+        total_power_now: "{{ states('sensor.tesla_wall_connector_total_power')|float(0) }}"
+        total_power_delta: >-
+          {% if trigger.id == 'total_power_rising' and trigger.from_state is defined and trigger.to_state is defined and trigger.from_state is not none and trigger.to_state is not none %}
+            {{ (trigger.to_state.state|float(0)) - (trigger.from_state.state|float(0)) }}
+          {% else %}
+            0
+          {% endif %}
         from_status_normalized: >-
           {{ trigger.from_state.state | string | lower | trim if trigger.from_state is defined and trigger.from_state is not none else '' }}
         to_status_normalized: >-
@@ -181,6 +199,28 @@
           - "negotiating connection"
           - "booting"
           - "error"
+
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: vehicle_disconnected_reset
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.tesla_charger_session_charged
+
+        - conditions:
+            - condition: trigger
+              id: total_power_rising
+            - condition: state
+              entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
+              state: "on"
+            - condition: template
+              value_template: "{{ total_power_delta | float(0) > 0 }}"
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.tesla_charger_session_charged
 
     - choose:
         - conditions:

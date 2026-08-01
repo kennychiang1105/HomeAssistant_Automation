@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.17.2）
+# Helpers（V3.18.0）
 # ──────────────────────────────────────────────
+# 新增與強化 (V3.18.0):
+#   • 新增 HomeKit 晚安/早安/離家/到家情境輔助開關與離家/晚安最後觸發時間戳，支援 3 分鐘防衝突與按鈕自動復位。
+#   • 客廳 Aqara 魔方最低電量 helper 顯示名稱移除 EBH8030，避免與車輛電量混淆。
+#
 # 修正 (V3.17.2):
 #   • 耗材電量 helper 顯示名稱修正：08b95f06b466 改為廚房小米人體傳感器、28d1273d78cf 改為廁所夜燈、廁所人體感應器改為二樓廁所人體感應器。
 #
@@ -372,6 +376,10 @@ input_datetime:
     name: 書房推理最後離開時間
     has_date: true
     has_time: true
+  aqara_last_away_goodnight_triggered:
+    name: 離家/晚安情境最後觸發時間
+    has_date: true
+    has_time: true
 input_boolean:
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
@@ -457,6 +465,19 @@ input_boolean:
   google_scene_chu_men_trigger:
     name: Google 出門情境按鈕
     icon: mdi:home-export-outline
+
+  hk_scene_goodnight:
+    name: HomeKit 晚安情境按鈕
+    icon: mdi:weather-night
+  hk_scene_goodmorning:
+    name: HomeKit 早安情境按鈕
+    icon: mdi:weather-sunset-up
+  hk_scene_away:
+    name: HomeKit 離家情境按鈕
+    icon: mdi:home-export-outline
+  hk_scene_home:
+    name: HomeKit 到家情境按鈕
+    icon: mdi:home-import-outline
 
   debug_topfloor_kenny:
     name: Kenny 頂樓自動化 Debug 模式
@@ -582,7 +603,7 @@ input_number:
     step: 1
     mode: box
   supply_batt_lowest_living_room_cube_new:
-    name: 耗材電量最低值_客廳Aqara魔方EBH8030
+    name: 耗材電量最低值_客廳Aqara魔方
     min: 0
     max: 100
     step: 1
