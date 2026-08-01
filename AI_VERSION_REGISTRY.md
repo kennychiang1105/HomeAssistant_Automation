@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.17.2`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.18.0`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -26,7 +26,7 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.1)` | `ai_00_2c_supply_battery_notify` | `V3.1.1` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.2)` | `ai_00_2c_supply_battery_notify` | `V3.1.2` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -38,7 +38,7 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
-| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.1)` | `ai_08_8b_toilet_motion_light` | `V3.0.1` |
+| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.2)` | `ai_08_8b_toilet_motion_light` | `V3.0.2` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.0)` | `ai_auto_leave_system` | `V3.4.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
@@ -50,9 +50,9 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.2)` | `ai_107_tesla_charger_status_notify` | `V3.2.2` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.4)` | `ai_107_tesla_charger_status_notify` | `V3.2.4` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.1.1)` | `ai_08_7a_auto_goodnight_scene` | `V3.1.1` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.2.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.2.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -167,6 +167,15 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 
+
+## 本次調整（2026-08-01 情境防衝突與多項修補）
+- `08-8B廁所感應燈AI` 修補版升級至 `V3.0.2`：長按改為 Terncy device trigger。
+- `08-7A自動晚安情境AI` 功能版升級至 `V3.2.0`：加入 Kenny/Elay/Jerry/Iris 位置聯合判斷。
+- `107Tesla充電器狀態與通知AI` 修補版升級至 `V3.2.4`：移除不存在的功率實體，改以 `sensor.tesla_wall_connector_total_power` 上升判斷本次插槍已有充電，拔槍時重置旗標，支援同日多車連續通知。
+- `00-2C耗材更換AI通知` 修補版升級至 `V3.1.2`：客廳魔方電量改接 `sensor.living_room_cube_battery`，0/unknown/unavailable 不覆寫上次有效值。
+- Helper 套件功能版升級至 `V3.18.0`：新增 HomeKit 情境輔助開關與離家/晚安 3 分鐘防衝突時間戳。
+- `automation.yaml` 修正客廳魔方 shock 動作（同時讀取 sensor/binary_sensor 與 action/action_type 屬性）、100A 3 分鐘冷卻、100/101/102/103 情境 8 秒自我檢查（狀態不符才重送）與 HomeKit 按鈕自動復位。
+- LINE 通知檢查：本次既有 Tesla/耗材 LINE 路徑仍使用 `script.send_line_to_user`，含分級開關、額外開關與 user_id 防呆；新增 HomeKit/情境防衝突未新增 LINE 路徑，符合 SOP-10。
 
 ## 本次調整（2026-06-14 耗材電量防抖與名稱修補）
 - `00-2C耗材更換AI通知` 修補版升級至 `V3.1.1`：耗材電量 state trigger 加入 10 秒防抖；客廳 Aqara 魔方與其他裝置測試報告遇 `unknown/unavailable` 時沿用對應最低電量 helper 的上次有效值，避免偶發 Unknown 造成誤判。

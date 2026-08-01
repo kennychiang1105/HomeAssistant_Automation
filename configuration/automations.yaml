@@ -464,6 +464,30 @@
       target:
         entity_id: remote.ke_ting_dian_shi
       data: {}
+  - delay: "00:00:08"
+  - if:
+    - condition: template
+      value_template: >-
+        {{ expand(['switch.chu_fang_deng','switch.ce_suo_deng','switch.can_ting_bi_deng','switch.ke_ting_kan_deng','switch.men_kou_deng','switch.lu_deng','switch.ke_ting_huan_rao_deng','switch.bi_deng','switch.ke_ting_bi_deng']) | selectattr('state','eq','on') | list | count > 0 }}
+    then:
+    - action: switch.turn_off
+      target:
+        entity_id:
+        - switch.chu_fang_deng
+        - switch.ce_suo_deng
+        - switch.can_ting_bi_deng
+        - switch.ke_ting_kan_deng
+        - switch.men_kou_deng
+        - switch.lu_deng
+        - switch.ke_ting_huan_rao_deng
+        - switch.bi_deng
+        - switch.ke_ting_bi_deng
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.aqara_last_away_goodnight_triggered
+    data:
+      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
   mode: single
 - id: '1645806189647'
   alias: 102離家情境
@@ -539,6 +563,31 @@
       target:
         entity_id: remote.ke_ting_dian_shi
       data: {}
+  - delay: "00:00:08"
+  - if:
+    - condition: template
+      value_template: >-
+        {{ expand(['switch.chu_fang_deng','switch.ce_suo_deng','switch.can_ting_bi_deng','switch.can_ting_kan_deng','switch.ke_ting_kan_deng','switch.men_kou_deng','switch.lu_deng','switch.ke_ting_huan_rao_deng','switch.bi_deng','switch.ke_ting_bi_deng']) | selectattr('state','eq','on') | list | count > 0 }}
+    then:
+    - action: switch.turn_off
+      target:
+        entity_id:
+        - switch.chu_fang_deng
+        - switch.ce_suo_deng
+        - switch.can_ting_bi_deng
+        - switch.can_ting_kan_deng
+        - switch.ke_ting_kan_deng
+        - switch.men_kou_deng
+        - switch.lu_deng
+        - switch.ke_ting_huan_rao_deng
+        - switch.bi_deng
+        - switch.ke_ting_bi_deng
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.aqara_last_away_goodnight_triggered
+    data:
+      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
   mode: single
 - id: '1645806312615'
   alias: 101早安情境
@@ -575,6 +624,18 @@
         target:
           entity_id: input_boolean.aqara_zai_jia
         data: {}
+  - delay: "00:00:08"
+  - if:
+    - condition: template
+      value_template: "{{ not is_state('fan.kong_qi_qing_jing_ji','on') or not is_state('light.can_ting_deng_zu_1_ha','on') }}"
+    then:
+    - action: fan.turn_on
+      target:
+        entity_id: fan.kong_qi_qing_jing_ji
+    - action: light.turn_on
+      target:
+        entity_id: light.can_ting_deng_zu_1_ha
+
   mode: single
 - id: '1645806405412'
   alias: 103到家情境
@@ -647,6 +708,18 @@
         target:
           entity_id: input_boolean.aqara_zai_jia
         data: {}
+  - delay: "00:00:08"
+  - if:
+    - condition: template
+      value_template: "{{ not is_state('fan.kong_qi_qing_jing_ji','on') or not is_state('input_boolean.aqara_zai_jia','on') }}"
+    then:
+    - action: fan.turn_on
+      target:
+        entity_id: fan.kong_qi_qing_jing_ji
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.aqara_zai_jia
+
   mode: single
 - id: '1657278990221'
   alias: 07-2空氣嚴重通知
@@ -1430,6 +1503,10 @@
     trigger: device
   conditions: []
   actions:
+  - condition: template
+    value_template: >-
+      {% set last_ts = as_timestamp(states('input_datetime.aqara_last_away_goodnight_triggered'), 0) %}
+      {{ last_ts == 0 or (as_timestamp(now()) - last_ts) > 180 }}
   - if:
     - condition: time
       after: 06:00:00
@@ -2185,6 +2262,45 @@
       type: set_value
       value: 0
   mode: single
+- id: ai_hk_scene_buttons_auto_reset
+  alias: HomeKit情境輔助開關自動復位AI (V3.18.0)
+  description: HomeKit 輔助開關觸發晚安/早安/離家/到家情境後自動復位，讓按鈕可重複使用。
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_boolean.hk_scene_goodnight
+    - input_boolean.hk_scene_goodmorning
+    - input_boolean.hk_scene_away
+    - input_boolean.hk_scene_home
+    to: 'on'
+  conditions: []
+  actions:
+  - choose:
+    - conditions: "{{ trigger.entity_id == 'input_boolean.hk_scene_goodnight' }}"
+      sequence:
+      - action: automation.trigger
+        target: {entity_id: automation.wan_an_qing_jing}
+        data: {skip_condition: true}
+    - conditions: "{{ trigger.entity_id == 'input_boolean.hk_scene_goodmorning' }}"
+      sequence:
+      - action: automation.trigger
+        target: {entity_id: automation.101zao_an_qing_jing}
+        data: {skip_condition: true}
+    - conditions: "{{ trigger.entity_id == 'input_boolean.hk_scene_away' }}"
+      sequence:
+      - action: automation.trigger
+        target: {entity_id: automation.101li_jia_qing_jing}
+        data: {skip_condition: true}
+    - conditions: "{{ trigger.entity_id == 'input_boolean.hk_scene_home' }}"
+      sequence:
+      - action: automation.trigger
+        target: {entity_id: automation.103dao_jia_qing_jing}
+        data: {skip_condition: true}
+  - delay: "00:00:02"
+  - action: input_boolean.turn_off
+    target:
+      entity_id: "{{ trigger.entity_id }}"
+  mode: queued
 - id: '1721459962917'
   alias: 100A自動啟動到家早安情境
   description: ''
@@ -2248,6 +2364,10 @@
     - condition: time
       after: 05:30:00
       before: '23:59:00'
+    - condition: template
+      value_template: >-
+        {% set last_ts = as_timestamp(states('input_datetime.aqara_last_away_goodnight_triggered'), 0) %}
+        {{ last_ts == 0 or (as_timestamp(now()) - last_ts) > 180 }}
     - condition: or
       conditions:
       - condition: state
@@ -3169,15 +3289,32 @@
   triggers:
   - entity_id: binary_sensor.0x158d00027d8a8e_action
     trigger: state
+  - entity_id: sensor.0x158d00027d8a8e_action
+    trigger: state
   conditions:
   - condition: template
-    value_template: '{{ trigger.to_state.state not in ['''', ''off'', ''unknown'',
-      ''unavailable''] }}'
+    value_template: >-
+      {% set raw = trigger.to_state.state if trigger.to_state is not none else '' %}
+      {% set attr_action = trigger.to_state.attributes.action if trigger.to_state is not none and trigger.to_state.attributes.action is defined else '' %}
+      {% set attr_action_type = trigger.to_state.attributes.action_type if trigger.to_state is not none and trigger.to_state.attributes.action_type is defined else '' %}
+      {{ [raw, attr_action, attr_action_type] | reject('in', ['', 'off', 'unknown', 'unavailable', none]) | list | count > 0 }}
   actions:
+  - variables:
+      cube_action: >-
+        {% set raw = trigger.to_state.state if trigger.to_state is not none else '' %}
+        {% set attr_action = trigger.to_state.attributes.action if trigger.to_state is not none and trigger.to_state.attributes.action is defined else '' %}
+        {% set attr_action_type = trigger.to_state.attributes.action_type if trigger.to_state is not none and trigger.to_state.attributes.action_type is defined else '' %}
+        {% if raw not in ['', 'off', 'on', 'unknown', 'unavailable'] %}
+          {{ raw }}
+        {% elif attr_action not in ['', 'off', 'on', 'unknown', 'unavailable'] %}
+          {{ attr_action }}
+        {% else %}
+          {{ attr_action_type }}
+        {% endif %}
   - choose:
     - conditions:
       - condition: template
-        value_template: '{{ trigger.to_state.state in [''rotate'', ''rotate_left'',
+        value_template: '{{ cube_action in [''rotate'', ''rotate_left'',
           ''rotate_right''] }}'
       sequence:
       - choose:
@@ -3255,14 +3392,14 @@
               - light.ke_ting_deng_zu_3
     - conditions:
       - condition: template
-        value_template: '{{ trigger.to_state.state == ''move'' }}'
+        value_template: '{{ cube_action == ''move'' }}'
       sequence:
       - action: light.toggle
         target:
           entity_id: light.can_ting_deng_zu_1_ha
     - conditions:
       - condition: template
-        value_template: '{{ trigger.to_state.state in [''shake'', ''shake_air''] }}'
+        value_template: '{{ cube_action in [''shake'', ''shake_air'', ''shock'', ''vibration''] }}'
       sequence:
       - if:
         - condition: time
@@ -3290,14 +3427,14 @@
           action: automation.trigger
     - conditions:
       - condition: template
-        value_template: '{{ trigger.to_state.state == ''flip90'' }}'
+        value_template: '{{ cube_action == ''flip90'' }}'
       sequence:
       - action: fan.turn_on
         target:
           entity_id: fan.ke_ting_dian_feng_shan
     - conditions:
       - condition: template
-        value_template: '{{ trigger.to_state.state == ''flip180'' }}'
+        value_template: '{{ cube_action == ''flip180'' }}'
       sequence:
       - action: fan.turn_off
         target:

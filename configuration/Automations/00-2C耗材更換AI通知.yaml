@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V3.1.1)
-# 相容版本：Helpers V3.17.2（已確認）
+# 00-2C耗材更換AI通知 (V3.1.2)
+# 相容版本：Helpers V3.18.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.2：修補版。客廳 Aqara 魔方電量改接 sensor.living_room_cube_battery，且僅來源數值 1–100% 時更新最低值，0/unknown/unavailable 保留上次有效值。
 # - V3.1.1：修補版。耗材電量 state trigger 加入 10 秒防抖；客廳 Aqara 魔方與各裝置測試報告遇 unknown/unavailable 時以上次有效最低電量為準；修正 08b95f06b466/28d1273d78cf/廁所人體感應器顯示名稱，並補齊 LINE user_id 防呆 fallback。
 # - V3.1.0：功能版。清理舊 Aqara 魔方電量，新增廁所人體感應器與新客廳 Aqara 魔方監控，並加入一鍵測試健康度報告（Persistent Notification + LINE）。
 # - V3.0.3：修補版。修正濾芯壽命重複通知問題（避免 unknown/unavailable 抖動），並在推播中明確標示為「空氣清淨機濾芯壽命」。
@@ -11,7 +12,7 @@
 # - V3.0.1：修復定期摘要計時基準與上次回報時間寫回；電量提醒改為區間門檻避免跳點漏報。
 # - V3.0：新增濾芯與多裝置電量分級、去重通知與定期摘要。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2C耗材更換AI通知 (V3.1.1)
+- alias: 00-2C耗材更換AI通知 (V3.1.2)
   id: ai_00_2c_supply_battery_notify
   mode: queued
   triggers:
@@ -33,7 +34,7 @@
         - sensor.garage_battery
         - sensor.ke_ting_men_suo_dian_liang_guo_lu
         - sensor.shu_fang_gan_ying_kai_guan_battery
-        - sensor.0x158d00027d8a8e_battery
+        - sensor.living_room_cube_battery
         - sensor.e406bf25caa1_battery
         - sensor.08b95f06b466_battery
         - sensor.28d1273d78cf_battery
@@ -46,7 +47,7 @@
       entity_id: input_button.battery_system_test_trigger
   conditions: []
   variables:
-    automation_version: "V3.1.1"
+    automation_version: "V3.1.2"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_user_valid: "{{ line_bot_target_user_id|string|trim|lower not in ['unknown','unavailable','none',''] }}"
@@ -90,7 +91,7 @@
                       'sensor.garage_battery':'車庫感測器',
                       'sensor.ke_ting_men_suo_dian_liang_guo_lu':'客廳門鎖',
                       'sensor.shu_fang_gan_ying_kai_guan_battery':'書房感應開關',
-                      'sensor.0x158d00027d8a8e_battery':'客廳 Aqara 魔方',
+                      'sensor.living_room_cube_battery':'客廳 Aqara 魔方',
                       'sensor.e406bf25caa1_battery':'二樓廁所人體感應器',
                       'sensor.08b95f06b466_battery':'廚房小米人體傳感器',
                       'sensor.28d1273d78cf_battery':'廁所夜燈'
@@ -103,7 +104,7 @@
                       'sensor.garage_battery':'input_number.supply_batt_lowest_garage',
                       'sensor.ke_ting_men_suo_dian_liang_guo_lu':'input_number.supply_batt_lowest_doorlock',
                       'sensor.shu_fang_gan_ying_kai_guan_battery':'input_number.supply_batt_lowest_study_switch',
-                      'sensor.0x158d00027d8a8e_battery':'input_number.supply_batt_lowest_living_room_cube_new',
+                      'sensor.living_room_cube_battery':'input_number.supply_batt_lowest_living_room_cube_new',
                       'sensor.e406bf25caa1_battery':'input_number.supply_batt_lowest_toilet_motion',
                       'sensor.08b95f06b466_battery':'input_number.supply_batt_lowest_08b95f06b466',
                       'sensor.28d1273d78cf_battery':'input_number.supply_batt_lowest_28d1273d78cf'
@@ -112,7 +113,7 @@
                 lowest_saved: "{{ states(lowest_helper)|int(101) if lowest_helper|trim else 101 }}"
             - if:
                 - condition: template
-                  value_template: "{{ v >= 0 and v <= 100 and lowest_helper|trim }}"
+                  value_template: "{{ v > 0 and v <= 100 and lowest_helper|trim }}"
               then:
                 - choose:
                     - conditions: "{{ v >= 90 or v > (lowest_saved + 30) }}"
@@ -171,7 +172,7 @@
                     '車庫感測器': ['sensor.garage_battery','input_number.supply_batt_lowest_garage'],
                     '客廳門鎖': ['sensor.ke_ting_men_suo_dian_liang_guo_lu','input_number.supply_batt_lowest_doorlock'],
                     '書房感應開關': ['sensor.shu_fang_gan_ying_kai_guan_battery','input_number.supply_batt_lowest_study_switch'],
-                    '客廳 Aqara 魔方': ['sensor.0x158d00027d8a8e_battery','input_number.supply_batt_lowest_living_room_cube_new'],
+                    '客廳 Aqara 魔方': ['sensor.living_room_cube_battery','input_number.supply_batt_lowest_living_room_cube_new'],
                     '二樓廁所人體感應器': ['sensor.e406bf25caa1_battery','input_number.supply_batt_lowest_toilet_motion'],
                     '廚房小米人體傳感器': ['sensor.08b95f06b466_battery','input_number.supply_batt_lowest_08b95f06b466'],
                     '廁所夜燈': ['sensor.28d1273d78cf_battery','input_number.supply_batt_lowest_28d1273d78cf']
@@ -183,8 +184,8 @@
                     {% set raw = states(entity) %}
                     {% set raw_pct = raw | int(-1) %}
                     {% set saved_pct = states(helper) | int(-1) %}
-                    {% set pct = raw_pct if 0 <= raw_pct <= 100 else saved_pct %}
-                    {% set shown = (pct ~ '%（沿用上次有效值）') if (raw_pct < 0 or raw_pct > 100) and 0 <= saved_pct <= 100 else (raw ~ '%') %}
+                    {% set pct = raw_pct if 0 < raw_pct <= 100 else saved_pct %}
+                    {% set shown = (pct ~ '%（沿用上次有效值）') if (raw_pct <= 0 or raw_pct > 100) and 0 <= saved_pct <= 100 else (raw ~ '%') %}
                     {% set advice = '請更換電池' if pct >= 0 and pct <= 20 else ('電量偏低，請準備備品' if pct > 20 and pct <= 35 else ('健康' if pct > 35 else '資料異常，請檢查')) %}
                     {% set ns.lines = ns.lines + ['• ' ~ name ~ '：' ~ shown ~ ' — ' ~ advice] %}
                   {% endfor %}
