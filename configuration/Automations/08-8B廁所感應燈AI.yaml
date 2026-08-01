@@ -26,9 +26,8 @@
     - id: long_press
       platform: device
       domain: terncy
-      device_id: 40e15319550792730cc46c7e0528c916
+      device_id: a9caa455edec9bd90f96dcb457a46dc6
       type: long_press
-      subtype: button_1
 
   variables:
     automation_version: "V3.0.2"
