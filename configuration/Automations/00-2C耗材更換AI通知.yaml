@@ -182,12 +182,13 @@
                     {% set entity = pair[0] %}
                     {% set helper = pair[1] %}
                     {% set raw = states(entity) %}
-                    {% set raw_pct = raw | int(-1) %}
-                    {% set saved_pct = states(helper) | int(-1) %}
+                    {% set raw_pct = raw | float(-1) | round(0) | int %}
+                    {% set saved_pct = states(helper) | float(-1) | round(0) | int %}
                     {% set pct = raw_pct if 0 < raw_pct <= 100 else saved_pct %}
-                    {% set shown = (pct ~ '%（沿用上次有效值）') if (raw_pct <= 0 or raw_pct > 100) and 0 <= saved_pct <= 100 else (raw ~ '%') %}
+                    {% set shown = (pct ~ '%') if (raw_pct <= 0 or raw_pct > 100) and 0 <= saved_pct <= 100 else (pct ~ '%') %}
                     {% set advice = '請更換電池' if pct >= 0 and pct <= 20 else ('電量偏低，請準備備品' if pct > 20 and pct <= 35 else ('健康' if pct > 35 else '資料異常，請檢查')) %}
-                    {% set ns.lines = ns.lines + ['• ' ~ name ~ '：' ~ shown ~ ' — ' ~ advice] %}
+                    {% set detail = ('(' ~ advice ~ ')') if advice == '健康' else ('\n  (' ~ advice ~ ')') %}
+                    {% set ns.lines = ns.lines + ['-' ~ name ~ ': ' ~ shown ~ detail] %}
                   {% endfor %}
                   {{ ns.lines | join('\n') }}
             - service: persistent_notification.create
