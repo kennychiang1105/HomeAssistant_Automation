@@ -2456,20 +2456,22 @@
 - id: '1721462099482'
   alias: 09B-Homepod Sensor sync
   description: Processes temperature and humidity data from the HomePod Mini
-  trigger:
-  - platform: time_pattern
-    minutes: /2
+  triggers:
+  - minutes: /2
     id: time
-  action:
-  - service: input_boolean.turn_on
-    data: {}
+    trigger: time_pattern
+  actions:
+  - data: {}
     target:
       entity_id: input_boolean.collection_of_homekit_sensors
+    action: input_boolean.turn_on
   - delay: 00:00:05
-  - service: input_boolean.turn_off
-    data: {}
+    enabled: false
+  - data: {}
     target:
       entity_id: input_boolean.collection_of_homekit_sensors
+    action: input_boolean.turn_off
+    enabled: false
 - id: '1721572094764'
   alias: 08-5D頂樓坎燈自動化亮度修正V2
   description: ''
