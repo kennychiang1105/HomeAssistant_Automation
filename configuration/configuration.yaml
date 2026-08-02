@@ -47,6 +47,13 @@ logger:
     # 4. 隱藏 Google Assistant 同步 404 錯誤 (設為 critical 隱藏 error)
     homeassistant.components.google_assistant.http: critical
 
+    # 5. 屏蔽第三方 Custom Integrations 未經官方測試的警告
+    homeassistant.loader: error
+
+    # 6. 屏蔽 opencwb / urllib3 未驗證 HTTPS 請求的 SSL 警告
+    py.warnings: error
+    urllib3.connectionpool: error
+
   filters:
     homeassistant:
       # 隱藏這個 Tapo 崩潰時產生的特定錯誤開頭

@@ -525,6 +525,7 @@
         - light.yeelink_color5_13b8_light
       action: light.turn_off
     - data: {}
+      continue_on_error: true
       target:
         entity_id:
         - switch.chu_fang_deng
@@ -2815,7 +2816,7 @@
     for:
       hours: 0
       minutes: 0
-      seconds: 0
+      seconds: 5
     trigger: device
     below: 10
     enabled: true
@@ -2831,7 +2832,7 @@
     device_id: 06bfb93dc808497c947434fb10e76b06
     entity_id: bf05a6742b374a44658f3e33b818d64b
     domain: fan
-  mode: single
+  mode: restart
 - id: '1744040282451'
   alias: 05E緊急實體按鈕
   description: ''
