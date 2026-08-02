@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V3.4.0)
+# 100B自動離家AI (V3.4.1)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.1：修補版。替換 3 處 4-byte Emoji（U+1FAA7、U+1F3E0 兩處）為 ASCII 文字符號，
+#   避免 LINE 推送時 JSON 序列化失敗（surrogates not allowed）。
 # - V3.4.0：功能版；離家判斷改由 sensor.at_home_XXX_location 中文狀態驅動，所有家庭成員皆為「離家」滿 4 分 10 秒後才執行離家網關與保全切換。
 # - V3.3.1：修復 LINE 通知標題版本與編號顯示問題；統一移除「100B」顯示並改以 automation_version 動態帶入版本。
 # - V3.3：完整通知新增「本次已自動切換為離家情境」強調文案，僅在原先非離家且切換成功時顯示。
@@ -9,9 +11,9 @@
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V3.4.0)
+- alias: 100B自動離家AI (V3.4.1)
   id: ai_auto_leave_system
-  description: "AI離家 V3.4.0"
+  description: "AI離家 V3.4.1"
   mode: single
 
   triggers:
@@ -35,7 +37,7 @@
            and states('sensor.at_home_iris_location') == '離家' }}
 
   variables:
-    automation_version: "V3.4.0"
+    automation_version: "V3.4.1"
     helpers_compat: "Helpers V3.17"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
@@ -53,7 +55,7 @@
       {{ (notif_title_urgent if notif_title_urgent|trim else notif_title_base) }}
     notif_heading_general: >-
       {% set heading = notif_title_general if notif_title_general|trim else notif_title_base %}
-      {{ heading ~ '\n一般 General 🪧' }}
+      {{ heading ~ '\n一般 General [*]' }}
     notif_heading_urgent: >-
       {% set heading = notif_title_urgent if notif_title_urgent|trim else notif_title_base %}
       {{ heading ~ '\n緊急 Urgent ‼️' }}
@@ -233,7 +235,7 @@
               data:
                 title: "{{ notif_title_general|default(notif_title_base, true) }}"
                 message: |-
-                  🏠 系統偵測所有人已離家。
+                  [離家] 系統偵測所有人已離家。
                   • 家電皆為關閉，門鎖皆已上鎖。
                   • 已啟動離家模式。
                   {% if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') %}• 本次已自動切換為離家情境（切換成功）。{% endif %}
@@ -261,7 +263,7 @@
                         {"type":"text","text": title_safe},
                         {"type":"text","text": '重要 Important ⚠️'},
                         {"type":"text","text": (
-                          '🏠 系統偵測所有人已離家。'
+                         '[離家] 系統偵測所有人已離家。'
                           ~ "\n• 家電皆為關閉，門鎖皆已上鎖。"
                           ~ "\n• 已啟動離家模式。"
                           ~ ("\n• 本次已自動切換為離家情境（切換成功）。" if (not aqara_li_jia_on) and is_state('input_boolean.aqara_li_jia','on') else "")

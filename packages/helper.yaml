@@ -1,6 +1,20 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.18.0）
+# Helpers（V3.20.0）
 # ──────────────────────────────────────────────
+# 修正 (V3.20.0):
+#   • 修復 5 處 `| list | first` 在追蹤器清單為空時引發的
+#     TemplateVariableWarning（"No first item, sequence was empty"）。
+#     涉及：at_home_kenny_ap_mac、at_home_elay_ap_mac、at_home_jerry_ap_mac、
+#     at_home_iris_ap_mac、at_home_kenny_ipad_ap_mac。
+#     修正方式：先轉 list 再用 [0] if homes else none 安全取值。
+#
+# 新增與強化 (V3.19.0):
+#   • 新增小米無線開關（sensor.0x00158d0002419b84_action）HomeKit 門鈴橋接：
+#     建立 binary_sensor.da_men_men_ling（device_class: doorbell），觸發值 single，3 秒後自動復位。
+#     Apple 家庭 App 可直接識別為門鈴，HomePod/Apple TV 支援門鈴提示音播放。
+#   • 新增 input_number.supply_batt_lowest_doorbell_2f，供 00-2C 耗材通知 AI 記錄二樓門口電鈴
+#     （sensor.0x00158d0002419b84_battery）最低電量，遮擋拖動/unknown 問題。
+#
 # 新增與強化 (V3.18.0):
 #   • 新增 HomeKit 晚安/早安/離家/到家情境輔助開關與離家/晚安最後觸發時間戳，支援 3 分鐘防衝突與按鈕自動復位。
 #   • 客廳 Aqara 魔方最低電量 helper 顯示名稱移除 EBH8030，避免與車輛電量混淆。
@@ -509,6 +523,9 @@ input_boolean:
   notify_line_emergency_enable:
     name: LINE通知啟用_緊急
     icon: mdi:bell-badge-outline
+  notify_line_doorbell_enable:
+    name: LINE通知啟用_大門門鈴
+    icon: mdi:doorbell
 
 
 
@@ -604,6 +621,12 @@ input_number:
     mode: box
   supply_batt_lowest_living_room_cube_new:
     name: 耗材電量最低值_客廳Aqara魔方
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  supply_batt_lowest_doorbell_2f:
+    name: 耗材電量最低值_二樓門口電鈴
     min: 0
     max: 100
     step: 1
@@ -849,6 +872,9 @@ input_text:
     max: 120
   notif_title_gateway_alert:
     name: 保全告警系統_通知標題
+    max: 120
+  notif_title_doorbell:
+    name: 105_LINEnotice_大門門鈴
     max: 120
   notif_title_100c_warn:
     name: 100C_LINEnotice_電量提醒
@@ -1388,6 +1414,17 @@ template:
           unique_id: at_home_nobody_home
           device_class: occupancy
           state: "{{ states('sensor.at_home_count')|int(0) == 0 }}"
+
+  # === 門鈴 HomeKit 橋接 (V3.19.0) ===
+    - binary_sensor:
+        - name: "大門門鈴"
+          unique_id: xiaomi_front_door_doorbell
+          device_class: occupancy
+          state: >-
+            {{ is_state('sensor.0x00158d0002419b84_action', 'single') }}
+          delay_off:
+            seconds: 3
+
         - name: che_ku_wa_fi_gan_ying_zong_he_pan_duan
           unique_id: che_ku_wa_fi_gan_ying_zong_he_pan_duan
           device_class: occupancy
@@ -1462,28 +1499,32 @@ template:
           state: >-
             {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
-            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_elay_ap_mac
           unique_id: at_home_elay_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_elay_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list %}
-            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_jerry_ap_mac
           unique_id: at_home_jerry_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list %}
-            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_iris_ap_mac
           unique_id: at_home_iris_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_iris_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
-            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_kenny_location
           unique_id: at_home_kenny_location
@@ -1499,7 +1540,8 @@ template:
           state: >-
             {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
-            {% set e = expand(ids) | selectattr('state','eq','home') | list | first %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
         - name: at_home_kenny_ipad_location
           unique_id: at_home_kenny_ipad_location
@@ -1683,6 +1725,7 @@ automation:
       batt_calib_title: "【AI電量計算系統 V3.1】"
       leave_guard_title: "【離家保全系統 V3.1】"
       gateway_alert_title: "【保全告警系統 V3.1】"
+      doorbell_title: "【AI大門門鈴系統 V3.0】"
     action:
       - service: input_text.set_value
         data:
@@ -1712,5 +1755,10 @@ automation:
           entity_id: input_text.notif_title_gateway_alert
         data:
           value: "{{ gateway_alert_title }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.notif_title_doorbell
+        data:
+          value: "{{ doorbell_title }}"
 # 新增與強化 (V3.12.0):
 #   • AtHome location 新增 unknown 緩衝：剛變 unknown 顯示「離家確認中」，持續 2 分鐘後才顯示「離家」。

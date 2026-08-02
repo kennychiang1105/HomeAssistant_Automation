@@ -1,0 +1,82 @@
+# ==============================================================================
+# 105大門門鈴自動化AI (V3.0)
+# ==============================================================================
+# 相容版本：Helpers V3.20.0 (門鈴 helper 與 LINE 通知開關)
+#
+# 功能描述：
+# 1. 偵測小米門鈴無線開關（sensor.0x00158d0002419b84_action）單擊 'single' 或門鈴 HomeKit 橋接實體 binary_sensor.da_men_men_ling 觸發。
+# 2. 家中廣播與 TTS：
+#    - 調整客廳 HomePod 與頂樓 HomePod 音量 (volume_level: 0.65)。
+#    - 對 TTS 喇叭發出語音通知：「大門有人按門鈴！」。
+# 3. LINE 智能推播 (遵循 SOP-10 規範)：
+#    - 透過 script.send_line_to_user 發送推播，確認 target_user_id 有效且 input_boolean.notify_line_doorbell_enable 開啟。
+#    - 採用 Helper 自訂標題與時間戳，若未啟用通知或發送失敗則透過 persistent_notification.create 留下系統通知與除錯紀錄。
+#
+# 修改歷史 (Changelog):
+#   - V3.0 (2026-08-02): 新增 105 大門門鈴自動化AI，參考 05B 緊急模式廣播與 106 保全系統 SOP-10 LINE 通知架構。
+# ==============================================================================
+
+- id: ai_105_front_door_doorbell_notify
+  alias: 105大門門鈴自動化AI (V3.0)
+  description: 大門門鈴按壓偵測、HomePod 語音廣播與 LINE 推播通知 (含 SOP-10 可靠性規範)
+  mode: restart
+  max_exceeded: silent
+  variables:
+    automation_version: 'V3.0'
+    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    line_doorbell_enabled: "{{ is_state('input_boolean.notify_line_doorbell_enable', 'on') }}"
+    notif_title_doorbell: >-
+      {% set title = states('input_text.notif_title_doorbell') %}
+      {{ title if title and title|lower not in ['unknown','unavailable','none',''] else '【AI大門門鈴系統 V3.0】' }}
+    at_home_count: "{{ states('sensor.at_home_count') | int(0) }}"
+    now_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  triggers:
+    - trigger: state
+      entity_id:
+        - sensor.0x00158d0002419b84_action
+      to: 'single'
+    - trigger: state
+      entity_id:
+        - binary_sensor.da_men_men_ling
+      to: 'on'
+  conditions: []
+  actions:
+    # 1. 廣播與 TTS 通知 (參考 05B緊急模式廣播架構)
+    - parallel:
+        - sequence:
+            - action: media_player.volume_set
+              target:
+                entity_id:
+                  - media_player.ke_ting_homepod
+                  - media_player.ding_lou_homepod
+              data:
+                volume_level: 0.65
+            - action: tts.speak
+              target:
+                device_id: c01a1336ef43795fd0679631c3e6ce62
+              data:
+                message: "大門有人按門鈴！請注意門外來訪客人。"
+                media_player_entity_id: media_player.guang_bo_qun_zu_all
+                cache: true
+        # 2. LINE 推播通知 (遵循 SOP-10 規範)
+        - sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ (line_doorbell_enabled | bool(true)) and (line_bot_target_user_id | string | length > 5) }}"
+              then:
+                - action: script.send_line_to_user
+                  data:
+                    user_id: "{{ line_bot_target_user_id }}"
+                    payload: >-
+                      {% set messages = [
+                        {"type":"text","text": notif_title_doorbell ~ "\n訪客通知"},
+                        {"type":"text","text": "大門有人按門鈴！\n觸發時間：" ~ now_time},
+                        {"type":"text","text": "目前家中成員數量：" ~ at_home_count ~ " 人\n請確認大門攝影機或應門。"}
+                      ] %}
+                      {{ messages | tojson }}
+              else:
+                - action: persistent_notification.create
+                  data:
+                    title: "{{ notif_title_doorbell }} LINE 未發送"
+                    message: >-
+                      門鈴通知 LINE 未發送：{% if not (line_doorbell_enabled | bool(true)) %}門鈴通知開關未開啟{% else %}LINE user_id 無效{% endif %}。觸發時間：{{ now_time }}

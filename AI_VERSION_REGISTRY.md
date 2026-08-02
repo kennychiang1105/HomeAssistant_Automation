@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.18.0`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.20.0`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -24,9 +24,9 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
-| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
+| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.3` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.2)` | `ai_00_2c_supply_battery_notify` | `V3.1.2` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.3)` | `ai_00_2c_supply_battery_notify` | `V3.1.3` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -39,14 +39,15 @@
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.2)` | `ai_08_8b_toilet_motion_light` | `V3.0.2` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.0)` | `ai_auto_leave_system` | `V3.4.0` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.1)` | `ai_auto_leave_system` | `V3.4.1` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.1)` | `ai_lpr_recognition` | `V3.1.1` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.0)` | `ai_gateway_anomaly_guard` | `V3.3.0` |
+| `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V3.0)` | `ai_105_front_door_doorbell_notify` | `V3.0` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.1)` | `ai_gateway_anomaly_guard` | `V3.3.1` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
@@ -59,6 +60,13 @@
   1. 先更新檔內 `variables.automation_version`。
   2. 再同步本總表。
   3. 若有跨檔引用，優先保持 `id` 不變；若必須改 `id`，要全域搜尋後一併更新。
+
+## Helper 變更紀錄
+
+| 版本 | 日期 | 變更描述 |
+|---|---|---|
+| V3.19.0 | 2026-08-02 | 新增小米無線開關 HomeKit 門鈴橋接（`binary_sensor.da_men_men_ling`，`device_class: doorbell`），觸發後 3 秒復位。 |
+| V3.18.0 | - | 新增 HomeKit 晚安/早安/離家/到家情境輔助開關與按鈕自動復位。 |
 
 
 ## AI 更新步驟與注意事項（SOP）
@@ -167,6 +175,16 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 
+
+## 本次調整（2026-08-02 修復系統與網路警告與門鈴耗材擴充）
+- `configuration.yaml`：新增 `logger` 區塊屏蔽 `homeassistant.loader`（第三方整合警告）、`py.warnings` 與 `urllib3.connectionpool`（SSL/InsecureRequest 警告）。
+- `packages/helper.yaml` 修補版升級至 `V3.20.0`：新增 `binary_sensor.da_men_men_ling` 門鈴橋接實體與 `input_number.supply_batt_lowest_doorbell_2f` 門鈴電量 Lowest Helper；新增大門門鈴分級 LINE 開關（`input_boolean.notify_line_doorbell_enable`）與自訂通知標題（`input_text.notif_title_doorbell`），並修復 5 處 `| list | first` 在追蹤器清單為空時引發的 TemplateVariableWarning 警告。
+- `00-2C耗材更換AI通知` 修補版升級至 `V3.1.3`：納入二樓門口電鈴（`sensor.0x00158d0002419b84_battery`）電量監控與 Lowest Helper 機制，避免 Unknown/抖動問題。
+- `00-01系統回應穩定自動化AI` 修補版升級至 `V3.0.3`：UnifiProtect 看門狗 `mode` 由 `single` 改為 `restart`。
+- `106網關系統AI` 修補版升級至 `V3.3.1`：`mode` 由 `single` 改為 `restart`，避免 input_boolean 快速切換時丟棄觸發。
+- `100B自動離家AI` 修補版升級至 `V3.4.1`：替換 3 處 4-byte Emoji（🪧、🏠）為 ASCII 文字符號，解決 LINE 推送時 JSON 序列化失敗（surrogates not allowed）警告。
+- 新增 `105大門門鈴自動化AI (V3.0)`：整合小米門鈴按壓單擊觸發與 HomeKit 橋接感應，連動 HomePod 音量調整廣播與 TTS 音效，並遵循 SOP-10 可靠性規範發送 LINE 智能推播。
+- `configuration/automations.yaml`：`07-4空氣清淨機-自動關閉` 改為 `mode: restart` 並加入 5 秒防抖；`102離家情境` 對含有已離線樓梯燈實體的 turn_off action 加上 `continue_on_error: true`。
 
 ## 本次調整（2026-08-01 情境防衝突與多項修補）
 - `08-8B廁所感應燈AI` 修補版升級至 `V3.0.2`：長按改為 Terncy device trigger。

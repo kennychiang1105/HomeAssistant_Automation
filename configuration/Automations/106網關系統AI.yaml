@@ -1,17 +1,18 @@
 # ─────────────────────────────────────────────────────────────
-# 106網關系統AI (V3.3.0)
+# 106網關系統AI (V3.3.1)
 # 相容版本：Helpers V3.16（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.1：修補版。將 mode 由 single 改為 restart，避免 input_boolean 快速切換時被重復觸發時導致 "Already running" 警告，確保以最新觸發狀態為準。
 # - V3.3.0：功能版；新增網關 Debug 通知 Helper，將解除歸位、常規同步與無情境歸位等清理型永久通知改為 Debug 開啟時才發送；異常攔截 LINE 流程不變。
 # - V3.2.0：功能版；Actions 最前方加入 1 秒 Debounce，並將 Aqara 情境數量與標籤改到延遲後即時求值，避免離家/在家互搶時使用 0 秒舊狀態。
 # - V3.1.1：修補版；HA 重開機觸發時僅執行網關/情境同步，不發送 persistent notification 或 LINE 通知，避免重啟校正產生多餘訊息。
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106網關系統AI (V3.3.0)
+- alias: 106網關系統AI (V3.3.1)
   id: ai_gateway_anomaly_guard
   description: 保全情境重置、網關同步與異常防禦
-  mode: single
+  mode: restart
 
   triggers:
     - platform: state
@@ -28,7 +29,7 @@
       event_type: automation_reloaded
 
   variables:
-    automation_version: "V3.3.0"
+    automation_version: "V3.3.1"
     helpers_compat: "Helpers V3.16"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"

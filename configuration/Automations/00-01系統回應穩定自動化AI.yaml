@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 00-01系統回應穩定自動化AI (V3.0.2)
+# 00-01系統回應穩定自動化AI (V3.0.3)
 # 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.3：修補版。將 ai_00_01_unifi_protect_watchdog 的 mode 由 single 改為 restart，
+#   避免在家/鐵門多次觸發時 1 小時 delay 尚未完成就被封鎖並丟棄後續觸發。
 # - V3.0.2：同版增補。固定重啟時刻改為可由 helper 調整（兩個時刻皆可自訂），維持與其他看門狗獨立。
 # - V3.0.2：修補版。主機重啟改為固定時間獨立觸發，移除與小燕/Unifi 看門狗共享時間來源，避免外部重載後重新計算。
 # - V3.0.1：補上完整 logbook、恢復小燕網關穩定重載流程、移除依賴 initial 的設定。
@@ -12,7 +14,7 @@
   description: 依 helper 設定時間與間隔天數自動執行主機重啟。
   mode: single
   variables:
-    automation_version: "V3.0.2"
+    automation_version: "V3.0.3"
   triggers:
     - trigger: time
       at: input_datetime.system_stability_restart_time
@@ -92,11 +94,11 @@
         entry_id: 943e593a9b076c8f44717a2563e66182
 
 - id: ai_00_01_unifi_protect_watchdog
-  alias: 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V3.0.1)
+  alias: 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V3.0.3)
   description: 有人在家或鐵門狀態變化後，若 1 小時內攝影機相關狀態無變更則重載 Unifi Protect integration。
-  mode: single
+  mode: restart
   variables:
-    automation_version: "V3.0.1"
+    automation_version: "V3.0.3"
   triggers:
     - trigger: state
       entity_id:
