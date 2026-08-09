@@ -1,8 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 08-7A自動晚安情境AI (V3.2.0)
-# 相容版本：Helpers V3.18.0（已確認）
+# 08-7A自動晚安情境AI (V3.3.0)
+# 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
-# - V3.2.0：功能版；加入 Elay/Jerry/Iris 位置聯合判斷，僅所有在家成員都在就寢/臥室安全區時才自動晚安。/patch (a) fix bug.
+# - V3.3.0：功能版；修復 Conditions 過濾邏輯：改用白名單機制，指定安全位置清單（臥室類/離家），排除車庫/客廳/廚房/廁所/離家確認中等「活動中」狀態後才放行。
+#           修復 Actions 安全門：改為遍歷所有家庭成員（Kenny/Elay/Jerry/Iris），任一人在活動區即取消晚安，不再僅檢查 Kenny。
+# - V3.2.1：修補版（patch a）；小幅校正客廳按鈕防守邏輯。
+# - V3.2.0：功能版；加入 Elay/Jerry/Iris 位置聯合判斷，僅所有在家成員都在就寢/臥室安全區時才自動晚安。
 # - V3.1.1：修補版；離家/離家確認中 30 秒重檢後僅在回到二樓主控制區或車庫時取消，避免 Kenny 維持離家時永遠無法執行晚安情境。
 # - V3.1.0：功能版；晚安時段延長至 05:00，二樓無人防抖提高至 90 秒，並加入 Location Helper 離家/車庫/二樓控制區安全重檢與取消防禦。
 # - V3.0.3：修補版；恢復 21:00 night_check 定時觸發，避免二樓在晚安時段開始前已無人時漏跑晚安情境；保留二樓無人 30 秒與無執行訊息通知。
@@ -10,11 +13,13 @@
 # - V3.0.1：修補版；補齊二樓坪幕感應綜合判斷 helper 依賴，沿用 AtHome AP MAC 區域判斷邏輯。
 # - V3.0：功能版；新增跨夜時間自動晚安情境，於 21:00 後或 03:00 前且二樓無人時執行晚安情境；以單一跨夜 time 條件與晚安 helper off 防止重複觸發。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-7A自動晚安情境AI (V3.2.1)
+- alias: 08-7A自動晚安情境AI (V3.3.0)
   id: ai_08_7a_auto_goodnight_scene
   description: >
     晚間 21:00 後至凌晨 05:00 前，若二樓 AP/人員綜合判定連續 90 秒無人，
     或於 21:00 定時校正時已無人，則自動執行晚安情境。
+    Conditions 改用白名單：需所有有效成員均在安全位置（臥室類或離家）才放行。
+    Actions 安全門改為遍歷全體成員，任一人在活動區即取消晚安。
   mode: single
 
   triggers:
@@ -47,30 +52,56 @@
           states('sensor.at_home_iris_location')
         ] %}
         {% set invalid = ['unknown', 'unavailable', 'none', ''] %}
+        {% set safe_locations = ['三樓臥室', '四樓Jerry房間', '四樓Elay房間', '頂樓Kenny房間', '離家'] %}
+        {# 活動中的位置：車庫/客廳/廚房/廁所/離家確認中 表示不得觸發晚安 #}
         {% set valid_members = members | reject('in', invalid) | list %}
-        {{ valid_members | reject('search', '臥室|主臥|房間|就寢|睡覺|離家') | list | count == 0 }}
+        {# 有效成員大於 0 ，且全部都在安全位置才放行 #}
+        {{ valid_members | count > 0 and (valid_members | reject('in', safe_locations) | list | count == 0) }}
 
   variables:
-    automation_version: "V3.2.1"
-    helpers_compat: "Helpers V3.18.0"
+    automation_version: "V3.3.0"
+    helpers_compat: "Helpers V3.21.1"
 
   actions:
+    # 全成員活動位置即時取消（不等待）
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ states('sensor.at_home_kenny_location') in ['離家', '離家確認中'] }}"
+              value_template: >-
+                {% set locs = [
+                  states('sensor.at_home_kenny_location'),
+                  states('sensor.at_home_elay_location'),
+                  states('sensor.at_home_jerry_location'),
+                  states('sensor.at_home_iris_location')
+                ] %}
+                {{ locs | select('in', ['客廳', '廚房', '廁所', '車庫']) | list | count > 0 }}
+          sequence:
+            - stop: "Location safety guard: active member detected, cancelled auto goodnight"
+        # 有人在離家確認中，等 30 秒再重檢（可能是打門回家途中）
+        - conditions:
+            - condition: template
+              value_template: >-
+                {% set locs = [
+                  states('sensor.at_home_kenny_location'),
+                  states('sensor.at_home_elay_location'),
+                  states('sensor.at_home_jerry_location'),
+                  states('sensor.at_home_iris_location')
+                ] %}
+                {{ locs | select('in', ['離家確認中']) | list | count > 0 }}
           sequence:
             - delay: "00:00:30"
             - if:
                 - condition: template
-                  value_template: "{{ states('sensor.at_home_kenny_location') in ['客廳', '廚房', '廁所', '車庫'] }}"
+                  value_template: >-
+                    {% set locs = [
+                      states('sensor.at_home_kenny_location'),
+                      states('sensor.at_home_elay_location'),
+                      states('sensor.at_home_jerry_location'),
+                      states('sensor.at_home_iris_location')
+                    ] %}
+                    {{ locs | select('in', ['客廳', '廚房', '廁所', '車庫']) | list | count > 0 }}
               then:
-                - stop: "Location safety guard cancelled auto goodnight after recheck"
-        - conditions:
-            - condition: template
-              value_template: "{{ states('sensor.at_home_kenny_location') in ['客廳', '廚房', '廁所', '車庫'] }}"
-          sequence:
-            - stop: "Location safety guard cancelled auto goodnight"
+                - stop: "Location safety guard: active member detected after recheck, cancelled auto goodnight"
     - service: automation.trigger
       target:
         entity_id: automation.wan_an_qing_jing

@@ -1,33 +1,36 @@
 # ==============================================================================
-# 105大門門鈴自動化AI (V3.0)
+# 105大門門鈴自動化AI (V3.1.0)
 # ==============================================================================
-# 相容版本：Helpers V3.20.0 (門鈴 helper 與 LINE 通知開關)
+# 相容版本：Helpers V3.21.1 (門鈴 helper 與 LINE 通知開關)
 #
 # 功能描述：
 # 1. 偵測小米門鈴無線開關（sensor.0x00158d0002419b84_action）單擊 'single' 或門鈴 HomeKit 橋接實體 binary_sensor.da_men_men_ling 觸發。
-# 2. 家中廣播與 TTS：
-#    - 調整客廳 HomePod 與頂樓 HomePod 音量 (volume_level: 0.65)。
-#    - 對 TTS 喇叭發出語音通知：「大門有人按門鈴！」。
+# 2. 家中廣播與 TTS（遵循 SOP-11 廣播音量恢復規範）：
+#    - 廣播前先讀取客廳 HomePod 與頂樓 HomePod 的當前音量。
+#    - 調整音量至 0.65 後發出語音通知：「大門有人按門鈴！請注意門外來訪客人。」。
+#    - tts.speak 後等待 2 秒讓播放啟動，再以 wait_template 監聽播放器狀態離開 playing。
+#    - 確認播畢（或超時 12 秒）後，恢復各 HomePod 至觸發前的原始音量。
 # 3. LINE 智能推播 (遵循 SOP-10 規範)：
 #    - 透過 script.send_line_to_user 發送推播，確認 target_user_id 有效且 input_boolean.notify_line_doorbell_enable 開啟。
 #    - 採用 Helper 自訂標題與時間戳，若未啟用通知或發送失敗則透過 persistent_notification.create 留下系統通知與除錯紀錄。
 #
 # 修改歷史 (Changelog):
+#   - V3.1.0 (2026-08-09): 功能版。廣播前儲存音量，wait_template（timeout 12s）確認播音完畢後恢復，遵循 SOP-11 廣播音量恢復規範。
 #   - V3.0 (2026-08-02): 新增 105 大門門鈴自動化AI，參考 05B 緊急模式廣播與 106 保全系統 SOP-10 LINE 通知架構。
 # ==============================================================================
 
 - id: ai_105_front_door_doorbell_notify
-  alias: 105大門門鈴自動化AI (V3.0)
-  description: 大門門鈴按壓偵測、HomePod 語音廣播與 LINE 推播通知 (含 SOP-10 可靠性規範)
+  alias: 105大門門鈴自動化AI (V3.1.0)
+  description: 大門門鈴按壓偵測、HomePod 語音廣播（含音量恢復）與 LINE 推播通知 (含 SOP-10/SOP-11 規範)
   mode: restart
   max_exceeded: silent
   variables:
-    automation_version: 'V3.0'
+    automation_version: 'V3.1.0'
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_doorbell_enabled: "{{ is_state('input_boolean.notify_line_doorbell_enable', 'on') }}"
     notif_title_doorbell: >-
       {% set title = states('input_text.notif_title_doorbell') %}
-      {{ title if title and title|lower not in ['unknown','unavailable','none',''] else '【AI大門門鈴系統 V3.0】' }}
+      {{ title if title and title|lower not in ['unknown','unavailable','none',''] else '【AI大門門鈴系統 V3.1.0】' }}
     at_home_count: "{{ states('sensor.at_home_count') | int(0) }}"
     now_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
   triggers:
@@ -41,8 +44,12 @@
       to: 'on'
   conditions: []
   actions:
-    # 1. 廣播與 TTS 通知 (參考 05B緊急模式廣播架構)
+    # SOP-11：廣播前儲存原始音量
+    - variables:
+        vol_keting: "{{ state_attr('media_player.ke_ting_homepod', 'volume_level') | float(0.5) }}"
+        vol_dinglou: "{{ state_attr('media_player.ding_lou_homepod', 'volume_level') | float(0.5) }}"
     - parallel:
+        # 1. 廣播與 TTS（含音量恢復，遵循 SOP-11）
         - sequence:
             - action: media_player.volume_set
               target:
@@ -58,6 +65,25 @@
                 message: "大門有人按門鈴！請注意門外來訪客人。"
                 media_player_entity_id: media_player.guang_bo_qun_zu_all
                 cache: true
+            # 等待 2 秒讓播放啟動
+            - delay: "00:00:02"
+            # 等待播音完畢（兩台 HomePod 均不再 playing）或超時 12 秒
+            - wait_template: >-
+                {{ not is_state('media_player.ke_ting_homepod', 'playing') and
+                   not is_state('media_player.ding_lou_homepod', 'playing') }}
+              timeout: "00:00:12"
+              continue_on_timeout: true
+            # 恢復原始音量（無論是否超時都執行）
+            - action: media_player.volume_set
+              target:
+                entity_id: media_player.ke_ting_homepod
+              data:
+                volume_level: "{{ vol_keting }}"
+            - action: media_player.volume_set
+              target:
+                entity_id: media_player.ding_lou_homepod
+              data:
+                volume_level: "{{ vol_dinglou }}"
         # 2. LINE 推播通知 (遵循 SOP-10 規範)
         - sequence:
             - if:

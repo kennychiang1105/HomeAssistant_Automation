@@ -1,16 +1,18 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.2)
-# 相容版本：Helpers V3.0
-# 更新紀錄：
+# 104-1車庫鐵門感應燈AI (V3.3)
+# 相容版本：Helpers V3.21.0（已確認）
+# 更新紀錄（統一格式）：
+# - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒；原固定 5 分鐘冷卻移除。
 # - V3.2：改為 restart 降低排隊延遲體感；新增「手動關燈後 5 分鐘冷卻」避免立刻被自動重開。
 # - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
 # - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.2)
+- alias: 104-1車庫鐵門感應燈AI (V3.3)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門與攝影機事件控制車庫主燈/樓梯燈：鐵門開啟或偵測到人車移動時開燈；
     鐵門關閉後延時關燈，或在連續無人車移動一段時間後自動關燈。
+    手動關閉冷卻時間可透過 input_number.garage_light_cooldown_sec 自行調整（預設 30 秒）。
   mode: restart
   max: 10
 
@@ -53,7 +55,8 @@
       to: "off"
 
   variables:
-    automation_version: "V3.2"
+    automation_version: "V3.3"
+    cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
 
   actions:
     - choose:
@@ -140,7 +143,7 @@
               target:
                 entity_id: timer.garage_light_manual_off_cooldown
               data:
-                duration: "00:05:00"
+                duration: "{{ '%02d:%02d:%02d' | format(cooldown_sec // 3600, (cooldown_sec % 3600) // 60, cooldown_sec % 60) }}"
 
         - conditions:
             - condition: trigger

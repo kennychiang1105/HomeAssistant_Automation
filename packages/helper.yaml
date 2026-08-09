@@ -1,7 +1,13 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.20.0）
+# Helpers（V3.21.1）
 # ──────────────────────────────────────────────
-# 修正 (V3.20.0):
+# 修正 (V3.21.1):
+#   • 更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
+#
+# 新增 (V3.21.0):
+#   • 新增 input_number.garage_light_cooldown_sec：車庫燈手動關閉冷卻秒數（預設 30 秒，範圍 0～600 秒），
+#     供 104-1車庫鐵門感應燈AI 讀取，可在 HA UI 自行調整手動關燈後冷卻時間。
+#
 #   • 修復 5 處 `| list | first` 在追蹤器清單為空時引發的
 #     TemplateVariableWarning（"No first item, sequence was empty"）。
 #     涉及：at_home_kenny_ap_mac、at_home_elay_ap_mac、at_home_jerry_ap_mac、
@@ -279,7 +285,7 @@ mqtt:
 timer:
   garage_light_manual_off_cooldown:
     name: 車庫燈手動關閉冷卻
-    duration: "00:05:00"
+    duration: "00:00:30"
   topfloor_down_intent_guard:
     name: 頂樓下樓意圖保護窗
   topfloor_lock_after_up:
@@ -571,6 +577,15 @@ input_button:
     icon: mdi:battery-heart-variant
 
 input_number:
+  garage_light_cooldown_sec:
+    name: 車庫燈手動關閉冷卻（秒）
+    icon: mdi:timer-off
+    min: 0
+    max: 600
+    step: 10
+    initial: 30
+    unit_of_measurement: s
+    mode: box
   supply_batt_lowest_garage:
     name: 耗材電量最低值_車庫感測器
     min: 0
@@ -590,7 +605,7 @@ input_number:
     step: 1
     mode: box
   supply_batt_lowest_23cd3dc:
-    name: 耗材電量最低值_23cd3dc
+    name: 耗材電量最低値_廚房無線開關
     min: 0
     max: 100
     step: 1

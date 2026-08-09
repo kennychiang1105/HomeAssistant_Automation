@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.20.0`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.21.1`
 - configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
 
 ## 現況總表（Automations）
@@ -26,7 +26,7 @@
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.3` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.3)` | `ai_00_2c_supply_battery_notify` | `V3.1.3` |
+| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.4)` | `ai_00_2c_supply_battery_notify` | `V3.1.4` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
@@ -37,23 +37,23 @@
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.5` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
-| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.1)` | `ai_08_8a_kitchen_motion_light` | `V3.1` |
+| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2)` | `ai_08_8a_kitchen_motion_light` | `V3.2` |
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.2)` | `ai_08_8b_toilet_motion_light` | `V3.0.2` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.1)` | `ai_auto_leave_system` | `V3.4.1` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
-| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.2)` | `ai_104_1_garage_gate_motion_light` | `V3.2` |
+| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.3)` | `ai_104_1_garage_gate_motion_light` | `V3.3` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.1)` | `ai_lpr_recognition` | `V3.1.1` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V3.0)` | `ai_105_front_door_doorbell_notify` | `V3.0` |
+| `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V3.1.0)` | `ai_105_front_door_doorbell_notify` | `V3.1.0` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.1)` | `ai_gateway_anomaly_guard` | `V3.3.1` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.2.4)` | `ai_107_tesla_charger_status_notify` | `V3.2.4` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.3.0)` | `ai_107_tesla_charger_status_notify` | `V3.3.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.2.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.2.0` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.3.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.3.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -65,6 +65,8 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V3.21.1 | 2026-08-09 | 修復 `supply_batt_lowest_23cd3dc` 的 friendly_name 為「耗材電量最低値_廚房無線開關」。 |
+| V3.21.0 | 2026-08-09 | 新增 `input_number.garage_light_cooldown_sec`（車庫燈手動關閉冷卻秒數，預設 30 秒，可調 0～600 秒）。 |
 | V3.19.0 | 2026-08-02 | 新增小米無線開關 HomeKit 門鈴橋接（`binary_sensor.da_men_men_ling`，`device_class: doorbell`），觸發後 3 秒復位。 |
 | V3.18.0 | - | 新增 HomeKit 晚安/早安/離家/到家情境輔助開關與按鈕自動復位。 |
 
@@ -168,6 +170,18 @@
    - 開關關閉時不發送的驗證結果。
    - `user_id` 無效時 fallback 記錄結果。
 
+### SOP-11：廣播系統音量恢復規範（每次涉及 TTS 廣播必做）
+1. 觸發 TTS 廣播前，**必須先讀取並儲存**各廣播媒體播放器（HomePod 等）的當前音量至 action-level 變數。
+   - 使用 `state_attr('media_player.entity_id', 'volume_level') | float(fallback)` 讀取。
+   - 若讀取失敗（unknown/unavailable）則使用安全預設値（建議 0.5），避免恢復時静音。
+2. 調整音量後呼叫 `tts.speak`，播音完成後必須恢復原始音量。
+3. 等待播音完成的標準流程：
+   - `tts.speak` 呼叫後延遲 2 秒，讓播放啟動（delay: "00:00:02"）。
+   - 使用 `wait_template` 監聽播放器狀態離開 `playing`，timeout 建議設 12 秒。
+   - **必須設 `continue_on_timeout: true`**，確保即使播放超時也一定恢復音量。
+4. 無論是否 timeout，音量恢復動作必須執行（`wait_template` + `continue_on_timeout` 模式保證此點）。
+5. 所有涉及 TTS 廣播的自動化均適用，包括门鈴、保全警報、地震、自定義廣播等。
+
 ## 現況總表（Scripts）
 
 | File | Alias | id | automation_version |
@@ -175,6 +189,21 @@
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
 
+
+## 本次調整（2026-08-09 充電通知修復、晩安誤觸修復、廣播音量恢復、廚房無線開關耗材）
+- `107Tesla充電器狀態與通知AI` 功能版升級至 `V3.3.0`：修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時無開始通知與用時計算錯誤問題。charge_start 條件新增放行不同車型互轉情境，換車後自動更新起始時間並發送新車開始通知。
+- `08-7A自動晩安情境AI` 功能版升級至 `V3.3.0`：Conditions 改用白名單機制（指定安全位置清單），排除車庫/客廣/廚房/廁所/離家確認中等活動狀態後才放行；Actions 安全門改為遙歷全體成員（Kenny/Elay/Jerry/Iris），任一人在活動區即取消晩安。
+- `105大門門鈴自動化AI` 功能版升級至 `V3.1.0`：廣播前儲存 HomePod 原始音量，TTS 播音後以 `wait_template`（timeout 12s + `continue_on_timeout: true`）確認播畢後恢復，遵循新增 SOP-11 廣播音量恢復規範。
+- `00-2C耗材更換AI通知` 修補版升級至 `V3.1.4`：將廚房無線開關（`sensor.0x00158d00023cd3dc_battery`）電量納入監控，新增至 battery_change 觸發、device_name 對照、lowest_helper 對照與一鍵測試報告。
+- `packages/helper.yaml` 修補版升級至 `V3.21.1`：更新 `supply_batt_lowest_23cd3dc` 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
+- 新增 **SOP-11 廣播系統音量恢復規範**：明定所有涉及 TTS 廣播的自動化必須帶備播前儲存音量、播完監聽及恢復密封模式。
+- LINE 通知檢查：本次未新增任何直接 `notify.line_*` 呼叫，符合 SOP-10。
+
+## 本次調整（2026-08-09 車庫感應燈冷卻可調與廚房感應燈移除冷卻）
+- `104-1車庫鐵門感應燈AI` 功能版升級至 `V3.3`：手動關閉冷卻時間改為讀取 `input_number.garage_light_cooldown_sec`（預設 30 秒，可自行調整 0～600 秒），取代原固定 5 分鐘冷卻。
+- `08-8A廚房感應燈AI` 修補版升級至 `V3.2`：移除手動按鍵後 60 秒防誤觸冷卻判斷，感應燈偵測到動作時直接開燈。
+- `packages/helper.yaml` 功能版升級至 `V3.21.0`：新增 `input_number.garage_light_cooldown_sec`（車庫燈手動關閉冷卻秒數），提供 UI 可調整冷卻時間；並將 `timer.garage_light_manual_off_cooldown` 預設 duration 同步更新為 30 秒。
+- LINE 通知檢查：本次未新增或修改任何 LINE 發送路徑，未出現直接 `notify.line_*` 呼叫，符合 SOP-10。
 
 ## 本次調整（2026-08-02 修復系統與網路警告與門鈴耗材擴充）
 - `configuration.yaml`：新增 `logger` 區塊屏蔽 `homeassistant.loader`（第三方整合警告）、`py.warnings` 與 `urllib3.connectionpool`（SSL/InsecureRequest 警告）。
