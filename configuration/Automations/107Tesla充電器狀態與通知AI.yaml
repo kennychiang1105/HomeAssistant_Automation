@@ -1,7 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.2.4)
-# 相容版本：Helpers V3.18.0（已確認）
+# 107Tesla充電器狀態與通知AI (V3.3.0)
+# 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V3.3.0：功能版。修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時「無開始通知」與「充電用時計算錯誤」問題。
+#           charge_start 條件新增放行「不同車型互轉」情境：當 charge_start_tesla 觸發且 from_status 為 Luxgen 型，
+#           或 charge_start_luxgen 觸發且 from_status 為 Tesla 型時，視為新車輛插槍，立即更新 start_time 並發送新車開始通知。
 # - V3.2.4：修補版。移除不存在的 sensor.tesla_wall_connector_power，改以 sensor.tesla_wall_connector_total_power 上升判斷本次插槍已有充電；拔槍時重置旗標讓同日第二車可再通知。
 # - V3.2.3：修補版。新增拔槍/功率低於 1W 且連線狀態變更時重置當日完成旗標，支援同日多車連續充電完成通知。
 # - V3.2.2：修補版。充電完成通知在用電量上方新增充電用時（X時X分鐘），LINE 一般通知維持 script.send_line_to_user 與分級/額外開關/user_id 防呆。
@@ -20,15 +23,16 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.2.4)
+- alias: 107Tesla充電器狀態與通知AI (V3.3.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
-    相容版本：Helpers V3.18.0（已確認）。
+    支援換車充電偵測：Luxgen 完成後 Tesla 插槍（或反向）時，自動更新起始時間並發送新車開始通知。
+    相容版本：Helpers V3.21.1（已確認）。
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.2.4"
+    automation_version: "V3.3.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -245,7 +249,13 @@
             - condition: template
               value_template: >-
                 {{ trigger.from_state is defined and trigger.from_state is not none and
-                   from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states) }}
+                   (
+                     from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states)
+                     or
+                     (trigger.id == 'charge_start_tesla' and from_status_normalized in ['charging_reduced', 'charging (reduced)', '充電（降壓）'])
+                     or
+                     (trigger.id == 'charge_start_luxgen' and from_status_normalized in ['charging', '充電中'])
+                   ) }}
           sequence:
             - service: input_boolean.turn_on
               target:
