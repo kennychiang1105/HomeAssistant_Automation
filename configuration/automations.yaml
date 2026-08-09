@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260801.yaml minus AI-managed
+# Source: configuration/Automations/FullHistory/full_automations_20260808.yaml minus AI-managed
 - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
@@ -2838,23 +2838,51 @@
   description: ''
   triggers:
   - domain: terncy
+    device_id: e35da29662b08cf4ced829f5eb40f179
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: d6e4551be6bf3fd520f5111e4f02a6cf
+    type: triple_press
+    trigger: device
+  - domain: terncy
     device_id: 2b1b9cbffff070f62f05d5f073a16213
     type: triple_press
     trigger: device
   - domain: terncy
-    device_id: 29a8530c569abeeee2a16c7237a0ed8e
-    type: triple_press
-    trigger: device
-  - domain: terncy
-    device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
-    type: triple_press
-    trigger: device
-  - domain: terncy
-    device_id: 262c6697a232d2f41dd879190fdaaa38
+    device_id: ee6aa6ce640f7123b2469280a5c34a7f
     type: triple_press
     trigger: device
   - domain: terncy
     device_id: 40e15319550792730cc46c7e0528c916
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: fa22b50d3158188987010beb3d0dc693
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: a8f64da0e429958983193590b3c01a2d
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 3318d70ca06e01eb7b730e25c93aca6a
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 548873b5b2245e7647e9bd47c3748300
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: de4044f4d156d13b885a1be8eb61c85b
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: cca5b7ed73a48ddcd08d2b6fac6ab5d6
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 29a8530c569abeeee2a16c7237a0ed8e
     type: triple_press
     trigger: device
   - domain: terncy
@@ -2863,6 +2891,86 @@
     trigger: device
   - domain: terncy
     device_id: 85d9ac5dc4dda0eeeacc9f68d2d572a3
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 6f569070d383724fefd1af44770b6f20
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 262c6697a232d2f41dd879190fdaaa38
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: a9caa455edec9bd90f96dcb457a46dc6
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 011d0fc36adf6381e82c6f7e0f130d49
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: da626557d958c8abedd9f594b1c78019
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: c4893a7813c41837c7b74c44fae94a57
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 1e49db7f4ff7ecde4cc1f4bbb73ff200
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: f2dce5893d623be85872ab012d9e6ac7
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 7062d71d97dde92c2d03051744e5c81e
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: bb9467ee4c71078c408bd87228e2d11d
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 79561269af063260fef17347172140ea
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 5499e1d5eb0e1e8435c471bafa837ec8
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 5229112240fdc5efba6ecb38ee59fbd8
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 813b3dcce6997d06a893274a9dd365c6
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 622c426e35e25607ba3347179af64b12
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: ea7743a9b14b9ce736fb645578dc59db
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: e784cc0dd2d58c48f1fb69e51601d2b3
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: 639198a381113044574beb1f3aff4450
+    type: triple_press
+    trigger: device
+  - domain: terncy
+    device_id: ad6e414dc8c87f8bb9deb125b792af19
     type: triple_press
     trigger: device
   conditions:
@@ -3048,7 +3156,7 @@
           enabled: true
   mode: restart
 - id: '1747548375786'
-  alias: 800-開關系列-10B小米無線開關雙擊-廚房燈自動化開關
+  alias: 800-開關系列-10B小米無線開關與廚房燈開關長按-廚房燈自動化開關
   description: ''
   triggers:
   - device_id: 8a3a83db44f3e7851c3178495daa7b85
@@ -3277,7 +3385,8 @@
     conditions:
     - condition: state
       entity_id: sensor.at_home_kenny_location
-      state: 離家
+      state:
+      - 離家
       for:
         hours: 0
         minutes: 5
