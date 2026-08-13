@@ -1503,9 +1503,6 @@
     trigger: device
   conditions: []
   actions:
-  - condition: template
-    value_template: '{% set last_ts = as_timestamp(states(''input_datetime.aqara_last_away_goodnight_triggered''),
-      0) %} {{ last_ts == 0 or (as_timestamp(now()) - last_ts) > 180 }}'
   - if:
     - condition: time
       after: 06:00:00
