@@ -53,7 +53,7 @@
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.3.0)` | `ai_107_tesla_charger_status_notify` | `V3.3.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.3.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.3.0` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.3.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -221,9 +221,34 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
+## 本次調整（V3.6.7 - 2026-08-16 Terncy 2026.8+ 底層事件重構、三擊全域統一、樓梯燈優化、晚安情境防誤判與設定檔升級）
+- **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。
+- **單擊長按防呆條件**：針對所有單擊自動化導入 500ms 長按防呆模板，避免開關長按放開瞬間誤觸單擊。
+- **雙網關消抖與執行模式規範**：所有 Terncy 自動化統一設定 `mode: single` / `mode: restart`、`max_exceeded: silent`，並於單擊動作末端加入 `delay: '00:00:00.5'`，徹底杜絕雙網關 50~100ms 連續重複觸發。
+- **三擊緊急模式全域統一**：
+  - 全家所有 35 個小燕開關 + 1 個小米無線開關三擊 100% 統一綁定為 `05E緊急實體按鈕`（觸發緊急模式）。
+  - 刪除衝突之舊版三擊功能：`800-開關系列-7`（客廳燈部分關）、`800-開關系列-3`（廚房三擊風扇）。
+  - 樓梯燈手勢全面優化：
+    - **`800-開關系列-9B`（單擊定時全開）**：1F~4F 樓梯開關單擊點亮全棟樓梯燈 3 分鐘，導入 `mode: restart` 解決 3 分鐘內手動關閉後再次單擊無反應問題。
+    - **`800-開關系列-9A`（雙擊常開）**：1F~4F 樓梯開關雙擊點亮全棟樓梯燈並維持常開（不計時關閉）。
+    - **`800-開關系列-9C`（長按全關）**：各樓層樓梯開關長按立即全關全棟樓梯燈。
+    - **`800-開關系列-12C`（頂樓四樓樓梯燈校正）**：將實體開關按鍵校正移出，改由虛擬實體按鈕（`input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`）觸發。
+- **實體清理**：移除全系統自動化中已停用之舊四樓樓梯燈開關實體 `switch.si_lou_lou_ti_deng`（已由 Yeelight 彩光燈泡 `light.yeelink_color5_0fb7_light` 接管），消除實體遺失/不可用警告。
+- **Helper 套件升級至 `V3.22.0`**：新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕）。
+- **YAML 語法淨化**：全面清理 `metadata: {}`、空的 `data: {}` 及殘留之 `enabled: false` 動作區塊。
+- **08-8B 廁所感應燈AI 升級至 `V3.0.3`**：長按觸發同步升級為 `terncy_long_press` 底層事件。
+- **configuration.yaml 升級至 `V3.5`（HA 2026.8+ HTTP 整合 UI 遷移與日誌淨化）**：
+  - 頂部加入標準化更新紀錄區塊（比照 `helper.yaml` 格式規範）。
+  - 已自 `configuration.yaml` 移除已棄用的 `http:` 區塊（消除 2027.2.0 失效警告）。
+  - 新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。
+- **新增開關指令總表與標準作業程序**：
+  - 建立 **`SwitchCommand.md`**：記錄全戶開關分類對照總表、HA 2026.8+ 標準程式碼架構與 YAML 範本。
+  - 新增 **`SOP-12：開關類自動化更新與維護規範`**：明定開關手勢排查、三擊專用、防呆消抖與雙表同步。
+  - 新增 **`SOP-13：Configuration 主設定檔更新與相容性規範`**：明定頂部更新紀錄格式（比照 helper.yaml）、版本進位、相容性檢測、Include 保護與三方同步。
 
+- **08-7A 自動晚安情境AI 升級至 `V3.4.0`**：新增「三樓臥室 10 分鐘觀察期」機制（解決設備定位誤跳三樓臥室 8 分鐘後離家之硬體 bug）。僅針對最後變動者判斷，若該成員本來就位於三樓臥室 10 分鐘以上直接放行（視為本來就在三樓就寢）；若剛進入未滿 10 分鐘則啟動觀察，期間跳其他安全臥室提早執行，跳車庫/離家/活動區立即取消，滿 10 分鐘持續就寢才正式執行晚安情境。
 
-## 本次調整（2026-08-09 充電通知修復、晩安誤觸修復、廣播音量恢復、廚房無線開關耗材）
+## 本次調整（2026-08-09 充電通知修復、晩安防護、廣播音量、車庫與廚房燈控、耗材擴充）
 - `107Tesla充電器狀態與通知AI` 功能版升級至 `V3.3.0`：修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時無開始通知與用時計算錯誤問題。charge_start 條件新增放行不同車型互轉情境，換車後自動更新起始時間並發送新車開始通知。
 - `08-7A自動晩安情境AI` 功能版升級至 `V3.3.0`：Conditions 改用白名單機制（指定安全位置清單），排除車庫/客廣/廚房/廁所/離家確認中等活動狀態後才放行；Actions 安全門改為遙歷全體成員（Kenny/Elay/Jerry/Iris），任一人在活動區即取消晩安。
 - `105大門門鈴自動化AI` 功能版升級至 `V3.1.0`：廣播前儲存 HomePod 原始音量，TTS 播音後以 `wait_template`（timeout 12s + `continue_on_timeout: true`）確認播畢後恢復，遵循新增 SOP-11 廣播音量恢復規範。
@@ -232,7 +257,6 @@
 - 新增 **SOP-11 廣播系統音量恢復規範**：明定所有涉及 TTS 廣播的自動化必須帶備播前儲存音量、播完監聽及恢復密封模式。
 - LINE 通知檢查：本次未新增任何直接 `notify.line_*` 呼叫，符合 SOP-10。
 
-## 本次調整（2026-08-09 車庫感應燈冷卻可調與廚房感應燈移除冷卻）
 - `104-1車庫鐵門感應燈AI` 功能版升級至 `V3.3`：手動關閉冷卻時間改為讀取 `input_number.garage_light_cooldown_sec`（預設 30 秒，可自行調整 0～600 秒），取代原固定 5 分鐘冷卻。
 - `08-8A廚房感應燈AI` 修補版升級至 `V3.2`：移除手動按鍵後 60 秒防誤觸冷卻判斷，感應燈偵測到動作時直接開燈。
 - `packages/helper.yaml` 功能版升級至 `V3.21.0`：新增 `input_number.garage_light_cooldown_sec`（車庫燈手動關閉冷卻秒數），提供 UI 可調整冷卻時間；並將 `timer.garage_light_manual_off_cooldown` 預設 duration 同步更新為 30 秒。
@@ -257,28 +281,24 @@
 - `automation.yaml` 修正客廳魔方 shock 動作（同時讀取 sensor/binary_sensor 與 action/action_type 屬性）、100A 3 分鐘冷卻、100/101/102/103 情境 8 秒自我檢查（狀態不符才重送）與 HomeKit 按鈕自動復位。
 - LINE 通知檢查：本次既有 Tesla/耗材 LINE 路徑仍使用 `script.send_line_to_user`，含分級開關、額外開關與 user_id 防呆；新增 HomeKit/情境防衝突未新增 LINE 路徑，符合 SOP-10。
 
-## 本次調整（2026-06-14 耗材電量防抖與名稱修補）
+## 本次調整（2026-06-14 夏季風扇、Location 與耗材/燈控 AI 擴充、Kenny iPad AtHome 修補）
 - `00-2C耗材更換AI通知` 修補版升級至 `V3.1.1`：耗材電量 state trigger 加入 10 秒防抖；客廳 Aqara 魔方與其他裝置測試報告遇 `unknown/unavailable` 時沿用對應最低電量 helper 的上次有效值，避免偶發 Unknown 造成誤判。
 - Helper 套件修補版升級至 `V3.17.2`：修正耗材電量 helper 顯示名稱，`08b95f06b466` 改為「廚房小米人體傳感器」、`28d1273d78cf` 改為「廁所夜燈」、廁所人體感應器改為「二樓廁所人體感應器」。
 - LINE 通知檢查：耗材濾芯、耗材電量與一鍵測試 LINE 路徑均使用 `script.send_line_to_user`，並檢查一般分級開關、耗材額外開關與 `user_id` 有效性；任一檢查不通過會建立 persistent notification 記錄未發送原因，符合 SOP-10。
 
-## 本次調整（2026-06-14 Kenny iPad AtHome Helper 修補）
 - Helper 套件版本維持 `V3.17.1` 不升版：新增/確認 `input_text.at_home_kenny_ipad_trackers` 與 `binary_sensor.at_home_kenny_ipad`，讓 Kenny iPad 與 `binary_sensor.at_home_kenny` 使用不同追蹤清單並完全獨立。
 - `sensor.at_home_kenny_ipad_ap_mac` 與 `sensor.at_home_kenny_ipad_location` 僅讀取 Kenny iPad 獨立追蹤清單，預設回退 `device_tracker.ipad_pro_2024_kenny`；不讀取 `input_text.at_home_kenny_trackers` 或 `binary_sensor.at_home_kenny`。
 - 確認 iPad helper 僅供額外 double check 使用，未納入 `binary_sensor.at_home_nobody_home`、`binary_sensor.at_home_anyone_home`、`binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan`、`binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan` 等在家/占用判斷。
 - LINE 通知檢查：本次只新增 helper 與調整 template 來源，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
 
-## 本次調整（2026-06-14 Code Review 修補）
 - Helper 套件修補版升級至 `V3.17.1`：移除 `input_select.lpr_last_plate` 重複 `EBH8030` 選項，避免 Home Assistant input_select 驗證失敗；同時移除 Kenny iPad AP template 未使用變數。
 - `08-7A自動晚安情境AI` 修補版升級至 `V3.1.1`：修正離家安全重檢條件，重檢後 Kenny 仍為 `離家` 時不再取消晚安情境，僅回到 `客廳` / `廚房` / `廁所` / `車庫` 才停止。
 - `08-8B廁所感應燈AI` 修補版升級至 `V3.0.1`：長按切換與閃爍次數判斷統一使用 `manual_override_entity` 變數，移除硬編碼分散。
 - LINE 通知檢查：本次只修正 helper options、template 死碼與自動化條件/變數引用，未新增或修改 persistent notification / LINE 發送路徑；未出現新的 `notify.line_*` 或直接 LINE 呼叫，符合 SOP-10。
 
-## 本次調整（2026-06-14 21A 兒童鎖低溫解鎖確認）
 - `21A_客廳電風扇整合控制AI` 修補版升級至 `V3.2.1`：確認並補強動態兒童鎖低溫解鎖遲滯；Kenny 在二樓主控制區（客廳/廚房/廁所）一律解鎖，Kenny 不在主控制區時 `t_eff > 30.5°C` 才上鎖，並在 `t_eff < 30.0°C` 主動解鎖，30.0～30.5°C 保持現狀避免抖動。
 - LINE 通知檢查：本次只調整 21A 兒童鎖控制 service，未新增或修改 persistent notification / LINE 發送路徑，未出現 `notify.line_*` 或直接 LINE 呼叫；既有耗材一鍵測試 LINE 路徑仍符合 SOP-10。
 
-## 本次調整（2026-06-14 夏季風扇、Location 與耗材/燈控 AI 擴充）
 - `21A_客廳電風扇整合控制AI` 功能版升級至 `V3.2.0`：移除開燈連動、加入 Kenny 主控制區動態兒童鎖、夏季曲線上移 2.3°C，非夏季減成改 -10% 並放開最低限制。
 - `22頂樓電風扇自動化AI` 功能版升級至 `V3.3.0`：日間曲線門檻全數上調 0.2°C，睡眠降速改用 `input_boolean.sleep_silent_active`，睡眠/非夏季減成擴大為 -10%。
 - 新增 `08-8B廁所感應燈AI (V3.0.0)`：廁所感應燈 AI 化，支援 1 分鐘無人關燈、長按事件切換手動關閉模式與 4/2 次閃爍回饋；舊 `automations.yaml` 廁所感應燈已移除。
@@ -307,44 +327,35 @@
 - `08-5C頂樓樓梯感應燈AI` 功能版升級至 `V3.4.5`：主流程 Webhook 補燈同步納入睡眠靜默窗並避免 Webhook 觸發落入原本攝影機分支；自動關閉 AI 改為 Conditions 僅保留「綜合/原本模式 + 主流程 180 秒內點亮」安全閥，Actions 分流為 A 軌跡完好秒關與 B 預設 22 秒攝影機動態清除救援流，並保留坎燈防誤關複檢。
 - LINE 通知檢查：本次未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 呼叫；SOP-10 無需新增 payload，且既有 `script.send_line_to_user` 規範未受影響。
 
-## 本次調整（2026-05-30 Code Review 修補）
+## 本次調整（2026-05-30 頂樓 Webhook、保全系統、晚安情境、Tesla 充電與樓梯燈綜合優化）
 - `08-7A自動晚安情境AI` 修補版升級至 `V3.1.0`：恢復 21:00 `night_check` 觸發，避免二樓在 21:00 前已無人時，因沒有狀態轉換而漏跑晚安情境；保留 30 秒無人等待與取消執行訊息通知。
 - `08-5C頂樓樓梯感應燈AI` 修補版升級至 `V3.4.1`：精簡輔助關燈條件，移除被 `elapsed >= 2.5` 覆蓋的 `elapsed > 10` 冗餘判斷，邏輯行為不變。
 - LINE 通知檢查：本次只調整 08-7A 觸發補洞與 08-5C 條件可讀性，未新增或修改 LINE 發送流程，未出現直接 `notify.line_*` 或繞過 `script.send_line_to_user` 的呼叫；SOP-10 無需新增 payload。
 
-## 本次調整（2026-05-30 Tesla 完成通知與網關重啟靜音）
 - `107Tesla充電器狀態與通知AI` 修補版升級至 `V3.2.2`：充電完成通知於用電量上方新增「充電用時 X時X分鐘」；一般 LINE 仍使用 `script.send_line_to_user`，並保留一般分級開關、Tesla 額外 LINE 開關與 user_id 有效性檢查，不通過時留下 `persistent_notification` 未發送原因，符合 SOP-10。
 - `106網關系統AI` 修補版升級至 `V3.1.1`：HA 重開機觸發時只執行情境/網關同步，不發送 persistent notification 或 LINE；非 HA 重啟的異常攔截 LINE 仍走 `script.send_line_to_user` 並保留緊急分級開關、user_id 防呆與未發送 fallback，符合 SOP-10。
 
-## 本次調整（2026-05-30 樓梯燈與晚安情境調整）
 - `08-5C頂樓樓梯感應燈AI` 功能版升級至 `V3.4.0`：輔助關燈改依主流程最近來源分流；書房線/樓梯線直接放行，臥室線/攝影機 2.5 秒內攔截、2.5～10 秒放行，超過 10 秒一律放行。
 - `08-7A自動晚安情境AI` 修補版升級至 `V3.0.2`：移除 night_check 定時觸發，二樓無人等待改為 30 秒，並取消執行訊息通知。
 - LINE 通知檢查：本次兩份自動化皆未新增或修改 LINE 發送；08-7A 反而移除執行訊息通知，因此 SOP-10 無需新增 payload，且不會出現繞過 `script.send_line_to_user` 的 LINE 呼叫。
 
-## 本次調整（2026-05-30 Tesla 充電記憶修補）
 - `107Tesla充電器狀態與通知AI` 升級至 `V3.2.1`：修補版。插槍後若直接進入 `charging` / `charging_reduced`，`charge_done` 的當次已充電記憶重設流程會排除充電中狀態，避免 `input_boolean.tesla_charger_session_charged` 先開啟又瞬間關閉；LINE 發送維持 `script.send_line_to_user`，補齊 user_id 有效性檢查、一般/重要分級開關與 Tesla 額外開關判斷，以及未發送原因 `persistent_notification` fallback，符合 SOP-10。
 
-## 本次調整（2026-05-30 樓梯燈防呆邏輯修補）
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.4`：修正輔助關燈 8～180 秒防呆取值方式，改從主流程與備援舊 ID 的 `last_triggered` 中取最新時間，避免 `or` 只取第一個非空時間而忽略近期備援點燈紀錄；本次未新增或修改 LINE 發送流程，SOP-10 不適用但已確認 08-5C 無直接 `notify.line_*` 呼叫。
 
-## 本次調整（2026-05-30 樓梯燈誤關修補）
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.3`：重新啟用輔助關燈時間差防呆，主流程點燈後 8 秒內禁止書房左側感應器觸發輔助關燈，避免剛出房間關門或路過造成樓梯燈誤關；本次未新增或修改 LINE 發送流程，SOP-10 不適用但已確認無直接 `notify.line_*` 呼叫。
 
-## 本次調整（2026-05-30 深夜補強）
 - Helper 套件修補版升級至 `V3.14.1`：新增 `binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan` 與 `binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan`，沿用 AtHome AP MAC 區域判斷邏輯，補齊 104-3 與 08-7A 依賴實體。
 - `104-3鐵門判斷未關提醒及作動AI` 升級至 `V3.3.1`：同步 Helper 相容版本，LINE 標題補版本字串，並明確記錄分級開關關閉或 user_id 無效時的未發送原因，符合 SOP-10。
 - `08-7A自動晚安情境AI` 升級至 `V3.0.1`：同步 Helper 相容版本，確認二樓無人判斷 helper 已由 Helper 套件建立。
 
-## 本次調整（2026-05-30 晚間追加）
 - `106網關系統AI` 升級至 `V3.1`：正式改名並接管舊版 106 網關同步邏輯，移除舊自動化 ID `1690898378439`，以異常攔截 / 常規同步 / 解除歸位 / 無情境歸位分流避免 Race Condition，LINE 緊急通知依 SOP-10 走 `script.send_line_to_user` 並保留未發送 fallback。
 - 新增 `08-7A自動晚安情境AI (V3.0)`：於 21:00 後或 03:00 前，二樓 AP/人員綜合判定無人且晚安情境尚未啟用時自動執行晚安情境。
 - `104-3鐵門判斷未關提醒及作動AI` 升級至 `V3.3`：自動關門前新增車庫 AP 人員綜合判定，偵測有人時取消關門且不影響逾時未關提醒；車庫主燈變化排除 unknown/unavailable 抖動，AP 攔截補 LINE 結果通知。
 - `08-5C頂樓樓梯感應燈AI` 升級至 `V3.3.2`：攝影機防呆冷卻由 15 秒縮短至 10 秒，燈具實體狀態防呆由 5 秒縮短至 2 秒。
 
-## 本次調整（2026-05-30 追加修補）
 - `08-5A` / `08-5C` / `08-5F` / `08-5G` 修補版升級至 `V3.3.1`：補強手動執行時 `trigger` 未定義防呆，修正 08-5F 下樓 3 分鐘保護窗後 AP 複檢改用即時狀態，並修復 08-5A LINE user_id 為 unknown 時 fallback 失效。
 
-## 本次調整（2026-05-30 追加）
 - `08-5A五樓保全系統AI` 升級至 `V3.3`：威脅判斷改為只使用 `5fbedroomline` / `5fstudyroomline` / `5fstairsline` 的 Webhook 時間鏈，避免原感應器造成保全誤報。
 - `08-5C` / `08-5F` / `08-5G` 升級至 `V3.3`：新增 `input_select.topfloor_webhook_mode` 統一模式選擇，可切換「綜合模式」（Webhook + 原本）、「Webhook模式」（只用 Webhook）、「原本模式」（回到原本判斷）。
 - Helper 套件功能版升級至 `V3.14`：新增 `input_select.topfloor_webhook_mode` 供頂樓 Webhook 判斷模式統一切換。
@@ -452,28 +463,3 @@
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。
-
-## 本次調整（V3.6.7 - 2026-08 Terncy 2026.8+ 底層事件批次重構、三擊緊急全域統一、樓梯燈優化與設定檔升級）
-- **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。
-- **單擊長按防呆條件**：針對所有單擊自動化導入 500ms 長按防呆模板，避免開關長按放開瞬間誤觸單擊。
-- **雙網關消抖與執行模式規範**：所有 Terncy 自動化統一設定 `mode: single` / `mode: restart`、`max_exceeded: silent`，並於單擊動作末端加入 `delay: '00:00:00.5'`，徹底杜絕雙網關 50~100ms 連續重複觸發。
-- **三擊緊急模式全域統一**：
-  - 全家所有 35 個小燕開關 + 1 個小米無線開關三擊 100% 統一綁定為 `05E緊急實體按鈕`（觸發緊急模式）。
-  - 刪除衝突之舊版三擊功能：`800-開關系列-7`（客廳燈部分關）、`800-開關系列-3`（廚房三擊風扇）。
-  - 樓梯燈手勢全面優化：
-    - **`800-開關系列-9B`（單擊定時全開）**：1F~4F 樓梯開關單擊點亮全棟樓梯燈 3 分鐘，導入 `mode: restart` 解決 3 分鐘內手動關閉後再次單擊無反應問題。
-    - **`800-開關系列-9A`（雙擊常開）**：1F~4F 樓梯開關雙擊點亮全棟樓梯燈並維持常開（不計時關閉）。
-    - **`800-開關系列-9C`（長按全關）**：各樓層樓梯開關長按立即全關全棟樓梯燈。
-    - **`800-開關系列-12C`（頂樓四樓樓梯燈校正）**：將實體開關按鍵校正移出，改由虛擬實體按鈕（`input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`）觸發。
-- **實體清理**：移除全系統自動化中已停用之舊四樓樓梯燈開關實體 `switch.si_lou_lou_ti_deng`（已由 Yeelight 彩光燈泡 `light.yeelink_color5_0fb7_light` 接管），消除實體遺失/不可用警告。
-- **Helper 套件升級至 `V3.22.0`**：新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕）。
-- **YAML 語法淨化**：全面清理 `metadata: {}`、空的 `data: {}` 及殘留之 `enabled: false` 動作區塊。
-- **08-8B 廁所感應燈AI 升級至 `V3.0.3`**：長按觸發同步升級為 `terncy_long_press` 底層事件。
-- **configuration.yaml 升級至 `V3.5`（HA 2026.8+ HTTP 整合 UI 遷移與日誌淨化）**：
-  - 頂部加入標準化更新紀錄區塊（比照 `helper.yaml` 格式規範）。
-  - 已自 `configuration.yaml` 移除已棄用的 `http:` 區塊（消除 2027.2.0 失效警告）。
-  - 新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。
-- **新增開關指令總表與標準作業程序**：
-  - 建立 **`SwitchCommand.md`**：記錄全戶開關分類對照總表、HA 2026.8+ 標準程式碼架構與 YAML 範本。
-  - 新增 **`SOP-12：開關類自動化更新與維護規範`**：明定開關手勢排查、三擊專用、防呆消抖與雙表同步。
-  - 新增 **`SOP-13：Configuration 主設定檔更新與相容性規範`**：明定頂部更新紀錄格式（比照 helper.yaml）、版本進位、相容性檢測、Include 保護與三方同步。
