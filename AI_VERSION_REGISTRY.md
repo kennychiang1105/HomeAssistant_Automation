@@ -34,7 +34,7 @@
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.4.0)` | `ai_topfloor_stairs_scene` | `V3.4.0` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.5` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.6)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.6` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2)` | `ai_08_8a_kitchen_motion_light` | `V3.2` |
@@ -53,7 +53,7 @@
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.3.0)` | `ai_107_tesla_charger_status_notify` | `V3.3.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.3.0` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.4.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -221,7 +221,7 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
-## 本次調整（V3.6.7 - 2026-08-16 Terncy 2026.8+ 底層事件重構、三擊全域統一、樓梯燈優化、晚安情境防誤判與設定檔升級）
+## 本次調整（V3.6.7 Patch (a) - 2026-08-16 Terncy 2026.8+ 底層事件重構、三擊全域統一、樓梯燈優化、晚安情境防誤判修復與設定檔升級）
 - **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。
 - **單擊長按防呆條件**：針對所有單擊自動化導入 500ms 長按防呆模板，避免開關長按放開瞬間誤觸單擊。
 - **雙網關消抖與執行模式規範**：所有 Terncy 自動化統一設定 `mode: single` / `mode: restart`、`max_exceeded: silent`，並於單擊動作末端加入 `delay: '00:00:00.5'`，徹底杜絕雙網關 50~100ms 連續重複觸發。
@@ -237,16 +237,17 @@
 - **Helper 套件升級至 `V3.22.0`**：新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕）。
 - **YAML 語法淨化**：全面清理 `metadata: {}`、空的 `data: {}` 及殘留之 `enabled: false` 動作區塊。
 - **08-8B 廁所感應燈AI 升級至 `V3.0.3`**：長按觸發同步升級為 `terncy_long_press` 底層事件。
+- **08-5C 頂樓樓梯感應燈AI 升級至 `V3.4.6`**：為自動關閉流程（`ai_08_5c_topfloor_stairs_motion_light_auto_off`）加入 `max_exceeded: silent`，抑制 22 秒動態監聽期間重複感應觸發時產生之 Already running 警告日誌。
 - **configuration.yaml 升級至 `V3.5`（HA 2026.8+ HTTP 整合 UI 遷移與日誌淨化）**：
   - 頂部加入標準化更新紀錄區塊（比照 `helper.yaml` 格式規範）。
   - 已自 `configuration.yaml` 移除已棄用的 `http:` 區塊（消除 2027.2.0 失效警告）。
   - 新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。
 - **新增開關指令總表與標準作業程序**：
-  - 建立 **`SwitchCommand.md`**：記錄全戶開關分類對照總表、HA 2026.8+ 標準程式碼架構與 YAML 範本。
+  - 建立 **`SwitchCommand.md`**：記錄全戶開關分類對照總表、HA 2026.8+ 標準程式碼架構與 YAML 範本；客廳主開關下1（`e35da296`）歸類客廳區域（單擊自訂保留，雙擊 9B 樓梯燈 3 分鐘）。
   - 新增 **`SOP-12：開關類自動化更新與維護規範`**：明定開關手勢排查、三擊專用、防呆消抖與雙表同步。
   - 新增 **`SOP-13：Configuration 主設定檔更新與相容性規範`**：明定頂部更新紀錄格式（比照 helper.yaml）、版本進位、相容性檢測、Include 保護與三方同步。
 
-- **08-7A 自動晚安情境AI 升級至 `V3.4.0`**：新增「三樓臥室 10 分鐘觀察期」機制（解決設備定位誤跳三樓臥室 8 分鐘後離家之硬體 bug）。僅針對最後變動者判斷，若該成員本來就位於三樓臥室 10 分鐘以上直接放行（視為本來就在三樓就寢）；若剛進入未滿 10 分鐘則啟動觀察，期間跳其他安全臥室提早執行，跳車庫/離家/活動區立即取消，滿 10 分鐘持續就寢才正式執行晚安情境。
+- **08-7A 自動晚安情境AI 升級至 `V3.4.0 (Patch a)`**：新增「三樓臥室 10 分鐘觀察期」機制，並修復取消判斷範圍（解決同行家人已在「離家」時被誤當作取消條件之 bug）。離家/離家確認中之取消條件精準限縮於被觀察之三樓最後變動者（latest_member）；全域即時取消僅限活動區（客廳/廚房/廁所/車庫），其他家人保持離家狀態正常放行。
 
 ## 本次調整（2026-08-09 充電通知修復、晩安防護、廣播音量、車庫與廚房燈控、耗材擴充）
 - `107Tesla充電器狀態與通知AI` 功能版升級至 `V3.3.0`：修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時無開始通知與用時計算錯誤問題。charge_start 條件新增放行不同車型互轉情境，換車後自動更新起始時間並發送新車開始通知。
