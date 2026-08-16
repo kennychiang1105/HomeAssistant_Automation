@@ -1,5 +1,5 @@
 # UI-managed automations (loaded by Home Assistant UI path)
-# Source: configuration/Automations/FullHistory/full_automations_20260808.yaml minus AI-managed
+# Source: configuration/Automations/FullHistory/full_automations_20260816.yaml minus AI-managed
 - id: '1634978660168'
   alias: 07-1空氣清淨機自動通知
   description: ''
@@ -1271,27 +1271,23 @@
         entity_id: automation.103dao_jia_qing_jing
   mode: single
 - id: '1692271820467'
-  alias: 800-開關系列-1廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-離家晚安
+  alias: 800-開關系列-1廚房開關3/車庫主開關1/客廳外開關下3-離家晚安
   description: ''
-  trigger:
-  - platform: device
-    domain: terncy
+  triggers:
+  - domain: terncy
     device_id: 29a8530c569abeeee2a16c7237a0ed8e
     type: long_press
-  - platform: device
-    domain: terncy
+    trigger: device
+  - domain: terncy
     device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
     type: long_press
-  - platform: device
-    domain: terncy
-    device_id: 262c6697a232d2f41dd879190fdaaa38
-    type: long_press
-  - platform: device
-    domain: terncy
+    trigger: device
+  - domain: terncy
     device_id: 40e15319550792730cc46c7e0528c916
     type: long_press
-  condition: []
-  action:
+    trigger: device
+  conditions: []
+  actions:
   - if:
     - condition: time
       after: '21:00:00'
@@ -1305,17 +1301,17 @@
       - mon
       - sun
     then:
-    - service: automation.trigger
-      data:
+    - data:
         skip_condition: true
       target:
         entity_id: automation.wan_an_qing_jing
+      action: automation.trigger
     else:
-    - service: automation.trigger
-      data:
+    - data:
         skip_condition: true
       target:
         entity_id: automation.101li_jia_qing_jing
+      action: automation.trigger
   mode: single
 - id: '1692281341535'
   alias: 800-開關系列-2廚房開關2單擊/餐廳燈廁所開關3/餐廳主開關上3-餐廳燈
@@ -3555,3 +3551,43 @@
         target:
           entity_id: fan.ke_ting_dian_feng_shan
   mode: restart
+- id: '1786674957324'
+  alias: 800-開關系列-1B-餐廳廁所開關3-離家晚安與樓梯燈
+  description: ''
+  triggers:
+  - domain: terncy
+    device_id: 262c6697a232d2f41dd879190fdaaa38
+    type: long_press
+    trigger: device
+  conditions: []
+  actions:
+  - if:
+    - condition: time
+      after: '21:00:00'
+      before: 03:00:00
+      weekday:
+      - sat
+      - fri
+      - thu
+      - wed
+      - tue
+      - mon
+      - sun
+    then:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.wan_an_qing_jing
+      action: automation.trigger
+    else:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.101li_jia_qing_jing
+      action: automation.trigger
+    - action: switch.turn_on
+      metadata: {}
+      target:
+        entity_id: switch.lou_ti_deng
+      data: {}
+  mode: single
