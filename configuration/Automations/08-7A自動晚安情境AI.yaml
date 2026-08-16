@@ -1,7 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 08-7A自動晚安情境AI (V3.3.0)
-# 相容版本：Helpers V3.21.1（已確認）
+# 08-7A自動晚安情境AI (V3.4.0)
+# 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.0：功能版；新增三樓臥室 10 分鐘觀察機制（解決設備定位誤跳三樓臥室 8 分鐘後離家之 bug）：
+#           1. 若成員在三樓臥室，啟動 10 分鐘觀察等待。
+#           2. 期間若跳到其他安全臥室（四樓/頂樓）則提早結束等待並執行晚安情境。
+#           3. 期間若跳到車庫、離家或活動區，則立即取消執行晚安情境。
+#           4. 若 10 分鐘後持續保持在三樓臥室，則正式執行晚安情境。
 # - V3.3.0：功能版；修復 Conditions 過濾邏輯：改用白名單機制，指定安全位置清單（臥室類/離家），排除車庫/客廳/廚房/廁所/離家確認中等「活動中」狀態後才放行。
 #           修復 Actions 安全門：改為遍歷所有家庭成員（Kenny/Elay/Jerry/Iris），任一人在活動區即取消晚安，不再僅檢查 Kenny。
 # - V3.2.1：修補版（patch a）；小幅校正客廳按鈕防守邏輯。
@@ -13,13 +18,13 @@
 # - V3.0.1：修補版；補齊二樓坪幕感應綜合判斷 helper 依賴，沿用 AtHome AP MAC 區域判斷邏輯。
 # - V3.0：功能版；新增跨夜時間自動晚安情境，於 21:00 後或 03:00 前且二樓無人時執行晚安情境；以單一跨夜 time 條件與晚安 helper off 防止重複觸發。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-7A自動晚安情境AI (V3.3.0)
+- alias: 08-7A自動晚安情境AI (V3.4.0)
   id: ai_08_7a_auto_goodnight_scene
   description: >
     晚間 21:00 後至凌晨 05:00 前，若二樓 AP/人員綜合判定連續 90 秒無人，
     或於 21:00 定時校正時已無人，則自動執行晚安情境。
-    Conditions 改用白名單：需所有有效成員均在安全位置（臥室類或離家）才放行。
-    Actions 安全門改為遍歷全體成員，任一人在活動區即取消晚安。
+    Conditions 白名單：需所有有效成員均在安全位置（臥室類或離家）才放行。
+    Actions 安全門：若有人在三樓臥室，啟動 10 分鐘觀察期（期間跳車庫/離家取消，跳其他臥室提前執行，維持 10 分鐘才執行）。
   mode: single
 
   triggers:
@@ -59,11 +64,11 @@
         {{ valid_members | count > 0 and (valid_members | reject('in', safe_locations) | list | count == 0) }}
 
   variables:
-    automation_version: "V3.3.0"
-    helpers_compat: "Helpers V3.21.1"
+    automation_version: "V3.4.0"
+    helpers_compat: "Helpers V3.22.0"
 
   actions:
-    # 全成員活動位置即時取消（不等待）
+    # 1. 全成員活動位置即時取消（不等待）
     - choose:
         - conditions:
             - condition: template
@@ -77,7 +82,8 @@
                 {{ locs | select('in', ['客廳', '廚房', '廁所', '車庫']) | list | count > 0 }}
           sequence:
             - stop: "Location safety guard: active member detected, cancelled auto goodnight"
-        # 有人在離家確認中，等 30 秒再重檢（可能是打門回家途中）
+
+        # 2. 有人在離家確認中，等 30 秒再重檢（可能是開門回家途中）
         - conditions:
             - condition: template
               value_template: >-
@@ -102,6 +108,55 @@
                     {{ locs | select('in', ['客廳', '廚房', '廁所', '車庫']) | list | count > 0 }}
               then:
                 - stop: "Location safety guard: active member detected after recheck, cancelled auto goodnight"
+
+    # 3. 三樓臥室 10 分鐘觀察期（防止離家時誤跳三樓臥室 8 分鐘後離家之硬體 bug）
+    - if:
+        - condition: template
+          value_template: >-
+            {% set locs = [
+              states('sensor.at_home_kenny_location'),
+              states('sensor.at_home_elay_location'),
+              states('sensor.at_home_jerry_location'),
+              states('sensor.at_home_iris_location')
+            ] %}
+            {{ locs | select('eq', '三樓臥室') | list | count > 0 }}
+      then:
+        # 等待最多 10 分鐘：期間若跳至其他安全臥室則提前結束等待；若跳至車庫/離家/活動區亦提前結束等待並取消
+        - wait_template: >-
+            {% set members = [
+              states('sensor.at_home_kenny_location'),
+              states('sensor.at_home_elay_location'),
+              states('sensor.at_home_jerry_location'),
+              states('sensor.at_home_iris_location')
+            ] %}
+            {% set valid = members | reject('in', ['unknown', 'unavailable', 'none', '']) | list %}
+            {% set other_bedrooms = ['四樓Jerry房間', '四樓Elay房間', '頂樓Kenny房間'] %}
+            {% set cancel_locs = ['客廳', '廚房', '廁所', '車庫', '離家', '離家確認中'] %}
+            {# 提早結束等候條件：跳到活動/離家區（需取消） OR 離開三樓臥室且全都在其他安全臥室（可提早執行） #}
+            {{ (valid | select('in', cancel_locs) | list | count > 0) or
+               (valid | count > 0 and (valid | reject('in', other_bedrooms) | list | count == 0)) }}
+          timeout: "00:10:00"
+          continue_on_timeout: true
+
+        # 觀察期結束後複檢：若跳至車庫/離家/活動區，或二樓有人、晚安已開，則取消
+        - if:
+            - condition: template
+              value_template: >-
+                {% set members = [
+                  states('sensor.at_home_kenny_location'),
+                  states('sensor.at_home_elay_location'),
+                  states('sensor.at_home_jerry_location'),
+                  states('sensor.at_home_iris_location')
+                ] %}
+                {% set valid = members | reject('in', ['unknown', 'unavailable', 'none', '']) | list %}
+                {% set cancel_locs = ['客廳', '廚房', '廁所', '車庫', '離家', '離家確認中'] %}
+                {{ (valid | select('in', cancel_locs) | list | count > 0) or
+                   is_state('binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan', 'on') or
+                   is_state('input_boolean.aqara_wan_an', 'on') }}
+          then:
+            - stop: "3F bedroom observation guard: member jumped to away/active area or scene already active, cancelled auto goodnight"
+
+    # 4. 最終執行晚安情境
     - service: automation.trigger
       target:
         entity_id: automation.wan_an_qing_jing
