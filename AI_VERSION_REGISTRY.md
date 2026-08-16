@@ -16,8 +16,8 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.21.1`
-- configuration 套件版本（`packages/configuration.yaml`）：`V3.0`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.22.0`
+- configuration 主設定檔版本（`configuration.yaml`）：`V3.5`
 
 ## 現況總表（Automations）
 
@@ -38,7 +38,7 @@
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2)` | `ai_08_8a_kitchen_motion_light` | `V3.2` |
-| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.2)` | `ai_08_8b_toilet_motion_light` | `V3.0.2` |
+| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.3)` | `ai_08_8b_toilet_motion_light` | `V3.0.3` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.1)` | `ai_auto_leave_system` | `V3.4.1` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
@@ -65,10 +65,18 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V3.22.0 | 2026-08-16 | 新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕），將實體開關按鍵校正功能改由虛擬實體按鈕接管。 |
 | V3.21.1 | 2026-08-09 | 修復 `supply_batt_lowest_23cd3dc` 的 friendly_name 為「耗材電量最低値_廚房無線開關」。 |
 | V3.21.0 | 2026-08-09 | 新增 `input_number.garage_light_cooldown_sec`（車庫燈手動關閉冷卻秒數，預設 30 秒，可調 0～600 秒）。 |
 | V3.19.0 | 2026-08-02 | 新增小米無線開關 HomeKit 門鈴橋接（`binary_sensor.da_men_men_ling`，`device_class: doorbell`），觸發後 3 秒復位。 |
 | V3.18.0 | - | 新增 HomeKit 晚安/早安/離家/到家情境輔助開關與按鈕自動復位。 |
+
+## Configuration 主設定檔變更紀錄
+
+| 版本 | 日期 | 變更描述 |
+|---|---|---|
+| V3.5 | 2026-08-16 | 依據 Home Assistant 2026.8 規範移除已棄用之 `http:` 區塊（由 HA 系統網路介面管理）；新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。 |
+| V3.0 | 2026-03-01 | 基礎架構重組，導入 AI managed automations & scripts include，設定 recorder、logger 與 Google Translate TTS。 |
 
 
 ## AI 更新步驟與注意事項（SOP）
@@ -181,6 +189,31 @@
    - **必須設 `continue_on_timeout: true`**，確保即使播放超時也一定恢復音量。
 4. 無論是否 timeout，音量恢復動作必須執行（`wait_template` + `continue_on_timeout` 模式保證此點）。
 5. 所有涉及 TTS 廣播的自動化均適用，包括门鈴、保全警報、地震、自定義廣播等。
+
+### SOP-12：開關類自動化更新與維護規範（每次涉及實體開關必做）
+1. **衝突檢測先行**：在新增或修改任何實體開關（小燕/小米）自動化手勢前，必須查閱 `SwitchCommand.md`，確認該開關在該手勢（單擊/雙擊/三擊/長按）下未被其他自動化占用。
+2. **三擊手勢絕對專用**：全戶三擊（`click_times: 3` / `state: triple`）一律為最高優先權之「緊急模式（05E）」專用，禁止指派區域自訂功能。任何新開關加入時必須主動加入 `05E緊急實體按鈕`（`1744040282451`）。
+3. **單擊防呆與消抖標配**：單擊（`click_times: 1`）自動化必須加入 500ms 長按防呆模板與動作序列末端 `- delay: '00:00:00.5'`，模式統一為 `mode: single, max_exceeded: silent`。
+4. **雙表同步維護**：每次開關自動化變更完成後，必須同步更新 `SwitchCommand.md`（指令分類對照表）與 `AI_VERSION_REGISTRY.md`。
+
+### SOP-13：Configuration 主設定檔更新與相容性規範（每次修改 configuration.yaml 必做）
+1. **頂部更新紀錄格式規範（比照 helper.yaml）**：
+   - `configuration.yaml` 檔案最上方必須採用標準分隔線與結構化更新紀錄區塊：
+     ```yaml
+     # ──────────────────────────────────────────────
+     # AI Configuration（Vx.y）
+     # ──────────────────────────────────────────────
+     # 更新紀錄（統一格式）：
+     # - Vx.y（YYYY-MM-DD）：
+     #   • 變更摘要項目...
+     # ──────────────────────────────────────────────
+     ```
+   - 每次修改必須由新到舊在頂部逐筆記錄版本、日期與變更細項。
+2. **版本號進位原則**：架構重組、官方整合遷移（如 2026.8 移除 http:）升級次版本（`y + 1`，例 `V3.0 -> V3.5`）；細部日誌過濾或參數微調升級修補版（`z + 1`，例 `V3.5 -> V3.5.1`）。
+3. **HA 重大升級相容性檢測**：每次 Home Assistant 核心升級時，主動檢視是否有被棄用（Deprecated）的根層級整合（如 HA 2026.8 棄用之 `http:` 區塊），並即時依官方規範遷移至 UI 或相應整合。
+4. **Include 結構完整性保護**：嚴格保護所有 include 結構（`packages`、`automation`、`automation ai_managed`、`script`、`script ai_managed`、`recorder`、`logger` 等），禁止任意破壞或漏失引用目錄。
+5. **版本雙向同步**：每次修改 `configuration.yaml` 頂部版本後，必須同步更新 `AI_VERSION_REGISTRY.md` 之「依賴版本」與「Configuration 主設定檔變更紀錄」。
+6. **語法與重啟驗證**：修改後必須使用 Python YAML 載入器檢驗語法，並於 HA 開發者工具執行「檢查設定」確認無誤後重啟主機生效。
 
 ## 現況總表（Scripts）
 
@@ -419,3 +452,28 @@
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。
+
+## 本次調整（V3.6.7 - 2026-08 Terncy 2026.8+ 底層事件批次重構、三擊緊急全域統一、樓梯燈優化與設定檔升級）
+- **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。
+- **單擊長按防呆條件**：針對所有單擊自動化導入 500ms 長按防呆模板，避免開關長按放開瞬間誤觸單擊。
+- **雙網關消抖與執行模式規範**：所有 Terncy 自動化統一設定 `mode: single` / `mode: restart`、`max_exceeded: silent`，並於單擊動作末端加入 `delay: '00:00:00.5'`，徹底杜絕雙網關 50~100ms 連續重複觸發。
+- **三擊緊急模式全域統一**：
+  - 全家所有 35 個小燕開關 + 1 個小米無線開關三擊 100% 統一綁定為 `05E緊急實體按鈕`（觸發緊急模式）。
+  - 刪除衝突之舊版三擊功能：`800-開關系列-7`（客廳燈部分關）、`800-開關系列-3`（廚房三擊風扇）。
+  - 樓梯燈手勢全面優化：
+    - **`800-開關系列-9B`（單擊定時全開）**：1F~4F 樓梯開關單擊點亮全棟樓梯燈 3 分鐘，導入 `mode: restart` 解決 3 分鐘內手動關閉後再次單擊無反應問題。
+    - **`800-開關系列-9A`（雙擊常開）**：1F~4F 樓梯開關雙擊點亮全棟樓梯燈並維持常開（不計時關閉）。
+    - **`800-開關系列-9C`（長按全關）**：各樓層樓梯開關長按立即全關全棟樓梯燈。
+    - **`800-開關系列-12C`（頂樓四樓樓梯燈校正）**：將實體開關按鍵校正移出，改由虛擬實體按鈕（`input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`）觸發。
+- **實體清理**：移除全系統自動化中已停用之舊四樓樓梯燈開關實體 `switch.si_lou_lou_ti_deng`（已由 Yeelight 彩光燈泡 `light.yeelink_color5_0fb7_light` 接管），消除實體遺失/不可用警告。
+- **Helper 套件升級至 `V3.22.0`**：新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕）。
+- **YAML 語法淨化**：全面清理 `metadata: {}`、空的 `data: {}` 及殘留之 `enabled: false` 動作區塊。
+- **08-8B 廁所感應燈AI 升級至 `V3.0.3`**：長按觸發同步升級為 `terncy_long_press` 底層事件。
+- **configuration.yaml 升級至 `V3.5`（HA 2026.8+ HTTP 整合 UI 遷移與日誌淨化）**：
+  - 頂部加入標準化更新紀錄區塊（比照 `helper.yaml` 格式規範）。
+  - 已自 `configuration.yaml` 移除已棄用的 `http:` 區塊（消除 2027.2.0 失效警告）。
+  - 新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。
+- **新增開關指令總表與標準作業程序**：
+  - 建立 **`SwitchCommand.md`**：記錄全戶開關分類對照總表、HA 2026.8+ 標準程式碼架構與 YAML 範本。
+  - 新增 **`SOP-12：開關類自動化更新與維護規範`**：明定開關手勢排查、三擊專用、防呆消抖與雙表同步。
+  - 新增 **`SOP-13：Configuration 主設定檔更新與相容性規範`**：明定頂部更新紀錄格式（比照 helper.yaml）、版本進位、相容性檢測、Include 保護與三方同步。

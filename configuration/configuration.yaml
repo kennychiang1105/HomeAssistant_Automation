@@ -1,4 +1,16 @@
-### AI Configuration V3.0 ###
+# ──────────────────────────────────────────────
+# AI Configuration（V3.5）
+# ──────────────────────────────────────────────
+# 更新紀錄（統一格式）：
+# - V3.5（2026-08-16）：
+#   • 依據 Home Assistant 2026.8 規範移除已棄用之 http: 區塊（改由 HA 系統網路介面管理），消除 2027.2.0 失效警告。
+#   • logger 區塊新增海信電視（Hisense TV）待機/ADB 連線重試日誌過濾規則。
+#   • logger 區塊新增 HACS 第三方自訂整合過渡期棄用警告過濾規則（CONCENTRATION 常數、版本號型別、實體 domain 格式等）。
+#
+# - V3.0（2026-03-01）：
+#   • 基礎架構重組，導入 AI managed automations & scripts include 宣告。
+#   • 設定 recorder（180天保留期）、logger 過濾與 Google Translate TTS 整合。
+# ──────────────────────────────────────────────
 
 homeassistant:
   packages: !include_dir_named packages
@@ -53,6 +65,20 @@ logger:
     # 6. 屏蔽 opencwb / urllib3 未驗證 HTTPS 請求的 SSL 警告
     py.warnings: error
     urllib3.connectionpool: error
+
+    # 7. 屏蔽海信電視待機/ADB 連線重試日誌 (設為 critical 隱藏 error)
+    custom_components.hisense_tv: critical
+    custom_components.hisense_tv.media_player: critical
+
+    # 8. 屏蔽 HACS 第三方自訂整合棄用警告 (HA 2026.12~2027.8 官方過渡期提示)
+    homeassistant.const: error
+    homeassistant.helpers.frame: error
+    homeassistant.helpers.deprecation: error
+    homeassistant.components.device_tracker.entity: error
+    homeassistant.components.device_tracker.config_entry: error
+    custom_components.aqara_gateway: error
+    custom_components.xiaomi_gateway3: error
+    custom_components.jcihitachi_tw: error
 
   filters:
     homeassistant:
@@ -481,18 +507,6 @@ fan:
     preset_modes_override: []     #讓homekit的按鍵顯示正常
     model: zhimi.fan.sa1 #自己的電風扇model
 
-http:
-  use_x_forwarded_for: true
-  server_port: 8125
-  trusted_proxies:
-    - 127.0.0.1           # Loopback
-    - 192.168.68.0/24     # 本地網路
-    - 127.30.32.0/24      # Docker/Supervisor 網路
-    - 127.17.0.0/24       # Docker/Supervisor 網路
-    - 211.79.170.9        # 外部 IP, 請確認這是可信賴的反向代理
-  ip_ban_enabled: true
-###
-###
 
 notify:                      #若已有設定其他notify組件則不須輸入此行
   - name: line_notification_group  #可修改成你要的名稱 ＃不建議使用中文

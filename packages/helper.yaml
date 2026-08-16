@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.21.1）
+# Helpers（V3.22.0）
 # ──────────────────────────────────────────────
+# 新增 (V3.22.0):
+#   • 新增 input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng：頂樓四樓樓梯燈校正虛擬按鈕實體，
+#     將原本需實體開關按鍵校正之功能改由 HA 虛擬按鈕觸發。
+#
 # 修正 (V3.21.1):
 #   • 更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
 #
@@ -563,6 +567,9 @@ input_boolean:
     icon: mdi:lightbulb-off-outline
 
 input_button:
+  ding_lou_si_lou_lou_ti_deng_xiao_zheng:
+    name: 頂樓四樓樓梯燈校正
+    icon: mdi:lightbulb-sync
   ai_version_snapshot_clear:
     name: 清除更新紀錄比對記憶
     icon: mdi:broom
