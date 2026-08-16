@@ -1,12 +1,13 @@
 # ─────────────────────────────────────────────────────────────
-# 08-8B廁所感應燈AI (V3.0.2)
+# 08-8B廁所感應燈AI (V3.0.3)
 # 相容版本：Helpers V3.18.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.0.3：重構版；長按觸發升級為 Terncy 底層事件 (terncy_long_press)，符合 HA 2026.8+ 規範。
 # - V3.0.2：修補版；長按觸發改為 Terncy device trigger，修復實體開關長按無反應。
 # - V3.0.1：修補版；長按切換與 flash_count 判斷統一使用 manual_override_entity 變數，避免 helper 實體硬編碼分散。
 # - V3.0.0：功能版；從舊式 automations.yaml 獨立為 AI 感應燈，新增手動關閉模式 helper、1 分鐘智慧關燈與長按事件視覺回饋。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-8B廁所感應燈AI (V3.0.2)
+- alias: 08-8B廁所感應燈AI (V3.0.3)
   id: ai_08_8b_toilet_motion_light
   description: >
     廁所人體感應自動開燈；無人 1 分鐘且未啟用手動關閉模式時自動關燈。
@@ -24,13 +25,13 @@
       to: "off"
       for: "00:01:00"
     - id: long_press
-      platform: device
-      domain: terncy
-      device_id: a9caa455edec9bd90f96dcb457a46dc6
-      type: long_press
+      trigger: event
+      event_type: terncy_long_press
+      event_data:
+        device_id: a9caa455edec9bd90f96dcb457a46dc6
 
   variables:
-    automation_version: "V3.0.2"
+    automation_version: "V3.0.3"
     helpers_compat: "Helpers V3.18.0"
     manual_override_entity: input_boolean.toilet_light_manual_override_mode
 
