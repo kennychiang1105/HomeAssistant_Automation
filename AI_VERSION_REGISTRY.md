@@ -16,14 +16,14 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.22.0`
+- Helper 套件版本（`packages/helper.yaml`）：`V3.23.0`
 - configuration 主設定檔版本（`configuration.yaml`）：`V3.5`
 
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.3)` | `ai_line_bot_quota_guard` | `V3.3` |
+| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.4)` | `ai_line_bot_quota_guard` | `V3.4` |
 | `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.3` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
 | `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.4)` | `ai_00_2c_supply_battery_notify` | `V3.1.4` |
@@ -51,7 +51,7 @@
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.3.0)` | `ai_107_tesla_charger_status_notify` | `V3.3.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.4.0)` | `ai_107_tesla_charger_status_notify` | `V3.4.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.4.0` |
 
@@ -65,6 +65,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V3.23.0 | 2026-09-20 | 新增 `input_boolean.line_bot_quota_exhausted_notified`（LINE Bot 額度用盡通知去重狀態開關），確保所有 Bot 配額用盡時僅推播一次告警。 |
 | V3.22.0 | 2026-08-16 | 新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕），將實體開關按鍵校正功能改由虛擬實體按鈕接管。 |
 | V3.21.1 | 2026-08-09 | 修復 `supply_batt_lowest_23cd3dc` 的 friendly_name 為「耗材電量最低値_廚房無線開關」。 |
 | V3.21.0 | 2026-08-09 | 新增 `input_number.garage_light_cooldown_sec`（車庫燈手動關閉冷卻秒數，預設 30 秒，可調 0～600 秒）。 |
@@ -220,6 +221,23 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+
+## 本次調整（V3.6.9 - 2026-09-20 LINE Bot 額度判定與去重修復、Tesla 充電樁充電完成通知邏輯修復）
+- **00-2BLINE推播AI 升級至 `V3.4`**：
+  - 依據需求將配額完全用盡之計算門檻調整為低於 5 則（因單次推播可能包含多則訊息或需預留安全緩衝，低於 5 即視為完全用盡）。
+  - 新增狀態鎖檢查（`already_notified`）：當所有 Bot 配額低於 5 則或 Bot 0 歸零時，僅推播 1 次最終告警通知，避免頻繁發送訊息時持續重複洗版。
+  - 新增每月 1 日零點自動復位狀態鎖（`input_boolean.line_bot_quota_exhausted_notified`）。
+- **packages/linebot.yaml 升級至 `V1.10`**：
+  - `switch_limit` 門檻由 196 調整為 195。
+  - `sensor.line_bot_rotation_target`：自動輪播判斷門檻統一要求 `r >= 5`，若剩餘額度低於 5 則自動切換至下一個可用 Bot。
+  - `sensor.line_bot_in_use`：當所有 Bot 剩餘額度皆小於 5 則時，明確標示為「無可用 Bot」。
+  - `script.send_line_to_user`：在無可用 Token（配額皆已不足 5 則）之 fallback 分支導入 `input_boolean.line_bot_quota_exhausted_notified` 檢查，僅在首次耗盡時發送 1 次緊急警告並上鎖，後續請求僅記錄 log，不再重複推送 LINE 告警。
+- **packages/helper.yaml 升級至 `V3.23.0`**：
+  - 新增 `input_boolean.line_bot_quota_exhausted_notified`（LINE_Bot額度耗盡已通知狀態）。
+- **107Tesla充電器狀態與通知AI 升級至 `V3.4.0`**：
+  - **狀態分類修正**：將 `charging_finished` / `charging finished` 自「斷開連接（`disconnected_states`）」移出，建立獨立之 `finished_states`。解決先前狀態由 `charging_finished` 轉入 `waiting_car` 時，被誤判為剛插槍而提早將 `tesla_charger_session_charged` 旗標歸零的 bug。
+  - **杜絕重複發送與保護**：在完成通知發送序列最前段加入 `input_boolean.turn_off` 立即重置 `input_boolean.tesla_charger_session_charged`，杜絕充電完成後車輛預熱（Preconditioning）微幅充電或拔槍時引發的二次/重複完成通知。
+  - **車輛名稱精準識別**：完成時優先依據充電中（`charging` $ightarrow$ Tesla、`charging_reduced` $ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 ## 本次調整（V3.6.7 Patch (a) - 2026-08-16 Terncy 2026.8+ 底層事件重構、三擊全域統一、樓梯燈優化、晚安情境防誤判修復與設定檔升級）
 - **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。

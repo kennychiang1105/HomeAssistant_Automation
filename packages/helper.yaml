@@ -1,6 +1,10 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.22.0）
+# Helpers（V3.23.0）
 # ──────────────────────────────────────────────
+# 新增 (V3.23.0):
+#   • 新增 input_boolean.line_bot_quota_exhausted_notified：LINE Bot 額度用盡通知去重狀態開關，
+#     確保所有 Bot 配額用盡時僅推播一次告警，避免重複洗版。
+#
 # 新增 (V3.22.0):
 #   • 新增 input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng：頂樓四樓樓梯燈校正虛擬按鈕實體，
 #     將原本需實體開關按鍵校正之功能改由 HA 虛擬按鈕觸發。
@@ -405,6 +409,9 @@ input_datetime:
     has_date: true
     has_time: true
 input_boolean:
+  line_bot_quota_exhausted_notified:
+    name: LINE_Bot額度耗盡已通知狀態
+    icon: mdi:bell-alert-outline
   # 風扇 AI 自動化：Debug 通知開關 & 夜間過冷記憶
   ding_lou_fan_debug_notify:
     name: 頂樓風扇_通知Debug模式
