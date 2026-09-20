@@ -78,8 +78,7 @@
                 - service: script.send_line_to_user
                   data:
                     user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{type:text,text:notif_title},{type:text,text:緊急 Emergency 🚨
-Bot0 配額剩餘低於 5 則（已完全用盡），請儘速更換 Token。}] | tojson }}"
+                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'緊急 Emergency 🚨 Bot0 配額剩餘低於 5 則（已完全用盡），請儘速更換 Token。'}] | tojson }}"
                 - service: input_boolean.turn_on
                   target:
                     entity_id: input_boolean.line_bot_quota_exhausted_notified
@@ -97,8 +96,7 @@ Bot0 配額剩餘低於 5 則（已完全用盡），請儘速更換 Token。}] 
                 - service: script.send_line_to_user
                   data:
                     user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{type:text,text:notif_title},{type:text,text:重要 Important ⚠️
-Bot0 剩餘次數低於 12，請預備更換。}] | tojson }}"
+                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'重要 Important ⚠️ Bot0 剩餘次數低於 12，請預備更換。'}] | tojson }}"
 
         - conditions: "{{ trigger.id in [monthly_update_1,monthly_update_15] }}"
           sequence:
@@ -120,7 +118,7 @@ Bot0 剩餘次數低於 12，請預備更換。}] | tojson }}"
                 - service: script.send_line_to_user
                   data:
                     user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{type:text,text:notif_title},{type:text,text:最終告警 ‼️ 所有 Bot 配額低於 5 則，已完全用盡。}] | tojson }}"
+                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'最終告警 ‼️ 所有 Bot 配額低於 5 則，已完全用盡。'}] | tojson }}"
                 - service: input_boolean.turn_on
                   target:
                     entity_id: input_boolean.line_bot_quota_exhausted_notified

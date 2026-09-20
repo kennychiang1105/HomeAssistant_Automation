@@ -43,7 +43,7 @@
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
-| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.3)` | `ai_104_1_garage_gate_motion_light` | `V3.3` |
+| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.4.0)` | `ai_104_1_garage_gate_motion_light` | `V3.4.0` |
 | `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.1)` | `ai_lpr_recognition` | `V3.1.1` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
 | `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V3.1.0)` | `ai_105_front_door_doorbell_notify` | `V3.1.0` |
@@ -222,11 +222,17 @@
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
 
-## 本次調整（V3.6.9 - 2026-09-20 AI 4.0 測試導入、LINE Bot 額度判定與去重修復、Tesla 充電樁充電完成通知邏輯修復）
+## 本次調整（V3.6.9 - 2026-09-20 AI 4.0 測試導入、LINE Bot 額度判定與去重修復、Tesla 充電樁充電完成通知邏輯修復、車庫主燈與樓梯燈自動關閉修復）
 - **AI 4.0 測試導入（全新 Agent 與次世代模型完整接管，全面 AI 化更新）**：
   - **全新 Agent 完整接管**：正式導入全新世代 AI Agent 與深度思考模型，全面接管智慧家庭系統架構維護、YAML 自動化開發、版本重構與 HA 核心系統運維。
   - **全自動化 GitOps 升級流程**：實現需求分析、即時代碼調整、Pre-flight 語法檢驗、主機熱重載、實體驗證門禁至自動提交 PR 與 GitHub Release 發布之全流程全面 AI 化。
-  - **SOP 步驟 8 確立**：建立 GitHub Release 發布後自動更新「更新推播系統」儀表板實體與寫入快照基準之標準作業程序。
+  - **SOP 步驟 8 確立**：建立 GitHub Release 發布後自動更新「更新推播系統」儀表板實體之標準作業程序（保留版本差異供 00-2A 自動推播）。
+- **104-1車庫鐵門感應燈AI 升級至 `V3.4.0`**：
+  - **解鎖自動關燈死結**：移除 `mode: restart` 下之「燈具必須為 off」條件限制，允許持續活動時平滑延長 5 分鐘關燈計時，徹底消除開燈等待期間被後續人車偵測中斷導致燈具永遠常亮的致命問題。
+  - **納入手動開燈守護**：新增 `light_turned_on` 觸發監聽（`switch.che_ku_zhu_deng` / `switch.lou_ti_deng` 變為 on），雙擊開關、HomeKit 或 App 手動開燈後，若無人車活動滿 5 分鐘亦自動安全關閉。
+  - **多重感測融合防抖**：整合 UniFi 人員/車輛偵測與 Scrypted 動作偵測，防止單一 Protect 感測器連線抖動導致關閉失敗。
+  - **完善鐵門防呆**：鐵門開啟期間強制維持亮燈，待鐵門關閉後始開始 5 分鐘無人倒數關燈。
+  - **保留手動關燈冷卻機制**：手動關燈後 30 秒內不被再次感應點亮（`timer.garage_light_manual_off_cooldown`）。
 - **00-2BLINE推播AI 升級至 `V3.4`**：
   - 依據需求將配額完全用盡之計算門檻調整為低於 5 則（因單次推播可能包含多則訊息或需預留安全緩衝，低於 5 即視為完全用盡）。
   - 新增狀態鎖檢查（`already_notified`）：當所有 Bot 配額低於 5 則或 Bot 0 歸零時，僅推播 1 次最終告警通知，避免頻繁發送訊息時持續重複洗版。

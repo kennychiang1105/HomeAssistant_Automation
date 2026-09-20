@@ -1,141 +1,78 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.3)
-# 相容版本：Helpers V3.21.0（已確認）
+# 104-1車庫鐵門感應燈AI (V3.4.0)
+# 相容版本：Helpers V3.23.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.4.0：重構版；徹底解決車庫主燈與樓梯燈無法自動關閉的致命問題：
+#           1. 移除 mode: restart 下的「燈具必須為 off」死結條件，允許持續活動時平滑延長 5 分鐘關燈計時。
+#           2. 納入手動開燈監聽（switch.che_ku_zhu_deng / switch.lou_ti_deng 變為 on），手動開啟亦具備自動關閉保護。
+#           3. 整合多重感測器（UniFi 人員/車輛偵測 + Scrypted 動作偵測），防止單一感測器抖動導致關燈失敗。
+#           4. 完善鐵門防呆：鐵門開啟期間強制維持亮燈，待鐵門關閉後始開始 5 分鐘無人倒數關燈。
+#           5. 保留手動關燈冷卻機制（timer.garage_light_manual_off_cooldown），手動關閉後 30 秒內不被再次感應點亮。
 # - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒；原固定 5 分鐘冷卻移除。
 # - V3.2：改為 restart 降低排隊延遲體感；新增「手動關燈後 5 分鐘冷卻」避免立刻被自動重開。
 # - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
 # - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.3)
+- alias: 104-1車庫鐵門感應燈AI (V3.4.0)
   id: ai_104_1_garage_gate_motion_light
   description: >
-    整合鐵門與攝影機事件控制車庫主燈/樓梯燈：鐵門開啟或偵測到人車移動時開燈；
-    鐵門關閉後延時關燈，或在連續無人車移動一段時間後自動關燈。
-    手動關閉冷卻時間可透過 input_number.garage_light_cooldown_sec 自行調整（預設 30 秒）。
+    整合鐵門、攝影機事件及手動開關狀態控制車庫主燈與樓梯燈：
+    鐵門開啟或偵測到人車移動時開燈；鐵門關閉且無人車移動滿 5 分鐘後自動關閉。
+    支援手動關閉冷卻防呆（預設 30 秒不重啟）及外部手動點燈自動關閉守護。
   mode: restart
   max: 10
 
   triggers:
-    - id: gate_open
+    # 1. 鐵門動作觸發
+    - id: gate_active
       platform: state
       entity_id: cover.garage
-      to: "open"
-    - id: gate_opening
+      to:
+        - "open"
+        - "opening"
+
+    # 2. 人車活動偵測觸發 (開燈與延長倒數)
+    - id: motion_detected
+      platform: state
+      entity_id:
+        - binary_sensor.che_ku_she_ying_ji_person_detected
+        - binary_sensor.che_ku_she_ying_ji_vehicle_detected
+        - binary_sensor.che_ku_che_ku_she_ying_ji_motion
+      to: "on"
+
+    # 3. 鐵門關閉事件 (門關上後啟動關燈倒數)
+    - id: gate_closed
       platform: state
       entity_id: cover.garage
-      to: "opening"
-    - id: person_on
+      to: "closed"
+
+    # 4. 燈具外部/手動開啟 (納入自動關閉守護)
+    - id: light_turned_on
       platform: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+      entity_id:
+        - switch.che_ku_zhu_deng
+        - switch.lou_ti_deng
       to: "on"
-    - id: vehicle_on
+
+    # 5. 燈具手動關閉 (啟動冷卻防呆)
+    - id: manual_light_off
       platform: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-      to: "on"
-    - id: person_clear_6m
-      platform: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-      to: "off"
-      for:
-        minutes: 6
-    - id: vehicle_clear_6m
-      platform: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-      to: "off"
-      for:
-        minutes: 6
-    - id: main_light_off
-      platform: state
-      entity_id: switch.che_ku_zhu_deng
-      to: "off"
-    - id: stair_light_off
-      platform: state
-      entity_id: switch.lou_ti_deng
+      entity_id:
+        - switch.che_ku_zhu_deng
+        - switch.lou_ti_deng
       to: "off"
 
   variables:
-    automation_version: "V3.3"
+    automation_version: "V3.4.0"
     cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
+    is_cooling_down: "{{ not is_state('timer.garage_light_manual_off_cooldown', 'idle') }}"
 
   actions:
     - choose:
+        # A. 手動關燈事件：若為人工關閉則啟動冷卻防呆 timer
         - conditions:
             - condition: trigger
-              id:
-                - gate_open
-                - gate_opening
-            - condition: state
-              entity_id: timer.garage_light_manual_off_cooldown
-              state: "idle"
-          sequence:
-            - service: switch.turn_on
-              target:
-                entity_id:
-                  - switch.che_ku_zhu_deng
-                  - switch.lou_ti_deng
-            - wait_for_trigger:
-                - platform: state
-                  entity_id: cover.garage
-                  to: "closed"
-              timeout:
-                minutes: 30
-              continue_on_timeout: true
-            - condition: state
-              entity_id: cover.garage
-              state: "closed"
-            - delay:
-                minutes: 5
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-              state: "off"
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-              state: "off"
-            - service: switch.turn_off
-              target:
-                entity_id:
-                  - switch.che_ku_zhu_deng
-                  - switch.lou_ti_deng
-
-        - conditions:
-            - condition: trigger
-              id:
-                - person_on
-                - vehicle_on
-            - condition: state
-              entity_id: switch.che_ku_zhu_deng
-              state: "off"
-            - condition: state
-              entity_id: timer.garage_light_manual_off_cooldown
-              state: "idle"
-          sequence:
-            - service: switch.turn_on
-              target:
-                entity_id:
-                  - switch.che_ku_zhu_deng
-                  - switch.lou_ti_deng
-            - delay:
-                minutes: 5
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-              state: "off"
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-              state: "off"
-            - condition: template
-              value_template: "{{ states('cover.garage') not in ['open','opening'] }}"
-            - service: switch.turn_off
-              target:
-                entity_id:
-                  - switch.che_ku_zhu_deng
-                  - switch.lou_ti_deng
-
-        - conditions:
-            - condition: trigger
-              id:
-                - main_light_off
-                - stair_light_off
+              id: manual_light_off
             - condition: template
               value_template: "{{ trigger.to_state.context.user_id is not none }}"
           sequence:
@@ -144,24 +81,64 @@
                 entity_id: timer.garage_light_manual_off_cooldown
               data:
                 duration: "{{ '%02d:%02d:%02d' | format(cooldown_sec // 3600, (cooldown_sec % 3600) // 60, cooldown_sec % 60) }}"
+            - stop: "手動關燈已啟動冷卻計時，終止後續動作"
 
-        - conditions:
+      default:
+        # B. 開燈與自動關閉守護流程
+        # 若為感應或開門觸發，先檢驗是否處於手動關閉冷卻中
+        - if:
             - condition: trigger
               id:
-                - person_clear_6m
-                - vehicle_clear_6m
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-              state: "off"
-            - condition: state
-              entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-              state: "off"
-            - condition: state
-              entity_id: cover.garage
-              state: "closed"
-          sequence:
-            - service: switch.turn_off
-              target:
-                entity_id:
-                  - switch.che_ku_zhu_deng
-                  - switch.lou_ti_deng
+                - gate_active
+                - motion_detected
+          then:
+            - if:
+                - condition: template
+                  value_template: "{{ is_cooling_down }}"
+              then:
+                - stop: "處於手動關閉冷卻期間，不重複自動開燈"
+              else:
+                - service: switch.turn_on
+                  target:
+                    entity_id:
+                      - switch.che_ku_zhu_deng
+                      - switch.lou_ti_deng
+
+        # C. 自動關閉序列（Auto-Off Sequence）
+        # 1. 若鐵門未關閉，持續等待直到鐵門關閉（最多等待 45 分鐘）
+        - if:
+            - condition: template
+              value_template: "{{ states('cover.garage') != 'closed' }}"
+          then:
+            - wait_for_trigger:
+                - platform: state
+                  entity_id: cover.garage
+                  to: "closed"
+              timeout: "00:45:00"
+              continue_on_timeout: true
+
+        # 2. 鐵門確認關閉後始進行 5 分鐘無人車活動倒數
+        # （等待期間若有新人車移動或開門，因為 mode: restart 會重置本計時）
+        - condition: state
+          entity_id: cover.garage
+          state: "closed"
+
+        - delay: "00:05:00"
+
+        # 3. 5 分鐘倒數結束前進行最終安全檢核
+        - condition: state
+          entity_id: cover.garage
+          state: "closed"
+
+        - condition: template
+          value_template: >-
+            {{ states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on' and
+               states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on' and
+               states('binary_sensor.che_ku_che_ku_she_ying_ji_motion') != 'on' }}
+
+        # 4. 關閉車庫主燈與樓梯燈
+        - service: switch.turn_off
+          target:
+            entity_id:
+              - switch.che_ku_zhu_deng
+              - switch.lou_ti_deng

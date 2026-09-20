@@ -418,7 +418,7 @@ script:
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ final_quota_notice and is_state(input_boolean.line_bot_quota_exhausted_notified, off) }}
+                      {{ final_quota_notice and is_state('input_boolean.line_bot_quota_exhausted_notified', 'off') }}
                 sequence:
                   - service: rest_command.line_bot_push
                     data:

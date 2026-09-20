@@ -1,0 +1,30 @@
+template:
+  - sensor:
+      - name: "Lights5F"
+        # 如果你原本以 entity_id lights_on5f 使用，也可以加 default_entity_id
+        default_entity_id: sensor.lights_on5f  
+        state: >
+          {% set total = 0 %}
+          {% if is_state('light.yeelink_lamp2_678c_light', 'on') %}
+            {% set total = total + 1 %}
+          {% endif %}
+          {% if is_state('light.yeelink_bslamp2_4329_light', 'on') %}
+            {% set total = total + 1 %}
+          {% endif %}
+          {{ total }}
+
+#sensor:
+#  - platform: template
+#    sensors:
+#      lights_on5f:
+#        friendly_name: Lights5F
+#        unit_of_measurement: 'On'
+#        value_template: >
+#          {% set total = 0 %}
+#          {% if is_state('light.yeelink_lamp2_678c_light', 'on') %}
+#            {% set total = total + 1 %}
+#          {% endif %}
+#          {% if is_state('light.yeelink_bslamp2_4329_light', 'on') %}
+#            {% set total = total + 1 %}
+#          {% endif %}
+#          {{total}}
