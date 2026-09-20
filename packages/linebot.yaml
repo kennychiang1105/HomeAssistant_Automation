@@ -1,4 +1,9 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.10)
+# 更新重點（V1.10）：
+# 1) 額度計算門檻調整：switch_limit 改為 195，剩餘額度低於 5 則視為完全用盡（r < 5）。
+# 2) 配額用盡告警去重：新增 input_boolean.line_bot_quota_exhausted_notified 狀態鎖，用盡時僅推播一次告警，不再重複騷擾。
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.9)
 # 更新重點（V1.9）：
 # 1) 配額提醒/最終告警開關改為統一使用通知分級：重要/緊急。
@@ -410,17 +415,23 @@ script:
 
         default:
           - choose:
-              - conditions: "{{ final_quota_notice }}"
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ final_quota_notice and is_state(input_boolean.line_bot_quota_exhausted_notified, off) }}
                 sequence:
                   - service: rest_command.line_bot_push
                     data:
                       token: "{{ bot0_token }}"
                       to: "{{ quota_notify_user }}"
-                      text: "🚨 所有 Bot 額度已滿或不可用，訊息未送出"
+                      text: "🚨 所有 Bot 額度已滿（低於 5 則）或不可用，訊息未送出"
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.line_bot_quota_exhausted_notified
           - service: system_log.write
             data:
               level: error
-              message: "LINE Bot 配額不足，無法送出訊息"
+              message: "LINE Bot 配額不足（低於 5 則），無法送出訊息"
 ###################################################################################
 ## REST_COMMAND
 ###################################################################################

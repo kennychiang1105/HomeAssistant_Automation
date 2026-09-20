@@ -23,16 +23,16 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.3.0)
+- alias: 107Tesla充電器狀態與通知AI (V3.4.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
     支援換車充電偵測：Luxgen 完成後 Tesla 插槍（或反向）時，自動更新起始時間並發送新車開始通知。
-    相容版本：Helpers V3.21.1（已確認）。
+    相容版本：Helpers V3.23.0（已確認）。
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.3.0"
+    automation_version: "V3.4.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -175,12 +175,13 @@
           - "充電（降壓）"
           - "charging_reduced"
           - "charging (reduced)"
+        finished_states:
+          - "charging_finished"
+          - "charging finished"
         disconnected_states:
           - "車輛未連接"
           - "not_connected"
           - "vehicle not connected"
-          - "charging_finished"
-          - "charging finished"
         connected_wait_states:
           - "等待汽車"
           - "準備充電"
@@ -234,7 +235,8 @@
               value_template: >-
                 {{ from_status_normalized in disconnected_states and
                    to_status_normalized not in disconnected_states and
-                   to_status_normalized not in charging_states }}
+                   to_status_normalized not in charging_states and
+                   to_status_normalized not in finished_states }}
           sequence:
             - service: input_boolean.turn_off
               target:
@@ -310,9 +312,13 @@
               value_template: >-
                 {{ (session_energy | float(0)) > 0 and
                    from_status_normalized in charging_states and
-                   (to_status_normalized in disconnected_states or
+                   (to_status_normalized in finished_states or
+                    to_status_normalized in disconnected_states or
                     to_status_normalized in connected_wait_states) }}
           sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.tesla_charger_session_charged
             - service: persistent_notification.create
               data:
                 title: "【Tesla充電器】一般 General 🪧"
