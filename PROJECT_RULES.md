@@ -25,7 +25,7 @@ flowchart TD
     D --> E["5. 自動重載生效 (Reload) 並提供測試指引"]
     E --> F["6. 🛑 使用者實體操作驗證確認 (User Sign-off)"]
     F -- 驗證成功 --> G["7. Git Commit & Push，自動建立 GitHub PR 並發布 Release"]
-    G --> H["8. 更新推播系統儀表板實體同步 & 設定比對基準"]
+    G --> H["8. 更新推播系統儀表板實體同步 (保留差異供 00-2A 自動推播)"]
     F -- 發現異常 --> C
 ```
 
@@ -89,16 +89,17 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
    * 呼叫 GitHub API 建立 Pull Request。
    * PR 合併後依標準發布格式（包含 Known Bugs、Next Version 與系統日誌）發布 GitHub Release。
 
-### 步驟 8：GitHub Release 發布後之儀表板實體同步與比對基準更新（Post-Release Sync & Baseline Update）
-在 GitHub Release 發布完成後，AI 必須立即透過 Home Assistant 服務調用或由系統同步「更新推播系統」儀表板實體與快照基準：
+### 步驟 8：GitHub Release 發布後之儀表板實體同步（Post-Release Dashboard Sync）
+在 GitHub Release 發布完成後，AI 必須立即透過 Home Assistant 服務調用同步「更新推播系統」儀表板手動版本實體（**注意：嚴禁主動按下「目前版本設為比對基準」**，以保留版本差異供每日 18:00 的 `00-2A更新紀錄推播AI` 自動偵測並推播通知）：
 
 1. **更新手動版本 Helper 實體**（呼叫 `input_text.set_value`）：
    * `input_text.automation_package_version_manual`：更新為最新發布之更新包版本號（例如 `V3.6.9`）。
    * `input_text.automation_framework_version_manual`：更新為最新自動化架構版本（例如 `AI4.0 測試版`）。
-   * `input_text.ai_manual_update_note`：更新為本次發布之簡明更新重點與說明（例如 `LINE Bot額度判定修復、Tesla充電完成邏輯優化，AI 4.0測試導入（全新Agent模型完整接管，全面AI化更新）`）。
-2. **觸發比對基準按鈕**（呼叫 `input_button.press`）：
-   * 目標實體：`input_button.ai_version_snapshot_set_baseline`（目前版本設為比對基準）。
-   * 此動作會立即將更新後的版本與設定寫入快照比對歷史（`sensor.ai_version_snapshot_history`），確保每日 `00-2A更新紀錄推播AI` 正常追蹤後續的新變更。
+   * `input_text.ai_manual_update_note`：更新為本次發布之簡明更新重點與說明。
+2. **比對基準設定規則（保留供 00-2A 自動寫入）**：
+   * **嚴禁主動按下** `input_button.ai_version_snapshot_set_baseline`（目前版本設為比對基準）。
+   * 每日 18:00 `00-2A更新紀錄推播AI` 觸發時，會自動偵測版本差異、發送 LINE 與 HA 系統更新推播，並在推播完成後**自動觸發事件將最新版本寫入快照基準**。
+   * （僅在使用者明確要求「靜音/跳過本次更新通知」時，才依指令手動按下設為基準）。
 
 
 ---
