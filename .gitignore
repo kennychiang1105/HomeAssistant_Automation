@@ -1,1 +1,28 @@
 .DS_Store
+Thumbs.db
+
+# ──────── 敏感憑證與私密金鑰 ────────
+secrets.yaml
+*.pem
+*.key
+google_assistant.json
+
+# ──────── 系統動態狀態、資料庫與快取 ────────
+home-assistant_v2.db*
+*.log*
+.storage/
+.cloud/
+.cache/
+.ha_run.lock
+.HA_VERSION
+.shopping_list.json
+
+# ──────── 多媒體、暫存與第三方套件 ────────
+tts/
+image/
+dwains-dashboard/
+onlineBackupsData/
+node-red/
+scrypted/
+ssl/
+custom_components/
