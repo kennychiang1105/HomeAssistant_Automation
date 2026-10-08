@@ -38,7 +38,12 @@ test_out.txt
 www/snap/
 www/live/
 www/community/
-www/floorplan/
+www/floorplan/*
+!www/floorplan/v4/
+www/floorplan/v4/*
+!www/floorplan/v4/floorplan-v4-3d.js
+!www/floorplan/v4/floorplan-v4-impl.js
+!www/floorplan/v4/floorplan-v4-loader.js
 www/*.mp3
 entity_positions.*
 spatial_scene_graph.json
