@@ -269,6 +269,8 @@
 - LINE Bot：Auto 沿用主用 Bot（sticky）；「即將切換」預告同一個 Bot 只報一次；切換通知加 30 秒穩定與「不等於主用 Bot」防誤報。
 - 107 Tesla：拔槍重插（狀態經 unknown）補發開始充電通知；插槍後「充電完成」但沒充電的 00:02 提醒；充飽不拔槍不再誤報 6 小時未充電。
 - 修復：08-6 離家保全（Iris 手機實體已失效）改用 `person.*`；21A 風扇備援感測器與 `t_eff` 判斷；13 魔方、00-2C 魔方電量失效實體；`sensor.lights_on`；門鎖日耗電率 `doorlock_battery_drop_mean_7d` 重建（00-2P 每日紀錄）。
+- 3D UI（`www/floorplan/v4/floorplan-v4-3d.js`，已納入版控）：修正卡片「斷線後馬上重接」時渲染迴圈被停止旗標中止，造成切到全棟再點回樓層後 3D 畫面停住、按鈕（圖釘）全部擠到左上角；卡片標示改為 UI4.0。
+- 自動化管理面板：產生器改讀 `core.restore_state`（紀錄庫已排除 automation／script），不再出現「找不到實體」；`AI離家版本字串` 歸入「內部狀態」；側邊欄「智慧家庭」圖示改為有效的 `mdi:home-automation`。
 - 新增 00-2M 每晚 03:40 實體引用檢查（`scripts/check_entities.py`）；資料庫保留 45 天並排除雜訊實體；自動化管理側邊欄面板與整合儀表板「智慧家庭」。
 - 移出載入範圍：測試觸發機制 00-2G 與 `test_trigger` package（保存在 `deprecated_automations_backup/Archived_20261008/` 與 `scripts/dev_tools/`）、106-1、00-2廣播系統測試、00-3 手動清理空間。
 

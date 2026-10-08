@@ -578,7 +578,7 @@ lovelace:
     lovelace-smart:
       mode: yaml
       title: 智慧家庭
-      icon: mdi:home-smart
+      icon: mdi:home-automation
       show_in_sidebar: true
       require_admin: false
       filename: smart-home.yaml

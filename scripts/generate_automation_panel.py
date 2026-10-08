@@ -5,7 +5,7 @@
     python3 scripts/generate_automation_panel.py            # 產生 www/automation-panel.yaml（本機）
     python3 scripts/generate_automation_panel.py --deploy   # 產生並上傳到 HA 主機（需再重啟 HA 才會載入新設定；只改面板內容不用重啟，重新整理即可）
 
-資料來源：透過 SSH 唯讀查詢 HA 紀錄庫，取得目前存在（非 unavailable）的 automation / input_* / timer / counter / script。
+資料來源：透過 SSH 讀取 HA 的 core.restore_state，取得目前存在（非 unavailable）的 automation / input_* / timer / counter / script（紀錄庫已排除 automation／script，不能再用）。
 新增自動化或 helper 之後，重新執行本程式即可更新面板（面板是 YAML 模式，儲存檔案後在瀏覽器重新整理）。
 分類規則在下方 AUTO_RULES / HELPER_RULES，可自行調整。
 """
@@ -15,15 +15,21 @@ HOST = "kenny1105@192.168.68.97"
 OUT = pathlib.Path(__file__).resolve().parent.parent / "www" / "automation-panel.yaml"
 
 QUERY = r'''
-import sqlite3,json
-c=sqlite3.connect("file:/homeassistant/home-assistant_v2.db?mode=ro",uri=True)
+import json
+# 讀 HA 的 core.restore_state（每 15 分鐘與停止時寫入）取得「現在確實存在」的實體：
+# 紀錄庫已把 automation／script 排除，改查紀錄庫會讀到已刪除自動化的舊狀態（面板出現「找不到實體」）。
+d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
-for d in doms:
-    for eid,st,attrs in c.execute("""select m.entity_id,s.state,a.shared_attrs from states_meta m join states s on s.metadata_id=m.metadata_id and s.state_id=(select max(state_id) from states where metadata_id=m.metadata_id) left join state_attributes a on a.attributes_id=s.attributes_id where m.entity_id like ?""",(d+".%",)):
-        try: fn=json.loads(attrs or '{}').get('friendly_name','')
-        except Exception: fn=''
-        out.append((eid,st,fn))
+# restore_state 會保留已刪除實體最多 7 天；現存實體的 last_seen 都是最近一次寫入時間，只收這一批
+from datetime import datetime
+ts=lambda x: datetime.fromisoformat(x["last_seen"].replace("Z","+00:00")).timestamp()
+newest=max(ts(x) for x in d)
+for x in d:
+    if ts(x) < newest - 120: continue
+    s=x["state"]; eid=s["entity_id"]
+    if eid.split(".")[0] in doms:
+        out.append((eid,s["state"],(s.get("attributes") or {}).get("friendly_name","")))
 print(json.dumps(out,ensure_ascii=False))
 '''
 
@@ -76,7 +82,7 @@ INTERNAL_RE = re.compile(
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
     r"|^input_text\.(.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
-    r"|doorlock_batt_model_last_cycle|scene_origin_device|line_eew_remote_|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
+    r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate|floorplan_active_floor)"
 )
@@ -130,7 +136,7 @@ def classify(rules, text):
 
 
 def fetch():
-    r = subprocess.run(["ssh", HOST, "python3 -"], input=QUERY, capture_output=True, text=True, check=True)
+    r = subprocess.run(["ssh", HOST, "sudo python3 -"], input=QUERY, capture_output=True, text=True, check=True)
     return json.loads(r.stdout)
 
 
