@@ -1,0 +1,204 @@
+# ────────────────────────────────────────────────────────
+# 頂樓感應燈套件 (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：P2 加入 08-5J 專用的跨線去抖動時間戳（topfloor_j_*），避免與 08-5A/5F 同時寫入共用時間戳而互相誤判。
+# - V4.0.0：新增。頂樓感應燈優化（08-5J 動線推理 / 08-5K 燈具使用權 / 重寫 08-5C、08-5G）所需的 helper：
+#           訊號時間戳、燈具使用權旗標、手動保持/保底/暫停計時器、可調參數、決策紀錄與週報計數器。
+#           所有 input_number 不設 initial（避免重啟覆蓋），樣板內一律以 int(預設) 讀取。
+#           input_boolean / timer 已排除 HomeKit 橋接器。
+# ────────────────────────────────────────────────────────
+input_datetime:
+  topfloor_cam_last_on:
+    name: 頂樓_攝影機最後有人
+    has_date: true
+    has_time: true
+  topfloor_cam_last_off:
+    name: 頂樓_攝影機最後清空
+    has_date: true
+    has_time: true
+  topfloor_pir_left_last:
+    name: 頂樓_PIR左最後動作
+    has_date: true
+    has_time: true
+  topfloor_pir_right_last:
+    name: 頂樓_PIR右最後動作
+    has_date: true
+    has_time: true
+  topfloor_ap5f_last_join:
+    name: 頂樓_iPhone最後連上5F
+    has_date: true
+    has_time: true
+  topfloor_path_enter_study:
+    name: 頂樓_最後進書房
+    has_date: true
+    has_time: true
+  topfloor_path_bedroom:
+    name: 頂樓_最後回臥室
+    has_date: true
+    has_time: true
+  topfloor_path_down:
+    name: 頂樓_最後下樓
+    has_date: true
+    has_time: true
+  topfloor_j_stairs:
+    name: 頂樓_08-5J樓梯線去抖動
+    has_date: true
+    has_time: true
+  topfloor_j_bedroom:
+    name: 頂樓_08-5J房門線去抖動
+    has_date: true
+    has_time: true
+  topfloor_j_study:
+    name: 頂樓_08-5J書房線去抖動
+    has_date: true
+    has_time: true
+
+input_boolean:
+  topfloor_stairs_night_used:
+    name: 頂樓_樓梯燈上次為深夜亮度
+    icon: mdi:weather-night
+  topfloor_0fb7_auto:
+    name: 頂樓_4F樓梯燈由感應開啟
+    icon: mdi:robot
+  topfloor_13b8_auto:
+    name: 頂樓_5F梯廳燈由感應開啟
+    icon: mdi:robot
+  topfloor_kandeng_auto:
+    name: 頂樓_坎燈由感應開啟
+    icon: mdi:robot
+  topfloor_study_auto:
+    name: 頂樓_書房燈由感應開啟
+    icon: mdi:robot
+  topfloor_stairs_keep_on:
+    name: 頂樓_樓梯燈常開(9A)
+    icon: mdi:lightbulb-on
+  topfloor_motion_pause:
+    name: 頂樓_感應暫停中
+    icon: mdi:motion-sensor-off
+
+timer:
+  topfloor_room_arrived:
+    name: 頂樓_剛進房間（暫不因攝影機重開樓梯燈）
+    duration: "00:00:20"
+  topfloor_stairs_manual_hold:
+    name: 頂樓_樓梯燈手動保持
+    duration: "00:05:00"
+    restore: true
+  topfloor_stairs_max:
+    name: 頂樓_樓梯燈保底關燈
+    duration: "00:02:30"
+    restore: true
+  topfloor_pause:
+    name: 頂樓_感應暫停計時
+    duration: "02:00:00"
+    restore: true
+
+input_number:
+  topfloor_evidence_window_s:
+    name: 頂樓_證據視窗（秒，預設12）
+    min: 5
+    max: 60
+    step: 1
+    mode: box
+  topfloor_line_debounce_s:
+    name: 頂樓_跨線去抖動（秒，預設3）
+    min: 1
+    max: 10
+    step: 1
+    mode: box
+  topfloor_arrive_off_delay_s:
+    name: 頂樓_抵達後關樓梯燈延遲（秒，預設5）
+    min: 0
+    max: 120
+    step: 1
+    mode: box
+  topfloor_down_4f_delay_s:
+    name: 頂樓_下樓時4F晚關（秒，預設10）
+    min: 0
+    max: 60
+    step: 1
+    mode: box
+  topfloor_vacancy_s:
+    name: 頂樓_樓梯口清空判定（秒，預設45）
+    min: 15
+    max: 300
+    step: 1
+    mode: box
+  topfloor_study_vacancy_min:
+    name: 頂樓_書房無人判定（分，預設5）
+    min: 1
+    max: 30
+    step: 1
+    mode: box
+  topfloor_study_max_min:
+    name: 頂樓_書房安靜延長上限（分，預設60）
+    min: 10
+    max: 240
+    step: 1
+    mode: box
+  topfloor_study_leave_down_min:
+    name: 頂樓_離開書房下樓保留照明（分，預設3）
+    min: 0
+    max: 10
+    step: 1
+    mode: box
+  topfloor_stairs_night_brightness:
+    name: 頂樓_深夜樓梯燈亮度（%，預設50）
+    min: 1
+    max: 100
+    step: 1
+    mode: box
+  topfloor_stairs_night_kelvin:
+    name: 頂樓_深夜樓梯燈色溫（K，預設3000）
+    min: 2000
+    max: 6500
+    step: 100
+    mode: box
+  topfloor_stairs_day_bri_0fb7:
+    name: 頂樓_起床後4F樓梯燈亮度（%，預設75）
+    min: 1
+    max: 100
+    step: 1
+    mode: box
+  topfloor_stairs_day_k_0fb7:
+    name: 頂樓_起床後4F樓梯燈色溫（K，預設3571）
+    min: 2000
+    max: 6500
+    step: 1
+    mode: box
+  topfloor_stairs_day_bri_13b8:
+    name: 頂樓_起床後5F梯廳燈亮度（%，預設90）
+    min: 1
+    max: 100
+    step: 1
+    mode: box
+  topfloor_stairs_day_k_13b8:
+    name: 頂樓_起床後5F梯廳燈色溫（K，預設4000）
+    min: 2000
+    max: 6500
+    step: 1
+    mode: box
+
+input_text:
+  topfloor_param_init:
+    name: 頂樓_參數首次初始化旗標
+    max: 10
+  topfloor_decision_log:
+    name: 頂樓_最後決策
+    max: 255
+  topfloor_last_path:
+    name: 頂樓_最後動線事件（事件|時間戳）
+    max: 60
+
+counter:
+  topfloor_path_events:
+    name: 頂樓_週_動線判斷次數
+  topfloor_ghost_line:
+    name: 頂樓_週_跨線雜訊
+  topfloor_miss_line:
+    name: 頂樓_週_攝影機通行無跨線
+  topfloor_fallback_off:
+    name: 頂樓_週_樓梯燈保底關燈
+  topfloor_study_max_off:
+    name: 頂樓_週_書房上限關燈

@@ -1,0 +1,161 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2D通知開關初始化AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V1.0.0：首次建立 HA 通知分級開關後，一次性全部開啟（旗標 input_text.notify_ha_switch_init = done）；
+#           之後重開機不再覆蓋使用者的設定。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2D通知開關初始化AI (V4.0.0)
+  id: ai_00_2d_notify_ha_switch_init
+  description: 首次啟動時一次性開啟 HA 通知分級開關，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.notify_ha_switch_init') != 'done' }}"
+  action:
+    - delay: "00:00:20"
+    - action: input_boolean.turn_on
+      target:
+        entity_id:
+          - input_boolean.notify_ha_info_enable
+          - input_boolean.notify_ha_general_enable
+          - input_boolean.notify_ha_important_enable
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.notify_ha_switch_init
+      data:
+        value: done
+
+- alias: 00-2D氣氛燈開關初始化AI (V4.0.0)
+  id: ai_00_2d_mood_alert_switch_init
+  description: 首次啟動時一次性開啟氣氛燈提醒開關，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.mood_alert_switch_init') != 'done' }}"
+  action:
+    - delay: "00:00:25"
+    - action: input_boolean.turn_on
+      target:
+        entity_id:
+          - input_boolean.mood_alert_enable
+          - input_boolean.mood_alert_important_enable
+          - input_boolean.mood_alert_emergency_enable
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.mood_alert_switch_init
+      data:
+        value: done
+
+- alias: 00-2D情境廣播開關初始化AI (V4.0.0)
+  id: ai_00_2d_scene_announce_init
+  description: 首次啟動時一次性開啟情境執行廣播開關，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.scene_announce_init') != 'done' }}"
+  action:
+    - delay: "00:00:30"
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.scene_announce_enable
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.scene_announce_init
+      data:
+        value: done
+
+- alias: 00-2D廣播音量初始化AI (V4.0.0)
+  id: ai_00_2d_announce_volume_init
+  description: 首次啟動時一次性設定統一廣播音量，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.announce_volume_init') != 'done' }}"
+  action:
+    - delay: "00:00:35"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.announce_volume_general
+      data:
+        value: 0.6
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.announce_volume_important
+      data:
+        value: 0.65
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.announce_volume_emergency
+      data:
+        value: 0.8
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.announce_volume_init
+      data:
+        value: done
+
+- alias: 00-2D廣播音量統一AI (V4.0.0)
+  id: ai_00_2d_announce_volume_unify
+  description: 一次性把一般/重要/緊急廣播音量統一為更新前使用者調整的 0.65，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.announce_volume_unify_flag') != 'done' }}"
+  action:
+    - delay: "00:00:40"
+    - repeat:
+        for_each: ["general", "important", "emergency"]
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: "input_number.announce_volume_{{ repeat.item }}"
+            data:
+              value: 0.65
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.announce_volume_unify_flag
+      data:
+        value: done
+
+- alias: 00-2D廣播音量測試值AI (V4.0.0)
+  id: ai_00_2d_announce_volume_test
+  description: 一次性把一般/重要/緊急廣播音量設為 0.4（測試期間小聲一點），之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.announce_volume_test_flag') != 'done' }}"
+  action:
+    - delay: "00:00:45"
+    - repeat:
+        for_each: ["general", "important", "emergency"]
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: "input_number.announce_volume_{{ repeat.item }}"
+            data:
+              value: 0.4
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.announce_volume_test_flag
+      data:
+        value: done

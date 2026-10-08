@@ -1,0 +1,38 @@
+# ────────────────────────────────────────────────────────
+# 車庫即時影像AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 script.garage_live。事件發生時，約每 2 秒對車庫攝影機（中解析度串流）截一張圖存到
+#           /config/www/live/<token>.jpg，持續約 3 分鐘後停止並刪除；配合 /local/live.html?t=<token>
+#           在家裡 Wi-Fi 以「準即時」方式監看（不需登入 HA）。token 由呼叫端產生（隨機）。
+# ────────────────────────────────────────────────────────
+garage_live:
+  alias: 車庫即時影像AI (V4.0.0)
+  description: 事件發生後約 3 分鐘內持續更新車庫畫面供 live.html 顯示
+  mode: parallel
+  max: 3
+  fields:
+    token:
+      description: 隨機代碼（英數字，6~40 字）
+      required: true
+    camera:
+      description: 攝影機 entity_id（預設車庫中解析度）
+      required: false
+  variables:
+    cam_entity: "{{ camera if (camera is defined and camera) else 'camera.che_ku_she_ying_ji_medium_resolution_channel' }}"
+    automation_version: 'V4.0.0'
+  sequence:
+    - repeat:
+        count: 85
+        sequence:
+          - action: camera.snapshot
+            target:
+              entity_id: "{{ cam_entity }}"
+            data:
+              filename: "/config/www/live/{{ token }}.jpg"
+            continue_on_error: true
+          - delay: "00:00:01.8"
+    - action: shell_command.rm_live
+      data:
+        token: "{{ token }}"
+      continue_on_error: true

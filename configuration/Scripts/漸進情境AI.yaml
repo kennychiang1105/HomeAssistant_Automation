@@ -1,0 +1,123 @@
+# ────────────────────────────────────────────────────────
+# 漸進情境AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V4.0.0：手動晚安（實體開關）時，先點亮樓梯燈（2→3F、3F、3→4F、5F、四樓/頂樓樓梯燈）再依序關其他燈，3 分鐘後由 stairs_delayed_off 關閉。
+# - V1.0.3：早安/到家情境不再「開啟空氣清淨機」（改由 07 系列依 PM2.5 且有人在家時才啟動）。
+# - V1.0.2：離家由實體開關觸發時，樓梯燈（1F~4F）豁免關閉（讓人可往下走），由 script.stairs_delayed_off 3 分鐘後關閉；不再於此清空起點（改由 scene_verify 清除）。
+# - V1.0.2：到家情境預設起點改為 2F 廁所/廚房側樓梯口（由餐廳側往客廳擴散）。
+# - V1.0.0：功能版；新增 script.stage_scene。晚安/離家/早安/到家與樓梯 9A/9B/9C 改為以「按下的開關位置」為起點，
+#           由近到遠分環依序開/關（每環約 1.1 秒，總長約 3~4 秒），含燈、電扇、電視、空氣清淨機。
+#           起點來源：呼叫端傳入 device（開關 device_id），或由 input_text.scene_origin_device 帶入；
+#           皆無則 離家=車庫、到家=2F 廁所/廚房側樓梯口（多數人不經大門進入）、其他=客廳。樓梯依按鈕樓層先動，向上下擴散。
+# ────────────────────────────────────────────────────────
+stage_scene:
+  alias: 漸進情境AI (V4.0.0)
+  description: 依按鈕位置由近到遠分環開/關燈與家電（goodnight/leave/morning/arrive/stairs_on/stairs_off）
+  mode: parallel
+  max: 4
+  fields:
+    scene:
+      description: goodnight / leave / morning / arrive / stairs_on / stairs_off
+      required: true
+      example: goodnight
+    device:
+      description: 觸發的開關 device_id（可省略，省略時讀取 input_text.scene_origin_device）
+      required: false
+  variables:
+    automation_version: 'V4.0.0'
+  sequence:
+    - variables:
+        src_device: >-
+          {% set d = (device | string | trim) if device is defined else '' %}
+          {% set h = states('input_text.scene_origin_device') | trim %}
+          {% if d not in ['', 'None'] %}{{ d }}{% elif h not in ['', 'unknown', 'unavailable'] %}{{ h }}{% else %}{% endif %}
+        turn_state: "{{ 'on' if scene in ['morning','arrive','stairs_on'] else 'off' }}"
+    # 手動晚安（實體開關）：先把樓梯燈全部點亮（上樓路線），再依序關其他燈，避免關燈後樓梯太暗；3 分鐘後由 stairs_delayed_off 漸進關閉
+    - if: "{{ scene == 'goodnight' and src_device not in ['', 'None'] }}"
+      then:
+        - action: homeassistant.turn_on
+          target:
+            entity_id:
+              - switch.er_san_lou_lou_ti_deng
+              - switch.san_lou_lou_ti_deng
+              - switch.san_si_lou_lou_ti_deng
+              - switch.ding_lou_lou_ti_deng
+              - light.yeelink_color5_0fb7_light
+              - light.yeelink_color5_13b8_light
+          continue_on_error: true
+        - action: script.turn_on
+          target:
+            entity_id: script.stairs_delayed_off
+          data:
+            variables:
+              device: "{{ src_device }}"
+    - variables:
+        rings: >-
+          {% set dz = {
+            '6aa5f4fe1651ab6f47027aa5769a7cf1':'garage','6f569070d383724fefd1af44770b6f20':'garage',
+            '29a8530c569abeeee2a16c7237a0ed8e':'kitchen','cca5b7ed73a48ddcd08d2b6fac6ab5d6':'kitchen',
+            'de4044f4d156d13b885a1be8eb61c85b':'kitchen','8a3a83db44f3e7851c3178495daa7b85':'kitchen',
+            '011d0fc36adf6381e82c6f7e0f130d49':'dining','262c6697a232d2f41dd879190fdaaa38':'dining',
+            'da626557d958c8abedd9f594b1c78019':'dining','a9caa455edec9bd90f96dcb457a46dc6':'dining',
+            '2b1b9cbffff070f62f05d5f073a16213':'living','40e15319550792730cc46c7e0528c916':'living',
+            'e35da29662b08cf4ced829f5eb40f179':'living','d6e4551be6bf3fd520f5111e4f02a6cf':'living',
+            'ee6aa6ce640f7123b2469280a5c34a7f':'living'} %}
+          {% set sf = {
+            '7062d71d97dde92c2d03051744e5c81e':0,'e35da29662b08cf4ced829f5eb40f179':0,
+            '5499e1d5eb0e1e8435c471bafa837ec8':1,
+            '813b3dcce6997d06a893274a9dd365c6':3,'e784cc0dd2d58c48f1fb69e51601d2b3':3,
+            'ea7743a9b14b9ce736fb645578dc59db':4,'ad6e414dc8c87f8bb9deb125b792af19':4,
+            '277ae0fd30a39c811624da70e6a4398f':4} %}
+          {% set ns = namespace(rings=[]) %}
+          {% if scene in ['stairs_on','stairs_off'] %}
+            {% set chain = [['switch.er_san_lou_lou_ti_deng',0],['switch.san_lou_lou_ti_deng',1],
+                            ['switch.san_si_lou_lou_ti_deng',2],['light.yeelink_color5_0fb7_light',3]] %}
+            {% set o = sf.get(src_device, 0) %}
+            {% for d in range(0, 6) %}
+              {% set t = namespace(e=[]) %}
+              {% for it in chain if (it[1] - o) | abs == d %}{% set t.e = t.e + [it[0]] %}{% endfor %}
+              {% if t.e %}{% set ns.rings = ns.rings + [t.e] %}{% endif %}
+            {% endfor %}
+          {% else %}
+            {% set living = ['light.yeelink_color5_4181_light','light.ke_ting_deng_zu_1_ha','light.ke_ting_deng_zu_2','light.ke_ting_deng_zu_3','switch.ke_ting_kan_deng','switch.ke_ting_huan_rao_deng','switch.ke_ting_bi_deng'] %}
+            {% set dining = ['light.can_ting_deng_zu_1_ha','switch.can_ting_bi_deng','switch.can_ting_kan_deng'] %}
+            {% set kitchen = ['switch.chu_fang_deng','switch.ce_suo_deng','switch.men_kou_deng','switch.lu_deng','switch.bi_deng'] %}
+            {% set garage = ['switch.che_ku_zhu_deng'] if scene == 'leave' and src_device not in ['', 'None'] else ['switch.che_ku_zhu_deng','switch.lou_ti_deng'] %}
+            {% set appl = ['fan.ke_ting_dian_feng_shan','remote.ke_ting_dian_shi','fan.kong_qi_qing_jing_ji'] %}
+            {% set exempt = (scene == 'leave' and src_device not in ['', 'None']) %}
+            {% set stairs = [] if exempt else ['switch.er_san_lou_lou_ti_deng','switch.san_lou_lou_ti_deng','switch.san_si_lou_lou_ti_deng','switch.ding_lou_lou_ti_deng','light.yeelink_color5_0fb7_light','light.yeelink_color5_13b8_light'] %}
+            {% set Z = {
+              'goodnight': {'living': living, 'dining': dining, 'kitchen': kitchen, 'garage': garage, 'appl': appl},
+              'leave': {'living': living, 'dining': dining, 'kitchen': kitchen, 'garage': garage, 'appl': appl, 'stairs': stairs},
+              'morning': {'dining': ['light.can_ting_deng_zu_1_ha']},
+              'arrive': {'living': ['light.yeelink_color5_4181_light','light.yeelink_color5_106d_light','light.yeelink_color5_8e3f_light','light.yeelink_color5_2024_light','light.yeelink_color5_fab7_light','light.yeelink_color5_5007_light','light.yeelink_color5_f21d_light'],
+                         'dining': ['light.yeelink_color5_53ed_light','light.yeelink_color5_f618_light','light.yeelink_color5_c8d3_light'],
+                        }
+            } %}
+            {% set O = {
+              'living':  [['living'], ['dining','appl'], ['kitchen'], ['stairs','garage']],
+              'dining':  [['dining','kitchen'], ['living'], ['stairs'], ['garage','appl']],
+              'kitchen': [['kitchen'], ['dining'], ['living'], ['stairs','garage','appl']],
+              'garage':  [['garage'], ['kitchen'], ['living'], ['dining','stairs','appl']]} %}
+            {% set origin = dz.get(src_device, 'garage' if scene == 'leave' else ('kitchen' if scene == 'arrive' else 'living')) %}
+            {% set zones = Z.get(scene, {}) %}
+            {% for ring in O[origin] %}
+              {% set t = namespace(e=[]) %}
+              {% for z in ring if z in zones %}{% set t.e = t.e + zones[z] %}{% endfor %}
+              {% if t.e %}{% set ns.rings = ns.rings + [t.e] %}{% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.rings }}
+    - repeat:
+        for_each: "{{ rings }}"
+        sequence:
+          - action: "homeassistant.turn_{{ turn_state }}"
+            target:
+              entity_id: "{{ repeat.item }}"
+            continue_on_error: true
+          - if: "{{ not repeat.last }}"
+            then:
+              - delay:
+                  milliseconds: 1100

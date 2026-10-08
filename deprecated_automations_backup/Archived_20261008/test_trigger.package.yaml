@@ -1,0 +1,18 @@
+# ─────────────────────────────────────────────────────────────
+# 測試觸發檔套件 (V4.0.0)
+# 相容版本：Helpers V4.0-beta1（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 shell_command.dump_text，把測試資訊（如燈具屬性）寫入 /config/test_out.txt 供讀取。
+# - V4.0.0：新增 command_line 感測器 sensor.test_trigger_file，每 5 秒讀取 /config/test_trigger.txt 的內容。
+#           僅供開發/測試用：寫入新內容即可觸發 00-2G測試觸發AI，不需要重啟 HA 或 API 權限。
+#           不需要時可刪除本檔與 Automations/00-2G測試觸發AI.yaml。
+# ─────────────────────────────────────────────────────────────
+command_line:
+  - sensor:
+      name: test_trigger_file
+      unique_id: test_trigger_file
+      command: "cat /config/test_trigger.txt 2>/dev/null || echo none"
+      scan_interval: 5
+
+shell_command:
+  dump_text: 'sh -c "echo {{ b64 }} | base64 -d > /config/test_out.txt"'

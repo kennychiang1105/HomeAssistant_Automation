@@ -1,0 +1,430 @@
+# ────────────────────────────────────────────────────────
+# 情境與狀況氣氛燈AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 UniFi 機台 LED 氣氛燈。ambient_scene：依情境（離家=紅、晚安=暖橘、早安=綠、到家=綠）替 2 台可換色機台（1F U6 Mesh、4F U6 Extender）換色，亮度不變；
+#           情境由網關（Aqara 保全模式 aqara_li_jia / wan_an / zai_jia 與警戒狀態）判斷，由 00-2J氣氛燈情境同步AI 觸發。
+#           mood_alert 加入機台 LED：RGB 機台整段變色（重要 4 秒 / 緊急 6 秒）後還原；僅開關型機台（6 台）熄滅 1.5 秒再亮（緊急 2 次）。
+#           （實測 UniFi LED 指令約 1.2~1.6 秒才生效，故不做快閃。）
+# - V4.0.0：還原一律用「色溫＋亮度」（不再寫回 RGB）；沒有色溫記憶的燈不處理。
+# - V4.0.0：還原寫入後等待由 0.9 秒加長為 4 秒再關燈（Yeelink 雲端套用顏色有延遲，太快關燈顏色會沒寫進去）。
+# - V4.0.0：情境與狀況氣氛燈AI 排隊上限 3 → 10（地震測試時第二次提醒被「Maximum number of runs exceeded」丟掉）。
+# - V4.0.0：mood_alert_restore_off 還原顏色後確認燈泡回到色溫模式（light.mode=2），最多重送 3 次（修正閃爍後客廳燈停在紅色）。
+# - V4.0.0：緊急級各區閃爍／機台同時開始（不再依序延遲 0.4～1.6 秒），去重窗口 25 秒縮為 8 秒（地震預警抵達時要再次提醒）。
+# - V4.0.0：修正 mood_alert_restore_off 條件（原本回傳清單而非 true/false，導致從未執行還原，燈泡留下紅色/橘色）。
+# - V4.0.0：提醒範圍加入「客廳燈組1」（客廳燈1/106d、客廳燈3/8e3f，與客廳小燈同時閃爍）。
+# - V4.0.0：修正 mood_alert_restore_off 讀取記憶時（HA 會把 JSON 字串自動轉成字典）的 UndefinedError，並讓還原失敗不再中斷主提醒（避免提醒中旗標卡住）。
+# - V4.0.0：新增 mood_alert_restore_off：原本關閉的 RGB 燈在提醒後依「燈況記憶」(00-2H) 寫回原顏色/色溫/亮度再關閉，避免下次開燈顏色變成提醒色。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V1.0.1：修正讀取自動化 current/last_triggered 屬性時的 UndefinedError。
+# - V1.0.0：功能版；新增 script.mood_alert。LINE（重要/緊急）或廣播發出時，以燈光提醒：
+#           客廳小燈＋客廳燈組1 → 餐廳燈2 → 三樓樓梯燈 → 四樓樓梯燈 → 頂樓樓梯燈 依序擴散；RGB 燈用顏色（重要=琥珀橘 4 秒、緊急=紅色 6 秒）+閃爍，
+#           開關燈（三樓樓梯燈）純閃爍；結束後恢復原狀態。僅發 HA 通知、資訊/一般級不提醒。
+#           不提醒：離家模式；晚安/夜燈/熟睡情境中僅「緊急」才提醒；緊急模式(05A/05B/05E)執行中或 3 分鐘內略過，
+#           且提醒途中若緊急模式觸發，立即中止且不還原燈。
+#           去重：8 秒內同一事件（LINE+廣播）只提醒一次，等級只升不降。每次連續亮燈 < 1 秒，避免觸發 100A 到家判斷與其他燈狀態自動化。
+# ────────────────────────────────────────────────────────
+mood_alert_pulse:
+  alias: 氣氛燈單區閃爍 (V4.0.0)
+  description: 對單一燈具做延遲後閃爍（RGB 燈用顏色，開關燈純閃爍）
+  mode: parallel
+  max: 8
+  fields:
+    entity:
+      required: true
+    kind:
+      description: rgb / switch
+      required: true
+    color:
+      description: "[r,g,b]"
+      required: false
+    pulses:
+      required: true
+    on_ms:
+      required: true
+    off_ms:
+      required: true
+    start_ms:
+      required: false
+  sequence:
+    - if: "{{ start_ms is defined and start_ms | int(0) > 0 }}"
+      then:
+        - delay:
+            milliseconds: "{{ start_ms | int(0) }}"
+    - repeat:
+        count: "{{ pulses | int(1) }}"
+        sequence:
+          - if: "{{ kind == 'rgb' }}"
+            then:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ entity }}"
+                data:
+                  rgb_color: "{{ color }}"
+                  brightness: 255
+                  transition: 0
+                continue_on_error: true
+            else:
+              - action: switch.turn_on
+                target:
+                  entity_id: "{{ entity }}"
+                continue_on_error: true
+          - delay:
+              milliseconds: "{{ on_ms | int(500) }}"
+          - action: "{{ 'light.turn_off' if kind == 'rgb' else 'switch.turn_off' }}"
+            target:
+              entity_id: "{{ entity }}"
+            continue_on_error: true
+          - if: "{{ not repeat.last }}"
+            then:
+              - delay:
+                  milliseconds: "{{ off_ms | int(300) }}"
+
+mood_alert_restore_off:
+  alias: 氣氛燈關閉燈具顏色還原 (V4.0.0)
+  description: 依燈況記憶把原本關閉的燈泡顏色/色溫/亮度寫回，再關閉（避免提醒顏色殘留到下次開燈）
+  mode: parallel
+  max: 8
+  fields:
+    entity:
+      required: true
+  variables:
+    mem_raw: "{{ states('input_text.mood_mem_' ~ entity.split('.')[1].split('_')[2]) }}"
+    mem: >-
+      {{ mem_raw if mem_raw is mapping else ((mem_raw | from_json({})) if (mem_raw is string and mem_raw.startswith('{')) else {}) }}
+  sequence:
+    - if: "{{ mem.get('b') is not none and mem.get('k') is not none }}"
+      then:
+        # 色溫模式（light.mode = 2）才算還原成功；燈泡有時吃不到第一次指令仍停在顏色（紅／橘）模式，
+        # 所以最多重送 3 次（每次等 3 秒，狀態回報會有延遲）
+        - repeat:
+            sequence:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ entity }}"
+                data:
+                  color_temp_kelvin: "{{ mem.get('k') | int(2700) }}"
+                  brightness: "{{ mem.get('b') | int(255) }}"
+                  transition: 0
+                continue_on_error: true
+              - delay:
+                  seconds: 3
+            until:
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: "{{ state_attr(entity, 'light.mode') | int(0) == 2 and state_attr(entity, 'light.color_temperature') | int(0) > 0 }}"
+                  - condition: template
+                    value_template: "{{ repeat.index >= 3 }}"
+        - action: light.turn_off
+          target:
+            entity_id: "{{ entity }}"
+          continue_on_error: true
+
+mood_alert_ap_hold:
+  alias: 氣氛燈機台整段變色 (V4.0.0)
+  description: UniFi RGB 機台 LED 延遲後改成提醒色（還原由 mood_alert 的快照負責）
+  mode: parallel
+  max: 6
+  fields:
+    entity:
+      required: true
+    color:
+      required: true
+    start_ms:
+      required: false
+    hold_ms:
+      description: 維持提醒色的時間（毫秒，含指令生效延遲）
+      required: false
+  sequence:
+    - if: "{{ start_ms is defined and start_ms | int(0) > 0 }}"
+      then:
+        - delay:
+            milliseconds: "{{ start_ms | int(0) }}"
+    - action: light.turn_on
+      target:
+        entity_id: "{{ entity }}"
+      data:
+        rgb_color: "{{ color }}"
+      continue_on_error: true
+    - delay:
+        milliseconds: "{{ hold_ms | int(4000) }}"
+
+mood_alert_ap_blink:
+  alias: 氣氛燈機台熄滅閃爍 (V4.0.0)
+  description: UniFi 僅開關型機台 LED 延遲後熄滅再亮（指令約 1.3 秒才生效，所以間隔 1.5 秒）
+  mode: parallel
+  max: 10
+  fields:
+    entity:
+      required: true
+    blinks:
+      required: true
+    start_ms:
+      required: false
+  sequence:
+    - if: "{{ start_ms is defined and start_ms | int(0) > 0 }}"
+      then:
+        - delay:
+            milliseconds: "{{ start_ms | int(0) }}"
+    - repeat:
+        count: "{{ blinks | int(1) }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ entity }}"
+            continue_on_error: true
+          - delay:
+              milliseconds: 1500
+          - action: light.turn_on
+            target:
+              entity_id: "{{ entity }}"
+            continue_on_error: true
+          - if: "{{ not repeat.last }}"
+            then:
+              - delay:
+                  milliseconds: 1500
+
+ambient_scene:
+  alias: 情境氣氛燈AI-機台情境色 (V4.0.0)
+  description: 依情境替可換色的 UniFi 機台 LED（1F U6 Mesh、4F U6 Extender）換色；亮度不變，保持到下一個情境
+  mode: restart
+  fields:
+    scene:
+      description: leave / goodnight / morning / arrive
+      required: true
+    test:
+      description: 測試用，略過緊急模式與提醒中判斷
+      required: false
+  variables:
+    automation_version: 'V4.0.0'
+    # 注意：HA 會把 "255,0,0" 這種字串自動轉成 tuple，所以顏色一律在同一個樣板內處理成清單
+    rgb: >-
+      {% set d = {'leave': [255, 0, 0], 'goodnight': [255, 140, 40], 'morning': [0, 200, 80], 'arrive': [0, 200, 80]} %}
+      {% set c = states('input_text.ambient_color_' ~ scene) | string | trim %}
+      {% if c.count(',') == 2 %}{{ c.split(',') | map('trim') | map('int', 0) | list }}{% else %}{{ d.get(scene, [255, 255, 255]) }}{% endif %}
+    # 離家/到家/早安由 1F 往 4F，晚安由 4F 往 1F
+    order: "{{ ['light.u6_extender_4f_elay_led', 'light.u6_mesh_1f_led'] if scene == 'goodnight' else ['light.u6_mesh_1f_led', 'light.u6_extender_4f_elay_led'] }}"
+    is_test: "{{ test | default(false) in [true, 'true'] }}"
+  sequence:
+    - if: "{{ scene not in ['leave', 'goodnight', 'morning', 'arrive'] or is_state('input_boolean.ambient_scene_off', 'on') or is_state('input_boolean.mood_alert_enable', 'unavailable') }}"
+      then:
+        - stop: "略過機台情境色"
+    # 提醒閃爍進行中：等結束再套用（最多 25 秒）
+    - wait_template: "{{ is_state('input_boolean.mood_alert_active', 'off') }}"
+      timeout: "00:00:25"
+      continue_on_timeout: true
+    - variables:
+        em_busy: >-
+          {% set ns = namespace(b=false) %}
+          {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
+            {% set lt = a.attributes.get('last_triggered') %}
+            {% if (a.attributes.get('current', 0) | int(0)) > 0 or (lt is not none and (now() - lt).total_seconds() < 180) %}{% set ns.b = true %}{% endif %}
+          {% endfor %}
+          {{ ns.b }}
+    - if: "{{ em_busy and not is_test }}"
+      then:
+        - stop: "緊急模式執行中，不改機台顏色"
+    - repeat:
+        for_each: "{{ order }}"
+        sequence:
+          - if: "{{ is_state(repeat.item, 'on') }}"
+            then:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ repeat.item }}"
+                data:
+                  rgb_color: "{{ rgb }}"
+                continue_on_error: true
+          - if: "{{ not repeat.last }}"
+            then:
+              - delay: "00:00:01"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.ambient_scene_state
+      data:
+        value: "{{ scene }}|{{ rgb | join(',') }}|{{ as_timestamp(now()) | int }}"
+      continue_on_error: true
+
+mood_alert:
+  alias: 情境與狀況氣氛燈AI (V4.0.0)
+  description: 重要/緊急通知或廣播時以燈光提醒並恢復原狀態
+  mode: queued
+  max: 10
+  fields:
+    level:
+      description: important / emergency
+      required: true
+    source:
+      description: 來源名稱（用於排除緊急模式類來源）
+      required: false
+    test:
+      description: 測試用，略過離家/夜間情境判斷
+      required: false
+  variables:
+    automation_version: 'V4.0.0'
+    rank: "{{ {'important': 1, 'emergency': 2}.get(level, 0) }}"
+    src: "{{ source | default('', true) | string }}"
+    is_test: "{{ test | default(false) in [true, 'true'] }}"
+  sequence:
+    # ── 是否應該提醒 ──
+    - variables:
+        em_busy: >-
+          {% set ns = namespace(b=false) %}
+          {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
+            {% set lt = a.attributes.get('last_triggered') %}
+            {% if (a.attributes.get('current', 0) | int(0)) > 0 or (lt is not none and (now() - lt).total_seconds() < 180) %}{% set ns.b = true %}{% endif %}
+          {% endfor %}
+          {{ ns.b }}
+        night_mode: >-
+          {{ is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')
+             or is_state('alarm_control_panel.54ef44cf58f9_alarm', 'armed_night')
+             or is_state('input_boolean.ding_lou_ye_deng_qing_jing', 'on') }}
+        away_mode: "{{ is_state('input_boolean.aqara_li_jia', 'on') }}"
+        last_raw: "{{ states('input_text.mood_alert_last') }}"
+        last_ts: "{{ (last_raw.split('|')[0] | float(0)) if '|' in last_raw else 0 }}"
+        last_rank: "{{ (last_raw.split('|')[1] | int(0)) if '|' in last_raw else 0 }}"
+        age: "{{ as_timestamp(now()) - last_ts }}"
+        enabled: >-
+          {{ is_state('input_boolean.mood_alert_enable', 'on') and
+             ((level == 'important' and is_state('input_boolean.mood_alert_important_enable', 'on')) or
+              (level == 'emergency' and is_state('input_boolean.mood_alert_emergency_enable', 'on'))) }}
+        allow: >-
+          {{ enabled and rank > 0 and not em_busy and not (src | regex_search('緊急模式|05A|05B|05E'))
+             and (is_test or (not away_mode and (not night_mode or level == 'emergency')))
+             and not (age < 8 and last_rank >= rank) }}
+    - if: "{{ not allow }}"
+      then:
+        - stop: "略過氣氛燈提醒"
+    # ── 開始：旗標、紀錄、快照 ──
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.mood_alert_active
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.mood_alert_last
+      data:
+        value: "{{ as_timestamp(now()) | int }}|{{ rank }}"
+    - variables:
+        rgb_all: ['light.yeelink_color5_4181_light', 'light.yeelink_color5_106d_light', 'light.yeelink_color5_8e3f_light', 'light.yeelink_color5_f618_light', 'light.yeelink_color5_0fb7_light', 'light.yeelink_color5_13b8_light']
+        rgb_ok: "{{ rgb_all | reject('is_state', 'unavailable') | reject('is_state', 'unknown') | list }}"
+        was_off: "{{ rgb_ok | select('is_state', 'off') | list }}"
+        ap_on: "{{ states('input_boolean.mood_alert_ap_off') != 'on' }}"
+        ap_rgb_all: ['light.u6_mesh_1f_led', 'light.u6_extender_4f_elay_led']
+        ap_sw_all: ['light.u6_pro_2f_led', 'light.smartpower_strip_2f_led', 'light.u6_lite_3f_led', 'light.switch_lite_8_poe_3f_led', 'light.u6_iw_4f_jerry_led', 'light.u6_iw_5f_kenny_led']
+        ap_rgb_ok: "{{ (ap_rgb_all | select('is_state', 'on') | list) if ap_on else [] }}"
+        ap_sw_ok: "{{ (ap_sw_all | select('is_state', 'on') | list) if ap_on else [] }}"
+        sw_entity: switch.san_lou_lou_ti_deng
+        sw_prev: "{{ states('switch.san_lou_lou_ti_deng') }}"
+        color: "{{ [255, 140, 0] if level == 'important' else [255, 0, 0] }}"
+        pulses: "{{ 2 if level == 'important' else 5 }}"
+        on_ms: "{{ 800 if level == 'important' else 500 }}"
+        off_ms: 400
+        ap_hold_ms: "{{ 4000 if level == 'important' else 6000 }}"
+        ap_blinks: "{{ 1 if level == 'important' else 2 }}"
+    - action: scene.create
+      data:
+        scene_id: mood_alert_snapshot
+        snapshot_entities: "{{ rgb_ok + ap_rgb_ok }}"
+      continue_on_error: true
+    # ── 閃爍：客廳 → 餐廳 → 三樓 → 四樓 → 頂樓樓梯（每區間隔 0.4 秒） ──
+    - parallel:
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_4181_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 0 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_106d_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 0 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_8e3f_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 0 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_f618_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 400 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: switch.san_lou_lou_ti_deng, kind: switch, pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 800 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_0fb7_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 1200 }}"}
+          continue_on_error: true
+        - action: script.mood_alert_pulse
+          data: {entity: light.yeelink_color5_13b8_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 1600 }}"}
+          continue_on_error: true
+        - if: "{{ 'light.u6_mesh_1f_led' in ap_rgb_ok }}"
+          then:
+            - action: script.mood_alert_ap_hold
+              data: {entity: light.u6_mesh_1f_led, color: "{{ color }}", start_ms: "{{ 0 if level == 'emergency' else 500 }}", hold_ms: "{{ ap_hold_ms }}"}
+              continue_on_error: true
+        - if: "{{ 'light.u6_extender_4f_elay_led' in ap_rgb_ok }}"
+          then:
+            - action: script.mood_alert_ap_hold
+              data: {entity: light.u6_extender_4f_elay_led, color: "{{ color }}", start_ms: "{{ 0 if level == 'emergency' else 1300 }}", hold_ms: "{{ ap_hold_ms | int - 800 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.u6_pro_2f_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.u6_pro_2f_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 900 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.smartpower_strip_2f_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.smartpower_strip_2f_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 900 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.u6_lite_3f_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.u6_lite_3f_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 1100 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.switch_lite_8_poe_3f_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.switch_lite_8_poe_3f_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 1100 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.u6_iw_4f_jerry_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.u6_iw_4f_jerry_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 1500 }}"}
+              continue_on_error: true
+        - if: "{{ 'light.u6_iw_5f_kenny_led' in ap_sw_ok }}"
+          then:
+            - action: script.mood_alert_ap_blink
+              data: {entity: light.u6_iw_5f_kenny_led, blinks: "{{ ap_blinks }}", start_ms: "{{ 0 if level == 'emergency' else 1900 }}"}
+              continue_on_error: true
+    # ── 結束：恢復原狀（若途中緊急模式觸發則不還原，避免關掉緊急模式開的燈） ──
+    - variables:
+        em_now: >-
+          {% set ns = namespace(b=false) %}
+          {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
+            {% set lt = a.attributes.get('last_triggered') %}
+            {% if (a.attributes.get('current', 0) | int(0)) > 0 or (lt is not none and (now() - lt).total_seconds() < 20) %}{% set ns.b = true %}{% endif %}
+          {% endfor %}
+          {{ ns.b }}
+    - if: "{{ not em_now }}"
+      then:
+        - action: scene.turn_on
+          target:
+            entity_id: scene.mood_alert_snapshot
+          continue_on_error: true
+        - action: "{{ 'switch.turn_on' if sw_prev == 'on' else 'switch.turn_off' }}"
+          target:
+            entity_id: "{{ sw_entity }}"
+          continue_on_error: true
+        # 原本是關閉的 RGB 燈：燈泡會記住最後一次的顏色/亮度，閃爍提醒會把它改成琥珀橘/紅色，
+        # 這裡依「燈況記憶」把顏色/色溫/亮度寫回燈泡，再立刻關閉，下次開燈就與提醒前相同。
+        - repeat:
+            for_each: "{{ was_off }}"
+            sequence:
+              - action: script.turn_on
+                target:
+                  entity_id: script.mood_alert_restore_off
+                data:
+                  variables:
+                    entity: "{{ repeat.item }}"
+                continue_on_error: true
+        - if: "{{ was_off | length > 0 }}"
+          then:
+            - delay: "00:00:02"
+    - delay: "00:00:01"
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.mood_alert_active

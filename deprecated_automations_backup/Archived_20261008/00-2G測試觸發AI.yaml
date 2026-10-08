@@ -1,0 +1,511 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2G測試觸發AI (V4.0.0)
+# 相容版本：Helpers V4.0-beta1（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 eqtest|<震度>|<秒數>|序號（會帶 test 參數，氣氛燈不受離家影響）：直接執行地震預警腳本（⚠ 會真的廣播「地震預警！」，震度 4 以上還會啟動緊急模式；測試前先告知家人）。
+# - V4.0.0：新增 ndtest|序號：以測試模式送出一則含多行內文的通知（驗證內文圖示、換行與字級；LINE 只發測試 ID）。
+# - V4.0.0：新增 gate4|序號：直接執行 104-4 車庫回家通知一次（略過條件，測試廣播＋氣氛燈＋HA 通知效果）。
+# - V4.0.0：新增 tftext|<input_text 實體>|<文字>|序號、tfbright|<燈>|<亮度%>|<色溫K>|序號。
+# - V4.0.0：新增 tfset|<input_number 實體>|<數值>|序號：調整 input_number（例如書房無人判定分鐘數）。
+# - V4.0.0：新增 tflight|<entity_id>|<on/off>|序號：由測試觸發開關指定實體（模擬「手動」操作頂樓燈，測試 08-5K 使用權）。
+# - V4.0.0：新增 tfsig|<cam_on/cam_off/pir_left/pir_right/ap_join>|序號：送出頂樓測試訊號事件（供 08-5J 動線推理模擬）。
+# - V4.0.0：新增 ambient|<情境>|序號（機台情境色）、mood|<important/emergency>|序號（氣氛燈提醒含機台）、ambient_latency（UniFi LED 延遲實測）。
+# - V4.0.0：新增 scene|<情境>|序號（手動身分執行情境廣播）與 ann|<等級>|<喇叭或default>|<文字>|序號（統一廣播）。
+# - V4.0.0：新增 video_card：以測試模式發送車庫 8 秒 LINE 影片訊息。
+# - V4.0.0：新增 restore_flags：關閉 LINE 測試模式並開啟氣氛燈總開關（測試被中斷時復原用）。
+# - V4.0.0：新增 doorbell_card / gate_card：以測試模式（只發給測試 ID、暫停氣氛燈）發送門鈴/鐵門卡片（含車庫截圖）。
+# - V4.0.0：新增 doorbell：直接執行 105 大門門鈴自動化一次（模擬按門鈴）。
+# - V4.0.0：新增 dump：把 6 盞氣氛燈目前屬性寫入 /config/test_out.txt。
+# - V4.0.0：新增 fixlights：6 盞氣氛燈依燈況記憶修正顏色（亮著的直接套用保持亮；關著的寫入後關閉）。
+# - V4.0.0：開發/測試用。當 /config/test_trigger.txt 內容改變時，依「指令|序號」執行測試：
+#           play_top_both：頂樓 HomePod 與頂樓攝影機喇叭同時播放（噔噔 + 語音），間隔 20 秒共 2 次。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2G測試觸發AI (V4.0.0)
+  id: ai_00_2g_test_trigger
+  description: 以檔案內容觸發測試（開發用）
+  mode: queued
+  max: 3
+  trigger:
+    - trigger: state
+      entity_id: sensor.test_trigger_file
+  condition:
+    - condition: template
+      value_template: "{{ trigger.to_state.state not in ['none', 'unknown', 'unavailable', ''] and trigger.from_state is not none and trigger.from_state.state not in ['unknown', 'unavailable'] }}"
+  variables:
+    cmd: "{{ trigger.to_state.state.split('|')[0] }}"
+    parts: "{{ trigger.to_state.state.split('|') }}"
+  action:
+    - choose:
+        - conditions: "{{ cmd == 'eqtest' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+            # LINE 測試模式：LINE 只發測試 ID，不會把假的地震通知發到家人群組
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - delay: "00:00:02"
+            - action: script.turn_on
+              target:
+                entity_id: script.eq99
+              data:
+                variables:
+                  level: "{{ parts[1] }}"
+                  seconds: "{{ parts[2] }}"
+                  test: true
+            - delay: "00:00:15"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+        - conditions: "{{ cmd == 'ndtest' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - delay: "00:00:02"
+            - action: script.notify_dispatch
+              data:
+                level: general
+                line: true
+                source: "通知內文圖示測試 (V4.0.0)"
+                version: "V4.0.0"
+                title: 內文圖示測試
+                message: |-
+                  本週動線判斷 12 次，跨線雜訊 1 次。攝影機通行但沒有跨線 5 次。
+                  樓梯燈保底關燈 2 次、書房燈 60 分鐘上限關燈 0 次
+
+                  客廳門鎖電量 18%，請儘速更換電池。
+                  預估剩餘 12 天
+                  冷氣已設定 26°C
+            - delay: "00:00:04"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+        - conditions: "{{ cmd == 'gate4' }}"
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0
+              data:
+                skip_condition: true
+        - conditions: "{{ cmd == 'tfset' }}"
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: "{{ parts[1] }}"
+              data:
+                value: "{{ parts[2] | float }}"
+        - conditions: "{{ cmd == 'tflight' }}"
+          sequence:
+            - action: "homeassistant.turn_{{ parts[2] }}"
+              target:
+                entity_id: "{{ parts[1] }}"
+        - conditions: "{{ cmd == 'tftext' }}"
+          sequence:
+            - action: input_text.set_value
+              target:
+                entity_id: "{{ parts[1] }}"
+              data:
+                value: >-
+                  {% set v = parts[2] %}
+                  {% if v.startswith('{') %}{{ v | from_json | tojson }}{% else %}{{ v }}{% endif %}
+        - conditions: "{{ cmd == 'tfbright' }}"
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: "{{ parts[1] }}"
+              data:
+                brightness_pct: "{{ parts[2] | int }}"
+                color_temp_kelvin: "{{ parts[3] | int }}"
+        - conditions: "{{ cmd == 'tfsig' }}"
+          sequence:
+            - event: topfloor_test_signal
+              event_data:
+                source: "{{ parts[1] }}"
+        - conditions: "{{ cmd == 'ambient' }}"
+          sequence:
+            - action: script.ambient_scene
+              data:
+                scene: "{{ parts[1] }}"
+                test: true
+        - conditions: "{{ cmd == 'mood' }}"
+          sequence:
+            - action: script.mood_alert
+              data:
+                level: "{{ parts[1] }}"
+                source: "測試"
+                test: true
+        - conditions: "{{ cmd == 'ambient_latency' }}"
+          sequence:
+            - variables:
+                rgb_e: light.u6_mesh_1f_led
+                onoff_e: light.u6_pro_2f_led
+                o_rgb: "{{ state_attr(rgb_e, 'rgb_color') }}"
+                o_br: "{{ state_attr(rgb_e, 'brightness') }}"
+                o_state: "{{ states(rgb_e) }}"
+                t0: "{{ as_timestamp(now()) }}"
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY-START rgb={{ rgb_e }} state={{ o_state }} rgb={{ o_rgb }} br={{ o_br }} onoff={{ states(onoff_e) }}"
+            - action: light.turn_on
+              target:
+                entity_id: "{{ rgb_e }}"
+              data:
+                rgb_color: [255, 0, 0]
+              continue_on_error: true
+            - wait_template: "{{ state_attr(rgb_e, 'rgb_color') == (255, 0, 0) or state_attr(rgb_e, 'rgb_color') == [255, 0, 0] }}"
+              timeout: "00:00:30"
+              continue_on_timeout: true
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY rgb->red {{ (as_timestamp(now()) - t0) | round(2) }}s attr={{ state_attr(rgb_e, 'rgb_color') }}"
+            - variables:
+                t1: "{{ as_timestamp(now()) }}"
+            - action: light.turn_on
+              target:
+                entity_id: "{{ rgb_e }}"
+              data:
+                rgb_color: [0, 200, 80]
+              continue_on_error: true
+            - wait_template: "{{ state_attr(rgb_e, 'rgb_color') == (0, 200, 80) or state_attr(rgb_e, 'rgb_color') == [0, 200, 80] }}"
+              timeout: "00:00:30"
+              continue_on_timeout: true
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY red->green {{ (as_timestamp(now()) - t1) | round(2) }}s"
+            - variables:
+                t2: "{{ as_timestamp(now()) }}"
+            - action: light.turn_off
+              target:
+                entity_id: "{{ onoff_e }}"
+              continue_on_error: true
+            - wait_template: "{{ is_state(onoff_e, 'off') }}"
+              timeout: "00:00:30"
+              continue_on_timeout: true
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY onoff off {{ (as_timestamp(now()) - t2) | round(2) }}s state={{ states(onoff_e) }}"
+            - variables:
+                t3: "{{ as_timestamp(now()) }}"
+            - action: light.turn_on
+              target:
+                entity_id: "{{ onoff_e }}"
+              continue_on_error: true
+            - wait_template: "{{ is_state(onoff_e, 'on') }}"
+              timeout: "00:00:30"
+              continue_on_timeout: true
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY onoff on {{ (as_timestamp(now()) - t3) | round(2) }}s state={{ states(onoff_e) }}"
+            - if: "{{ o_state == 'on' and o_rgb is not none }}"
+              then:
+                - action: light.turn_on
+                  target:
+                    entity_id: "{{ rgb_e }}"
+                  data:
+                    rgb_color: "{{ o_rgb }}"
+                    brightness: "{{ o_br | int(255) }}"
+                  continue_on_error: true
+            - action: system_log.write
+              data:
+                level: warning
+                logger: ambient_test
+                message: "LATENCY-DONE restored rgb={{ o_rgb }}"
+        - conditions: "{{ cmd == 'play_top_both' }}"
+          sequence:
+            - repeat:
+                count: 2
+                sequence:
+                  - action: media_player.play_media
+                    target:
+                      entity_id:
+                        - media_player.ding_lou_homepod
+                        - media_player.wu_lou_she_ying_ji_speaker
+                    data:
+                      media_content_id: media-source://media_source/local/scene_ding.mp3
+                      media_content_type: music
+                      announce: true
+                    continue_on_error: true
+                  - delay: "00:00:00.35"
+                  - action: tts.speak
+                    target:
+                      entity_id: tts.edge_tts
+                    data:
+                      media_player_entity_id:
+                        - media_player.ding_lou_homepod
+                        - media_player.wu_lou_she_ying_ji_speaker
+                      message: "頂樓同時播放測試，這是頂樓 HomePod 與攝影機喇叭同時播放。"
+                      cache: true
+                    continue_on_error: true
+                  - delay: "00:00:20"
+        - conditions: "{{ cmd == 'scene' }}"
+          sequence:
+            - action: script.scene_announce
+              data:
+                scene: "{{ parts[1] }}"
+                manual: true
+        - conditions: "{{ cmd == 'ann' }}"
+          sequence:
+            - action: script.announce
+              data: >-
+                {% set d = {'level': parts[1], 'message': parts[3]} %}
+                {% if parts[2] != 'default' %}{% set d = dict(d, player=parts[2], adjust_volume=false) %}{% endif %}
+                {{ d | tojson }}
+        - conditions: "{{ cmd == 'fixlights' }}"
+          sequence:
+            - repeat:
+                for_each:
+                  - light.yeelink_color5_4181_light
+                  - light.yeelink_color5_106d_light
+                  - light.yeelink_color5_8e3f_light
+                  - light.yeelink_color5_f618_light
+                  - light.yeelink_color5_0fb7_light
+                  - light.yeelink_color5_13b8_light
+                sequence:
+                  - variables:
+                      mem_raw: "{{ states('input_text.mood_mem_' ~ repeat.item.split('.')[1].split('_')[2]) }}"
+                      mem: "{{ mem_raw if mem_raw is mapping else ((mem_raw | from_json({})) if (mem_raw is string and mem_raw.startswith('{')) else {}) }}"
+                      valid: "{{ mem.get('b') is not none and mem.get('k') is not none }}"
+                  - if: "{{ valid }}"
+                    then:
+                      - if: "{{ is_state(repeat.item, 'on') }}"
+                        then:
+                          # 目前亮著：直接套用記憶，保持亮著
+                          - action: light.turn_on
+                            target:
+                              entity_id: "{{ repeat.item }}"
+                            data:
+                              color_temp_kelvin: "{{ mem.get('k') | int(2700) }}"
+                              brightness: "{{ mem.get('b') | int(255) }}"
+                              transition: 0
+                            continue_on_error: true
+                        else:
+                          # 目前關著：寫入記憶後再關閉
+                          - action: script.turn_on
+                            target:
+                              entity_id: script.mood_alert_restore_off
+                            data:
+                              variables:
+                                entity: "{{ repeat.item }}"
+        - conditions: "{{ cmd == 'dump' }}"
+          sequence:
+            - action: shell_command.dump_text
+              data:
+                b64: >-
+                  {% set ns = namespace(o={}) %}
+                  {% for e in ['light.yeelink_color5_4181_light','light.yeelink_color5_106d_light','light.yeelink_color5_8e3f_light','light.yeelink_color5_f618_light','light.yeelink_color5_0fb7_light','light.yeelink_color5_13b8_light'] %}
+                  {% set s = states[e] %}
+                  {% set ns.o = dict(ns.o, **{e: {'state': s.state, 'mode': s.attributes.get('color_mode'), 'b': s.attributes.get('brightness'), 'rgb': s.attributes.get('rgb_color'), 'k': s.attributes.get('color_temp_kelvin'), 'hs': s.attributes.get('hs_color')}}) %}
+                  {% endfor %}
+                  {{ ns.o | tojson | base64_encode }}
+        - conditions: "{{ cmd == 'doorbell' }}"
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.105da_men_men_ling_zi_dong_hua_ai_v3_0
+              data:
+                skip_condition: true
+        - conditions: "{{ cmd == 'doorbell_card' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+                prev_mood: "{{ states('input_boolean.mood_alert_enable') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.mood_alert_enable
+            - delay: "00:00:02"
+            - variables:
+                live_token: "live{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+            - action: script.turn_on
+              target:
+                entity_id: script.garage_live
+              data:
+                variables:
+                  token: "{{ live_token }}"
+            - action: script.garage_snapshot
+              response_variable: snap
+              continue_on_error: true
+            - action: script.notify_dispatch
+              data:
+                level: important
+                source: 測試卡片
+                version: V4.0.0
+                title: 大門門鈴
+                icon: "https://family.kteam.tw:8126/local/icons/doorbell.png?v=2"
+                image: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+                link_url: "http://192.168.68.97:8125/local/live.html?t={{ live_token }}&openExternalBrowser=1"
+                link_label: 開啟攝影機即時影像
+                link_note: 僅限連接家裡 Wi-Fi 時可開啟
+                link2_url: "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"
+                link2_label: 在「家庭」App 查看攝影機
+                link2_note: 外出（外網）也可使用
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                message: |-
+                  大門有人按門鈴！（測試卡片）
+
+                  觸發時間：{{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                  目前家中成員數量：{{ states('sensor.at_home_count') }} 人
+
+                  請確認大門攝影機或應門。
+            - delay: "00:00:05"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+            - if: "{{ prev_mood == 'on' }}"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.mood_alert_enable
+
+        - conditions: "{{ cmd == 'gate_card' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+                prev_mood: "{{ states('input_boolean.mood_alert_enable') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.mood_alert_enable
+            - delay: "00:00:02"
+            - variables:
+                live_token: "live{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+            - action: script.turn_on
+              target:
+                entity_id: script.garage_live
+              data:
+                variables:
+                  token: "{{ live_token }}"
+            - action: script.garage_snapshot
+              response_variable: snap
+              continue_on_error: true
+            - action: script.notify_dispatch
+              data:
+                level: emergency
+                source: 測試卡片
+                version: V4.0.0
+                title: 鐵門狀態提醒
+                icon: "https://family.kteam.tw:8126/local/icons/gate.png?v=2"
+                image: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+                link_url: "http://192.168.68.97:8125/local/live.html?t={{ live_token }}&openExternalBrowser=1"
+                link_label: 開啟攝影機即時影像
+                link_note: 僅限連接家裡 Wi-Fi 時可開啟
+                link2_url: "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"
+                link2_label: 在「家庭」App 查看攝影機
+                link2_note: 外出（外網）也可使用
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                message: |-
+                  鐵門已開啟超過 10 分鐘（測試卡片）
+
+                  時間：{{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                  若接下來 2 分鐘內仍無人車移動，且車庫主燈狀態未改變，系統將自動關門。
+
+                  偵測到人車移動，或車庫燈被開關，則會取消本次關門。
+            - delay: "00:00:05"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+            - if: "{{ prev_mood == 'on' }}"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.mood_alert_enable
+        - conditions: "{{ cmd == 'restore_flags' }}"
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.mood_alert_enable
+        - conditions: "{{ cmd == 'video_card' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - delay: "00:00:02"
+            - action: script.garage_snapshot
+              response_variable: snap
+              continue_on_error: true
+            - action: script.garage_video_line
+              data:
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                preview: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+            - delay: "00:00:03"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+        - conditions: "{{ cmd == 'legacy_cards' }}"
+          sequence:
+            - variables:
+                prev_test: "{{ states('input_boolean.line_bot_test_mode') }}"
+                prev_mood: "{{ states('input_boolean.mood_alert_enable') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.line_bot_test_mode
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.mood_alert_enable
+            - delay: "00:00:02"
+            - repeat:
+                for_each:
+                  - '[{"type":"text","text":"【五樓保全系統AI (V4.0.0)】重要 Important ❗"},{"type":"text","text":"測試：五樓偵測到異常。\n請確認五樓狀況。"}]'
+                  - '[{"type":"text","text":"【100C1 客廳門鎖電量 V3.0】"},{"type":"text","text":"測試：客廳門鎖電量 18%\n請儘速更換電池。"}]'
+                  - '[{"type":"text","text":"測試：天氣告知，明日苗栗有大雨，請注意安全。"}]'
+                  - '[{"type":"text","text":"【AI離家系統 V3.4.1】"},{"type":"text","text":"緊急 Urgent ‼️"},{"type":"text","text":"測試：鐵門未關。\n請確認！"},{"type":"text","text":"更多資訊：https://family.kteam.tw:8126/local/home.html"}]'
+                  - '[{"type":"text","text":"【智慧保全通知AI (V4.0.0)】重要 Important ⚠️"},{"type":"text","text":"測試：鐵門已開啟超過 10 分鐘。\n請確認車庫狀況。"}]'
+                  - '[{"type":"text","text":"【災防系統通知】緊急 Urgent ‼️"},{"type":"text","text":"測試：地震預警，請就地避難掩護。"}]'
+                  - '[{"type":"text","text":"【五樓保全系統AI (V4.0.0)】重要 Important ❗"},{"type":"text","text":"五樓保全回報：疑似人員已離開，防區持續 2 分鐘無動靜。\n警報已自動解除。"}]'
+                  - '[{"type":"text","text":"【智慧保全通知AI (V4.0.0)】重要 Important ❗"},{"type":"text","text":"鐵門已於 2 分鐘觀察期內提前關閉，已不執行自動關門指令。"}]'
+                  - '[{"type":"text","text":"【107 Tesla 充電 V3.4.0】"},{"type":"text","text":"測試：Tesla 充電完成。\n本次用電量 12.3 度。"}]'
+                sequence:
+                  - action: script.send_line_to_user
+                    data:
+                      user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                      source: "舊格式測試 (V4.0.0)"
+                      payload: "{{ repeat.item }}"
+                  - delay: "00:00:04"
+            - action: script.garage_video_line
+              data:
+                user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                camera: camera.wu_lou_she_ying_ji_high
+            - delay: "00:00:30"
+            - if: "{{ prev_test != 'on' }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.line_bot_test_mode
+            - if: "{{ prev_mood == 'on' }}"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.mood_alert_enable
+

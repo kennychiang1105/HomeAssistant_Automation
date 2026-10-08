@@ -1,14 +1,18 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-3鐵門判斷未關提醒及作動AI (V3.3.1)
+# 104-3鐵門判斷未關提醒及作動AI (V4.0.0)
 # 相容版本：Helpers V3.14.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：「鐵門開啟超過 10 分鐘」通知改為單一緊急級扁平卡片（HA + LINE），附車庫攝影機截圖與鐵門圖示。
+# - V4.0.0：外網網址改用 family.kteam.tw（截圖/圖示/轉址頁）。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.1：修補版；補齊車庫 Wi-Fi 綜合判斷 helper 依賴，並確認 LINE 通知標題、分級開關、user_id 與 fallback 紀錄符合 SOP-10。
 # - V3.3：功能版；自動關門前新增車庫 AP 人員綜合判定，偵測有人時攔截關門並保留逾時提醒；車庫主燈變化排除 unknown/unavailable 抖動，AP 攔截補 LINE 結果通知。
 # - V3.2：LINE 通知改為「【智慧保全通知】」分級標題；10 分鐘提醒改為緊急、自動關門結果改為重要；移除技術參數文字（如 automation.tie_men_kai_guan）。
 # - V3.1：改以 automation.tie_men_kai_guan 執行關門；修正執行期變數時機；LINE 改用 line_bot_target_user_id + tojson。
 # - V3.0：由「08鐵門判斷未關提醒V2」獨立重構；新增 10 分鐘提醒後 2 分鐘關門觀察與自動關門/取消通知。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-3鐵門判斷未關提醒及作動AI (V3.3.1)
+- alias: 104-3鐵門判斷未關提醒及作動AI (V4.0.0)
   id: ai_104_3_garage_gate_open_guard_and_autoclose
   description: >
     鐵門開啟達 10 分鐘且車庫無人車活動時先提醒；接續 2 分鐘觀察期，若無人車移動且車庫主燈狀態未改變則自動關門。
@@ -23,7 +27,7 @@
         minutes: 10
 
   variables:
-    automation_version: "V3.3.1"
+    automation_version: "V4.0.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_important: "【智慧保全通知AI ({{ automation_version }})】重要 Important ⚠️"
     notif_title_emergency: "【智慧保全通知AI ({{ automation_version }})】緊急 Emergency 🚨"
@@ -56,35 +60,50 @@
         light_state_before_window: "{{ states(garage_light_entity) }}"
         event_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
 
-    - if:
-        - condition: state
-          entity_id: input_boolean.notify_line_emergency_enable
-          state: "on"
-        - condition: template
-          value_template: "{{ line_user_valid }}"
-      then:
-        - service: script.send_line_to_user
-          data:
-            user_id: "{{ line_bot_target_user_id }}"
-            payload: >-
-              {% set messages = [
-                {"type":"text","text": notif_title_emergency},
-                {"type":"text","text":"鐵門狀態提醒⚠️\n🚪 鐵門已開啟超過 10 分鐘。\n若接下來 2 分鐘內仍無人車移動且車庫燈狀態不變，系統將自動關門。"},
-                {"type":"text","text":"⏳ 即將進入 2 分鐘安全觀察期"}
-              ] %} {{ messages | tojson }}
-      else:
-        - service: persistent_notification.create
-          data:
-            title: "鐵門 LINE 未發送（{{ automation_version }}）"
-            message: "緊急 LINE 未發送：{{ line_emergency_skip_reason }}。"
-
-    - service: persistent_notification.create
+    # 車庫攝影機截圖 + 緊急級通知（HA + LINE 扁平卡片，附圖與鐵門圖示）
+    - variables:
+        live_token: "live{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+    - action: script.turn_on
+      target:
+        entity_id: script.garage_live
       data:
-        title: "鐵門狀態提醒（{{ automation_version }}）"
-        message: >-
-          鐵門已開啟超過 10 分鐘（{{ event_time }}）。
-          接下來 2 分鐘若持續無人/無車移動且車庫主燈（{{ garage_light_entity }}）狀態未改變，系統將執行自動關門。
-          若期間偵測到人車移動，或車庫燈被開/關，則會取消本次關門。
+        variables:
+          token: "{{ live_token }}"
+    - action: script.garage_snapshot
+      response_variable: snap
+      continue_on_error: true
+    - action: script.notify_dispatch
+      data:
+        level: emergency
+        source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+        version: "{{ automation_version | default('', true) }}"
+        title: 鐵門狀態提醒
+        icon: "https://family.kteam.tw:8126/local/icons/gate.png?v=2"
+        image: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+        link_url: "http://192.168.68.97:8125/local/live.html?t={{ live_token }}&openExternalBrowser=1"
+        link_label: 開啟攝影機即時影像
+        link_note: 僅限連接家裡 Wi-Fi 時可開啟
+        link2_url: "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"
+        link2_label: 在「家庭」App 查看攝影機
+        link2_note: 外出（外網）也可使用
+        user_id: "{{ line_bot_target_user_id }}"
+        message: |-
+          鐵門已開啟超過 10 分鐘
+
+          時間：{{ event_time }}
+          若接下來 2 分鐘內仍無人車移動，且車庫主燈狀態未改變，系統將自動關門。
+
+          偵測到人車移動，或車庫燈被開關，則會取消本次關門。
+
+    # 卡片送出後，錄 8 秒車庫短片並以 LINE 影片訊息跟進（不阻塞後續觀察）
+    - action: script.turn_on
+      target:
+        entity_id: script.garage_video_line
+      data:
+        variables:
+          user_id: "{{ line_bot_target_user_id }}"
+          preview: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+          enabled: "{{ line_user_valid and is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
 
     - wait_for_trigger:
         - id: person_detected
@@ -138,12 +157,20 @@
                         {"type":"text","text":"🚪 狀態：已提前關門"}
                       ] %} {{ messages | tojson }}
               else:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: important
+                    line: false
+                    source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "鐵門 LINE 未發送（{{ automation_version }}）"
                     message: "重要 LINE 未發送：{{ line_important_skip_reason }}。"
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: important
+                line: false
+                source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "鐵門自動關門結果（{{ automation_version }}）"
                 message: "鐵門已於觀察期內提前關閉，系統未執行自動關門指令。"
 
@@ -179,12 +206,20 @@
                         {"type":"text","text":"ℹ️ 若再次符合條件，系統將於下次流程重新評估。"}
                       ] %} {{ messages | tojson }}
               else:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: important
+                    line: false
+                    source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "鐵門 LINE 未發送（{{ automation_version }}）"
                     message: "重要 LINE 未發送：{{ line_important_skip_reason }}。"
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: important
+                line: false
+                source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "鐵門自動關門結果（{{ automation_version }}）"
                 message: "已取消本次自動關門。原因：{{ cancel_reason }}。"
 
@@ -216,12 +251,20 @@
                         {"type":"text","text":"🤖 已執行鐵門自動關閉。\n觀察期內無人車移動、車庫主燈狀態未變化，且車庫 AP 判定無人。"}
                       ] %} {{ messages | tojson }}
               else:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: important
+                    line: false
+                    source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "鐵門 LINE 未發送（{{ automation_version }}）"
                     message: "重要 LINE 未發送：{{ line_important_skip_reason }}。"
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: important
+                line: false
+                source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "鐵門自動關門結果（{{ automation_version }}）"
                 message: "已執行自動關門：觀察期內無人車移動、車庫主燈狀態未變化，且車庫 AP 判定無人（執行 automation.tie_men_kai_guan）。"
           else:
@@ -242,11 +285,19 @@
                         {"type":"text","text":"安全優先：系統未執行關門，原本的逾時未關提醒不受影響。"}
                       ] %} {{ messages | tojson }}
               else:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: important
+                    line: false
+                    source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "鐵門 LINE 未發送（{{ automation_version }}）"
                     message: "重要 LINE 未發送：{{ line_important_skip_reason }}。"
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: important
+                line: false
+                source: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "鐵門自動關門已取消（{{ automation_version }}）"
                 message: "因偵測到車庫 AP 仍有人員連線，已取消自動關門以維護安全；原本的逾時未關提醒不受影響。"

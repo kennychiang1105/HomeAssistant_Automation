@@ -1,0 +1,493 @@
+# ────────────────────────────────────────────────────────
+# 統一通知與廣播AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
+# - V4.0.0：announce 的 player 可傳「喇叭清單」同時播放（音量只調整清單內的 HomePod）；沒傳 player 仍依等級使用廣播群組。
+# - V4.0.0：修正沒傳 version 欄位時，標題與底部顯示「<function VersionExtension.version at 0x…>」（HA 內建 version() 函式與欄位同名）。
+# - V4.0.0：合成失敗不再退回即時語音：重試合成最多 3 次（間隔 1、2 秒），仍失敗則只播提示音並發 HA 資訊級通知（line: false）；merge_audio: false 的呼叫仍走即時語音。
+# - V4.0.0：內文豐富化：有關鍵字的行前面放小圖示（custom_templates/notify_body.jinja，圖示在 www/icons/b/），每種圖示每則最多一次、最多 5 個；
+#           手機好讀：每句（。）自成一行、行距加大、縮排對齊；HA 通知同步（<img> 小圖示）。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V4.0.0：一般/重要提示音改為簡短版（/media/chime_general.mp3 叮咚約 0.95 秒、chime_important.mp3 三聲上升約 1.1 秒）；緊急仍用 CWBEEW。
+# - V4.0.0：announce 新增 chime_media / chime_media_s（自訂提示音，如 /media/scene_ding.mp3 噔噔兩聲）。
+# - V4.0.0：預設改為「提示音 + 語音」合成單一音檔播放（mk_announce.py → /media/ann_*.mp3，同文字快取；無空檔、客廳 HomePod 也收得到），合成失敗退回即時語音；所有廣播一致使用（含緊急級）。HomePod 取不到原音量時不再還原成 0.4。
+# - V4.0.0：提示音後不再等狀態回報結束（有延遲會出現空檔），改為偵測開始播放後依提示音實際長度（一般 6.6s／重要 4.8s／緊急 3.3s／噔噔 0.75s）接語音；僅含 HomePod 的群組才多等 0.8 秒。
+# - V4.0.0：提示音後稍等 0.8 秒再播 TTS；客廳 HomePod 3 秒內沒開始播放時單獨重送 TTS（最多 2 次）。
+# - V4.0.0：音量統一為更新前使用者調整的 0.65（一般/重要/緊急相同，可由 input_number.announce_volume_* 調整）；不再調整攝影機喇叭，維持裝置本身的音量設定。
+# - V4.0.0：announce 音量改依原本設定（原預設，已被上一行取代，可由 input_number.announce_volume_* 調整）；TTS 沒開始播放時自動重送一次。
+# - V4.0.0：未指定 icon 時，依標題/來源/內文關鍵字自動配主題圖示（門鈴、鐵門、門鎖、電量、保全、天氣、地震、風扇、空氣、網路、更新、Bot…）。
+# - V4.0.0：新增 link2_note（第二個按鈕下方備註）。
+# - V4.0.0：HomePod 音量「個別調整與還原」：只對這次實際播放的 HomePod（依播放群組/單一喇叭判斷）設定播報音量，並各自還原到播放前；沒播放的那台不動。
+# - V4.0.0：新增 link2_url / link2_label：第二個按鈕（如開啟「家庭」App）。
+# - V4.0.0：新增 link_url / link_label / link_note：卡片底部連結按鈕與備註（例如攝影機網址，備註僅限家裡 Wi-Fi）。
+# - V4.0.0：新增 icon（標題色塊左側圖示）與 image（卡片大圖，如攝影機截圖）欄位。
+# - V1.0.6：LINE 卡片內文依空行分段（每段獨立區塊，段內每行換行）以利閱讀。
+# - V1.0.5：內文含網址時，LINE 卡片底部加「開啟連結」按鈕（可點擊）並從內文移除該行；HA 通知網址轉為可點擊連結。
+# - V1.0.4：notify_dispatch（LINE 已送出且重要/緊急）與 announce（重要/緊急）會呼叫 script.mood_alert 做燈光提醒。
+# - V1.0.3：announce 新增 chime / adjust_volume 欄位（可略過提示音、可不動 HomePod 音量）。
+# - V1.0.2：提示音改用本機 media-source（外部網址串流到 HomePod 會解碼失敗）；保底秒數改為實際長度（一般 6.6s/重要 4.8s/緊急 3.3s，原本固定 13 秒會讓 TTS 太晚才講）。
+# - V1.0.1：title 自動去除【】與版本字串並抽出版本號（相容既有各檔標題格式）；announce 提示音播完立即接 TTS（移除多餘延遲）。
+# - V1.0.0：功能版；新增 script.notify_dispatch（HA 通知 + LINE Flex 扁平卡片，四級：info/general/important/emergency）
+#           與 script.announce（統一廣播：依等級選提示音與音量，等提示音播完再播 TTS，播完恢復音量）。
+#           規則：資訊級不發 LINE、不廣播；HA 通知依 input_boolean.notify_ha_*_enable 控管（緊急級不受開關影響）；
+#           LINE 依既有 notify_line_*_enable 控管（SOP-2）；LINE 一律經 script.send_line_to_user（SOP-10）。
+# ────────────────────────────────────────────────────────
+notify_dispatch:
+  alias: 統一通知AI (V4.0.0)
+  description: 依等級發送 HA 通知與 LINE（資訊級僅 HA），可選擇同時廣播
+  mode: parallel
+  max: 10
+  fields:
+    level:
+      description: info / general / important / emergency
+      required: true
+    title:
+      description: 通知標題（不含等級與版本）
+      required: true
+    message:
+      description: 內文，第一行為重點，其餘為細節（換行分隔）
+      required: true
+    source:
+      description: 來源名稱（例如 100B自動離家AI）
+      required: false
+    version:
+      description: 來源版本號（例如 V3.4.1）
+      required: false
+    voice:
+      description: 要廣播的文字（省略則不廣播；資訊級永不廣播）
+      required: false
+    line:
+      description: 是否發 LINE（預設 true；資訊級強制 false）
+      required: false
+    user_id:
+      description: LINE 接收對象（省略：sensor.line_bot_target_user_id）
+      required: false
+    icon:
+      description: 卡片標題色塊左側的圖示（https 圖片網址，PNG）
+      required: false
+    image:
+      description: 卡片上方的大圖（https 圖片網址，例如攝影機截圖）
+      required: false
+    link_url:
+      description: 卡片底部按鈕的連結（例如攝影機即時影像網址）
+      required: false
+    link_label:
+      description: 按鈕文字（預設「開啟連結」）
+      required: false
+    link_note:
+      description: 按鈕下方的小字備註（例如「僅限連接家裡 Wi-Fi 時可開啟」）
+      required: false
+    link2_url:
+      description: 第二個按鈕的連結（例如開啟「家庭」App 的轉址頁）
+      required: false
+    link2_label:
+      description: 第二個按鈕文字
+      required: false
+    link2_note:
+      description: 第二個按鈕下方的小字備註（例如「外出也可使用」）
+      required: false
+  variables:
+    lv: "{{ level if level in ['info','general','important','emergency'] else 'general' }}"
+    meta: >-
+      {{ {'info':      {'name':'資訊','mark':'○','color':'#8A94A0'},
+          'general':   {'name':'一般','mark':'●','color':'#2F80ED'},
+          'important': {'name':'重要','mark':'▲','color':'#F2994A'},
+          'emergency': {'name':'緊急','mark':'■','color':'#EB5757'}}[lv] }}
+    title_raw: "{{ title | default('智慧家庭', true) | string }}"
+    # 注意：HA 樣板有內建函式 version()，沒傳 version 時 `version` 會變成函式（顯示成 <function VersionExtension.version ...>），所以要用 is string 判斷
+    ver_in: "{{ version if (version is defined and version is string) else '' }}"
+    ver: "{{ ver_in if (ver_in | trim) != '' else (title_raw | regex_findall('V[0-9][0-9.]*') | first | default('', true)) }}"
+    title_c: "{{ title_raw | replace('【', '') | replace('】', '') | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[（(] *[)）]', '') | trim }}"
+    src: "{{ (source | default('智慧家庭', true) | string) | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | trim }}"
+    stamp: "{{ now().strftime('%m/%d %H:%M') }}"
+    full_title: "{{ meta.mark }} {{ meta.name }} ｜ {{ title_c }}{{ ' ' ~ ver if ver else '' }}"
+    lines: "{{ message.split('\n') }}"
+    head_line: "{{ lines[0] }}"
+    detail: "{{ lines[1:] | join('\n') | trim }}"
+    icon_auto: >-
+      {% set sig = title_c ~ ' ' ~ src ~ ' ' ~ head_line %}
+      {% if sig | regex_search('門鈴') %}doorbell{% elif sig | regex_search('車牌|Tesla|充電') %}car{% elif sig | regex_search('鐵門|車庫') %}gate{% elif sig | regex_search('門鎖') %}lock{% elif sig | regex_search('電量|電池|耗材') %}battery{% elif sig | regex_search('地震|災害|疏散|海嘯') %}quake{% elif sig | regex_search('天氣|豪雨|颱風|大雨') %}weather{% elif sig | regex_search('保全|警報|入侵') %}shield{% elif sig | regex_search('離家|到家|早安|晚安|情境') %}home{% elif sig | regex_search('風扇') %}fan{% elif sig | regex_search('空氣|PM') %}air{% elif sig | regex_search('網關|網路|Wi-Fi|斷線|離線') %}network{% elif sig | regex_search('更新|版本') %}update{% elif sig | regex_search('Bot|LINE|額度') %}chat{% elif lv == 'info' or lv == 'general' %}info{% else %}alarm{% endif %}
+    icon_final: "{{ icon if (icon is defined and icon) else ('https://family.kteam.tw:8126/local/icons/' ~ icon_auto | trim ~ '.png?v=2') }}"
+    hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': '16:9', 'aspectMode': 'cover'}} if (image is defined and image) else {} }}"
+    url: "{{ message | regex_findall('https?://[^ \\n]+') | first | default('', true) }}"
+    detail_line: >-
+      {% set ns = namespace(o=[]) %}{% for l in lines[1:] %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | join('\n') | trim }}
+    detail_blocks: >-
+      {% set ns = namespace(c=[]) %}{% for b in detail_line.split('\n\n') %}{% if b | trim %}{% set ns.c = ns.c + [{"type": "text", "text": (b | trim), "size": "xs", "color": "#6B7280", "wrap": true, "margin": "md"}] %}{% endif %}{% endfor %}{{ ns.c | tojson }}
+    body_lines: >-
+      {% set ns = namespace(o=[]) %}{% for l in lines %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | tojson }}
+    ha_on: "{{ lv == 'emergency' or is_state('input_boolean.notify_ha_' ~ lv ~ '_enable', 'on') }}"
+    line_switch: "{{ {'general':'input_boolean.notify_line_general_enable','important':'input_boolean.notify_line_important_enable','emergency':'input_boolean.notify_line_emergency_enable'}.get(lv, '') }}"
+    line_on: "{{ lv != 'info' and (line | default(true)) and line_switch != '' and is_state(line_switch, 'on') }}"
+  sequence:
+    - if: "{{ ha_on }}"
+      then:
+        - action: persistent_notification.create
+          data:
+            title: "{{ full_title }}"
+            notification_id: "{{ src }}_{{ lv }}_{{ title_c }}"
+            message: |-
+              {% from 'notify_body.jinja' import md_lines %}{{ md_lines(lines, '/local/icons/b/', url) }}
+
+              ---
+              <sub>{{ meta.mark }} {{ meta.name }}　{{ src }}{{ '　' ~ ver if ver else '' }}　{{ stamp }}</sub>
+    - if: "{{ line_on }}"
+      then:
+        - action: script.send_line_to_user
+          data:
+            user_id: "{{ user_id if user_id is defined and user_id else states('sensor.line_bot_target_user_id') }}"
+            payload: >-
+              {% from 'notify_body.jinja' import flex_rows %}{{ [{
+                "type": "flex",
+                "altText": (meta.mark ~ ' ' ~ meta.name ~ ' ｜ ' ~ title_c ~ ' ' ~ head_line)[:380],
+                "contents": dict({
+                  "type": "bubble",
+                  "size": "kilo",
+                  "header": {
+                    "type": "box", "layout": "horizontal", "alignItems": "center", "backgroundColor": meta.color, "paddingAll": "10px",
+                    "contents": [{"type": "image", "url": icon_final, "size": "22px", "aspectMode": "fit", "flex": 0, "margin": "none"}] + [
+                      {"type": "text", "text": meta.mark ~ ' ' ~ meta.name, "color": "#FFFFFF", "weight": "bold", "size": "sm", "flex": 0, "margin": "sm"},
+                      {"type": "text", "text": (ver if ver else " "), "color": "#FFFFFF", "size": "xs", "align": "end"}
+                    ]},
+                  "body": {
+                    "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
+                    "contents": ([
+                      {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}
+                    ] + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
+                  "footer": {
+                    "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
+                    "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link_label if (link_label is defined and link_label) else "開啟連結"), "uri": link_url}}] if (link_url is defined and link_url) else []) + ([{"type": "text", "text": link_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link_url is defined and link_url and link_note is defined and link_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
+                }, **hero_extra)
+              }] | tojson }}
+    - if: "{{ line_on and lv in ['important', 'emergency'] }}"
+      then:
+        - action: script.turn_on
+          target:
+            entity_id: script.mood_alert
+          data:
+            variables:
+              level: "{{ lv }}"
+              source: "{{ src }}"
+    - if: "{{ voice is defined and voice | trim != '' and lv != 'info' }}"
+      then:
+        - action: script.announce
+          data:
+            level: "{{ lv }}"
+            message: "{{ voice }}"
+
+announce:
+  alias: 統一廣播AI (V4.0.0)
+  description: 依等級播放提示音，待提示音結束後再播 TTS，播完恢復喇叭音量（SOP-11）；序列執行避免互相蓋台
+  mode: queued
+  max: 6
+  fields:
+    level:
+      description: general / important / emergency（廣播沒有資訊級）
+      required: true
+    message:
+      description: 要播報的文字
+      required: true
+    player:
+      description: 播放群組（省略：緊急=廣播群組緊急、重要=廣播群組重要、一般=廣播群組一般）
+      required: false
+    repeat_count:
+      description: 重複播報次數（預設 1）
+      required: false
+    chime:
+      description: 是否先播提示音（預設 true；false 則直接播報 TTS）
+      required: false
+    chime_media:
+      description: 自訂提示音（media-source 或網址；省略則依等級使用預設提示音）
+      required: false
+    chime_media_s:
+      description: 自訂提示音長度（秒，偵測不到播放狀態時的保底等待時間）
+      required: false
+    adjust_volume:
+      description: 是否依等級調整並恢復 HomePod 音量（預設 true；僅用單一喇叭時可設 false）
+      required: false
+    merge_audio:
+      description: 是否把提示音與語音合成單一音檔播放（預設 true；設 false 退回即時語音）
+      required: false
+  variables:
+    lv: "{{ level if level in ['general','important','emergency'] else 'general' }}"
+    cfg: >-
+      {{ {'general':   {'chime':'media-source://media_source/local/chime_general.mp3','vol':0.65,'chime_s':0.95},
+          'important': {'chime':'media-source://media_source/local/chime_important.mp3','vol':0.65,'chime_s':1.1},
+          'emergency': {'chime':'media-source://media_source/local/CWBEEW.mp3','vol':0.65,'chime_s':3.3}}[lv] }}
+    # 播放對象：player 可以是單一實體、群組，或「多個喇叭的清單」（同時播放）；沒給就依等級用預設群組
+    player_list: >-
+      {% if player is defined and player %}{% if player is string %}{{ [player] | tojson }}{% else %}{{ player | list | tojson }}{% endif %}{% else %}[]{% endif %}
+    target_player: "{{ player_list[0] if player_list | length > 0 else {'emergency':'media_player.guang_bo_qun_zu_all','important':'media_player.guang_bo_qun_zu_tong_zhi','general':'media_player.guang_bo_qun_zu_yi_ban'}[lv] }}"
+    target_all: "{{ player_list if player_list | length > 0 else [target_player] }}"
+    # 只調整「這次實際會播放」的 HomePod 音量並各自還原（不動沒播放的那台）
+    hp_all: ['media_player.ke_ting_homepod', 'media_player.ding_lou_homepod']
+    speakers: >-
+      {% set m = {'media_player.guang_bo_qun_zu_all': ['media_player.ke_ting_homepod', 'media_player.ding_lou_homepod'],
+                  'media_player.guang_bo_qun_zu_tong_zhi': ['media_player.ke_ting_homepod'],
+                  'media_player.guang_bo_qun_zu_yi_ban': ['media_player.ke_ting_homepod'],
+                  'media_player.ke_ting_homepod': ['media_player.ke_ting_homepod'],
+                  'media_player.ding_lou_homepod': ['media_player.ding_lou_homepod']} %}
+      {% set ns = namespace(o=[]) %}{% for t in target_all %}{% for sp in m.get(t, []) %}{% if sp not in ns.o %}{% set ns.o = ns.o + [sp] %}{% endif %}{% endfor %}{% endfor %}{{ ns.o }}
+    # 群組內的客廳 HomePod（偶爾串流 TTS 失敗，需單獨檢查並重送）
+    hp_member: "{{ 'media_player.ke_ting_homepod' if target_player in ['media_player.guang_bo_qun_zu_all', 'media_player.guang_bo_qun_zu_tong_zhi', 'media_player.guang_bo_qun_zu_yi_ban'] else '' }}"
+    # 音量：由 input_number.announce_volume_* 調整（取不到或太小時退回預設值）
+    vol: >-
+      {% set v = states('input_number.announce_volume_' ~ lv) | float(0) %}
+      {{ v if v >= 0.1 else cfg.vol }}
+    chime_url: "{{ chime_media if chime_media is defined and chime_media else cfg.chime }}"
+    chime_wait: "{{ chime_media_s | float(cfg.chime_s) if chime_media_s is defined and chime_media_s else cfg.chime_s }}"
+    use_chime: "{{ (chime | default(true)) not in [false, 'false', 'off', 'no'] }}"
+    adj_vol: "{{ (adjust_volume | default(true)) not in [false, 'false', 'off', 'no'] }}"
+    n_repeat: "{{ repeat_count | int(1) if repeat_count is defined else 1 }}"
+    # 合成單一音檔（提示音 + 語音）播放：無空檔、客廳 HomePod 也收得到；緊急級維持原本「提示音 + 即時語音」
+    merge: "{{ merge_audio | default(true) not in [false, 'false', 'False'] }}"
+    chime_path: "{{ ('/media/' ~ chime_url.split('/')[-1]) if (use_chime and chime_url.startswith('media-source://media_source/local/')) else 'none' }}"
+    mk: {}
+    tts_wait: "{{ [ (message | length) * 0.3 + 3, 45 ] | min }}"
+  sequence:
+    # 0) 氣氛燈提醒（重要/緊急；與 LINE 同事件時由 mood_alert 去重）
+    - if: "{{ lv in ['important', 'emergency'] }}"
+      then:
+        - action: script.turn_on
+          target:
+            entity_id: script.mood_alert
+          data:
+            variables:
+              level: "{{ lv }}"
+              source: ""
+    # 1) 記住原音量（取不到則用 0.4 當 fallback），設定播報音量
+    - variables:
+        v_ke: "{{ state_attr('media_player.ke_ting_homepod', 'volume_level') | float(-1) if 'media_player.ke_ting_homepod' in speakers else -1 }}"
+        v_ding: "{{ state_attr('media_player.ding_lou_homepod', 'volume_level') | float(-1) if 'media_player.ding_lou_homepod' in speakers else -1 }}"
+    # 保險：HomePod 偶爾逾時（pyatv TimeoutError）會讓本腳本整個中斷，continue_on_error 吃不到，後面「恢復原音量」就被跳過。
+    # 這裡先交給 announce_volume_guard（不阻塞）：等所有廣播結束後，把音量恢復成「第一次廣播前」的值（已恢復則無動作）。
+    - action: script.turn_on
+      target:
+        entity_id: script.announce_volume_guard
+      data:
+        variables:
+          g_ke: "{{ v_ke }}"
+          g_ding: "{{ v_ding }}"
+    - if: "{{ adj_vol and speakers | length > 0 }}"
+      then:
+        - action: media_player.volume_set
+          target:
+            entity_id: "{{ speakers }}"
+          data:
+            volume_level: "{{ vol }}"
+          continue_on_error: true
+    # 1.5) 合成「提示音 + 語音」單一音檔（同文字使用快取）；失敗則退回即時語音
+    - if: "{{ merge }}"
+      then:
+        - action: shell_command.mk_announce
+          data:
+            chime: "{{ chime_path }}"
+            b64: "{{ message | base64_encode }}"
+          response_variable: mk
+          continue_on_error: true
+    # 合成失敗（網路／Edge TTS 暫時不通）→ 重試最多 2 次（間隔 1、2 秒），仍失敗才走「只播提示音＋HA 資訊通知」，不退回即時語音
+    - if: "{{ merge and not (mk is defined and mk is mapping and mk.get('returncode') == 0 and (mk.get('stdout', '') | trim) != '') }}"
+      then:
+        - delay: "00:00:01"
+        - action: shell_command.mk_announce
+          data:
+            chime: "{{ chime_path }}"
+            b64: "{{ message | base64_encode }}"
+          response_variable: mk
+          continue_on_error: true
+    - if: "{{ merge and not (mk is defined and mk is mapping and mk.get('returncode') == 0 and (mk.get('stdout', '') | trim) != '') }}"
+      then:
+        - delay: "00:00:02"
+        - action: shell_command.mk_announce
+          data:
+            chime: "{{ chime_path }}"
+            b64: "{{ message | base64_encode }}"
+          response_variable: mk
+          continue_on_error: true
+    - variables:
+        merged_ok: "{{ merge and mk is defined and mk is mapping and mk.get('returncode') == 0 and (mk.get('stdout', '') | trim) != '' }}"
+        merged_file: "{{ ((mk.get('stdout', '') | trim).split('|')[0]) if (mk is defined and mk is mapping) else '' }}"
+        merged_dur: "{{ ((mk.get('stdout', '') | trim).split('|')[1] | float(6)) if (mk is defined and mk is mapping and '|' in mk.get('stdout', '')) else 0 }}"
+    - if: "{{ merge and not merged_ok }}"
+      then:
+        - action: script.notify_dispatch
+          data:
+            level: info
+            line: false
+            source: "統一廣播AI (V4.0.0)"
+            version: "V4.0.0"
+            title: 廣播語音合成失敗
+            message: |-
+              廣播語音合成失敗（已重試 3 次），這次只播放提示音，沒有語音。
+              廣播內容：{{ message | trim | truncate(60, True, '…') }}
+              等級：{{ lv }}　可能是網路或 Edge TTS 暫時不通，下次廣播會自動重試。
+    - repeat:
+        count: "{{ n_repeat }}"
+        sequence:
+          - if: "{{ merged_ok }}"
+            then:
+              - action: media_player.play_media
+                target:
+                  entity_id: "{{ target_all }}"
+                data:
+                  media_content_id: "media-source://media_source/local/{{ merged_file }}"
+                  media_content_type: music
+                  announce: true
+                continue_on_error: true
+              - delay:
+                  seconds: "{{ merged_dur + 0.3 }}"
+            else:
+              - if: "{{ merge }}"
+                then:
+                  # 合成已重試仍失敗：不退回即時語音（客廳 HomePod 常串流失敗），只播提示音並由上面發 HA 資訊通知
+                  - if: "{{ use_chime }}"
+                    then:
+                      - action: media_player.play_media
+                        target:
+                          entity_id: "{{ target_all }}"
+                        data:
+                          media_content_id: "{{ chime_url }}"
+                          media_content_type: music
+                          announce: true
+                        continue_on_error: true
+                      - delay:
+                          seconds: "{{ chime_wait + 0.5 }}"
+                else:
+                  # 2) 提示音：先等開始播放，再等結束；偵測不到播放狀態時改用固定秒數保底
+                  - if: "{{ use_chime }}"
+                    then:
+                      - action: media_player.play_media
+                        target:
+                          entity_id: "{{ target_all }}"
+                        data:
+                          media_content_id: "{{ chime_url }}"
+                          media_content_type: music
+                          announce: true
+                        continue_on_error: true
+                      - wait_template: "{{ is_state(target_player, 'playing') }}"
+                        timeout: "00:00:03"
+                        continue_on_timeout: true
+                      - if: "{{ wait.completed }}"
+                        then:
+                          # 狀態「結束」的回報有延遲（會造成提示音與語音之間出現空檔），
+                          # 改成：偵測到開始播放後，只等「提示音實際長度 − 0.4 秒」就接語音（語音合成/串流約需 0.4 秒）
+                          - delay:
+                              seconds: "{{ [chime_wait - 0.4, 0] | max }}"
+                        else:
+                          - delay:
+                              seconds: "{{ chime_wait }}"
+                  # 3) TTS：提示音結束後稍等 0.8 秒讓 HomePod 釋放上一個串流，再播 TTS（播完才進下一輪）
+                  - if: "{{ use_chime and hp_member != '' }}"
+                    then:
+                      - delay: "00:00:00.8"
+                  - action: tts.speak
+                    target:
+                      entity_id: tts.edge_tts
+                    data:
+                      media_player_entity_id: "{{ target_player }}"
+                      message: "{{ message }}"
+                      cache: true
+                    continue_on_error: true
+                  # HomePod 3 秒內沒開始播放就單獨重送（最多 2 次）
+                  - repeat:
+                      count: 2
+                      sequence:
+                        - if: "{{ hp_member != '' }}"
+                          then:
+                            - wait_template: "{{ is_state(hp_member, 'playing') }}"
+                              timeout: "00:00:03"
+                              continue_on_timeout: true
+                            - if: "{{ not wait.completed }}"
+                              then:
+                                - action: tts.speak
+                                  target:
+                                    entity_id: tts.edge_tts
+                                  data:
+                                    media_player_entity_id: "{{ hp_member }}"
+                                    message: "{{ message }}"
+                                    cache: true
+                                  continue_on_error: true
+                  - wait_template: "{{ is_state(target_player, 'playing') }}"
+                    timeout: "00:00:03"
+                    continue_on_timeout: true
+                  - if: "{{ wait.completed }}"
+                    then:
+                      - wait_template: "{{ not is_state(target_player, 'playing') }}"
+                        timeout: "00:00:20"
+                        continue_on_timeout: true
+                    else:
+                      # 沒有偵測到開始播放（HomePod 串流偶發失敗）：重送一次
+                      - action: tts.speak
+                        target:
+                          entity_id: tts.edge_tts
+                        data:
+                          media_player_entity_id: "{{ target_player }}"
+                          message: "{{ message }}"
+                          cache: true
+                        continue_on_error: true
+                      - wait_template: "{{ is_state(target_player, 'playing') }}"
+                        timeout: "00:00:03"
+                        continue_on_timeout: true
+                      - if: "{{ wait.completed }}"
+                        then:
+                          - wait_template: "{{ not is_state(target_player, 'playing') }}"
+                            timeout: "00:00:20"
+                            continue_on_timeout: true
+                        else:
+                          - delay:
+                              seconds: "{{ tts_wait }}"
+          - delay: "00:00:01"
+    # 4) 一定恢復原音量
+    - delay: "00:00:02"
+    - if: "{{ adj_vol }}"
+      then:
+        - if: "{{ v_ke >= 0 }}"
+          then:
+            - action: media_player.volume_set
+              target:
+                entity_id: media_player.ke_ting_homepod
+              data:
+                volume_level: "{{ v_ke }}"
+              continue_on_error: true
+        - if: "{{ v_ding >= 0 }}"
+          then:
+            - action: media_player.volume_set
+              target:
+                entity_id: media_player.ding_lou_homepod
+              data:
+                volume_level: "{{ v_ding }}"
+              continue_on_error: true
+
+announce_volume_guard:
+  alias: 廣播音量保險 (V4.0.0)
+  description: 廣播腳本中途出錯時，等所有廣播結束後把 HomePod 音量恢復成第一次廣播前的值；已經恢復則等於沒做事。
+  mode: single
+  max_exceeded: silent
+  fields:
+    g_ke:
+      description: 客廳 HomePod 原音量（-1 表示沒調整）
+    g_ding:
+      description: 頂樓 HomePod 原音量（-1 表示沒調整）
+  sequence:
+    - delay: "00:00:20"
+    - wait_template: "{{ is_state('script.announce', 'off') }}"
+      timeout: "00:10:00"
+      continue_on_timeout: true
+    - delay: "00:00:03"
+    - if: "{{ g_ke | float(-1) >= 0 }}"
+      then:
+        - action: media_player.volume_set
+          target:
+            entity_id: media_player.ke_ting_homepod
+          data:
+            volume_level: "{{ g_ke }}"
+          continue_on_error: true
+    - if: "{{ g_ding | float(-1) >= 0 }}"
+      then:
+        - action: media_player.volume_set
+          target:
+            entity_id: media_player.ding_lou_homepod
+          data:
+            volume_level: "{{ g_ding }}"
+          continue_on_error: true

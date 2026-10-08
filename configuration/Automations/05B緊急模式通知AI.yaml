@@ -1,9 +1,11 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 相容版本：Helpers V3.9（已確認）
 - id: ai_05b_emergency_mode_notify_v3
-  alias: 05B緊急模式通知AI (V3.1)
+  alias: 05B緊急模式通知AI (V4.0.0)
   description: 緊急模式來源辨識與通知（含地震流程去重）。
   variables:
-    automation_version: 'V3.1'
+    automation_version: 'V4.0.0'
   triggers:
   - trigger: state
     entity_id:
@@ -48,12 +50,16 @@
           enabled: true
           action: script.send_line_to_user
         - data:
+            level: emergency
+            line: false
+            source: "05B緊急模式通知AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
             message: >-
               緊急模式已啟動（所有照明開啟並關閉電源）。
               請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
-          action: persistent_notification.create
+          action: script.notify_dispatch
         - if:
           - condition: template
             value_template: '{{ true }}'
@@ -80,43 +86,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0
@@ -151,43 +135,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0
@@ -244,12 +206,16 @@
             enabled: true
             action: script.send_line_to_user
           - data:
+              level: emergency
+              line: false
+              source: "05B緊急模式通知AI (V4.0.0)"
+              version: "{{ automation_version | default('', true) }}"
               title: 智慧家庭通知｜緊急 Urgent ‼️
               message: >-
                 緊急模式已啟動（所有照明開啟並關閉電源）。
                 請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
             enabled: true
-            action: persistent_notification.create
+            action: script.notify_dispatch
           - if:
             - condition: template
               value_template: '{{ true }}'
@@ -262,26 +228,10 @@
                   entity_id:
                   - media_player.ke_ting_homepod
               # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-            - data:
-                media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-                media_content_type: music
-              target:
-                entity_id: media_player.guang_bo_qun_zu_all
-              action: media_player.play_media
-            - delay:
-                hours: 0
-                minutes: 0
-                seconds: 13
-                milliseconds: 0
-              enabled: true
-            - data:
-                message: 智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-                media_player_entity_id: media_player.guang_bo_qun_zu_all
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
+            - action: script.announce
+              data:
+                level: emergency
+                message: "智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
             - delay:
                 hours: 0
                 minutes: 1
@@ -296,26 +246,10 @@
                   entity_id:
                   - media_player.ke_ting_homepod
               # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-            - data:
-                media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-                media_content_type: music
-              target:
-                entity_id: media_player.guang_bo_qun_zu_all
-              action: media_player.play_media
-            - delay:
-                hours: 0
-                minutes: 0
-                seconds: 13
-                milliseconds: 0
-              enabled: true
-            - data:
-                message: 智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-                media_player_entity_id: media_player.guang_bo_qun_zu_all
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
+            - action: script.announce
+              data:
+                level: emergency
+                message: "智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
             - delay:
                 hours: 0
                 minutes: 1
@@ -357,12 +291,16 @@
           enabled: true
           action: script.send_line_to_user
         - data:
+            level: emergency
+            line: false
+            source: "05B緊急模式通知AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
             message: >-
               緊急模式已啟動（所有照明開啟並關閉電源）。
               請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
-          action: persistent_notification.create
+          action: script.notify_dispatch
         - if:
           - condition: template
             value_template: '{{ true }}'
@@ -389,43 +327,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0
@@ -460,43 +376,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0
@@ -543,12 +437,16 @@
           enabled: true
           action: script.send_line_to_user
         - data:
+            level: emergency
+            line: false
+            source: "05B緊急模式通知AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
             message: >-
               緊急模式已啟動（所有照明開啟並關閉電源）。
               請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
           enabled: true
-          action: persistent_notification.create
+          action: script.notify_dispatch
         - if:
           - condition: template
             value_template: '{{ true }}'
@@ -575,43 +473,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0
@@ -646,43 +522,21 @@
               seconds: 13
               milliseconds: 0
             enabled: false
-          - data:
-              message: '緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源! '
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              chime: false
+              message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
               hours: 0
               minutes: 0
               seconds: 15
               milliseconds: 0
             enabled: true
-          - data:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-            enabled: true
-            target:
-              entity_id: media_player.guang_bo_qun_zu_all
-            action: media_player.play_media
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 13
-              milliseconds: 0
-            enabled: true
-          - data:
-              message: 緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。
-              media_player_entity_id: media_player.guang_bo_qun_zu_all
-              cache: true
-            enabled: true
-            action: tts.speak
-            metadata: {}
-            target:
-              device_id: c01a1336ef43795fd0679631c3e6ce62
+          - action: script.announce
+            data:
+              level: emergency
+              message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
               minutes: 0

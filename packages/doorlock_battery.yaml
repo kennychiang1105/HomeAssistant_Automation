@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────
+# 客廳門鎖電量日耗電率 (V4.0.0)
+# 更新紀錄：
+# - V4.0.0：新增。補回 sensor.doorlock_battery_drop_mean_7d（原本是 UI 建的微分輔助，已消失，導致 100C2 換電池時日耗電率變 0）。
+#           做法：00-2P 每天 00:05 把電量記進 input_text.doorlock_batt_daily_hist（最近 8 天），
+#           本感測器 = (最新 − 最舊) ÷ (筆數 − 1)，單位 %/日（下降為負數，與微分輔助相同；100C2 取負值使用）。
+# ─────────────────────────────────────────────────────────────
+input_text:
+  doorlock_batt_daily_hist:
+    name: 門鎖電量每日紀錄（最近 8 天，逗號分隔）
+    max: 100
+
+template:
+  - sensor:
+      - name: "doorlock_battery_drop_mean_7d"
+        unique_id: doorlock_battery_drop_mean_7d
+        unit_of_measurement: "%/d"
+        state_class: measurement
+        state: >-
+          {% set v = states('input_text.doorlock_batt_daily_hist').split(',') | map('float', none) | reject('none') | list %}
+          {% if v | length >= 2 %}{{ ((v[-1] - v[0]) / (v | length - 1)) | round(3) }}{% else %}0{% endif %}

@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2E通知測試AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V1.0.0：新增 input_button.notify_test_* 測試按鈕，驗證 script.notify_dispatch / script.announce 的四級通知與廣播。
+#           LINE 會依 line_bot_test_mode 決定送到測試 ID 或正式群組，測試前請先開啟測試模式。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2E通知測試AI (V4.0.0)
+  id: ai_00_2e_notify_test
+  description: 通知與廣播分級測試按鈕
+  mode: queued
+  trigger:
+    - id: info
+      trigger: state
+      entity_id: input_button.notify_test_info
+    - id: general
+      trigger: state
+      entity_id: input_button.notify_test_general
+    - id: important
+      trigger: state
+      entity_id: input_button.notify_test_important
+    - id: emergency
+      trigger: state
+      entity_id: input_button.notify_test_emergency
+  variables:
+    automation_version: "V4.0.0"
+  action:
+    - action: script.notify_dispatch
+      data:
+        level: "{{ trigger.id }}"
+        title: "{{ {'info':'資訊','general':'一般','important':'重要','emergency':'緊急'}[trigger.id] }}級通知測試"
+        message: "這是{{ {'info':'資訊','general':'一般','important':'重要','emergency':'緊急'}[trigger.id] }}級測試通知\n項目一：標題與版本號\n項目二：扁平化卡片\n項目三：{{ '只有 HA，不發 LINE' if trigger.id == 'info' else 'HA 與 LINE 同步發送' }}"
+        source: 00-2E通知測試AI
+        version: "{{ automation_version }}"
+        voice: "{{ '智慧家庭測試，這是一般級廣播。' if trigger.id == 'general' else ('智慧家庭測試，這是重要級廣播。' if trigger.id == 'important' else '') }}"

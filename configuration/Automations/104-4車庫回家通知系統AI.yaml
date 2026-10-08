@@ -1,0 +1,91 @@
+# ────────────────────────────────────────────────────────
+# 104-4車庫回家通知系統AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：廣播改為同時播放：客廳 HomePod、車庫攝影機喇叭、頂樓 HomePod、頂樓攝影機喇叭（統一廣播 player 支援清單）。
+# - V4.0.0：新增。在家情境（網關在家模式，非離家／晚安）且頂樓熟睡手動鎖關閉時，車庫鐵門被「非實體按鈕」打開（遙控器、車用遙控、
+#           HomeKit／App 等；由 HA 自動化發出的開門不算，例如 104 鐵門開關V2 實體按鈕、車牌辨識 104-2）→ 重要級廣播「有人即將到家，車庫鐵門正在打開」（語音 2 次、提示音 1 次），
+#           並由統一廣播觸發氣氛燈閃爍；HA 重要級通知由開關決定。不發 LINE（line: false）。
+#           另需「車庫沒人」：專用實體 binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan（家人手機連到車庫 AP 的在家位置判斷）與車庫攝影機人員偵測，
+#           任一個判斷有人就視為有人、不通知。
+#           HA 通知改由 input_boolean.garage_arrival_ha_notify 決定（預設關閉）；廣播內容「有人即將到家，車庫鐵門正在打開」提示音 1 次、語音念 2 次。
+#           車牌辨識（104-2）開門屬自動化發出，不通知。
+#           判斷方式：鐵門狀態由「關閉／關閉中」變為「開啟中／已開啟」，且該狀態變化的 context 沒有 parent_id（不是自動化發出的指令）。
+#           去重：同一次開門 60 秒內只通知一次。
+# ────────────────────────────────────────────────────────
+- alias: 104-4車庫回家通知系統AI (V4.0.0)
+  id: ai_104_4_garage_arrival_notice
+  description: 在家情境、頂樓熟睡鎖關閉、車庫沒人時，非實體按鈕開啟車庫鐵門 → 重要級廣播＋氣氛燈＋HA 通知（不發 LINE）
+  mode: single
+  max_exceeded: silent
+  variables:
+    automation_version: V4.0.0
+  triggers:
+    - trigger: state
+      entity_id: cover.garage
+      from:
+        - closed
+        - closing
+      to:
+        - opening
+        - open
+  conditions:
+    # 在家情境：網關在家模式（非離家、非晚安）
+    - condition: state
+      entity_id: input_boolean.aqara_zai_jia
+      state: "on"
+    - condition: state
+      entity_id: input_boolean.aqara_li_jia
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.aqara_wan_an
+      state: "off"
+    # 頂樓熟睡手動鎖關閉
+    - condition: state
+      entity_id: input_boolean.sleep_silent_active
+      state: "off"
+    # 車庫沒人：專用實體（家人手機連到車庫 AP 的在家位置判斷）與車庫攝影機人員偵測，任一個判斷有人就視為有人、不通知
+    # （攝影機感測器常為 unavailable，所以用「不是 on」判斷，避免因為離線而永遠不通知）
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan
+          state: "on"
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+          state: "on"
+    # 非自動化發出的開門（實體按鈕走 104鐵門開關V2 自動化，context 會帶 parent_id）
+    - condition: template
+      value_template: "{{ trigger.to_state.context.parent_id is none }}"
+  actions:
+    # HA 通知由開關決定（預設關閉，在「自動化管理」面板打開）
+    - if:
+        - condition: state
+          entity_id: input_boolean.garage_arrival_ha_notify
+          state: "on"
+      then:
+        - action: script.notify_dispatch
+          data:
+            level: important
+            line: false
+            source: "104-4車庫回家通知系統AI (V4.0.0)"
+            version: "{{ automation_version }}"
+            title: 車庫鐵門已打開
+            message: |-
+              在家情境下偵測到車庫鐵門被打開（非實體按鈕）。
+              請確認是否為家人回家。
+            icon: "https://family.kteam.tw:8126/local/icons/gate.png?v=2"
+    - action: script.announce
+      data:
+        level: important
+        # 播放對象：客廳 HomePod、車庫攝影機喇叭（原「廣播群組重要」成員）＋頂樓 HomePod、頂樓（五樓）攝影機喇叭
+        player:
+          - media_player.ke_ting_homepod
+          - media_player.che_ku_she_ying_ji_speaker
+          - media_player.ding_lou_homepod
+          - media_player.wu_lou_she_ying_ji_speaker
+        # 提示音只播一次，語音念兩次（同一句寫兩遍；不用 repeat_count，否則提示音也會重複）
+        message: 有人即將到家，車庫鐵門正在打開。有人即將到家，車庫鐵門正在打開。
+    - delay: "00:01:00"

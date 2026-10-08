@@ -1,24 +1,22 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.4.0)
-# 相容版本：Helpers V3.23.0（已確認）
+# 104-1車庫鐵門感應燈AI (V3.4.3)
+# 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
-# - V3.4.0：重構版；徹底解決車庫主燈與樓梯燈無法自動關閉的致命問題：
-#           1. 移除 mode: restart 下的「燈具必須為 off」死結條件，允許持續活動時平滑延長 5 分鐘關燈計時。
-#           2. 納入手動開燈監聽（switch.che_ku_zhu_deng / switch.lou_ti_deng 變為 on），手動開啟亦具備自動關閉保護。
-#           3. 整合多重感測器（UniFi 人員/車輛偵測 + Scrypted 動作偵測），防止單一感測器抖動導致關燈失敗。
-#           4. 完善鐵門防呆：鐵門開啟期間強制維持亮燈，待鐵門關閉後始開始 5 分鐘無人倒數關燈。
-#           5. 保留手動關燈冷卻機制（timer.garage_light_manual_off_cooldown），手動關閉後 30 秒內不被再次感應點亮。
-# - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒；原固定 5 分鐘冷卻移除。
-# - V3.2：改為 restart 降低排隊延遲體感；新增「手動關燈後 5 分鐘冷卻」避免立刻被自動重開。
-# - V3.1：模式改為 queued 避免流程被中斷；修正鐵門 open/opening 關燈防呆判斷。
-# - V3.0：整併「104-1A GarageDoor」「104-1B Camera」「104-1C AutoOFF V3」為單一 AI 自動化。
+# - V3.4.3：功能優化版；
+#           1. 修正動態感測實體：全面改用原生 UniFi Protect binary_sensor.g6_instant_motion，棄用 Scrypted 橋接實體。
+#           2. 新增車庫主燈 5 秒防重複開啟保護：若車庫主燈剛關閉未滿 5 秒，自動延遲補滿 5 秒後始開燈，避免硬體切換至小燈模式；主燈已開啟時不重複發送指令。
+#           3. 完善實體開關/App 手動關燈判定（parent_id is none）與冷卻防呆隔離機制（預設 30 秒）。
+#           4. 維持外部手動點燈自動關閉守護與鐵門開啟常亮/關閉後 5 分鐘安全關閉。
+# - V3.4.2：修正動態感測實體為 binary_sensor.g6_instant_motion。
+# - V3.4.0：重構版；徹底解決車庫主燈與樓梯燈無法自動關閉的死結問題。
+# - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.4.0)
+- alias: 104-1車庫鐵門感應燈AI (V3.4.3)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門、攝影機事件及手動開關狀態控制車庫主燈與樓梯燈：
     鐵門開啟或偵測到人車移動時開燈；鐵門關閉且無人車移動滿 5 分鐘後自動關閉。
-    支援手動關閉冷卻防呆（預設 30 秒不重啟）及外部手動點燈自動關閉守護。
+    支援車庫主燈 5 秒防切小燈保護、手動關閉冷卻防呆（預設 30 秒不重啟）及外部手動點燈自動關閉守護。
   mode: restart
   max: 10
 
@@ -37,7 +35,7 @@
       entity_id:
         - binary_sensor.che_ku_she_ying_ji_person_detected
         - binary_sensor.che_ku_she_ying_ji_vehicle_detected
-        - binary_sensor.che_ku_che_ku_she_ying_ji_motion
+        - binary_sensor.g6_instant_motion
       to: "on"
 
     # 3. 鐵門關閉事件 (門關上後啟動關燈倒數)
@@ -54,8 +52,8 @@
         - switch.lou_ti_deng
       to: "on"
 
-    # 5. 燈具手動關閉 (啟動冷卻防呆)
-    - id: manual_light_off
+    # 5. 燈具關閉 (包含實體按鈕與軟體關閉)
+    - id: light_turned_off
       platform: state
       entity_id:
         - switch.che_ku_zhu_deng
@@ -63,25 +61,31 @@
       to: "off"
 
   variables:
-    automation_version: "V3.4.0"
+    automation_version: "V3.4.3"
     cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
     is_cooling_down: "{{ not is_state('timer.garage_light_manual_off_cooldown', 'idle') }}"
+    # 判斷是否為外部人工操作（實體按鈕或 App 均無 parent_id；自動化產生的動作會有 parent_id）
+    is_manual_action: "{{ trigger.to_state.context.parent_id is none }}"
 
   actions:
     - choose:
-        # A. 手動關燈事件：若為人工關閉則啟動冷卻防呆 timer
+        # A. 燈具關閉事件處理
         - conditions:
             - condition: trigger
-              id: manual_light_off
-            - condition: template
-              value_template: "{{ trigger.to_state.context.user_id is not none }}"
+              id: light_turned_off
           sequence:
-            - service: timer.start
-              target:
-                entity_id: timer.garage_light_manual_off_cooldown
-              data:
-                duration: "{{ '%02d:%02d:%02d' | format(cooldown_sec // 3600, (cooldown_sec % 3600) // 60, cooldown_sec % 60) }}"
-            - stop: "手動關燈已啟動冷卻計時，終止後續動作"
+            - if:
+                - condition: template
+                  value_template: "{{ is_manual_action }}"
+              then:
+                # 實體按鈕或 App 關閉 -> 啟動冷卻防呆 timer
+                - service: timer.start
+                  target:
+                    entity_id: timer.garage_light_manual_off_cooldown
+                  data:
+                    duration: "{{ '%02d:%02d:%02d' | format(cooldown_sec // 3600, (cooldown_sec % 3600) // 60, cooldown_sec % 60) }}"
+            # 無論手動或自動關燈，至此直接終止，避免進入 default 倒數流程
+            - stop: "燈具已關閉，終止後續動作"
 
       default:
         # B. 開燈與自動關閉守護流程
@@ -98,11 +102,38 @@
               then:
                 - stop: "處於手動關閉冷卻期間，不重複自動開燈"
               else:
-                - service: switch.turn_on
-                  target:
-                    entity_id:
-                      - switch.che_ku_zhu_deng
-                      - switch.lou_ti_deng
+                # 1. 車庫主燈 5 秒防切換小燈保護：若主燈剛關閉未滿 5 秒，等待補滿 5 秒後始開燈
+                - if:
+                    - condition: state
+                      entity_id: switch.che_ku_zhu_deng
+                      state: "off"
+                    - condition: template
+                      value_template: >-
+                        {{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}
+                  then:
+                    - delay:
+                        seconds: >-
+                          {{ (5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil') | max(0.5) }}
+
+                # 2. 開啟車庫主燈（若尚未開啟）
+                - if:
+                    - condition: state
+                      entity_id: switch.che_ku_zhu_deng
+                      state: "off"
+                  then:
+                    - service: switch.turn_on
+                      target:
+                        entity_id: switch.che_ku_zhu_deng
+
+                # 3. 開啟樓梯燈（若尚未開啟）
+                - if:
+                    - condition: state
+                      entity_id: switch.lou_ti_deng
+                      state: "off"
+                  then:
+                    - service: switch.turn_on
+                      target:
+                        entity_id: switch.lou_ti_deng
 
         # C. 自動關閉序列（Auto-Off Sequence）
         # 1. 若鐵門未關閉，持續等待直到鐵門關閉（最多等待 45 分鐘）
@@ -134,7 +165,7 @@
           value_template: >-
             {{ states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on' and
                states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on' and
-               states('binary_sensor.che_ku_che_ku_she_ying_ji_motion') != 'on' }}
+               states('binary_sensor.g6_instant_motion') != 'on' }}
 
         # 4. 關閉車庫主燈與樓梯燈
         - service: switch.turn_off

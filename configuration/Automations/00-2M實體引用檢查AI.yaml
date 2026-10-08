@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2M實體引用檢查AI (V4.0.0)
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。每天 03:40 掃描自動化／腳本／package 引用的實體，找出「引用了但系統裡不存在」的（改名、裝置淘汰最常見），
+#           有問題才發 HA 資訊級通知（不發 LINE）；掃描腳本 scripts/check_entities.py。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2M實體引用檢查AI (V4.0.0)
+  id: ai_00_2m_entity_reference_check
+  description: 每天 03:40 檢查自動化引用的實體是否還存在，有問題才通知（HA 資訊級）。
+  mode: single
+  triggers:
+    - trigger: time
+      at: "03:40:00"
+  actions:
+    - action: shell_command.check_entities
+      response_variable: chk
+      continue_on_error: true
+    - if: >-
+        {{ chk is mapping and chk.get('returncode') == 0 and (chk.get('stdout', '') | trim) not in ['', 'OK'] }}
+      then:
+        - action: script.notify_dispatch
+          data:
+            level: info
+            line: false
+            source: "00-2M實體引用檢查AI (V4.0.0)"
+            version: "V4.0.0"
+            title: 實體引用檢查發現問題
+            message: >-
+              {{ (chk.get('stdout', '') | trim)[:900] }}

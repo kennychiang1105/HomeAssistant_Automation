@@ -3,23 +3,4 @@ template:
       - name: "Lights"               # 原 friendly_name
         default_entity_id: sensor.lights_on
         state: >
-          {% set total = 0 %}
-          {% if is_state('light.mijia_group4_2545', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {% if is_state('light.yeelink_color5_4181_light', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {% if is_state('light.mijia_group4_3249_light', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {% if is_state('light.mijia_group4_2144_light', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {% if is_state('light.mijia_group4_5664_light', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {% if is_state('light.mijia_group4_3249_light', 'on') %}
-            {% set total = total + 1 %}
-          {% endif %}
-          {{ total }}
+          {{ ['light.yeelink_color5_4181_light', 'light.yeelink_color5_106d_light', 'light.yeelink_color5_8e3f_light', 'light.yeelink_color5_f618_light', 'light.yeelink_color5_0fb7_light', 'light.yeelink_color5_13b8_light'] | select('is_state','on') | list | count }}

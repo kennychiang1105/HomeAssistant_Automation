@@ -1,5 +1,7 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 導入路徑：configuration/Automations/21A_客廳電風扇整合控制AI.yaml
-- alias: 21A_客廳電風扇整合控制AI (V3.2.1)
+- alias: 21A_客廳電風扇整合控制AI (V4.0.0)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -10,8 +12,8 @@
       entity_id:
         - sensor.kong_qi_qing_jing_ji_temperature
         - sensor.kong_qi_qing_jing_ji_humidity
-        - sensor.kitchen_temperature
-        - sensor.kitchen_humidity
+        - sensor.kitchenm_wen_du
+        - sensor.kitchenm_shi_du
       id: sensor_change
       for: "00:00:10"
     - platform: state
@@ -31,7 +33,7 @@
       id: location_change
 
   variables:
-    automation_version: "V3.2.1"
+    automation_version: "V4.0.0"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
@@ -55,8 +57,8 @@
       {% set temp_valid = (primary_temp is not none) and (10 < primary_temp < 45) %}
       {% set hum_valid = (primary_humidity is not none) and (0 < primary_humidity <= 100) %}
       {{ temp_valid and hum_valid }}
-    fallback_temp: "{{ states('sensor.kitchen_temperature') | float(None) }}"
-    fallback_humidity: "{{ states('sensor.kitchen_humidity') | float(None) }}"
+    fallback_temp: "{{ states('sensor.kitchenm_wen_du') | float(None) }}"
+    fallback_humidity: "{{ states('sensor.kitchenm_shi_du') | float(None) }}"
     fallback_valid: >-
       {% set temp_valid = (fallback_temp is not none) and (10 < fallback_temp < 45) %}
       {% set hum_valid = (fallback_humidity is not none) and (0 < fallback_humidity <= 100) %}
@@ -77,7 +79,8 @@
       {% else %}
         none
       {% endif %}
-    t_eff_valid: "{{ t_eff is not none }}"
+    # t_eff 在沒有溫度時會是文字「none」（不是 None），所以改看 active_temp（原本會把「none」丟進 float() 造成每次變數渲染錯誤）
+    t_eff_valid: "{{ active_temp is not none }}"
     desired_pct_curve: >-
       {% if not t_eff_valid %} {{ fan_pct_now }}
       {% else %}
@@ -150,8 +153,12 @@
             - if:
                 - "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "客廳風扇 (Debug)"
                     message: "偵測到人為手動調速，AI 自動調速將暫停至下次開機。"
 
@@ -179,8 +186,12 @@
                     - if:
                         - "{{ debug_notify }}"
                       then:
-                        - service: notify.persistent_notification
+                        - service: script.notify_dispatch
                           data:
+                            level: info
+                            line: false
+                            source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                            version: "{{ automation_version | default('', true) }}"
                             title: "客廳風扇 (Debug)"
                             message: "風扇被手動關閉，已啟動燈光連動暫停 1 小時。"
                     - stop: "Snooze for light-sync started"
@@ -241,8 +252,12 @@
                     - if:
                         - "{{ debug_notify }}"
                       then:
-                        - service: notify.persistent_notification
+                        - service: script.notify_dispatch
                           data:
+                            level: info
+                            line: false
+                            source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                            version: "{{ automation_version | default('', true) }}"
                             title: "客廳風扇風速調整 (Debug)"
                             message: >
                               🔄 新風速={{ desired_pct }}%｜體感t_eff={{ '%.1f'|format(t_eff|float) }}°C

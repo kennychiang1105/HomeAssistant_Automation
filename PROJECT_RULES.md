@@ -20,7 +20,7 @@
 ```mermaid
 flowchart TD
     A["1. 確認目標版本號 (如 V3.6.8)"] --> B["2. SSH 連線 HA 主機並切換/建立 release 分支"]
-    B --> C["3. 於 HA /config 直接進行修改 (遵循 13 項 SOP)"]
+    B --> C["3. 於 HA /config 直接進行修改 (遵循 18 項 SOP)"]
     C --> D["4. 執行 Pre-flight 語法檢驗 (Python YAML / HA CLI)"]
     D --> E["5. 自動重載生效 (Reload) 並提供測試指引"]
     E --> F["6. 🛑 使用者實體操作驗證確認 (User Sign-off)"]
@@ -67,7 +67,8 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
    ```bash
    tail -n 50 /homeassistant/home-assistant.log
    ```
-3. **主動整理並提供「實體測試指引清單」**，明確列出受影響之實體開關手勢、情境觸發條件或 LINE 推播驗證點。
+3. **同步更新「自動化管理」面板**（SOP-14）：`python3 scripts/generate_automation_panel.py --deploy`。
+4. **主動整理並提供「實體測試指引清單」**，明確列出受影響之實體開關手勢、情境觸發條件或 LINE 推播驗證點。
 
 ### 步驟 6：使用者實體操作驗證（User Physical Verification Gate）⚠️ 關鍵卡點
 1. **必須由使用者親自在家庭實體環境中進行操作與驗證**（例如：實際按壓實體開關測試單擊/雙擊/長按、觸發情境確認燈光與設備作動、確認 LINE 推播內容符合 SOP 等）。
@@ -104,7 +105,7 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
 
 ---
 
-## 三、 開發與修改 13 項核心標準作業程序（Core SOPs）
+## 三、 開發與修改 18 項核心標準作業程序（Core SOPs）
 
 | SOP 編號 | 規範項目 | 核心要求與防呆機制 |
 |---|---|---|
@@ -118,9 +119,24 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
 | **SOP-8** | 頂部更新紀錄格式 | 每個 `*AI.yaml` 頂部需維持標準註解區塊（檔名、相容版本、更新紀錄列表）。 |
 | **SOP-9** | 版號進位原則 | 功能新增/重構升次版本（`y+1`，如 `V3.3.1 -> V3.4.0`）；修復/微調升修補版（`z+1`，如 `V3.3 -> V3.3.1`）。 |
 | **SOP-10** | LINE 發送可靠性 | **一律使用 `script.send_line_to_user`**；發送前必檢 `user_id` 有效性與開關狀態，失敗需 fallback 記錄；PR 需附最小驗證清單。 |
-| **SOP-11** | TTS 廣播音量恢復 | 播音前讀取並保存音量（含 fallback）；播音後延遲 2 秒並以 `wait_template`（timeout 12s + `continue_on_timeout: true`）**確保一定恢復原始音量**。 |
+| **SOP-11** | TTS 廣播音量恢復 | 播音前讀取並保存音量（含 fallback）；播音後延遲 2 秒並以 `wait_template`（timeout 12s + `continue_on_timeout: true`）**確保一定恢復原始音量**。合成失敗時**重試最多 3 次，仍失敗只播提示音並發 HA 資訊級通知，不退回即時語音**（`merge_audio: false` 的呼叫除外）。 |
 | **SOP-12** | 實體開關維護規範 | 查閱 `SwitchCommand.md` 防衝突；**三擊（Triple Press）全戶 100% 絕對專用於緊急模式（05E）**；單擊標配 500ms 長按防呆與 0.5s 消抖延遲；同步維護指令表。 |
 | **SOP-13** | 主設定檔規範 | `configuration.yaml` 頂部標準化註解；檢查 HA 版本棄用整合；保護 include 結構；YAML 語法檢查與雙向同步。 |
+| **SOP-14** | 自動化管理面板同步 | 側邊欄「自動化管理」面板（`/homeassistant/automation-panel.yaml`，由 `scripts/generate_automation_panel.py` 產生）。**新增／刪除／改名任何 automation、`input_*`（boolean／number／select／text／datetime／button）、`timer`、`counter` 後，必須重新產生並部署面板**：`python3 scripts/generate_automation_panel.py --deploy`（只改面板內容不需重啟 HA，瀏覽器重新整理即可）；新項目若被分到「其他」或分類不對，請調整腳本內 `AUTO_RULES`／`HELPER_RULES`。面板檔屬產生物，**禁止手改**。詳見下方〈面板更新流程〉。 |
+| **SOP-15** | 通知內文圖示 | LINE 卡片與 HA 通知的**內文**由 `custom_templates/notify_body.jinja`（本機副本 `www/custom_templates/`）統一產生：有關鍵字的行前面放小圖示（`www/icons/b/<name>.png`，96px 圓形平面圖示），每種圖示每則最多一次、最多 5 個，其他行純文字；每句（。）自成一行、行距加大、縮排對齊以利手機閱讀。**新增關鍵字或圖示**：改 `pick` 巨集的關鍵字表、把新 PNG 放進 `www/icons/b/`，兩者上傳主機（`/homeassistant/custom_templates/`、`/homeassistant/www/icons/b/`）後**重啟 HA**。標題圖示（`www/icons/*.png`，白色圖示）與內文圖示是兩套，不要混用。 |
+| **SOP-16** | 固定廣播句快取暖機 | 一律走 `script.announce`（合成音檔），**不要直接用 `tts.speak`**。分秒必爭的廣播（地震預警等）或需斷網也能播的固定句，要加進 `scripts/warm_announce.py` 的 `build_list()`（提示音檔名＋文字必須與 announce 實際傳入的完全相同，才會命中同一個快取檔），由 `00-2L廣播快取暖機AI` 開機後與每日 03:30 預先合成（即時合成約 1.7 秒、快取約 0.6 秒）。動態秒數／震度類廣播以「預估值 − 已經過時間 − 念到數字前的時間」挑句子。本機副本在 `scripts/`，主機在 `/homeassistant/scripts/`。 |
+| **SOP-17** | 實際載入的檔案 | ⚠ **UI 自動化（舊的手動維護自動化）實際載入的是主機 `/homeassistant/automations.yaml`（根目錄）**，不是 `/homeassistant/configuration/automations.yaml`（那份是沒被載入的舊副本，兩者內容不同）。同理主要設定檔是 `/homeassistant/configuration.yaml`（根目錄），不是 `configuration/configuration.yaml`。AI 管理的檔案在 `/homeassistant/Automations/`、`Scripts/`（symlink 到 `configuration/`，這兩個是真的有載入）與 `/homeassistant/packages/`。修改前先 `grep` 確認：`automation: !include automations.yaml` 指向哪一份，改完用 HA 狀態確認別名（含版本）真的變了。 |
+| **SOP-18** | Terncy 裝置 id | 自動化裡 Terncy 開關的 `device_id` **以事件（`terncy_pressed`／`terncy_long_press`）實際送出的為準**（舊 id，與 HA 裝置註冊表不同）。HA 啟動日誌的 `was split … can no longer fire` 警告不代表壞掉，**不要**依警告替換 id。改任何 device_id 前先查資料庫 `events` 的 `shared_data.device_id` 確認，改完要實際按開關驗證。 |
+
+### 〈面板更新流程〉（SOP-14 細則）
+1. **何時更新**：新增／刪除／改名自動化、新增 helper（含新 package 的 helper）、新增分類時；每次發布版本（步驟 7）前再跑一次確認無遺漏。
+2. **如何更新**：在專案資料夾執行 `python3 scripts/generate_automation_panel.py --deploy`。腳本會 SSH 唯讀查詢 HA 紀錄庫目前存在（非 `unavailable`）的實體，依規則分類後產生 YAML 並上傳；本機副本在 `www/automation-panel.yaml`。
+3. **新實體要等 HA 已載入**：腳本讀的是「已載入的實體」，所以要先完成步驟 5（重載／重啟）讓新自動化與 helper 出現，再更新面板。
+4. **分類規則**：自動化依名稱（`AUTO_RULES`）、helper 依 entity_id／名稱（`HELPER_RULES`）；只會自動歸類符合規則者，其餘進「其他」分頁。看到「其他」有東西就補規則。純狀態／旗標類（`_init`、`_last`、`_flag` 等，見 `FLAG_RE`）會放進「狀態與旗標」卡片。
+5. **新增面板分頁**：在腳本的 `CATS` 加一筆（key、標題、icon、說明）並補對應規則。
+6. **面板本身的設定**：`/homeassistant/configuration.yaml` 的 `lovelace → dashboards → lovelace-automation`（`mode: yaml`、`filename: automation-panel.yaml`、`show_in_sidebar: true`）。僅在第一次建立或改檔名時需要動它，並需重啟 HA。
+7. **失效殘留**：面板「總覽」會顯示已失效（`unavailable`）舊自動化的數量；可到「設定 → 自動化」手動清理（目前沒有 API 權杖，無法由程式代刪）。
+8. **驗證**：更新後開啟側邊欄「自動化管理」，確認新項目出現在正確分頁、開關可切換、參數可調整。
 
 ---
 

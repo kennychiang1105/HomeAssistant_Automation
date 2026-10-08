@@ -1,7 +1,9 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 106網關系統AI (V3.3.1)
+# 106網關系統AI (V4.0.0)
 # 相容版本：Helpers V3.16（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.1：修補版。將 mode 由 single 改為 restart，避免 input_boolean 快速切換時被重復觸發時導致 "Already running" 警告，確保以最新觸發狀態為準。
 # - V3.3.0：功能版；新增網關 Debug 通知 Helper，將解除歸位、常規同步與無情境歸位等清理型永久通知改為 Debug 開啟時才發送；異常攔截 LINE 流程不變。
 # - V3.2.0：功能版；Actions 最前方加入 1 秒 Debounce，並將 Aqara 情境數量與標籤改到延遲後即時求值，避免離家/在家互搶時使用 0 秒舊狀態。
@@ -9,7 +11,7 @@
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106網關系統AI (V3.3.1)
+- alias: 106網關系統AI (V4.0.0)
   id: ai_gateway_anomaly_guard
   description: 保全情境重置、網關同步與異常防禦
   mode: restart
@@ -29,7 +31,7 @@
       event_type: automation_reloaded
 
   variables:
-    automation_version: "V3.3.1"
+    automation_version: "V4.0.0"
     helpers_compat: "Helpers V3.16"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"
@@ -83,8 +85,12 @@
                     - condition: template
                       value_template: "{{ not (is_ha_start | bool(false)) }}"
                   sequence:
-                    - service: persistent_notification.create
+                    - service: script.notify_dispatch
                       data:
+                        level: emergency
+                        line: false
+                        source: "分流 A - 異常攔截（同時開啟 2 個以上情境）"
+                        version: "{{ automation_version | default('', true) }}"
                         title: "{{ notif_title_alert }}"
                         message: |-
                           保全情境異常（{{ automation_version }}）
@@ -105,8 +111,12 @@
                               ] %}
                               {{ messages | tojson }}
                       else:
-                        - service: persistent_notification.create
+                        - service: script.notify_dispatch
                           data:
+                            level: emergency
+                            line: false
+                            source: "分流 A - 異常攔截（同時開啟 2 個以上情境）"
+                            version: "{{ automation_version | default('', true) }}"
                             title: "{{ notif_title_alert }} LINE 未發送"
                             message: >-
                               緊急 LINE 未發送：{% if not (line_emergency_enabled | bool(false)) %}緊急通知開關未開啟{% else %}LINE user_id 無效{% endif %}。
@@ -152,8 +162,12 @@
                     - condition: template
                       value_template: "{{ (not (is_ha_start | bool(false))) and (debug_on | bool(false)) }}"
                   sequence:
-                    - service: persistent_notification.create
+                    - service: script.notify_dispatch
                       data:
+                        level: emergency
+                        line: false
+                        source: "分流 B-1 - 特殊解除後安全歸位"
+                        version: "{{ automation_version | default('', true) }}"
                         title: "{{ notif_title_alert }}"
                         message: "已依解除情境先解除網關，隨後自動回到在家情境並同步在家警戒。"
 
@@ -224,8 +238,12 @@
                     - condition: template
                       value_template: "{{ (not (is_ha_start | bool(false))) and (debug_on | bool(false)) }}"
                   sequence:
-                    - service: persistent_notification.create
+                    - service: script.notify_dispatch
                       data:
+                        level: emergency
+                        line: false
+                        source: "分流 B - 常規同步（唯一情境）"
+                        version: "{{ automation_version | default('', true) }}"
                         title: "{{ notif_title_alert }}"
                         message: "已依唯一啟用的 {{ active_scene_label }} 同步實體網關，並清理其餘未啟用情境開關。"
 
@@ -248,7 +266,11 @@
                 - condition: template
                   value_template: "{{ (not (is_ha_start | bool(false))) and (debug_on | bool(false)) }}"
               sequence:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: important
+                    line: false
+                    source: "分流 B - 常規同步（唯一情境）"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "{{ notif_title_alert }}"
                     message: "未偵測到有效保全情境或重啟校正時無回應，已同步虛擬情境與實體網關回到在家警戒。"

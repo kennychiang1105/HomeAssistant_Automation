@@ -1,4 +1,31 @@
 # ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V4.0.0)
+# 更新重點（V4.0.0）：扁平卡片標題色塊自動配主題圖示（門鈴/鐵門/門鎖/電量/保全/天氣/地震…）；標題含緊急/重要且與鐵門或車庫有關的純文字 LINE，自動附車庫截圖、即時影像與家庭 App 按鈕；Bot 額度「即將切換」與「額度已用盡」管理者通知改為扁平卡片（重要橘／緊急紅）；send_line_to_user 的扁平卡片轉換擴大涵蓋：標題內含等級字樣、完全沒有等級、只有單一泡泡的純文字 LINE，一律轉成扁平卡片（無法判斷等級者視為「一般」藍色）；非純文字（Flex/災防等）原樣送出。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.14)
+# 更新重點（V1.14）：舊格式合併卡片偵測到網址時，底部加「開啟連結」按鈕（可點擊）。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.13)
+# 更新重點（V1.13）：重要/緊急的舊格式 LINE 送出後呼叫 script.mood_alert（氣氛燈提醒）。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.12)
+# 更新重點（V1.12）：
+# 0) 新增 source 欄位：卡片底部顯示來源自動化名稱（各自動化呼叫時帶入）；版本號可由來源名稱補齊。
+# 0) 修正：payload 若被 HA 自動解析成 list 也能處理（V1.12 初版僅處理字串，會導致舊格式訊息變成空陣列而 400）。
+# 1) send_line_to_user 自動將「標題 + 等級 + 內文」多泡泡純文字轉為 1 則扁平 Flex 卡片（依緊急/重要/一般配色，附版本號與時間）；
+#    同時減少訊息則數以節省額度。非此格式（災防、Flex、單泡泡）原樣送出。
+# ─────────────────────────────────────────────────────────────
+# LINE Bot 套件 (V1.11)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新重點（V4.0.0 補）：「LINE Bot 即將切換」預告改成同一個 Bot 只發一次（原本剩餘則數一變就又發一則）。
+# 更新重點（V1.11）：
+# 1) Auto 模式改為「沿用主用 Bot」：以 input_number.line_bot_sticky 記住目前主用 Bot（1~3），
+#    用量達 196 才依 主用→下一個(1→2→3 循環) 切換；Bot0 仍為最後備援。每月額度重置後不再回到 Bot1，減少切換次數。
+# 2) 修正「X 次後將切換 Bot」提醒：改以切換門檻 196（而非 200）計算剩餘則數，並顯示下一個 Bot；
+#    僅 Bot1~3 在距離切換剩 1~12 個額度時預告（剩餘額度低於 5 即切換，因群組訊息一次可能耗約 5 額度），且同一 Bot 只預告一次（每月用量重置後 Bot 編號與剩餘則數回到安全範圍時，鍵會被清掉）（input_text.line_bot_last_notice_key）。
+# 3) line_bot_rotation_target 新增屬性 next_bot / sticky_bot。已切換通知改由 00-2B 偵測切換事件發送。
+# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # LINE Bot 套件 (V1.10)
 # 更新重點（V1.10）：
 # 1) 額度計算門檻調整：switch_limit 改為 195，剩餘額度低於 5 則視為完全用盡（r < 5）。
@@ -216,22 +243,39 @@ template:
           {% set r0 = states('sensor.bot_msg_remaining0')|int(-1) if states('sensor.bot_msg_remaining0') not in invalids else -1 %}
 
           {% if mode == 'Auto' %}
-            {# 嚴格依照 1 -> 2 -> 3 -> 0 順序檢查是否有剩餘額度 #}
-            {% if r1 > 0 and states('sensor.bot_msg_count1')|int(0) < switch_limit %}1
-            {% elif r2 > 0 and states('sensor.bot_msg_count2')|int(0) < switch_limit %}2
-            {% elif r3 > 0 and states('sensor.bot_msg_count3')|int(0) < switch_limit %}3
-            {% elif r0 > 0 and states('sensor.bot_msg_count0')|int(0) < switch_limit %}0
-            {# 若大家都超過 switch_limit 但還有殘餘額度，則依序選還有剩的 #}
-            {% elif r1 > 0 %}1
-            {% elif r2 > 0 %}2
-            {% elif r3 > 0 %}3
-            {% elif r0 > 0 %}0
-            {% else %}0{% endif %} {# 完全沒額度時停在緊急 Bot 0 #}
+            {# 沿用主用 Bot（sticky）：由 sticky 開始循環 1→2→3，最後才是緊急 Bot0 #}
+            {% set sticky = states('input_number.line_bot_sticky')|int(1) %}
+            {% set sticky = sticky if sticky in [1,2,3] else 1 %}
+            {% set order = ({1:[1,2,3,0], 2:[2,3,1,0], 3:[3,1,2,0]})[sticky] %}
+            {% set cnt = {0: states('sensor.bot_msg_count0'), 1: states('sensor.bot_msg_count1'), 2: states('sensor.bot_msg_count2'), 3: states('sensor.bot_msg_count3')} %}
+            {% set rem = {0: r0, 1: r1, 2: r2, 3: r3} %}
+            {% set ns = namespace(pick=-1) %}
+            {# 第一輪：用量未達 switch_limit 的 Bot #}
+            {% for b in order if ns.pick == -1 and rem[b] > 0 and cnt[b]|int(0) < switch_limit %}{% set ns.pick = b %}{% endfor %}
+            {# 第二輪：都超過 switch_limit 但仍有殘餘額度 #}
+            {% for b in order if ns.pick == -1 and rem[b] > 0 %}{% set ns.pick = b %}{% endfor %}
+            {% if ns.pick == -1 %}{% if r1 < 0 and r2 < 0 and r3 < 0 and r0 < 0 %}{{ sticky }}{% else %}0{% endif %}{% else %}{{ ns.pick }}{% endif %}
           {% elif mode == 'Manual Bot1' %}1
           {% elif mode == 'Manual Bot2' %}2
           {% elif mode == 'Manual Bot3' %}3
           {% elif mode == 'Manual Bot0（緊急Bot）' %}0
           {% else %}-1{% endif %}
+        attributes:
+          sticky_bot: "{{ states('input_number.line_bot_sticky')|int(1) }}"
+          next_bot: >-
+            {# 目前 Bot 達門檻後，下一個會接手的 Bot #}
+            {% set switch_limit = 196 %}
+            {% set cur = states('sensor.line_bot_rotation_target')|int(0) %}
+            {% set order = ({1:[2,3,1,0], 2:[3,1,2,0], 3:[1,2,3,0], 0:[1,2,3,0]})[cur] if cur in [0,1,2,3] else [0] %}
+            {% set ns = namespace(pick=0) %}
+            {% set found = namespace(ok=false) %}
+            {% for b in order if not found.ok and b != cur %}
+              {% set c = states('sensor.bot_msg_count' ~ b) %}
+              {% if c not in ['unknown','unavailable','none','None'] and c|int(0) < switch_limit %}
+                {% set ns.pick = b %}{% set found.ok = true %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.pick }}
 
       - name: line_bot_in_use
         unique_id: line_bot_in_use
@@ -297,6 +341,9 @@ script:
       payload:
         description: "LINE messages JSON（僅 messages，不含 to）"
         required: false
+      source:
+        description: "來源自動化名稱（顯示於扁平卡片底部；省略則顯示「智慧家庭」）"
+        required: false
 
     sequence:
       - variables:
@@ -323,6 +370,14 @@ script:
           has_json: "{{ payload is defined }}"
           valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
 
+          # 舊格式（標題+等級+內文多泡泡）偵測到的等級，供氣氛燈提醒使用（新格式 Flex 由 notify_dispatch 負責）
+          alert_level: >-
+            {% set raw = (payload | from_json([])) if (has_json and payload is string) else (payload if has_json else []) %}
+            {% if raw is sequence and raw is not string %}
+              {% set t = raw | selectattr('type', 'eq', 'text') | map(attribute='text') | join(' ') %}
+              {% if t | regex_search('Urgent|Emergency') %}emergency{% elif t | regex_search('Important') %}important{% endif %}
+            {% endif %}
+
           current_bot: "{{ states('sensor.line_bot_rotation_target')|int(-1) }}"
 
           target_user: >
@@ -348,8 +403,16 @@ script:
             {% elif current_bot|int == 3 %}{{ states('sensor.bot_msg_count3')|int }}
             {% else %}999{% endif %}
 
-          remain_count: "{{ quota_limit - used_count }}"
-          need_countdown_notice: "{{ remain_count <= 12 }}"
+          # 距離「切換門檻 switch_limit」還剩幾則（與 rotation 切換邏輯一致）
+          remain_count: "{{ [switch_limit - used_count, 0] | max }}"
+          next_bot: "{{ state_attr('sensor.line_bot_rotation_target', 'next_bot') | int(0) }}"
+          # 同一個 Bot 只預告一次（以 Bot 編號當去重鍵；用量重置或切到別的 Bot 後才會再預告）
+          notice_key: "Bot{{ current_bot }}"
+          # 僅 Bot1~3 預告；Bot0 為緊急 Bot 不切換；同 Bot 同剩餘則數不重複通知
+          need_countdown_notice: >-
+            {{ current_bot|int(-1) in [1,2,3]
+               and 1 <= remain_count <= 12
+               and states('input_text.line_bot_last_notice_key') != notice_key }}
           can_notify_quota: >-
             {{
               states('sensor.bot_msg_count0')|int(999) < quota_limit
@@ -362,12 +425,125 @@ script:
               and states('input_boolean.notify_line_emergency_enable') == 'on'
             }}
 
+      # ───── 需要看現場畫面的警示：自動附攝影截圖＋即時影像連結（僅限標題含緊急/重要的純文字訊息）─────
+      #   garage：鐵門/車庫「開啟、未關」類（已關閉/取消/自動關閉結果/地震災防等不附）
+      #   top：五樓保全「有人闖入/進入防區」類（人員已離開、警報解除不附）→ 五樓（頂樓）攝影機
+      - variables:
+          cam_kind: >-
+            {% set raw = (payload | from_json([])) if (has_json and payload is string) else (payload if has_json else []) %}
+            {% if raw is sequence and raw is not string and raw | length > 0 and (raw | map(attribute='type') | unique | list) == ['text'] %}
+              {% set tx = raw | map(attribute='text') | map('string') | list %}
+              {% set t = tx | join(' ') %}
+              {% set lv_ok = (tx[:2] | join(' ')) | regex_search('緊急|重要|Urgent|Emergency|Important') %}
+              {% set skip = t | regex_search('地震|災防|預警|已離開|已解除|警報已自動解除|已關閉|已於|已執行|取消|提前關閉') %}
+              {% if lv_ok and not skip and (t | regex_search('五樓保全')) %}top
+              {% elif lv_ok and not skip and (t | regex_search('鐵門|車庫')) and (t | regex_search('打開|開啟|未關|沒關|開著')) %}garage
+              {% else %}none{% endif %}
+            {% else %}none{% endif %}
+          live_token: "live{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+          snap_url: ""
+      - action: script.garage_snapshot_if
+        data:
+          enabled: "{{ (cam_kind | trim) in ['garage', 'top'] }}"
+          kind: "{{ cam_kind | trim }}"
+          token: "{{ live_token }}"
+        response_variable: cam_res
+        continue_on_error: true
+      - variables:
+          snap_url: "{{ cam_res.url if (cam_res is defined and cam_res is mapping and cam_res.url is defined) else '' }}"
+      - variables:
+          # 🔑 自動補 to 的 RAW JSON
+          # 扁平化：多泡泡純文字（標題 + 等級 + 內文）合併為 1 則 Flex 卡片（節省額度、統一樣式）；
+          # 不符合格式（含非 text 訊息、找不到等級泡泡）則原樣送出
+          flat_msgs: >-
+            {% from 'notify_body.jinja' import flex_rows %}{% set ns = namespace(out=none) %}
+            {% if has_json %}
+              {% set raw = (payload | from_json([])) if payload is string else payload %}
+              {% if raw is sequence and raw is not string and raw | length >= 1 and (raw | map(attribute='type') | unique | list) == ['text'] %}
+                {% set texts = raw | map(attribute='text') | map('string') | list %}
+                {% set src_txt = (source | default('', true) | string) if source is defined else '' %}
+                {# 1) 找「等級泡泡」：第 2 個起、40 字內且含英文等級字樣 #}
+                {% set lv = namespace(idx=-1, key='') %}
+                {% for i in range(1, texts | length) %}
+                  {% set t = texts[i] %}
+                  {% if lv.idx == -1 and (t | trim | length) <= 40 %}
+                    {% if t | regex_search('Urgent|Emergency') %}{% set lv.idx = i %}{% set lv.key = 'emergency' %}
+                    {% elif t | regex_search('Important') %}{% set lv.idx = i %}{% set lv.key = 'important' %}
+                    {% elif t | regex_search('General') %}{% set lv.idx = i %}{% set lv.key = 'general' %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+                {# 2) 沒有等級泡泡：看標題泡泡文字（含「緊急/重要」或英文字樣）；都沒有就視為一般 #}
+                {% set first = texts[0] %}
+                {% if lv.key == '' %}
+                  {% if first | regex_search('緊急|Urgent|Emergency') %}{% set lv.key = 'emergency' %}
+                  {% elif first | regex_search('重要|Important') %}{% set lv.key = 'important' %}
+                  {% else %}{% set lv.key = 'general' %}{% endif %}
+                {% endif %}
+                {% set meta = {'general': {'name':'一般','mark':'●','color':'#2F80ED'}, 'important': {'name':'重要','mark':'▲','color':'#F2994A'}, 'emergency': {'name':'緊急','mark':'■','color':'#EB5757'}}[lv.key] %}
+                {# 3) 標題：2 個泡泡以上且第 1 個泡泡 ≤ 60 字視為標題；否則用來源名稱 #}
+                {% set has_title = (texts | length >= 2) and ((first | trim | length) <= 60) %}
+                {% set title_raw = (first if has_title else (src_txt if src_txt else '智慧家庭')) | string %}
+                {% set ver = (title_raw ~ ' ' ~ src_txt) | regex_findall('V[0-9][0-9.]*') | first | default('', true) %}
+                {% set title_c = title_raw | replace('【', '') | replace('】', '') | regex_replace('(緊急|重要|一般) ?(Urgent|Emergency|Important|General)', '') | regex_replace(' ?\\(V[0-9][0-9.]*[^)]*\\)', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[‼⚠❗🚨🪧\\ufe0f]+', '') | trim %}
+                {% set title_c = title_c if title_c else (src_txt if src_txt else '智慧家庭') %}
+                {# 4) 內文：略過標題與等級泡泡 #}
+                {% set bd = namespace(items=[]) %}
+                {% for i in range(0, texts | length) if not (has_title and i == 0) and i != lv.idx %}{% set bd.items = bd.items + [texts[i]] %}{% endfor %}
+                {% set head = (bd.items[0] if bd.items else title_c) | string %}
+                {% set hl = head.split('\n') %}
+                {% set head_line = hl[0] %}
+                {% set rest = ((hl[1:] | join('\n')) ~ ('\n\n' if bd.items | length > 1 and hl[1:] else '') ~ (bd.items[1:] | join('\n\n'))) | trim %}
+                {% set url = (rest ~ ' ' ~ head_line) | regex_findall('https?://[^ \\n]+') | first | default('', true) %}
+                {% if url %}{% set rr = namespace(o=[]) %}{% for l in rest.split('\n') %}{% if url not in l %}{% set rr.o = rr.o + [l] %}{% endif %}{% endfor %}{% set rest = rr.o | join('\n') | trim %}{% endif %}
+                {% set all_lines = ([head_line] if bd.items else []) + rest.split('\n') %}
+                {% set sig = title_c ~ ' ' ~ src_txt ~ ' ' ~ head_line %}
+                {% if sig | regex_search('門鈴') %}{% set icon_name = 'doorbell' %}
+                {% elif sig | regex_search('車牌|Tesla|充電') %}{% set icon_name = 'car' %}
+                {% elif sig | regex_search('鐵門|車庫') %}{% set icon_name = 'gate' %}
+                {% elif sig | regex_search('門鎖') %}{% set icon_name = 'lock' %}
+                {% elif sig | regex_search('電量|電池|耗材') %}{% set icon_name = 'battery' %}
+                {% elif sig | regex_search('地震|災害|疏散|海嘯') %}{% set icon_name = 'quake' %}
+                {% elif sig | regex_search('天氣|豪雨|颱風|大雨') %}{% set icon_name = 'weather' %}
+                {% elif sig | regex_search('保全|警報|入侵') %}{% set icon_name = 'shield' %}
+                {% elif sig | regex_search('離家|到家|早安|晚安|情境') %}{% set icon_name = 'home' %}
+                {% elif sig | regex_search('風扇') %}{% set icon_name = 'fan' %}
+                {% elif sig | regex_search('空氣|PM') %}{% set icon_name = 'air' %}
+                {% elif sig | regex_search('網關|網路|Wi-Fi|斷線|離線') %}{% set icon_name = 'network' %}
+                {% elif sig | regex_search('更新|版本') %}{% set icon_name = 'update' %}
+                {% elif sig | regex_search('Bot|LINE|額度') %}{% set icon_name = 'chat' %}
+                {% elif lv.key == 'general' %}{% set icon_name = 'info' %}
+                {% else %}{% set icon_name = 'alarm' %}{% endif %}
+                {% set icon_url = 'https://family.kteam.tw:8126/local/icons/' ~ icon_name ~ '.png?v=2' %}
+                {% set hero_extra = {'hero': {'type': 'image', 'url': snap_url, 'size': 'full', 'aspectRatio': '16:9', 'aspectMode': 'cover'}} if snap_url else {} %}
+                {% set cam_btns = ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟攝影機即時影像", "uri": "http://192.168.68.97:8125/local/live.html?t=" ~ live_token ~ "&openExternalBrowser=1"}}, {"type": "text", "text": "僅限連接家裡 Wi-Fi 時可開啟", "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}, {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "在「家庭」App 查看攝影機", "uri": "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"}}, {"type": "text", "text": "外出（外網）也可使用", "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if snap_url else []) %}
+                {% set stamp = now().strftime('%m/%d %H:%M') %}
+                {% set card = [{
+                  "type": "flex",
+                  "altText": (meta.mark ~ ' ' ~ meta.name ~ ' ｜ ' ~ title_c ~ ' ' ~ head_line)[:380],
+                  "contents": dict({
+                    "type": "bubble", "size": "kilo",
+                    "header": {"type": "box", "layout": "horizontal", "alignItems": "center", "backgroundColor": meta.color, "paddingAll": "10px",
+                      "contents": [
+                        {"type": "image", "url": icon_url, "size": "22px", "aspectMode": "fit", "flex": 0},
+                        {"type": "text", "text": meta.mark ~ ' ' ~ meta.name, "color": "#FFFFFF", "weight": "bold", "size": "sm", "flex": 0, "margin": "sm"},
+                        {"type": "text", "text": (ver if ver else ' '), "color": "#FFFFFF", "size": "xs", "align": "end"}]},
+                    "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
+                      "contents": ([{"type": "text", "text": (title_c if title_c else ' '), "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}] + (flex_rows(all_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
+                    "footer": {"type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
+                      "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + cam_btns + [{"type": "text", "text": ((src_txt | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | trim) if src_txt else '智慧家庭') ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
+                  }, **hero_extra)}] %}
+                {% set ns.out = card %}
+              {% endif %}
+            {% endif %}
+            {{ (ns.out if ns.out is not none else (((payload | from_json([])) if payload is string else payload) if has_json else [])) | tojson }}
+
           # 🔑 自動補 to 的 RAW JSON
           full_payload: >
             {% if has_json %}
             {
               "to": "{{ target_user }}",
-              "messages": {{ payload }}
+              "messages": {{ flat_msgs }}
             }
             {% endif %}
       # ───── 防呆 ─────
@@ -403,15 +579,41 @@ script:
                           to: "{{ target_user }}"
                           text: "{{ message }}"
 
+              # 氣氛燈提醒（舊格式重要/緊急 LINE）
+              - if: "{{ alert_level | trim in ['important', 'emergency'] }}"
+                then:
+                  - action: script.turn_on
+                    target:
+                      entity_id: script.mood_alert
+                    data:
+                      variables:
+                        level: "{{ alert_level | trim }}"
+                        source: "{{ source | default('', true) }}"
+
               # 額度倒數（管理者，改用緊急 Bot 通知）
               - choose:
                   - conditions: "{{ need_countdown_notice and can_notify_quota }}"
                     sequence:
-                      - service: rest_command.line_bot_push
+                      - service: rest_command.line_bot_push_raw
                         data:
                           token: "{{ bot0_token }}"
-                          to: "{{ quota_notify_user }}"
-                          text: "⚠️ {{ remain_count }} 次後將切換 Bot（目前使用：Bot{{ current_bot }}）"
+                          payload: >-
+                              {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '重要｜LINE Bot 即將切換',
+                              'contents': {'type': 'bubble', 'size': 'kilo',
+                              'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#F2994A', 'paddingAll': '10px',
+                              'contents': [{'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
+                              {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                              'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
+                              'contents': [{'type': 'text', 'text': 'LINE Bot 即將切換', 'weight': 'bold', 'size': 'md', 'wrap': true},
+                              {'type': 'text', 'text': '目前使用 Bot' ~ current_bot ~ '，剩餘約 ' ~ remain_count ~ ' 個額度可用', 'size': 'sm', 'wrap': true},
+                              {'type': 'text', 'text': '剩餘額度低於 5 即自動切換為 Bot' ~ next_bot ~ ('（緊急 Bot）' if next_bot == 0 else '') ~ '；群組訊息一次可能耗約 5 個額度。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                              'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
+                              'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
+                      - service: input_text.set_value
+                        target:
+                          entity_id: input_text.line_bot_last_notice_key
+                        data:
+                          value: "{{ notice_key }}"
 
         default:
           - choose:
@@ -420,11 +622,21 @@ script:
                     value_template: >-
                       {{ final_quota_notice and is_state('input_boolean.line_bot_quota_exhausted_notified', 'off') }}
                 sequence:
-                  - service: rest_command.line_bot_push
+                  - service: rest_command.line_bot_push_raw
                     data:
                       token: "{{ bot0_token }}"
-                      to: "{{ quota_notify_user }}"
-                      text: "🚨 所有 Bot 額度已滿（低於 5 則）或不可用，訊息未送出"
+                      payload: >-
+                        {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '緊急｜LINE Bot 額度已用盡',
+                        'contents': {'type': 'bubble', 'size': 'kilo',
+                        'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#EB5757', 'paddingAll': '10px',
+                        'contents': [{'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
+                        {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                        'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
+                        'contents': [{'type': 'text', 'text': 'LINE Bot 額度已用盡', 'weight': 'bold', 'size': 'md', 'wrap': true},
+                        {'type': 'text', 'text': '所有 Bot 額度已滿（低於 5 則）或不可用', 'size': 'sm', 'wrap': true},
+                        {'type': 'text', 'text': '本則訊息未送出，請儘速處理（更換 Token 或等下月重置）。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                        'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
+                        'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                   - service: input_boolean.turn_on
                     target:
                       entity_id: input_boolean.line_bot_quota_exhausted_notified

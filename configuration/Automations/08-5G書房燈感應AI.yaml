@@ -1,205 +1,246 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5G書房燈感應AI (V3.3.1)
+# 08-5G書房燈感應AI (V4.0.0)
 # 相容版本：Helpers V3.14（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：無人檢查改成只看右側（書房）PIR 與攝影機安靜，不再因為 iPhone 在 5F 就延長（去書房拿東西後回臥室，燈會在安靜時間到就關）。
+# - V4.0.0：修正「進臥室後書房燈沒關」：①剛判定回臥室／下樓 180 秒內，書房 PIR 右單獨觸發不再開書房燈；②判定回臥室時關閉「感應自己開的」書房燈；（無人檢查曾試過把床頭燈／檯燈亮著視為離開書房，但你去書房時這兩盞本來就會亮著，已撤回。）
+# - V4.0.0：頂樓感應優化 P3 重寫。開燈：08-5J 的 enter_study 或書房 PIR 右（攝影機／iPhone AP 佐證）；關燈：離開書房回房立即關、離開書房下樓保留 3 分鐘、
+#           每分鐘無人檢查（PIR 右安靜 5 分鐘＋攝影機無人，且 iPhone 不在 5F 或已回房／下樓才關）、安靜坐著最長 60 分鐘一律關。
+#           跨線時間戳與書房進出時間改由 08-5J 寫入；本檔不再寫。
+# - V3.3.2：頂樓感應優化 P1：延長亮燈改為每 5 分鐘複檢、最長 60 分鐘後關燈（舊版延長 5 分鐘後直接結束而不關燈，7 天內有 3 次長亮 36~191 分鐘）。
 # - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，Webhook 條件改用安全 trigger_kind。
 # - V3.3：功能版；接入 input_select.topfloor_webhook_mode，可切換綜合模式、Webhook模式或原本模式。
 # - V3.2：功能版；保留原實體動態感應、AP 與攝影機延長判定，新增三條跨線 Webhook 作為進出書房加速與防誤關輔助。
 # - V3.1：加入 AP 判斷，iPhone 於五樓 AP 時，攝影機判定延長為 20 分鐘。
 # - V3.0：由 UI automation 拆分為 AI 模組檔，維持原觸發/條件/動作行為。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5G 書房燈感應AI (V3.3.1)
+- alias: 08-5G 書房燈感應AI (V4.0.0)
   id: ai_08_5g_study_motion_light
   description: >
-    書房感應燈控制：偵測動作時開啟書房燈，延遲 5 分鐘後自動關閉。
-    加入進階判斷：當 iPhone 位於五樓 AP 時，攝影機判定寬限期延長至 20 分鐘；否則維持 2 分鐘。
-  mode: restart
+    書房燈開燈：08-5J 判定進書房，或書房 PIR 右有動作且攝影機（iPhone 在 5F AP 時放寬到 20 分鐘）近期有人。
+    由感應開啟的書房燈標記 topfloor_study_auto。
+  mode: queued
+  max: 5
+  max_exceeded: silent
   variables:
-    automation_version: V3.3.1
-    webhook_mode: "{{ states('input_select.topfloor_webhook_mode') | default('綜合模式', true) }}"
-    webhook_enabled: "{{ webhook_mode in ['綜合模式', 'Webhook模式'] }}"
-    original_enabled: "{{ webhook_mode in ['綜合模式', '原本模式'] }}"
-    trigger_kind: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
-    now_ts: "{{ as_timestamp(now()) }}"
-    last_enter_ts: "{{ as_timestamp(states('input_datetime.topfloor_study_last_entered'), 0) }}"
-    last_exit_ts: "{{ as_timestamp(states('input_datetime.topfloor_study_last_exited'), 0) }}"
-    last_bedroom_ts: "{{ as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
-    last_stairs_ts: "{{ as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) }}"
-    last_study_ts: "{{ as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) }}"
-    someone_may_still_be_in_study: "{{ last_enter_ts | float > last_exit_ts | float }}"
-    recent_stairs_or_bedroom: "{{ (now_ts | float - [last_stairs_ts | float, last_bedroom_ts | float] | max) <= 15 }}"
-    recent_study_before_neighbor: "{{ (now_ts | float - last_study_ts | float) <= 10 }}"
+    automation_version: V4.0.0
   triggers:
-    - id: motion_right
+    - id: enter_study
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: enter_study
+    - id: pir_right
       trigger: state
-      entity_id:
-        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
-      to: 'on'
-    - id: studyroom_line
-      platform: webhook
-      webhook_id: 5fstudyroomline
-      local_only: false
-    - id: bedroom_line
-      platform: webhook
-      webhook_id: 5fbedroomline
-      local_only: false
-    - id: stairs_line
-      platform: webhook
-      webhook_id: 5fstairsline
-      local_only: false
+      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+      to: "on"
   conditions:
-    - condition: or
-      conditions:
-        - condition: template
-          value_template: "{{ webhook_enabled and trigger_kind in ['studyroom_line', 'bedroom_line', 'stairs_line'] }}"
-        - condition: and
-          conditions:
-            - condition: template
-              value_template: "{{ original_enabled }}"
-            # 1. 確保書房燈目前是關閉的才觸發開燈
-            - condition: state
-              entity_id: switch.shu_fang_deng
-              state: 'off'
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
+    - condition: state
+      entity_id: switch.shu_fang_deng
+      state: "off"
+    - condition: template
+      value_template: >-
+        {% set cam_age = now().timestamp() - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) %}
+        {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+        {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
+        {% set ap = (state_attr(ent, 'ap_mac') | default('')) | lower %}
+        {% set raw = states('input_text.topfloor_ap_macs_5f') %}
+        {% set lst = ('70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if raw in ['unknown','unavailable',''] else raw) | lower | replace(' ','') | replace(';',',') | regex_findall('[^,]+') %}
+        {% set lp = states('input_text.topfloor_last_path') | string %}
+        {% set lp_name = lp.split('|')[0] if '|' in lp else '' %}
+        {% set lp_age = (now().timestamp() - ((lp.split('|')[1] | float(0)) if '|' in lp else 0)) %}
+        {# 剛判定「下樓」180 秒內，書房 PIR 右的單獨觸發視為經過，不開書房燈（回臥室後再去書房要能開燈），不開書房燈 #}
+        {% set just_passed = lp_name in ['down', 'down_start'] and lp_age < 180 %}
+        {{ trigger.id == 'enter_study' or (not just_passed and (cam_age <= 120 or (ap in lst and cam_age <= 1200))) }}
+  actions:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.topfloor_study_auto
+    - action: switch.turn_on
+      target:
+        entity_id: switch.shu_fang_deng
 
-            # 2. 攝影機與 AP 聯動判斷 (滿足 情況A 或 情況B 皆可放行)
-            - condition: or
-              conditions:
-                # 情況 A：iPhone 在五樓 AP，且過去 20 分鐘內攝影機有拍到人
-                - condition: and
-                  conditions:
-                    - condition: template
-                      value_template: >
-                        {% set ap_raw = states('input_text.topfloor_ap_macs_5f') %}
-                        {% set ap_list_raw = '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in ['unknown','unavailable',''] else ap_raw %}
-                        {% set ap_list = (ap_list_raw|lower|replace(' ','')|replace(';',',')|regex_findall('[^,]+')) %}
-                        {% set iphone_ap = (state_attr('device_tracker.iphone_17_pro_max_kenny','ap_mac')|default(''))|lower %}
-                        {{ iphone_ap in ap_list }}
-                    - condition: not
-                      conditions:
-                        - condition: state
-                          entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-                          state: 'off'
-                          for:
-                            minutes: 20
-
-                # 情況 B：iPhone 不在五樓 AP，且過去 2 分鐘內攝影機有拍到人
-                - condition: and
-                  conditions:
-                    - condition: template
-                      value_template: >
-                        {% set ap_raw = states('input_text.topfloor_ap_macs_5f') %}
-                        {% set ap_list_raw = '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in ['unknown','unavailable',''] else ap_raw %}
-                        {% set ap_list = (ap_list_raw|lower|replace(' ','')|replace(';',',')|regex_findall('[^,]+')) %}
-                        {% set iphone_ap = (state_attr('device_tracker.iphone_17_pro_max_kenny','ap_mac')|default(''))|lower %}
-                        {{ iphone_ap not in ap_list }}
-                    - condition: not
-                      conditions:
-                        - condition: state
-                          entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-                          state: 'off'
-                          for:
-                            minutes: 2
-
-            # 3. 手動冷卻判定 (維持你原本的關閉狀態 enabled: false)
-            - condition: not
-              conditions:
-                - condition: template
-                  value_template: "{{(as_timestamp(now()) - as_timestamp(state_attr('automation.a107_11a_single', 'last_triggered') | default(0))) < (600) }}"
-              enabled: false
+- alias: 08-5G 書房燈關閉AI (V4.0.0)
+  id: ai_08_5g_study_light_off_v4
+  description: 離開書房回臥室立即關；離開書房下樓保留 3 分鐘後關；再次進書房取消
+  mode: restart
+  max_exceeded: silent
+  variables:
+    automation_version: V4.0.0
+  triggers:
+    - id: to_bedroom
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: leave_study_bedroom
+    - id: to_down
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: leave_study_down
+    - id: back
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: enter_study
+  conditions:
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
   actions:
     - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ webhook_enabled and trigger_kind == 'studyroom_line' }}"
+        - conditions: "{{ trigger.id == 'back' }}"
           sequence:
-            - action: input_datetime.set_datetime
-              target:
-                entity_id: input_datetime.topfloor_studyroom_line_last_triggered
-              data:
-                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ recent_stairs_or_bedroom }}"
-                  sequence:
-                    - action: input_datetime.set_datetime
-                      target:
-                        entity_id: input_datetime.topfloor_study_last_entered
-                      data:
-                        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-                    - action: switch.turn_on
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - stop: Webhook 判定進入書房並秒開燈；原動態感應流程保留。
-            - stop: Webhook 書房線已記錄，等待鄰近線補足方向。
-        - conditions:
-            - condition: template
-              value_template: "{{ webhook_enabled and trigger_kind == 'bedroom_line' }}"
+            - stop: "又進書房，取消延遲關燈"
+        # 回臥室：只關「感應自己開的」書房燈（手動開的不動）
+        - conditions: "{{ trigger.id == 'bedroom' and not is_state('input_boolean.topfloor_study_auto', 'on') }}"
           sequence:
-            - action: input_datetime.set_datetime
-              target:
-                entity_id: input_datetime.topfloor_bedroom_line_last_triggered
-              data:
-                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ recent_study_before_neighbor }}"
-                  sequence:
-                    - action: input_datetime.set_datetime
-                      target:
-                        entity_id: input_datetime.topfloor_study_last_exited
-                      data:
-                        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-                    - action: switch.turn_off
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - stop: Webhook 判定離開書房回房，秒關書房燈。
-            - stop: Webhook 房門線已記錄，保留原流程等待下一次判定。
-        - conditions:
-            - condition: template
-              value_template: "{{ webhook_enabled and trigger_kind == 'stairs_line' }}"
+            - stop: "書房燈不是感應開的，回臥室不處理"
+        - conditions: "{{ trigger.id == 'to_down' }}"
           sequence:
-            - action: input_datetime.set_datetime
+            - delay:
+                minutes: "{{ states('input_number.topfloor_study_leave_down_min') | int(3) }}"
+    - action: switch.turn_off
+      target:
+        entity_id: switch.shu_fang_deng
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.topfloor_study_auto
+
+- alias: 08-5G 書房燈無人檢查AI (V4.0.0)
+  id: ai_08_5g_study_vacancy_check
+  description: >
+    每分鐘檢查書房燈：右側（書房）PIR 安靜超過「書房無人判定」分鐘數、攝影機同樣時間內無人、同樣時間內沒有進書房 → 關。
+    不再看 iPhone 是否在 5F（臥室與書房同在 5F，分不出來，會讓燈撐很久）；右側（書房）感應器安靜＝你已離開書房。
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      minutes: "/1"
+  conditions:
+    - condition: state
+      entity_id: switch.shu_fang_deng
+      state: "on"
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
+  actions:
+    - variables:
+        now_ts: "{{ now().timestamp() }}"
+        quiet_min: >-
+          {{ 0 if is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
+             else ((now_ts - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0)) / 60) | round(1) }}
+        cam_min: "{{ ((now_ts - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0)) / 60) | round(1) }}"
+        enter_min: "{{ ((now_ts - as_timestamp(states('input_datetime.topfloor_path_enter_study'), 0)) / 60) | round(1) }}"
+        enter_ts: "{{ as_timestamp(states('input_datetime.topfloor_path_enter_study'), 0) }}"
+        left_after_enter: >-
+          {{ as_timestamp(states('input_datetime.topfloor_path_bedroom'), 0) > enter_ts
+             or as_timestamp(states('input_datetime.topfloor_path_down'), 0) > enter_ts
+             or as_timestamp(states('input_datetime.topfloor_study_last_exited'), 0) > enter_ts }}
+        iphone_5f: >-
+          {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+          {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
+          {% set ap = (state_attr(ent, 'ap_mac') | default('')) | lower %}
+          {% set raw = states('input_text.topfloor_ap_macs_5f') %}
+          {% set lst = ('70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if raw in ['unknown','unavailable',''] else raw) | lower | replace(' ','') | replace(';',',') | regex_findall('[^,]+') %}
+          {{ ap in lst }}
+        max_min: "{{ states('input_number.topfloor_study_max_min') | int(60) }}"
+        vac_min: "{{ states('input_number.topfloor_study_vacancy_min') | int(5) }}"
+    - choose:
+        # 上限：PIR 右已安靜超過上限 → 一律關
+        - conditions: "{{ quiet_min | float >= max_min | float }}"
+          sequence:
+            - action: switch.turn_off
               target:
-                entity_id: input_datetime.topfloor_stairs_line_last_triggered
+                entity_id: switch.shu_fang_deng
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.topfloor_study_auto
+            - action: counter.increment
+              target:
+                entity_id: counter.topfloor_study_max_off
+              continue_on_error: true
+            - action: logbook.log
               data:
-                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ recent_study_before_neighbor }}"
-                  sequence:
-                    - action: input_datetime.set_datetime
-                      target:
-                        entity_id: input_datetime.topfloor_study_last_exited
-                      data:
-                        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-                    - action: switch.turn_on
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - delay: "00:03:00"
-                    - action: switch.turn_off
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - stop: Webhook 判定離開書房下樓，守候 3 分鐘未被返回訊號重啟後關燈。
-            - stop: Webhook 樓梯線已記錄，保留原流程等待下一次判定。
-    - sequence:
-        - action: switch.turn_on
-          target:
-            entity_id: switch.shu_fang_deng
-        - delay:
-            hours: 0
-            minutes: 5
-            seconds: 0
-            milliseconds: 0
-        - choose:
-            - conditions:
-                - condition: template
-                  value_template: "{{ someone_may_still_be_in_study }}"
-              sequence:
-                - delay: "00:05:00"
-                - stop: 書房門線未推理出離開，攔截本次關燈並延長亮燈。
+                name: 頂樓動線
+                message: "{{ now().strftime('%H:%M:%S') }} 書房燈 {{ max_min }} 分鐘沒有動作，已關閉（上限）"
+              continue_on_error: true
+        # 無人：PIR 右安靜、攝影機無人、剛才沒有進書房，且 iPhone 不在 5F 或已離開書房
+        - conditions: >-
+            {{ quiet_min | float >= vac_min | float and cam_min | float >= vac_min | float
+               and enter_min | float >= vac_min | float }}
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.shu_fang_deng
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.topfloor_study_auto
+            - action: logbook.log
+              data:
+                name: 頂樓動線
+                message: "{{ now().strftime('%H:%M:%S') }} 書房燈判定無人（PIR 右安靜 {{ quiet_min }} 分鐘、攝影機 {{ cam_min }} 分鐘無人），已關閉"
+              continue_on_error: true
+
+- alias: 08-5G 書房回房間關燈AI (V4.0.0)
+  id: ai_08_5g_study_to_room_off
+  description: >
+    左側（房間）感應器觸發且是「走進房間」（剛上樓，或 120 秒內右側／書房先觸發）→ 關書房燈，並依「抵達後關樓梯燈延遲」關樓梯燈（只關感應開的）。
+    頂樓同時有 2 位以上家人（家人位置感測）時不動作，避免別人還在書房。
+  mode: restart
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
+    - condition: template
+      value_template: >-
+        {% set people = ['kenny', 'jerry', 'iris', 'elay']
+             | map('regex_replace', '^(.*)$', 'sensor.at_home_\\1_location')
+             | map('states') | select('match', '頂樓') | list | length %}
+        {% set now_ts = now().timestamp() %}
+        {% set right_age = now_ts - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) %}
+        {% set lp = states('input_text.topfloor_last_path') | string %}
+        {% set arrived = lp.split('|')[0] == 'arrive_up' and (now_ts - ((lp.split('|')[1] | float(0)) if '|' in lp else 0)) <= 120 %}
+        {{ people < 2 and (right_age <= 120 or arrived) }}
+  actions:
+    - variables:
+        trig_ts: "{{ now().timestamp() }}"
+    - if: "{{ is_state('switch.shu_fang_deng', 'on') }}"
+      then:
         - action: switch.turn_off
           target:
             entity_id: switch.shu_fang_deng
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.topfloor_study_auto
+        - action: logbook.log
+          data:
+            name: 頂樓動線
+            message: "{{ now().strftime('%H:%M:%S') }} 房間（左）感應器觸發，已關書房燈"
+          continue_on_error: true
+    - action: timer.start
+      target:
+        entity_id: timer.topfloor_room_arrived
+    - delay:
+        seconds: "{{ [states('input_number.topfloor_arrive_off_delay_s') | int(5), 4] | max }}"
+    # 延遲期間右側（書房側）又有動靜＝其實是在往外走（左→右），不關樓梯燈
+    - condition: template
+      value_template: >-
+        {{ not is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
+           and as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) <= trig_ts }}
+    - action: script.topfloor_stairs_off_one
+      data:
+        key: "0fb7"
+    - delay: "00:00:01"
+    - action: script.topfloor_stairs_off_one
+      data:
+        key: "13b8"
+    - delay: "00:00:02"
+    - action: script.topfloor_kandeng_off_if_auto

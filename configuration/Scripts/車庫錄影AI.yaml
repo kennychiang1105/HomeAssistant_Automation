@@ -1,0 +1,97 @@
+# ────────────────────────────────────────────────────────
+# 車庫錄影AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：錄影後轉檔為 1280 寬 H.264（攝影機原始為 4K H.265，LINE 難以播放），並限制長度。
+# - V4.0.0：新增 garage_video_line：錄影後以 LINE 影片訊息發送（呼叫端用 script.turn_on，不阻塞原本流程）。
+# - V4.0.0：新增 script.garage_video。從車庫攝影機即時串流（RTSP，經 HA stream）錄製短片（預設 8 秒）存到
+#           /config/www/snap/（隨機檔名，3 天後清除），回傳 mp4 網址，供 LINE 影片訊息直接在聊天室播放
+#           （LINE 無法直接播放 RTSP/HLS，必須是 https 的 mp4）。回傳：response_variable.url
+# ────────────────────────────────────────────────────────
+garage_video:
+  alias: 車庫錄影AI (V4.0.0)
+  description: 錄製車庫攝影機短片並回傳 mp4 網址
+  mode: parallel
+  max: 3
+  fields:
+    duration:
+      description: 錄影秒數（預設 8）
+      required: false
+    camera:
+      description: 攝影機 entity_id（預設車庫）
+      required: false
+  variables:
+    cam_entity: "{{ camera if (camera is defined and camera) else 'camera.g6_instant_high_resolution_channel' }}"
+    automation_version: 'V4.0.0'
+    secs: "{{ duration | int(8) if duration is defined else 8 }}"
+    rnd: "{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+    raw_name: "raw_{{ now().strftime('%Y%m%d_%H%M%S') }}_{{ rnd }}.mp4"
+    fname: "vid_{{ now().strftime('%Y%m%d_%H%M%S') }}_{{ rnd }}.mp4"
+  sequence:
+    - action: camera.record
+      target:
+        entity_id: "{{ cam_entity }}"
+      data:
+        filename: "/config/www/snap/{{ raw_name }}"
+        duration: "{{ secs }}"
+        lookback: 0
+      continue_on_error: true
+    # 錄影在背景進行，等錄完並收尾
+    - delay:
+        seconds: "{{ secs + 4 }}"
+    # 攝影機輸出為 4K H.265，LINE 多數裝置無法播放：轉成 1280 寬 H.264（體積也小很多），並刪除原始檔
+    - action: shell_command.transcode_video
+      data:
+        src: "/config/www/snap/{{ raw_name }}"
+        dst: "/config/www/snap/{{ fname }}"
+        secs: "{{ secs }}"
+      continue_on_error: true
+    - variables:
+        vid_result:
+          url: "https://family.kteam.tw:8126/local/snap/{{ fname }}"
+    - stop: "錄影完成"
+      response_variable: vid_result
+
+garage_video_line:
+  alias: 車庫短片LINE發送AI (V4.0.0)
+  description: 錄製車庫短片並以 LINE 影片訊息發送（可直接在聊天室播放；呼叫端用 script.turn_on 不等待）
+  mode: parallel
+  max: 3
+  fields:
+    user_id:
+      description: LINE 接收對象
+      required: true
+    preview:
+      description: 預覽圖網址（https，jpg，1MB 內）；留空則自行截圖
+      required: false
+    camera:
+      description: 攝影機 entity_id（預設車庫）
+      required: false
+    enabled:
+      description: 是否發送（預設 true）
+      required: false
+  sequence:
+    - if: "{{ enabled is defined and enabled in [false, 'false', 'False'] }}"
+      then:
+        - stop: "未啟用，略過錄影"
+    # 呼叫端沒給預覽圖時，自己截一張（頂層執行以避免巢狀變數作用域問題）
+    - action: script.garage_snapshot
+      data:
+        camera: "{{ camera if (camera is defined and camera) else '' }}"
+      response_variable: own_snap
+      continue_on_error: true
+    - variables:
+        preview_final: "{{ preview if (preview is defined and preview) else (own_snap.url if (own_snap is defined and own_snap is mapping and own_snap.url is defined) else '') }}"
+    - action: script.garage_video
+      data:
+        camera: "{{ camera if (camera is defined and camera) else '' }}"
+      response_variable: vid
+      continue_on_error: true
+    - if: "{{ vid is defined and vid is mapping and vid.url is defined and preview_final != '' }}"
+      then:
+        - action: script.send_line_to_user
+          data:
+            user_id: "{{ user_id }}"
+            source: 車庫短片
+            payload: >-
+              {{ [{"type": "video", "originalContentUrl": vid.url, "previewImageUrl": preview_final}] | tojson }}

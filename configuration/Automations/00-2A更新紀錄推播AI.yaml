@@ -1,11 +1,15 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
 # 00-2A更新紀錄推播AI (V3.3)
+# - V4.0.0：更新紀錄內文改為分段（系統版本／本次更新／簡要說明）、版本變動一行一項「舊 → 新」，簡要說明獨立成段（修正段落空行被模板吃掉的問題）。
+# - V4.0.0：更新紀錄通知改為扁平卡片（HA 通知與 LINE Flex 合併由 notify_dispatch 發送，一般級，沿用一般 LINE 開關）。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 相容版本：Helpers V3.11（已確認）
 # 更新紀錄（統一格式）：
 # - V3.3：新增手動更新說明欄位，推播時可附加人工補充內容。
 # - V3.2：改為動態掃描版本 + trigger-based template snapshot。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2A更新紀錄推播AI (V3.3)
+- alias: 00-2A更新紀錄推播AI (V4.0.0)
   id: ai_00_2a_release_note_push
   description: 每日 18:00 比對 HA/AI 版本，僅在有更新時推播變更摘要（HA + LINE 一般通知）。
   mode: single
@@ -13,7 +17,7 @@
     - platform: time
       at: "18:00:00"
   variables:
-    automation_version: "V3.3"
+    automation_version: "V4.0.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     release_url: "https://github.com/kennychiang1105/HomeAssistant_Automation/releases/"
     invalid_texts: ["unknown", "unavailable", "none", "None", ""]
@@ -33,11 +37,11 @@
       {% set old_item = previous_versions.get('system_operating_system_version') %}
       {{ old_item.version if old_item is mapping else 'V0.0' }}
     ha_status_line: >-
-      {{ '• Home Assistant Core：目前版本 ' ~ ha_current_version ~ '（上次記錄：' ~ previous_ha_version ~ '）\n• Home Assistant OS：目前版本 ' ~ os_current_version ~ '（上次記錄：' ~ previous_os_version ~ '）' }}
+      {{ 'Home Assistant Core：' ~ ha_current_version ~ '（上次 ' ~ previous_ha_version ~ '）\nHome Assistant OS：' ~ os_current_version ~ '（上次 ' ~ previous_os_version ~ '）' }}
     changed_lines_text: >-
       {% set ns = namespace(lines=[]) %}
       {% if previous_ha_version != ha_current_version %}
-        {% set ns.lines = ns.lines + ['• Home Assistant：已從 ' ~ previous_ha_version ~ ' 更新至 ' ~ ha_current_version] %}
+        {% set ns.lines = ns.lines + ['• Home Assistant：' ~ previous_ha_version ~ ' → ' ~ ha_current_version] %}
       {% endif %}
       {% if current_versions is mapping %}
         {% for key, item in (current_versions | dictsort) %}
@@ -46,7 +50,7 @@
           {% set new_version = item.version if item is mapping else '未知' %}
           {% set name = item.name if item is mapping else key %}
           {% if old_version != new_version %}
-            {% set ns.lines = ns.lines + ['• ' ~ name ~ '：已從 ' ~ old_version ~ ' 更新至 ' ~ new_version] %}
+            {% set ns.lines = ns.lines + ['• ' ~ name ~ '：' ~ old_version ~ ' → ' ~ new_version] %}
           {% endif %}
         {% endfor %}
       {% endif %}
@@ -58,36 +62,28 @@
         - condition: template
           value_template: "{{ has_changes }}"
       then:
-        - parallel:
-            - action: persistent_notification.create
-              data:
-                title: 智慧家庭更新紀錄（每日）
-                message: >-
-                  【偵測到版本更新】
+        - action: script.notify_dispatch
+          data:
+            level: general
+            source: "00-2A更新紀錄推播AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
+            title: 智慧家庭更新紀錄（每日）
+            user_id: "{{ line_bot_target_user_id if line_bot_target_user_id not in invalid_texts else 'C26ff4e9d30159ba5264a1676f46f8f86' }}"
+            message: |-
+              偵測到版本更新
 
-                  {{ ha_status_line }}
+              【系統版本】
+              {{ ha_status_line }}
 
-                  {{ changed_lines_text }}{{ manual_note_block_with_spacing }}
+              【本次更新】
+              {{ changed_lines_text }}
+              {%- if manual_update_note | trim != '' %}
 
-                  更新紀錄網址：{{ release_url }}
-            - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_general_enable
-                  state: "on"
-              then:
-                - action: script.send_line_to_user
-                  data:
-                    user_id: "{{ line_bot_target_user_id if line_bot_target_user_id not in invalid_texts else 'C26ff4e9d30159ba5264a1676f46f8f86' }}"
-                    payload: >-
-                      {% set messages = [
-                        {"type":"text","text":"【智慧家庭通知】一般 General 🪧"},
-                        {"type":"text","text":"📘 偵測到版本更新\n\n" ~ ha_status_line ~ "\n" ~ changed_lines_text}
-                      ] %}
-                      {% if manual_note_block|trim != '' %}
-                        {% set messages = messages + [{"type":"text","text":manual_note_block}] %}
-                      {% endif %}
-                      {% set messages = messages + [{"type":"text","text":"🔗 更新紀錄網址\n" ~ release_url}] %}
-                      {{ messages | tojson }}
+              【簡要說明】
+              {{ manual_update_note }}
+              {%- endif %}
+
+              更新紀錄：{{ release_url }}
 
         - event: ai_version_snapshot_update
           event_data:

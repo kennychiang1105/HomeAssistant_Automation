@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2P門鎖電量每日紀錄AI (V4.0.0)
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。每天 00:05 記錄客廳門鎖電量（最近 8 天），供 sensor.doorlock_battery_drop_mean_7d 計算日耗電率（packages/doorlock_battery.yaml）。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2P門鎖電量每日紀錄AI (V4.0.0)
+  id: ai_00_2p_doorlock_battery_daily
+  description: 每天 00:05 把客廳門鎖電量記進 input_text.doorlock_batt_daily_hist（保留最近 8 筆）。
+  mode: single
+  triggers:
+    - trigger: time
+      at: "00:05:00"
+  conditions:
+    - condition: template
+      value_template: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu') | float(-1) >= 0 }}"
+  actions:
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.doorlock_batt_daily_hist
+      data:
+        value: >-
+          {% set old = states('input_text.doorlock_batt_daily_hist').split(',') | map('trim') | reject('eq', '') | list %}
+          {% set new = (old + [states('sensor.ke_ting_men_suo_dian_liang_guo_lu') | float(0) | round(1) | string])[-8:] %}
+          {{ new | join(',') }}
