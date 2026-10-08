@@ -1,0 +1,347 @@
+# ────────────────────────────────────────────────────────
+# 08-5J頂樓動線推理AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：移除「走道 PIR 右→書房 PIR 左 ≤10 秒＝進書房」規則：走過走道（上樓後往臥室、或經過書房門口）就會誤判成進書房，造成書房燈誤開且關不掉。進書房改為：書房線＋PIR 左、或手動開書房燈。
+# - V4.0.0：新增。頂樓感應優化：集中判斷頂樓動線的唯一來源。接收三條攝影機跨線、攝影機有人/清空、書房 PIR 左右、
+#           iPhone 連上 5F AP、書房燈／床頭燈／檯燈被開啟，去抖動與雜訊過濾後，以「時間戳比對」多訊號判斷，
+#           發出事件 topfloor_path（arrive_up / down_start / down / enter_study / leave_study_bedroom / leave_study_down /
+#           enter_bedroom / vacant_landing）。依 7 天紀錄：有跨線幾乎都是真的（雜訊約 1~2%），但約 2 成通行沒有跨線，
+#           所以跨線只當方向證據，不單獨決定關燈。
+#           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
+#           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
+# ────────────────────────────────────────────────────────
+- alias: 08-5J頂樓動線推理AI (V4.0.0)
+  id: ai_08_5j_topfloor_path_inference
+  description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
+  mode: parallel
+  max: 30
+  max_exceeded: silent
+  variables:
+    automation_version: "V4.0.0"
+    src: "{{ trigger.event.data.source if trigger.id == 'test' else trigger.id }}"
+    W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
+    deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
+    is_line: "{{ src in ['stairs_line', 'bedroom_line', 'studyroom_line'] }}"
+  triggers:
+    - id: stairs_line
+      trigger: webhook
+      webhook_id: 5fstairsline
+      local_only: true
+    - id: bedroom_line
+      trigger: webhook
+      webhook_id: 5fbedroomline
+      local_only: true
+    - id: studyroom_line
+      trigger: webhook
+      webhook_id: 5fstudyroomline
+      local_only: true
+    - id: cam_on
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
+    - id: cam_off
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "off"
+    - id: cam_off_45
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "off"
+      for:
+        seconds: "{{ states('input_number.topfloor_vacancy_s') | int(45) }}"
+    - id: pir_left
+      trigger: state
+      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+      to: "on"
+    - id: pir_right
+      trigger: state
+      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+      to: "on"
+    - id: ap_join
+      trigger: template
+      value_template: >-
+        {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+        {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
+        {% set ap = (state_attr(ent, 'ap_mac') | default('')) | lower %}
+        {% set raw = states('input_text.topfloor_ap_macs_5f') %}
+        {% set lst = ('70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if raw in ['unknown','unavailable',''] else raw) | lower | replace(' ','') | replace(';',',') | regex_findall('[^,]+') %}
+        {{ ap in lst }}
+    - id: study_on
+      trigger: state
+      entity_id: switch.shu_fang_deng
+      to: "on"
+    - id: bed_lamp_on
+      trigger: state
+      entity_id:
+        - light.yeelink_bslamp2_4329_light
+        - light.yeelink_lamp2_678c_light
+      to: "on"
+    - id: test
+      trigger: event
+      event_type: topfloor_test_signal
+  conditions:
+    # 舊的「原本模式」＝不使用 Webhook：跨線訊號忽略
+    - condition: template
+      value_template: "{{ not (is_line and is_state('input_select.topfloor_webhook_mode', '原本模式')) }}"
+    # 書房燈由感應（08-5G）開啟時不當作「手動進書房」
+    - condition: template
+      value_template: >-
+        {{ src != 'study_on' or not (is_state('input_boolean.topfloor_study_auto', 'on')
+           and (now() - states.input_boolean.topfloor_study_auto.last_changed).total_seconds() <= 20) }}
+  actions:
+    # ── 步驟 0：事件發生前的各訊號年齡（秒） ──
+    - variables:
+        now_ts: "{{ now().timestamp() }}"
+        p_cam_on: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) }}"
+        p_pl: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) }}"
+        p_pr: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) }}"
+        p_st: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) }}"
+        p_bd: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
+        p_sd: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) }}"
+        p_cam_off: "{{ now_ts - as_timestamp(states('input_datetime.topfloor_cam_last_off'), 0) }}"
+        p_first: "{{ (now_ts - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0)) > W and (now_ts - as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0)) > W and (now_ts - as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0)) > W }}"
+        cam_active10: "{{ is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'on') or p_cam_on <= 10 or p_cam_off <= 10 or p_pl <= 10 or p_pr <= 10 }}"
+        j_entity: "{{ {'stairs_line': 'input_datetime.topfloor_j_stairs', 'bedroom_line': 'input_datetime.topfloor_j_bedroom', 'studyroom_line': 'input_datetime.topfloor_j_study'}.get(src, '') }}"
+        line_entity: "{{ {'stairs_line': 'input_datetime.topfloor_stairs_line_last_triggered', 'bedroom_line': 'input_datetime.topfloor_bedroom_line_last_triggered', 'studyroom_line': 'input_datetime.topfloor_studyroom_line_last_triggered'}.get(src, '') }}"
+    # ── 步驟 1：跨線去抖動＋寫時間戳（08-5A 保全依賴 *_line_last_triggered，必寫） ──
+    - if: "{{ is_line }}"
+      then:
+        - if: "{{ (now_ts - as_timestamp(states(j_entity), 0)) < (deb | float) }}"
+          then:
+            - stop: "跨線去抖動：同一條線短時間內重複，略過"
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: "{{ j_entity }}"
+          data:
+            timestamp: "{{ now_ts }}"
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: "{{ line_entity }}"
+          data:
+            timestamp: "{{ now_ts }}"
+    # ── 步驟 2：寫其他訊號時間戳 ──
+    - choose:
+        - conditions: "{{ src == 'cam_on' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_cam_last_on
+              data:
+                timestamp: "{{ now_ts }}"
+        - conditions: "{{ src == 'cam_off' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_cam_last_off
+              data:
+                timestamp: "{{ now_ts }}"
+        - conditions: "{{ src == 'pir_left' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_pir_left_last
+              data:
+                timestamp: "{{ now_ts }}"
+        - conditions: "{{ src == 'pir_right' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_pir_right_last
+              data:
+                timestamp: "{{ now_ts }}"
+        - conditions: "{{ src == 'ap_join' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_ap5f_last_join
+              data:
+                timestamp: "{{ now_ts }}"
+    # ── 步驟 3：跨線雜訊檢查（前 10 秒與後 10 秒都沒有攝影機／PIR 動靜＝雜訊） ──
+    - if: "{{ is_line and not cam_active10 }}"
+      then:
+        - wait_for_trigger:
+            - trigger: state
+              entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+              to: "on"
+            - trigger: state
+              entity_id:
+                - binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+                - binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+              to: "on"
+          timeout: "00:00:10"
+          continue_on_timeout: true
+        - if: "{{ not wait.completed }}"
+          then:
+            - action: counter.increment
+              target:
+                entity_id: counter.topfloor_ghost_line
+              continue_on_error: true
+            - action: logbook.log
+              data:
+                name: 頂樓動線
+                message: "{{ now().strftime('%H:%M:%S') }} 跨線雜訊（{{ src }}：前後 10 秒攝影機與 PIR 都沒有動靜），忽略"
+              continue_on_error: true
+            - stop: "跨線雜訊，忽略"
+        - delay: "00:00:01"
+    # ── 步驟 4：事件發生後的最新年齡 ──
+    - variables:
+        now2: "{{ now().timestamp() }}"
+        a_cam_on: "{{ now2 - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) }}"
+        a_cam_off: "{{ now2 - as_timestamp(states('input_datetime.topfloor_cam_last_off'), 0) }}"
+        a_pl: "{{ now2 - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) }}"
+        a_pr: "{{ now2 - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) }}"
+        a_st: "{{ now2 - as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) }}"
+        a_bd: "{{ now2 - as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
+        a_sd: "{{ now2 - as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) }}"
+        cam_first: "{{ as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) < (now_ts - 0.5) }}"
+        last_raw: "{{ states('input_text.topfloor_last_path') | string }}"
+        last_path: "{{ last_raw.split('|')[0] if '|' in last_raw else '' }}"
+        a_last_path: "{{ now2 - ((last_raw.split('|')[1] | float(0)) if '|' in last_raw else 0) }}"
+        ev: >-
+          {{ src }}｜攝影機 {{ a_cam_on | int }}s 前、PIR右 {{ a_pr | int }}s、PIR左 {{ a_pl | int }}s、樓梯線 {{ a_st | int }}s、房門線 {{ a_bd | int }}s、書房線 {{ a_sd | int }}s
+    # ── 漏抓統計：攝影機一次通行（≥4 秒）沒有任何跨線 ──
+    - if: >-
+        {{ src == 'cam_off' and p_cam_on >= 4 and p_cam_on < 300
+           and p_st > p_cam_on + 5 and p_bd > p_cam_on + 5 and p_sd > p_cam_on + 5 }}
+      then:
+        - action: counter.increment
+          target:
+            entity_id: counter.topfloor_miss_line
+          continue_on_error: true
+    # ── 上樓抵達（可與其他事件同時成立，所以獨立判斷） ──
+    - if: >-
+        {{ (src in ['bedroom_line', 'studyroom_line'] and a_cam_on <= W and cam_first and p_first)
+           or (src in ['bedroom_line', 'studyroom_line'] and p_st <= 15 and a_cam_on <= 60)
+           or (src == 'ap_join' and a_cam_on <= 60) }}
+      then:
+        - action: script.topfloor_publish_path
+          data:
+            path: arrive_up
+            evidence: "{{ ev }}"
+    # ── 其餘事件（依序，第一個成立者） ──
+    - choose:
+        - conditions: "{{ src == 'bedroom_line' and p_sd <= 10 }}"
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: leave_study_bedroom
+                evidence: "{{ ev }}"
+        - conditions: >-
+            {{ (src == 'stairs_line' and p_sd <= 10)
+               or (src == 'cam_on' and a_sd <= 10)
+               or (src == 'pir_left' and p_pr <= 10 and last_path == 'enter_study') }}
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: leave_study_down
+                evidence: "{{ ev }}"
+        - conditions: >-
+            {{ (src == 'cam_on' and (a_bd <= 15 or a_sd <= 15))
+               or (src == 'stairs_line' and (p_bd <= 10 or p_sd <= 10)) }}
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: down_start
+                evidence: "{{ ev }}"
+        - conditions: >-
+            {{ src == 'cam_off' and last_path in ['down_start', 'leave_study_down'] and a_last_path <= 60
+               and a_pl >= 20 and a_pr >= 20 }}
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: down
+                evidence: "{{ ev }}"
+        # 書房線：附近 PIR 右（書房）有動靜才算進書房；沒有就等最多 10 秒
+        - conditions: "{{ src == 'studyroom_line' }}"
+          sequence:
+            - if: "{{ p_pr <= W }}"
+              then:
+                - action: script.topfloor_publish_path
+                  data:
+                    path: enter_study
+                    evidence: "{{ ev }}"
+              else:
+                - wait_for_trigger:
+                    - trigger: state
+                      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+                      to: "on"
+                  timeout: "00:00:10"
+                  continue_on_timeout: true
+                - if: "{{ wait.completed }}"
+                  then:
+                    - action: script.topfloor_publish_path
+                      data:
+                        path: enter_study
+                        evidence: "{{ ev }}（PIR 右（書房）隨後觸發）"
+        - conditions: "{{ src == 'study_on' }}"
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: enter_study
+                evidence: "{{ ev }}（手動開書房燈）"
+        # 房門線：等 15 秒，期間攝影機與走道 PIR 都沒動靜才算回房
+        - conditions: "{{ src == 'bedroom_line' }}"
+          sequence:
+            - delay: "00:00:15"
+            - if: >-
+                {{ last_path != 'enter_study'
+                   and (now().timestamp() - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0)) > 15
+                   and is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'off') }}
+              then:
+                - action: script.topfloor_publish_path
+                  data:
+                    path: enter_bedroom
+                    evidence: "{{ ev }}（房門線後 15 秒攝影機與走道 PIR 無動靜）"
+        - conditions: "{{ src == 'cam_off' and a_bd <= 15 and a_pr > 30 and last_path != 'enter_study' }}"
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: enter_bedroom
+                evidence: "{{ ev }}"
+        - conditions: "{{ src == 'bed_lamp_on' and (a_cam_on <= 120 or a_bd <= 120) }}"
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: enter_bedroom
+                evidence: "{{ ev }}（床頭燈／檯燈被開啟）"
+        - conditions: >-
+            {{ src == 'cam_off_45' and a_pr >= (states('input_number.topfloor_vacancy_s') | int(45)) }}
+          sequence:
+            - action: script.topfloor_publish_path
+              data:
+                path: vacant_landing
+                evidence: "{{ ev }}"
+
+- alias: 08-5J頂樓感應週報 (V4.0.0)
+  id: ai_08_5j_topfloor_weekly_report
+  description: 每週一 09:00 發送頂樓感應準確度週報（只發 HA 通知，不發 LINE），之後計數歸零
+  mode: single
+  triggers:
+    - trigger: time
+      at: "09:00:00"
+  conditions:
+    - condition: time
+      weekday:
+        - mon
+  actions:
+    - action: script.notify_dispatch
+      data:
+        level: info
+        line: false
+        source: "08-5J頂樓動線推理AI (V4.0.0)"
+        version: "V4.0.0"
+        title: 頂樓感應週報
+        message: |-
+          本週動線判斷 {{ states('counter.topfloor_path_events') | int(0) }} 次
+          跨線雜訊 {{ states('counter.topfloor_ghost_line') | int(0) }} 次、攝影機通行但沒有跨線 {{ states('counter.topfloor_miss_line') | int(0) }} 次
+          樓梯燈保底關燈 {{ states('counter.topfloor_fallback_off') | int(0) }} 次、書房 {{ states('input_number.topfloor_study_max_min') | int(60) }} 分鐘上限關燈 {{ states('counter.topfloor_study_max_off') | int(0) }} 次
+          （建議：保底關燈或漏抓偏多時，檢查攝影機跨線設定或調整證據視窗）
+    - action: counter.reset
+      target:
+        entity_id:
+          - counter.topfloor_path_events
+          - counter.topfloor_ghost_line
+          - counter.topfloor_miss_line
+          - counter.topfloor_fallback_off
+          - counter.topfloor_study_max_off

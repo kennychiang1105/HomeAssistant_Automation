@@ -1,17 +1,19 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 21B_客廳電風扇異常告警AI (V3.1)
+# 21B_客廳電風扇異常告警AI (V4.0.0)
 # 相容版本：Helpers V3.9（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # - V3.1：移除已下線 TV remote 裝置依賴，避免 Unknown entity 導致設定失敗。
 # ─────────────────────────────────────────────────────────────
-- alias: 21B_客廳電風扇異常告警AI (V3.1)
+- alias: 21B_客廳電風扇異常告警AI (V4.0.0)
   id: ai_living_room_fan_anomaly_alert
   description: "當風扇在自動模式下離線或關閉時發出警報"
   mode: single
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V4.0.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
 
   triggers:
@@ -48,8 +50,13 @@
 
   actions:
     - data:
+        level: important
+        line: false
+        source: "21B_客廳電風扇異常告警AI (V4.0.0)"
+        version: "{{ automation_version | default('', true) }}"
+        title: "21B_客廳電風扇異常告警AI (V4.0.0)"
         message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
-      action: notify.persistent_notification
+      action: script.notify_dispatch
       enabled: true
     - if:
         - condition: state
@@ -58,6 +65,7 @@
       then:
         - service: script.send_line_to_user
           data:
+            source: "21B_客廳電風扇異常告警AI (V4.0.0)"
             user_id: "{{ line_bot_target_user_id }}"
             payload: >-
               {{
@@ -77,52 +85,19 @@
               target:
                 entity_id: media_player.ke_ting_homepod
             - data:
+                level: important
+                line: false
+                source: "21B_客廳電風扇異常告警AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
                 title: 智慧家庭告警
-              action: notify.persistent_notification
+              action: script.notify_dispatch
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-        - data:
-            media:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-              metadata: {}
-          target:
-            entity_id:
-              - media_player.guang_bo_qun_zu_tong_zhi
-              - media_player.sonydian_shi
-          action: media_player.play_media
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 13
-            milliseconds: 0
-          enabled: true
-        - parallel:
-            - data:
-                message: >-
-                  智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告:
-                  客廳電風扇電源連線異常，請確認！
-                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-            - data:
-                message: >-
-                  智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告:
-                  客廳電風扇電源連線異常，請確認！
-                media_player_entity_id: media_player.sonydian_shi
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 25
-            milliseconds: 0
+        - action: script.announce
+          data:
+            level: important
+            repeat_count: 2
+            message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - data:
             volume_level: 0.5
@@ -137,51 +112,19 @@
               target:
                 entity_id: media_player.ke_ting_homepod
             - data:
+                level: important
+                line: false
+                source: "21B_客廳電風扇異常告警AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
                 title: 智慧家庭告警
-              action: notify.persistent_notification
+              action: script.notify_dispatch
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-        - data:
-            media:
-              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-              media_content_type: music
-              metadata: {}
-          target:
-            entity_id:
-              - media_player.guang_bo_qun_zu_tong_zhi
-          action: media_player.play_media
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 13
-            milliseconds: 0
-          enabled: true
-        - parallel:
-            - data:
-                message: >-
-                  智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告:
-                  客廳電風扇電源連線異常，請確認！
-                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-            - data:
-                message: >-
-                  智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告: 客廳電風扇電源連線異常，請確認！智慧家庭警告:
-                  客廳電風扇電源連線異常，請確認！
-                media_player_entity_id: media_player.sonydian_shi
-                cache: true
-              action: tts.speak
-              metadata: {}
-              target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-        - delay:
-            hours: 0
-            minutes: 0
-            seconds: 25
-            milliseconds: 0
+        - action: script.announce
+          data:
+            level: important
+            repeat_count: 2
+            message: "智慧家庭警告: 客廳電風扇電源連線異常，請確認！"
         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
         - delay:
             hours: 0

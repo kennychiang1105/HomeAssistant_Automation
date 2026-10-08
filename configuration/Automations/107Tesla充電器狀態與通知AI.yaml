@@ -1,7 +1,9 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V3.3.0)
+# 107Tesla充電器狀態與通知AI (V4.0.0)
 # 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.0：功能版。修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時「無開始通知」與「充電用時計算錯誤」問題。
 #           charge_start 條件新增放行「不同車型互轉」情境：當 charge_start_tesla 觸發且 from_status 為 Luxgen 型，
 #           或 charge_start_luxgen 觸發且 from_status 為 Tesla 型時，視為新車輛插槍，立即更新 start_time 並發送新車開始通知。
@@ -15,6 +17,7 @@
 # - V3.1.2：修補版。修正觸發條件只保留 idle→charging/charging_reduced 的開始通知與 charging*→not_connected/charging_finished 的完成通知；移除 Tesla/Luxgen 互轉觸發並修正 6 小時未充電誤報。
 # - V3.1.1：修補版。修正開始/完成通知觸發邏輯，新增 charging_reduced↔charging 互轉完成通知；6 小時未充電提醒僅在待充狀態且無充電能量時觸發，避免誤報。
 # - V3.1.0：功能版。Tesla/Luxgen 通知格式統一為多則訊息（含版本號、換行與 emoji），補上 kWh（度）單位，並統一 LINE 發送方式與 100B 一致。
+# - V4.0.0：修正拔槍重插後（狀態經過 unknown）開始充電沒有通知；新增「插槍後回報充電完成但沒有在充電」提醒（離峰 23:59 後才充：併入 00:02 未開始充電檢查；00:01～06:00 才插槍者滿 10 分鐘提醒）。
 # - V3.0.5：修補版。00:02 未充電提醒改為僅在「準備充電/等待汽車」狀態通知；若為充電完成狀態則不通知。
 # - V3.0.4：修補版。修正 session_energy 不會即時歸零問題，00:02 改以「今日 00:00 後是否有充電能量更新」判斷是否已有充電紀錄。
 # - V3.0.3：修補版。恢復 00:02 未充電提醒，但僅在當次尚無充電完成紀錄（session_energy=0）時通知，避免充電完成後誤報。
@@ -23,7 +26,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V3.4.0)
+- alias: 107Tesla充電器狀態與通知AI (V4.0.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -32,7 +35,7 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V3.4.0"
+    automation_version: "V4.0.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -63,6 +66,16 @@
     - platform: time
       at: "00:02:00"
       id: midnight_not_started
+
+    # 離峰充電從 23:59 才開始，插槍時回報「充電完成」是正常的；00:02 的檢查（midnight_not_started）已一併涵蓋「充電完成」。
+    # 00:01～06:00 之間才插槍者，改在回報「充電完成」滿 10 分鐘後提醒
+    - platform: state
+      entity_id: sensor.tesla_wall_connector_status
+      to:
+        - "charging_finished"
+        - "charging finished"
+      for: "00:10:00"
+      id: finished_not_charging
 
     - platform: state
       entity_id: sensor.tesla_wall_connector_status
@@ -120,6 +133,12 @@
   action:
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
+        # 這次插槍後已經開始充電過（充飽後不拔槍，狀態會退回 ready／waiting，不能再當成「沒在充電」）
+        # HA 開機後經過的秒數（開機時 input_text.notify_ha_switch_init 會被寫入）；用來分辨「開機造成的 unknown→充電中」與「真的拔槍重插」
+        boot_age: "{{ as_timestamp(now()) - as_timestamp(states.input_text.notify_ha_switch_init.last_updated, 0) }}"
+        charged_this_connection: >-
+          {{ as_timestamp(states('input_datetime.tesla_charger_start_time'), 0)
+             > as_timestamp(states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed, 0) }}
         status_for_vehicle: >-
           {% set now_st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
           {% if trigger.id == 'charge_done' and trigger.from_state is defined and trigger.from_state is not none %}
@@ -252,7 +271,8 @@
               value_template: >-
                 {{ trigger.from_state is defined and trigger.from_state is not none and
                    (
-                     from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states)
+                     (from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states)
+                     or (from_status_normalized in ['unknown', 'unavailable', 'none'] and boot_age | float(0) > 180))
                      or
                      (trigger.id == 'charge_start_tesla' and from_status_normalized in ['charging_reduced', 'charging (reduced)', '充電（降壓）'])
                      or
@@ -267,8 +287,12 @@
                 entity_id: input_datetime.tesla_charger_start_time
               data:
                 datetime: "{{ now_time }}"
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
                 message: >-
                   {{ vehicle_name }} 開始充電（{{ now_time }}）。
@@ -287,6 +311,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -295,8 +320,12 @@
                               {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
@@ -319,8 +348,12 @@
             - service: input_boolean.turn_off
               target:
                 entity_id: input_boolean.tesla_charger_session_charged
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
                 message: >-
                   {{ vehicle_name }} 充電完成。
@@ -342,6 +375,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -350,8 +384,12 @@
                               {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
@@ -366,14 +404,26 @@
               entity_id: input_boolean.tesla_charger_session_charged
               state: "off"
             - condition: template
+              value_template: "{{ not charged_this_connection }}"
+            - condition: template
               value_template: >-
-                {{ charger_status | string | lower | trim in pending_states }}
+                {% set st = charger_status | string | lower | trim %}
+                {{ st in pending_states
+                   or (st in finished_states and is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'on')) }}
           sequence:
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
                 message: >-
+                  {% if charger_status | string | lower | trim in finished_states %}
+                  {{ now_time }} 離峰時段已過仍未充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限），請檢查車輛狀況。
+                  {% else %}
                   {{ now_time }} 仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
+                  {% endif %}
             - choose:
                 - conditions:
                     - condition: state
@@ -385,6 +435,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -393,8 +444,12 @@
                               {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
@@ -404,8 +459,12 @@
             - condition: trigger
               id: error_state
           sequence:
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
                 message: >-
                   Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。
@@ -420,6 +479,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -428,8 +488,12 @@
                               {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
@@ -444,11 +508,17 @@
               entity_id: input_boolean.tesla_charger_session_charged
               state: "off"
             - condition: template
+              value_template: "{{ not charged_this_connection }}"
+            - condition: template
               value_template: >-
                 {{ charger_status | string | lower | trim in pending_states }}
           sequence:
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
                 message: >-
                   已連接超過 6 小時仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
@@ -463,6 +533,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -471,8 +542,12 @@
                               {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
@@ -480,10 +555,60 @@
 
         - conditions:
             - condition: trigger
+              id: finished_not_charging
+            - condition: state
+              entity_id: input_boolean.tesla_charger_session_charged
+              state: "off"
+            - condition: template
+              value_template: >-
+                {% set m = now().hour * 60 + now().minute %}
+                {{ charger_status | string | lower | trim in finished_states
+                   and (trigger.platform == 'time' or (m >= 1 and m < 360)) }}
+            - condition: state
+              entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
+              state: "on"
+            - condition: template
+              value_template: "{{ not charged_this_connection }}"
+          sequence:
+            - service: script.notify_dispatch
+              data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
+                title: "【Tesla充電器】重要 Important ⚠️"
+                message: >-
+                  車輛已插槍但沒有在充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限）。
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: input_boolean.notify_line_important_enable
+                      state: "on"
+                    - condition: template
+                      value_template: >-
+                        {{ line_bot_target_user_id | string | lower | trim not in ['', 'unknown', 'unavailable', 'none'] }}
+                  sequence:
+                    - service: script.send_line_to_user
+                      data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                        user_id: "{{ line_bot_target_user_id }}"
+                        payload: >-
+                          {{ [
+                              {'type':'text','text':line_title_important},
+                              {'type':'text','text':'車輛已插槍但沒有在充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限）。'},
+                              {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
+                            ] | tojson }}
+
+        - conditions:
+            - condition: trigger
               id: notify_test_button
           sequence:
-            - service: persistent_notification.create
+            - service: script.notify_dispatch
               data:
+                level: general
+                line: false
+                source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
                 message: >-
                   這是充電樁通知測試訊息（{{ now_time }}）。
@@ -502,6 +627,7 @@
                   sequence:
                     - service: script.send_line_to_user
                       data:
+                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                         user_id: "{{ line_bot_target_user_id }}"
                         payload: >-
                           {{ [
@@ -510,8 +636,12 @@
                               {'type':'text','text': '其他資訊：\n目前狀態 ' ~ charger_status ~ '\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
-                - service: persistent_notification.create
+                - service: script.notify_dispatch
                   data:
+                    level: general
+                    line: false
+                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "【Tesla充電器】LINE 未發送"
                     message: >-
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。

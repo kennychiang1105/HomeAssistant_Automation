@@ -1,11 +1,13 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 100C2客廳門鎖電量分級通知AI (V3.1)
+# 100C2客廳門鎖電量分級通知AI (V4.0.0)
 # 相容版本：Helpers V3.7（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.1：換電池校正時同步重設 doorlock_batt_last_drop_time，避免跨循環殘留時間戳造成剩餘天數誤判為 0。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100C2客廳門鎖電量分級通知AI (V3.1)
+- alias: 100C2客廳門鎖電量分級通知AI (V4.0.0)
   id: ai_doorlock_battery_cycle_calibration
   description: 當門鎖電量由低回升至 ≥80% 時，視為換電池；同步更新上次校正款式與耗電率（％/日），並重置通知等級為 OK，供 35/15/5% 通知系統使用。
   mode: single
@@ -25,7 +27,7 @@
         {{ prev not in invalids and prev|float(100) < 20 }}
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V4.0.0"
     notif_title_base: "【AI電量計算系統 {{ automation_version }}】"
     notif_title_calib: |-
       {{ notif_title_base }}
@@ -74,6 +76,7 @@
       then:
         - service: script.send_line_to_user
           data:
+            source: "過濾 unknown/unavailable/-1 等假觸發；且前值必須 <20%"
             user_id: "{{ line_bot_target_user_id }}"
             payload: >-
               {{
@@ -85,8 +88,12 @@
               }}
 
     # 6) 永久通知（如你已改用 persistent_notification.create，可自行切換）
-    - action: notify.persistent_notification
+    - action: script.notify_dispatch
       data:
+        level: important
+        line: false
+        source: "過濾 unknown/unavailable/-1 等假觸發；且前值必須 <20%"
+        version: "{{ automation_version | default('', true) }}"
         title: "{{ notif_title_calib }}"
         message: >-
           🛠️ 門鎖換電池偵測：已自動完成校正並將通知等級重置為 OK。

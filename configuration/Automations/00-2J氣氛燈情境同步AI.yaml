@@ -1,0 +1,45 @@
+# ────────────────────────────────────────────────────────
+# 00-2J氣氛燈情境同步AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。以網關（Aqara 保全模式：晚安 / 離家 / 在家，與網關警戒狀態）判斷目前情境，
+#           呼叫 script.ambient_scene 替 UniFi 機台 LED 換色：離家=紅、晚安=暖橘、早安（06~17 點）=綠、到家=綠。
+#           不管情境是實體開關、HomeKit、定位或手動觸發，只要網關模式改變都會同步。
+# ────────────────────────────────────────────────────────
+- alias: 00-2J氣氛燈情境同步AI (V4.0.0)
+  id: ai_00_2j_ambient_scene_sync
+  description: 依網關模式（離家/晚安/在家）同步機台氣氛燈顏色
+  mode: restart
+  variables:
+    automation_version: "V4.0.0"
+  trigger:
+    - trigger: state
+      entity_id:
+        - input_boolean.aqara_li_jia
+        - input_boolean.aqara_wan_an
+        - input_boolean.aqara_zai_jia
+      to: "on"
+    - trigger: state
+      entity_id: alarm_control_panel.54ef44cf58f9_alarm
+      to:
+        - armed_away
+        - armed_night
+        - armed_home
+  action:
+    # 情境會同時改好幾個旗標，等 4 秒讓網關狀態穩定再判斷
+    - delay: "00:00:04"
+    - variables:
+        alarm: "{{ states('alarm_control_panel.54ef44cf58f9_alarm') }}"
+        scene: >-
+          {% if is_state('input_boolean.aqara_wan_an', 'on') %}goodnight
+          {% elif is_state('input_boolean.aqara_li_jia', 'on') %}leave
+          {% elif is_state('input_boolean.aqara_zai_jia', 'on') or alarm == 'armed_home' %}{{ 'morning' if 6 <= now().hour < 17 else 'arrive' }}
+          {% elif alarm == 'armed_night' %}goodnight
+          {% elif alarm == 'armed_away' %}leave
+          {% else %}none{% endif %}
+    - if: "{{ scene | trim != 'none' }}"
+      then:
+        - action: script.ambient_scene
+          data:
+            scene: "{{ scene | trim }}"
+          continue_on_error: true

@@ -1,9 +1,15 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.0.0：第一段（預估秒數）播完立即接第二段緊急音效＋「立即就地趴下、掩護、穩住」（不等抵達時間、不再空 11 秒）。
+# - V4.0.0：（舊）預估抵達時間一到立即播放緊急音效＋「發生地震，請就地避難掩護」（原本固定等 25 秒，中間會空一段）；沒有秒數時維持 25 秒。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
+# - V4.0.0：地震廣播延遲優化：①廣播移到最前面（不等 LINE／緊急模式／通知）並不阻塞；②第一句改短句並預先合成快取（斷網也能播）；③拿掉廣播前的 HomePod volume_set（實測卡約 3.6 秒），音量交給統一廣播；④播報秒數扣掉處理延遲與念到數字前的約 3 秒，剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
 # 相容版本：Helpers V3.9（已確認）
 'eq99':
-  alias: 地震預警系統(遠端)AI (V3.4)
+  alias: 地震預警系統(遠端)AI (V4.0.0)
   description: 地震預警通知與分級廣播；4級以上觸發緊急模式。
   variables:
-    automation_version: 'V3.4'
+    automation_version: 'V4.0.0'
+    ts0: "{{ now().timestamp() }}"
     # 修正 1：將 level_text 移至上方，讓後續的 lv 可以正確引用它
     level_text: >-
       {{ level if level is defined and level|string|trim not in ['', 'unknown', 'unavailable'] else '未知' }}
@@ -12,6 +18,8 @@
     # 修正 2：使用更安全的 regex 取值方式。就算字串是 "未知" 也不會引發系統崩潰，會安全地給予預設值 0
     lv: >-
       {{ (level_text | regex_findall('\d+') | join('')) | int(0) }}
+    # 預估到達秒數（數字；取不到為 -1）。必須定義在 seconds_text 之後
+    sec_i: "{{ seconds_text | int(-1) }}"
     line_bot_target_user_id: >-
       {{ states('sensor.line_bot_target_user_id') }}
   sequence:
@@ -49,8 +57,12 @@
                 {"type":"text","text":"【重要 Important ⚠️】\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達（僅通知）"}
               ] %}
               {{ messages | tojson }}
-      - action: persistent_notification.create
+      - action: script.notify_dispatch
         data:
+          level: emergency
+          line: false
+          source: "地震預警系統(遠端)AI (V4.0.0)"
+          version: "{{ automation_version | default('', true) }}"
           title: 地震預警系統｜重要 Important ⚠️
           message: >-
             地震預警系統收到訊息：預估地震{{ states('input_text.line_eew_remote_level') }}級，
@@ -60,6 +72,31 @@
       - condition: template
         value_template: '{{ lv >= 3 }}'
       sequence:
+      # [V4.0.0 地震延遲優化] 廣播最先執行（不等 LINE／緊急模式／通知），並以 script.turn_on 不阻塞後續動作。
+      # 語音是預先合成的短句（www 快取暖機 warm_announce.py：震度 3~7 × 3~60 秒），念到數字時倒數已過去約 3 秒，
+      # 所以播報秒數 = 預估秒數 - 已經過秒數 - 3；剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
+      # （不再先 volume_set 兩台 HomePod：實測會卡約 3.6 秒；音量由 script.announce 依「廣播音量_緊急」設定）
+      - variables:
+          say_sec: "{{ (sec_i - (now().timestamp() - ts0 | float) - 3) | round(0) | int }}"
+          quake_msg: >-
+            {% if sec_i < 0 %}地震預警！預估地震{{ level_text }}級，立即就地避難！{% elif say_sec <= 2 %}地震！地震！立即就地趴下，掩護，穩住！{% else %}地震預警！預估{{ level_text }}級，{{ [say_sec, 99] | min }}秒後到達！{% endif %}
+      # 氣氛燈先啟動（不等廣播合成），announce 內部再呼叫時會被去重
+      - action: script.turn_on
+        target:
+          entity_id: script.mood_alert
+        data:
+          variables:
+            level: emergency
+            source: "地震預警"
+            test: "{{ test | default(false) }}"
+      - action: script.turn_on
+        target:
+          entity_id: script.announce
+        data:
+          variables:
+            level: emergency
+            chime: false
+            message: "{{ quake_msg }}"
       - if:
         - condition: state
           entity_id: input_boolean.notify_line_emergency_enable
@@ -67,6 +104,7 @@
         then:
         - action: script.send_line_to_user
           data:
+            source: "地震預警系統(遠端)AI (V4.0.0)"
             user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'') }}'
             payload: >-
               {% set level_raw = states('input_text.line_eew_remote_level') %}
@@ -101,8 +139,12 @@
           target:
             entity_id: automation.jin_ji_mo_shi
           action: automation.trigger
-      - action: persistent_notification.create
+      - action: script.notify_dispatch
         data:
+          level: emergency
+          line: false
+          source: "地震預警系統(遠端)AI (V4.0.0)"
+          version: "{{ automation_version | default('', true) }}"
           title: 地震預警系統｜緊急 Urgent ‼️
           message: >-
             地震預警系統收到訊息：預估地震{{ states('input_text.line_eew_remote_level') }}級，
@@ -112,47 +154,26 @@
             {% else %}
             已啟動廣播提醒，未啟動緊急模式。
             {% endif %}
-      - action: media_player.volume_set
-        data:
-          volume_level: 0.65
+      # 第一段（預估秒數）播完就接第二段：緊急音效＋「立即就地趴下、掩護、穩住」，不等預估抵達時間（原本固定等 25 秒再播，中間空一段）
+      # 先等 1 秒讓 script.announce 真的開始執行，再等它結束（最多 25 秒）
+      - delay: "00:00:01"
+      - wait_template: "{{ is_state('script.announce', 'off') }}"
+        timeout: "00:00:25"
+        continue_on_timeout: true
+      # 第二段氣氛燈提醒（第一輪結束後才閃；announce 內部再呼叫時被去重）
+      - action: script.turn_on
         target:
-          entity_id:
-          - media_player.ke_ting_homepod
-          - media_player.ding_lou_homepod
-      # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-      - action: tts.speak
-        metadata: {}
-        target:
-          device_id: c01a1336ef43795fd0679631c3e6ce62
+          entity_id: script.mood_alert
         data:
-          media_player_entity_id: media_player.guang_bo_qun_zu_all
-          message: 地震預警系統預估地震{{ level_text }}級，{{ seconds_text }}秒後到達。{{ level_text }}級地震！{{ seconds_text }}秒到達！
-          cache: true
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 30
-          milliseconds: 0
-      - action: media_player.play_media
+          variables:
+            level: emergency
+            source: "地震預警"
+            test: "{{ test | default(false) }}"
+      - action: script.announce
         data:
-          media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-          media_content_type: music
-          metadata: {}
-        target:
-          entity_id: media_player.guang_bo_qun_zu_all
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 13
-          milliseconds: 0
-      - action: tts.speak
-        metadata: {}
-        target:
-          device_id: c01a1336ef43795fd0679631c3e6ce62
-        data:
-          media_player_entity_id: media_player.guang_bo_qun_zu_all
-          message: 發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。
-          cache: true
+          level: emergency
+          chime: true
+          message: "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
       - delay:
           hours: 0
           minutes: 0

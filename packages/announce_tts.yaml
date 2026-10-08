@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────────────────────────
+# 廣播音檔合成套件 (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 shell_command.warm_announce：背景執行 /config/scripts/warm_announce.py（預先合成地震等固定廣播句，快取暖機）。
+# - V4.0.0：shell_command.mk_announce，呼叫 /config/scripts/mk_announce.py，把「提示音 + Edge TTS 語音」合成單一音檔
+#           （/media/ann_*.mp3，同文字快取，14 天未用自動清除），供 script.announce 使用。
+# ─────────────────────────────────────────────────────────────
+shell_command:
+  warm_announce: 'sh -c "nohup python3 /config/scripts/warm_announce.py > /config/warm_announce.log 2>&1 &"'
+  check_entities: 'python3 /config/scripts/check_entities.py'
+  mk_announce: 'python3 /config/scripts/mk_announce.py "{{ chime }}" "{{ b64 }}"'
+  clean_snaps: "find /config/www/snap -type f \\( -name 'snap_*.jpg' -o -name 'vid_*.mp4' -o -name 'raw_*.mp4' \\) -mmin +4320 -delete"
+  transcode_video: 'sh -c "ffmpeg -y -loglevel error -i {{ src }} -t {{ secs }} -vf scale=1280:-2 -c:v libx264 -preset veryfast -crf 28 -pix_fmt yuv420p -c:a aac -b:a 64k -movflags +faststart {{ dst }}; rm -f {{ src }}"'
+  rm_live: 'rm -f /config/www/live/{{ token }}.jpg'
+  clean_live: "find /config/www/live -type f -mmin +10 -delete"
+

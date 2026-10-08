@@ -1,0 +1,371 @@
+# ─────────────────────────────────────────────────────────────────────
+# Chiang Family — iOS Home App Style Button-Card Templates
+# Version: 1.0.0 | 2026-10-03
+# ─────────────────────────────────────────────────────────────────────
+# 這個檔案定義全域 button-card 模板，供 new-ui.yaml 與 3d-floorplan.yaml 引用。
+# 風格目標：Apple Home App —— 深灰圓角卡片(off) / 白底黃圖示(on)
+# ─────────────────────────────────────────────────────────────────────
+
+button_card_templates:
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 基礎裝置卡片（開/關 雙態）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_device_card:
+    show_state: true
+    show_name: true
+    show_icon: true
+    tap_action:
+      action: toggle
+    hold_action:
+      action: more-info
+    styles:
+      card:
+        - border-radius: 16px
+        - padding: 12px 14px 10px 14px
+        - height: 90px
+        - transition: background 0.2s ease, box-shadow 0.2s ease
+        - background: >
+            [[[
+              const s = entity ? entity.state : 'off';
+              const onStates = ['on','open','home','unlocked','playing','locked'];
+              return (s === 'on' || s === 'open' || s === 'playing')
+                ? '#ffffff' : '#2c2c2e';
+            ]]]
+        - box-shadow: >
+            [[[
+              const s = entity ? entity.state : 'off';
+              return (s === 'on' || s === 'open' || s === 'playing')
+                ? '0 2px 16px rgba(0,0,0,0.13)' : '0 1px 3px rgba(0,0,0,0.2)';
+            ]]]
+      grid:
+        - grid-template-areas: '"i ." "n n" "s s"'
+        - grid-template-columns: auto 1fr
+        - grid-template-rows: 1fr auto auto
+        - align-items: start
+      name:
+        - font-size: 13px
+        - font-weight: "700"
+        - color: >
+            [[[
+              const s = entity ? entity.state : 'off';
+              return (s === 'on' || s === 'open' || s === 'playing')
+                ? '#111111' : '#ffffff';
+            ]]]
+        - text-align: left
+        - white-space: nowrap
+        - overflow: hidden
+        - text-overflow: ellipsis
+        - padding-top: 4px
+      state:
+        - font-size: 11px
+        - font-weight: "400"
+        - color: >
+            [[[
+              const s = entity ? entity.state : 'off';
+              return (s === 'on' || s === 'open' || s === 'playing')
+                ? '#888888' : '#666666';
+            ]]]
+        - text-align: left
+        - padding-top: 2px
+      icon:
+        - color: >
+            [[[
+              const s = entity ? entity.state : 'off';
+              return (s === 'on' || s === 'open' || s === 'playing')
+                ? '#FFB900' : '#888888';
+            ]]]
+        - width: 26px
+        - height: 26px
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 燈光專用卡片（支援亮度百分比顯示）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_light_card:
+    template: ios_device_card
+    state_display: >
+      [[[
+        if (!entity) return 'Off';
+        if (entity.state === 'on') {
+          const bri = entity.attributes.brightness;
+          if (bri) return Math.round(bri / 255 * 100) + '%';
+          return 'On';
+        }
+        return 'Off';
+      ]]]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 門鎖卡片（locked=on 樣式，但不能 toggle）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_lock_card:
+    show_state: true
+    show_name: true
+    show_icon: true
+    tap_action:
+      action: more-info
+    hold_action:
+      action: more-info
+    state_display: >
+      [[[
+        if (!entity) return '';
+        return entity.state === 'locked' ? 'Locked' : 'Unlocked';
+      ]]]
+    styles:
+      card:
+        - border-radius: 16px
+        - padding: 12px 14px 10px 14px
+        - height: 90px
+        - background: >
+            [[[
+              return entity && entity.state === 'locked' ? '#2c2c2e' : '#ffffff';
+            ]]]
+        - box-shadow: >
+            [[[
+              return entity && entity.state === 'locked'
+                ? '0 1px 3px rgba(0,0,0,0.2)' : '0 2px 16px rgba(0,0,0,0.13)';
+            ]]]
+      grid:
+        - grid-template-areas: '"i ." "n n" "s s"'
+        - grid-template-columns: auto 1fr
+        - grid-template-rows: 1fr auto auto
+        - align-items: start
+      name:
+        - font-size: 13px
+        - font-weight: "700"
+        - color: >
+            [[[
+              return entity && entity.state === 'locked' ? '#ffffff' : '#111111';
+            ]]]
+        - text-align: left
+        - padding-top: 4px
+      state:
+        - font-size: 11px
+        - color: >
+            [[[
+              return entity && entity.state === 'locked' ? '#666666' : '#888888';
+            ]]]
+        - text-align: left
+        - padding-top: 2px
+      icon:
+        - color: >
+            [[[
+              return entity && entity.state === 'locked' ? '#888888' : '#FFB900';
+            ]]]
+        - width: 26px
+        - height: 26px
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 捲門/車庫門卡片（open/close）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_cover_card:
+    show_state: true
+    show_name: true
+    show_icon: true
+    tap_action:
+      action: more-info
+    hold_action:
+      action: more-info
+    state_display: >
+      [[[
+        if (!entity) return '';
+        const map = { open: 'Open', closed: 'Closed', opening: 'Opening...', closing: 'Closing...' };
+        return map[entity.state] || entity.state;
+      ]]]
+    styles:
+      card:
+        - border-radius: 16px
+        - padding: 12px 14px 10px 14px
+        - height: 90px
+        - background: >
+            [[[
+              return entity && entity.state === 'open' ? '#ffffff' : '#2c2c2e';
+            ]]]
+        - box-shadow: >
+            [[[
+              return entity && entity.state === 'open'
+                ? '0 2px 16px rgba(0,0,0,0.13)' : '0 1px 3px rgba(0,0,0,0.2)';
+            ]]]
+      grid:
+        - grid-template-areas: '"i ." "n n" "s s"'
+        - grid-template-columns: auto 1fr
+        - grid-template-rows: 1fr auto auto
+        - align-items: start
+      name:
+        - font-size: 13px
+        - font-weight: "700"
+        - color: >
+            [[[
+              return entity && entity.state === 'open' ? '#111111' : '#ffffff';
+            ]]]
+        - text-align: left
+        - padding-top: 4px
+      state:
+        - font-size: 11px
+        - color: >
+            [[[
+              return entity && entity.state === 'open' ? '#888888' : '#666666';
+            ]]]
+        - text-align: left
+        - padding-top: 2px
+      icon:
+        - color: >
+            [[[
+              return entity && entity.state === 'open' ? '#FFB900' : '#888888';
+            ]]]
+        - width: 26px
+        - height: 26px
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 情境按鈕（Scenes pill — 深灰底，文字+emoji）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_scene_card:
+    show_state: false
+    show_name: true
+    show_icon: true
+    tap_action:
+      action: toggle
+    hold_action:
+      action: more-info
+    styles:
+      card:
+        - border-radius: 14px
+        - background: "#2c2c2e"
+        - height: 64px
+        - padding: 0 14px
+        - box-shadow: "0 1px 3px rgba(0,0,0,0.25)"
+        - transition: opacity 0.15s ease
+      grid:
+        - grid-template-areas: '"i n"'
+        - grid-template-columns: auto 1fr
+        - align-items: center
+        - justify-items: start
+        - gap: 10px
+      name:
+        - font-size: 15px
+        - font-weight: "600"
+        - color: "#ffffff"
+        - text-align: left
+      icon:
+        - color: "#FFB900"
+        - width: 22px
+        - height: 22px
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Section 標題（透明背景, 粗體黑字, > 箭頭）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_section_header:
+    show_icon: false
+    show_name: true
+    show_state: false
+    tap_action:
+      action: none
+    styles:
+      card:
+        - background: transparent
+        - box-shadow: none
+        - border-radius: 0
+        - padding: 12px 4px 4px 2px
+        - height: auto
+        - margin-top: 4px
+      name:
+        - font-size: 18px
+        - font-weight: "700"
+        - color: "#000000"
+        - text-align: left
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 環境概況 Pill（iPad 頂部統計）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_env_pill:
+    show_icon: true
+    show_name: true
+    show_state: true
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - border-radius: 24px
+        - background: "rgba(120,120,128,0.2)"
+        - padding: 8px 16px
+        - height: auto
+        - box-shadow: none
+      grid:
+        - grid-template-areas: '"i n" "i s"'
+        - grid-template-columns: auto 1fr
+        - align-items: center
+        - gap: 6px
+      name:
+        - font-size: 11px
+        - font-weight: "500"
+        - color: "#666666"
+        - text-align: left
+      state:
+        - font-size: 13px
+        - font-weight: "600"
+        - color: "#111111"
+        - text-align: left
+      icon:
+        - color: "#555555"
+        - width: 18px
+        - height: 18px
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 媒體播放器卡片（HomePod 等）
+  # ═══════════════════════════════════════════════════════════════════
+  ios_media_card:
+    show_state: true
+    show_name: true
+    show_icon: true
+    tap_action:
+      action: more-info
+    state_display: >
+      [[[
+        if (!entity) return '';
+        if (entity.state === 'playing') {
+          return entity.attributes.media_title || 'Playing';
+        }
+        return 'Not Playing';
+      ]]]
+    styles:
+      card:
+        - border-radius: 16px
+        - padding: 12px 14px 10px 14px
+        - height: 90px
+        - background: >
+            [[[
+              return entity && entity.state === 'playing' ? '#ffffff' : '#2c2c2e';
+            ]]]
+        - box-shadow: >
+            [[[
+              return entity && entity.state === 'playing'
+                ? '0 2px 16px rgba(0,0,0,0.13)' : '0 1px 3px rgba(0,0,0,0.2)';
+            ]]]
+      grid:
+        - grid-template-areas: '"i ." "n n" "s s"'
+        - grid-template-columns: auto 1fr
+        - grid-template-rows: 1fr auto auto
+        - align-items: start
+      name:
+        - font-size: 13px
+        - font-weight: "700"
+        - color: >
+            [[[
+              return entity && entity.state === 'playing' ? '#111111' : '#ffffff';
+            ]]]
+        - text-align: left
+        - padding-top: 4px
+      state:
+        - font-size: 11px
+        - color: >
+            [[[
+              return entity && entity.state === 'playing' ? '#888888' : '#666666';
+            ]]]
+        - text-align: left
+        - padding-top: 2px
+      icon:
+        - color: >
+            [[[
+              return entity && entity.state === 'playing' ? '#FFB900' : '#888888';
+            ]]]
+        - width: 26px
+        - height: 26px

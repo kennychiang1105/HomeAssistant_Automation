@@ -1,5 +1,9 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.0.0：門鈴改為重要級；通知加門鈴圖示、車庫攝影機截圖、車庫即時影像網頁連結與 8 秒 LINE 短片；使用專屬門鈴提示音（/media/chime_doorbell.mp3，四音鈴聲約 2.6 秒）：廣播用 script.announce（重要，觸發氣氛燈提醒）、通知用 script.notify_dispatch（HA + LINE 扁平卡片）；移除自帶音量儲存/還原（由 announce 處理）。
+# - V4.0.0：外網網址改用 family.kteam.tw（截圖/圖示/轉址頁）。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # ==============================================================================
-# 105大門門鈴自動化AI (V3.1.0)
+# 105大門門鈴自動化AI (V4.0.0)
 # ==============================================================================
 # 相容版本：Helpers V3.21.1 (門鈴 helper 與 LINE 通知開關)
 #
@@ -20,12 +24,12 @@
 # ==============================================================================
 
 - id: ai_105_front_door_doorbell_notify
-  alias: 105大門門鈴自動化AI (V3.1.0)
+  alias: 105大門門鈴自動化AI (V4.0.0)
   description: 大門門鈴按壓偵測、HomePod 語音廣播（含音量恢復）與 LINE 推播通知 (含 SOP-10/SOP-11 規範)
   mode: restart
   max_exceeded: silent
   variables:
-    automation_version: 'V3.1.0'
+    automation_version: 'V4.0.0'
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_doorbell_enabled: "{{ is_state('input_boolean.notify_line_doorbell_enable', 'on') }}"
     notif_title_doorbell: >-
@@ -44,65 +48,57 @@
       to: 'on'
   conditions: []
   actions:
-    # SOP-11：廣播前儲存原始音量
-    - variables:
-        vol_keting: "{{ state_attr('media_player.ke_ting_homepod', 'volume_level') | float(0.5) }}"
-        vol_dinglou: "{{ state_attr('media_player.ding_lou_homepod', 'volume_level') | float(0.5) }}"
     - parallel:
-        # 1. 廣播與 TTS（含音量恢復，遵循 SOP-11）
+        # 1. 廣播（重要級，專屬門鈴提示音：統一廣播會處理音量/還原，並觸發氣氛燈提醒）
+        - action: script.announce
+          data:
+            level: important
+            chime_media: media-source://media_source/local/chime_doorbell.mp3
+            chime_media_s: 2.6
+            message: "大門有人按門鈴！請注意門外來訪客人。"
+            player: media_player.guang_bo_qun_zu_all
+        # 2. 車庫攝影機截圖 + HA 通知與 LINE 扁平卡片（重要級；LINE 仍受 notify_line_doorbell_enable 控管）
         - sequence:
-            - action: media_player.volume_set
+            - variables:
+                live_token: "live{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}"
+            - action: script.turn_on
               target:
-                entity_id:
-                  - media_player.ke_ting_homepod
-                  - media_player.ding_lou_homepod
+                entity_id: script.garage_live
               data:
-                volume_level: 0.65
-            - action: tts.speak
+                variables:
+                  token: "{{ live_token }}"
+            - action: script.garage_snapshot
+              response_variable: snap
+              continue_on_error: true
+            - action: script.notify_dispatch
+              data:
+                level: important
+                source: "105大門門鈴自動化AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
+                title: 大門門鈴
+                icon: "https://family.kteam.tw:8126/local/icons/doorbell.png?v=2"
+                image: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+                link_url: "http://192.168.68.97:8125/local/live.html?t={{ live_token }}&openExternalBrowser=1"
+                link_label: 開啟攝影機即時影像
+                link_note: 僅限連接家裡 Wi-Fi 時可開啟
+                link2_url: "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"
+                link2_label: 在「家庭」App 查看攝影機
+                link2_note: 外出（外網）也可使用
+                line: "{{ line_doorbell_enabled | bool(true) and (line_bot_target_user_id | string | length > 5) }}"
+                user_id: "{{ line_bot_target_user_id }}"
+                message: |-
+                  大門有人按門鈴！
+
+                  觸發時間：{{ now_time }}
+                  目前家中成員數量：{{ at_home_count }} 人
+
+                  請確認大門攝影機或應門。
+            # 卡片送出後，錄 8 秒車庫短片並以 LINE 影片訊息跟進（不阻塞）
+            - action: script.turn_on
               target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
+                entity_id: script.garage_video_line
               data:
-                message: "大門有人按門鈴！請注意門外來訪客人。"
-                media_player_entity_id: media_player.guang_bo_qun_zu_all
-                cache: true
-            # 等待 2 秒讓播放啟動
-            - delay: "00:00:02"
-            # 等待播音完畢（兩台 HomePod 均不再 playing）或超時 12 秒
-            - wait_template: >-
-                {{ not is_state('media_player.ke_ting_homepod', 'playing') and
-                   not is_state('media_player.ding_lou_homepod', 'playing') }}
-              timeout: "00:00:12"
-              continue_on_timeout: true
-            # 恢復原始音量（無論是否超時都執行）
-            - action: media_player.volume_set
-              target:
-                entity_id: media_player.ke_ting_homepod
-              data:
-                volume_level: "{{ vol_keting }}"
-            - action: media_player.volume_set
-              target:
-                entity_id: media_player.ding_lou_homepod
-              data:
-                volume_level: "{{ vol_dinglou }}"
-        # 2. LINE 推播通知 (遵循 SOP-10 規範)
-        - sequence:
-            - if:
-                - condition: template
-                  value_template: "{{ (line_doorbell_enabled | bool(true)) and (line_bot_target_user_id | string | length > 5) }}"
-              then:
-                - action: script.send_line_to_user
-                  data:
-                    user_id: "{{ line_bot_target_user_id }}"
-                    payload: >-
-                      {% set messages = [
-                        {"type":"text","text": notif_title_doorbell ~ "\n訪客通知"},
-                        {"type":"text","text": "大門有人按門鈴！\n觸發時間：" ~ now_time},
-                        {"type":"text","text": "目前家中成員數量：" ~ at_home_count ~ " 人\n請確認大門攝影機或應門。"}
-                      ] %}
-                      {{ messages | tojson }}
-              else:
-                - action: persistent_notification.create
-                  data:
-                    title: "{{ notif_title_doorbell }} LINE 未發送"
-                    message: >-
-                      門鈴通知 LINE 未發送：{% if not (line_doorbell_enabled | bool(true)) %}門鈴通知開關未開啟{% else %}LINE user_id 無效{% endif %}。觸發時間：{{ now_time }}
+                variables:
+                  user_id: "{{ line_bot_target_user_id }}"
+                  preview: "{{ snap.url if snap is defined and snap is mapping and snap.url is defined else '' }}"
+                  enabled: "{{ line_doorbell_enabled | bool(true) and (line_bot_target_user_id | string | length > 5) and is_state('input_boolean.notify_line_important_enable', 'on') }}"

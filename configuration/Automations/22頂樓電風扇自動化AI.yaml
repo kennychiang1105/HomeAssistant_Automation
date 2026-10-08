@@ -1,21 +1,23 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V3.3.0)
+# 22頂樓電風扇自動化AI (V4.0.0)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.0（功能版）：風速曲線門檻全數上調 0.2°C，睡眠降速改由 sleep_silent_active 控制，睡眠與非夏季減成擴大為 -10% 並移除睡眠最低限制。
 # - V3.2.1（修補版）：修復 t_eff 為 none/unavailable 時的 float 轉型錯誤，補強 t_eff_valid 判斷並加入 t_eff 安全預設值避免自動化中斷。
 # - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V3.3.0)
+- alias: 22頂樓電風扇自動化AI (V4.0.0)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V3.3.0"
+    automation_version: "V4.0.0"
   trigger:
     - platform: state
       entity_id:
@@ -249,8 +251,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已自動解除（1 小時）"
                     message: "⏱️ 手動保留超過 1 小時，已恢復溫控自動判斷。"
 
@@ -270,8 +276,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "手動關機防護罩已自動解除（3 小時）"
                     message: "⏱️ 手動關機防護罩超過 3 小時，已恢復溫控自動開機判斷。"
 
@@ -302,8 +312,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "已偵測手動關機（含 HomeKit）→ 啟用手動關機防護罩"
                     message: "🙋‍♂️ 已啟用 3 小時手動關機防護罩，並清除回溫/保留/調速暫停記憶。"
 
@@ -327,8 +341,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已提前解除"
                     message: "🙋‍♂️ 在手動保留期間關閉風扇，已立即解除保留狀態。"
 
@@ -337,8 +355,12 @@
         - condition: template
           value_template: "{{ debug_notify and hp_soft_hold }}"
       then:
-        - service: notify.persistent_notification
+        - service: script.notify_dispatch
           data:
+            level: info
+            line: false
+            source: "22頂樓電風扇自動化AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
             title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
             message: >
               ⚠️ hp_raw_temp={{ hp_raw_temp }}, hp_raw_humidity={{ hp_raw_humidity }}；15 分內不依溫/濕度做關/開與調速，避免誤判。
@@ -416,8 +438,12 @@
                         - condition: template
                           value_template: "{{ debug_notify }}"
                       then:
-                        - service: notify.persistent_notification
+                        - service: script.notify_dispatch
                           data:
+                            level: info
+                            line: false
+                            source: "22頂樓電風扇自動化AI (V4.0.0)"
+                            version: "{{ automation_version | default('', true) }}"
                             title: "頂樓風扇自動開啟（上樓）"
                             message: >
                               🚶‍♂️ t_eff={{ '%.1f'|format(t_enter) }}°C ≥ {{ high_open_c }}°C
@@ -447,8 +473,12 @@
                                 - condition: template
                                   value_template: "{{ debug_notify }}"
                               then:
-                                - service: notify.persistent_notification
+                                - service: script.notify_dispatch
                                   data:
+                                    level: info
+                                    line: false
+                                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                                    version: "{{ automation_version | default('', true) }}"
                                     title: "頂樓風扇微風開啟（上樓介於門檻）"
                                     message: >
                                       🌡 t_eff={{ '%.1f'|format(t_enter) }}°C；
@@ -486,8 +516,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "手動開啟 — 已啟用保留 1 小時"
                     message: >
                       🙋‍♂️ t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C 低於 {{ night_cold_off_c }}°C；為避免立即自動關閉，已暫時保留 1 小時。
@@ -513,8 +547,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動關閉（過冷）"
                     message: >
                       🌙 t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C < 門檻 {{ night_cold_off_c }}°C（記憶=on）
@@ -542,8 +580,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（回溫）"
                     message: >
                       ☀️ t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C ≥ {{ morning_reopen_c }}°C（清除記憶）
@@ -561,8 +603,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（冷氣同步）"
                     message: "❄️ 冷氣=COOL，ac_temp={{ ac_temp }}°C"
 
@@ -578,8 +624,12 @@
                and manual_actor_detected
                and is_state('input_boolean.ding_lou_fan_manual_speed_snooze','off') }}
       then:
-        - service: notify.persistent_notification
+        - service: script.notify_dispatch
           data:
+            level: info
+            line: false
+            source: "22頂樓電風扇自動化AI (V4.0.0)"
+            version: "{{ automation_version | default('', true) }}"
             title: "手動調速防護罩啟用中"
             message: "🙋‍♂️ 偵測到人為調速，將跳過 AI 自動調速，直到風扇下次開機。"
 
@@ -609,8 +659,12 @@
                 - condition: template
                   value_template: "{{ debug_notify }}"
               then:
-                - service: notify.persistent_notification
+                - service: script.notify_dispatch
                   data:
+                    level: info
+                    line: false
+                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇風速調整"
                     message: >
                       🔄 新風速={{ desired_pct }}%｜t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C

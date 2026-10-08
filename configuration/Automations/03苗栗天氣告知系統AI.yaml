@@ -1,16 +1,18 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V3.0)
+# 03苗栗天氣告知系統AI (V4.0.0)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 03苗栗天氣告知系統AI (V3.0)
+- alias: 03苗栗天氣告知系統AI (V4.0.0)
   id: ai_miaoli_weather_disaster_notify
   description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
   mode: queued
   max: 10
   variables:
-    automation_version: "V3.0"
+    automation_version: "V4.0.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
   triggers:
     - entity_id: sensor.disaster
@@ -47,18 +49,23 @@
                 volume_level: 0.5
               action: media_player.volume_set
             - data:
+                level: general
+                line: false
+                source: "03苗栗天氣告知系統AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: 天氣告知系統 (早晨補報)
                 message: |-
                   天氣告知系統收到以下政府災害訊息:
 
                   {{ current_message }}
-              action: notify.persistent_notification
+              action: script.notify_dispatch
             - if:
                 - condition: state
                   entity_id: input_boolean.notify_line_general_enable
                   state: "on"
               then:
                 - data:
+                    source: "03苗栗天氣告知系統AI (V4.0.0)"
                     user_id: "{{ line_bot_target_user_id }}"
                     payload: >-
                       {% set msg_raw = states('sensor.disaster') %}
@@ -87,23 +94,10 @@
                       ] %}
                       {{ messages | tojson }}
                   action: script.send_line_to_user
-            - target:
-                entity_id: media_player.guang_bo_qun_zu_tong_zhi
+            - action: script.announce
               data:
-                announce: true
-                media:
-                  media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-                  media_content_type: music
-                  metadata: {}
-              action: media_player.play_media
-            - delay: "00:00:13"
-            - target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-              data:
-                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
-                cache: true
+                level: general
                 message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
-              action: tts.speak
             - target:
                 entity_id: input_datetime.last_disaster_broadcast
               data:
@@ -128,18 +122,23 @@
                 volume_level: 0.5
               action: media_player.volume_set
             - data:
+                level: general
+                line: false
+                source: "03苗栗天氣告知系統AI (V4.0.0)"
+                version: "{{ automation_version | default('', true) }}"
                 title: 天氣告知系統 (即時)
                 message: |-
                   天氣告知系統收到以下政府災害訊息:
 
                   {{ current_message }}
-              action: notify.persistent_notification
+              action: script.notify_dispatch
             - if:
                 - condition: state
                   entity_id: input_boolean.notify_line_general_enable
                   state: "on"
               then:
                 - data:
+                    source: "03苗栗天氣告知系統AI (V4.0.0)"
                     user_id: "{{ line_bot_target_user_id }}"
                     payload: >-
                       {% set msg_raw = states('sensor.disaster') %} {% set
@@ -169,23 +168,10 @@
                         }
                       ] %} {{ messages | tojson }}
                   action: script.send_line_to_user
-            - target:
-                entity_id: media_player.guang_bo_qun_zu_tong_zhi
+            - action: script.announce
               data:
-                announce: true
-                media:
-                  media_content_id: https://jnas916p.synology.me:8126/local/boardcast.mp3
-                  media_content_type: music
-                  metadata: {}
-              action: media_player.play_media
-            - delay: "00:00:13"
-            - target:
-                device_id: c01a1336ef43795fd0679631c3e6ce62
-              data:
-                media_player_entity_id: media_player.guang_bo_qun_zu_tong_zhi
-                cache: true
+                level: general
                 message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
-              action: tts.speak
             - target:
                 entity_id: input_datetime.last_disaster_broadcast
               data:

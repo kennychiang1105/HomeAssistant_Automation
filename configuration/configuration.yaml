@@ -1,7 +1,12 @@
 # ──────────────────────────────────────────────
-# AI Configuration（V3.5）
+# AI Configuration（V3.6）
 # ──────────────────────────────────────────────
 # 更新紀錄（統一格式）：
+# - V3.6（2026-10-08）：
+#   • recorder 保留期由 180 天改為 45 天，並排除高頻雜訊實體（button.*_info、網路使用率、耗電電流電壓、tesla 電網相關）與 automation／script 網域。
+#   • 新增自動化管理側邊欄面板（lovelace-automation）與整合儀表板「智慧家庭」（lovelace-smart，取代原橫向／直向兩個儀表板）。
+#   • packages 新增 topfloor／persons／doorlock_battery／announce_tts（person 以 YAML 設定）。
+#
 # - V3.5（2026-08-16）：
 #   • 依據 Home Assistant 2026.8 規範移除已棄用之 http: 區塊（改由 HA 系統網路介面管理），消除 2027.2.0 失效警告。
 #   • logger 區塊新增海信電視（Hisense TV）待機/ADB 連線重試日誌過濾規則。
@@ -35,7 +40,19 @@ frontend:
 
 recorder: 
   commit_interval: 10
-  purge_keep_days: 180
+  purge_keep_days: 45
+  exclude:
+    domains:
+      - automation
+      - script
+    entity_globs:
+      - sensor.udmse_*_utilization*
+      - sensor.u6_*_utilization*
+      - sensor.*_current_consumption
+      - sensor.*_current
+      - sensor.*_voltage
+      - sensor.tesla_wall_connector_grid_*
+      - button.*_info
 
 logger:
   default: info
@@ -547,10 +564,28 @@ lovelace:
       type: module
     - url: /community_plugin/switch-popup-card/switch-popup-card.js
       type: module  
+    - url: /local/floorplan/3d/card-3d-floorplan.js
+      type: module
   dashboards:
-    lovelace-yaml:
+    3d-home:
       mode: yaml
-      title: 家庭中心Beta
-      icon: mdi:home
-      show_in_sidebar: true    
-      filename: new-ui.yaml
+      title: 3D 智慧家庭
+      icon: mdi:cube-outline
+      show_in_sidebar: true
+      require_admin: false
+      filename: 3d-floorplan.yaml
+
+    lovelace-smart:
+      mode: yaml
+      title: 智慧家庭
+      icon: mdi:home-smart
+      show_in_sidebar: true
+      require_admin: false
+      filename: smart-home.yaml
+    lovelace-automation:
+      mode: yaml
+      title: 自動化管理
+      icon: mdi:robot-outline
+      show_in_sidebar: true
+      require_admin: false
+      filename: automation-panel.yaml

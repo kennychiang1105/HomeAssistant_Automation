@@ -1,17 +1,21 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 08-6離家保全系統AI (V3.1)
+# 08-6離家保全系統AI (V4.0.0)
 # 相容版本：Helpers V3.9（已確認）
+# - V4.0.0：全家不在改用 person.kenny／iris／jerry／elay 判斷（Jerry 含兩支手機；Elay＝iPhone 16 Pro Max）。
+# - V4.0.0：（舊）全家不在的判斷把 Iris 手機改成現行實體 device_tracker.iphone13promaxiris（舊的 iphone_13_pro_max_iris_2 已不存在，條件會報 unknown entity 導致本自動化無法執行）。
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # - V3.1：移除已下線 TV remote 裝置依賴，避免 Unknown entity 導致設定失敗。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-6離家保全系統AI (V3.1)
+- alias: 08-6離家保全系統AI (V4.0.0)
   id: ai_away_security_system
   description: "當所有成員離家後，監控鐵門與門鎖狀態，異常時觸發告警與通知。"
   mode: single
 
   variables:
-    automation_version: "V3.1"
+    automation_version: "V4.0.0"
     helpers_compat: "Helpers V3.0"
     notif_title_base: "【離家保全系統 {{ automation_version }}】"
     notif_title_important: >-
@@ -94,19 +98,17 @@
     - condition: and
       conditions:
         - condition: state
-          entity_id: device_tracker.unifi_16_cc_a1_4d_4f_42_default
+          entity_id: person.elay
+          state: not_home
+        # 以 person 判斷（packages/persons.yaml）：換手機只要改 person 的追蹤裝置，不用改這支自動化
+        - condition: state
+          entity_id: person.kenny
           state: not_home
         - condition: state
-          entity_id: device_tracker.iphone_17_pro_max_kenny
+          entity_id: person.iris
           state: not_home
         - condition: state
-          entity_id: device_tracker.iphone_13_pro_max_iris_2
-          state: not_home
-        - condition: state
-          entity_id: device_tracker.iphone_16_jerry
-          state: not_home
-        - condition: state
-          entity_id: device_tracker.redmi_note_11_pro_5g
+          entity_id: person.jerry
           state: not_home
   actions:
     - parallel:
@@ -140,6 +142,7 @@
                       then:
                         - service: script.send_line_to_user
                           data:
+                            source: "08-6離家保全系統AI (V4.0.0)"
                             user_id: "{{ line_bot_target_user_id }}"
                             payload: >-
                               {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
@@ -157,13 +160,17 @@
                               ] %}
                               {{ messages | tojson }}
                     - data:
+                        level: emergency
+                        line: false
+                        source: "08-6離家保全系統AI (V4.0.0)"
+                        version: "{{ automation_version | default('', true) }}"
                         message: |-
                           保全系統警告（離家保全 {{ automation_version }}）:
                           系統偵測所有人未在家且離家情境已啟用，但鐵門已打開。
                           目前情境：{{ aqara_scene_label_safe }}
                           請盡速確認鐵門狀態。
                         title: "{{ notif_title_important }}"
-                      action: notify.persistent_notification
+                      action: script.notify_dispatch
                     - action: alarm_control_panel.alarm_trigger
                       target:
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
@@ -196,49 +203,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
@@ -294,20 +273,9 @@
                                       target:
                                         entity_id: automation.jin_ji_mo_shi
                                       action: automation.trigger
-                                    - data:
-                                        title: 地震預警系統
-                                        message: |-
-                                          地震預警系統作動
-
-                                          發生有感危險地震，
-                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-                                          預估地震大於4級，
-                                          將啟動緊急模式因應。
-                                      enabled: true
-                                      action: notify.line_notification_group
                                     - action: script.send_line_to_user
                                       data:
+                                        source: "08-6離家保全系統AI (V4.0.0)"
                                         user_id: "{{ earthquake_admin_user_id }}"
                                         payload: >-
                                           {{
@@ -345,49 +313,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門已打開！請確認！保全系統未解除狀態下鐵門目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
@@ -406,8 +346,6 @@
                             milliseconds: 0
                           enabled: true
                         # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
-                    - action: notify.line_notification_group
-                      data: {}
             - conditions:
                 - condition: and
                   conditions:
@@ -437,6 +375,7 @@
                       then:
                         - service: script.send_line_to_user
                           data:
+                            source: "08-6離家保全系統AI (V4.0.0)"
                             user_id: "{{ line_bot_target_user_id }}"
                             payload: >-
                               {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
@@ -454,13 +393,17 @@
                               ] %}
                               {{ messages | tojson }}
                     - data:
+                        level: emergency
+                        line: false
+                        source: "08-6離家保全系統AI (V4.0.0)"
+                        version: "{{ automation_version | default('', true) }}"
                         message: |-
                           保全系統警告（離家保全 {{ automation_version }}）:
                           系統偵測所有人未在家且離家情境已啟用，但二樓門鎖已打開。
                           目前情境：{{ aqara_scene_label_safe }}
                           請立即鎖上門鎖並確認鐵門狀態。
                         title: "{{ notif_title_emergency }}"
-                      action: notify.persistent_notification
+                      action: script.notify_dispatch
                     - action: alarm_control_panel.alarm_trigger
                       target:
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
@@ -493,49 +436,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
@@ -591,20 +506,9 @@
                                       target:
                                         entity_id: automation.jin_ji_mo_shi
                                       action: automation.trigger
-                                    - data:
-                                        title: 地震預警系統
-                                        message: |-
-                                          地震預警系統作動
-
-                                          發生有感危險地震，
-                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-                                          預估地震大於4級，
-                                          將啟動緊急模式因應。
-                                      enabled: true
-                                      action: notify.line_notification_group
                                     - action: script.send_line_to_user
                                       data:
+                                        source: "08-6離家保全系統AI (V4.0.0)"
                                         user_id: "{{ earthquake_admin_user_id }}"
                                         payload: >-
                                           {{
@@ -642,49 +546,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但門鎖已打開！請確認！保全系統未解除狀態下門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
@@ -732,6 +608,7 @@
                       then:
                         - service: script.send_line_to_user
                           data:
+                            source: "08-6離家保全系統AI (V4.0.0)"
                             user_id: "{{ line_bot_target_user_id }}"
                             payload: >-
                               {% set scene_raw = states('sensor.aqaradang_qian_qing_jing')|string %}
@@ -749,13 +626,17 @@
                               ] %}
                               {{ messages | tojson }}
                     - data:
+                        level: emergency
+                        line: false
+                        source: "08-6離家保全系統AI (V4.0.0)"
+                        version: "{{ automation_version | default('', true) }}"
                         message: |-
                           保全系統警告（離家保全 {{ automation_version }}）:
                           系統偵測所有人未在家且離家情境已啟用，但鐵門與門鎖皆已打開。
                           目前情境：{{ aqara_scene_label_safe }}
                           請立即確認並關閉鐵門與門鎖。
                         title: "{{ notif_title_emergency }}"
-                      action: notify.persistent_notification
+                      action: script.notify_dispatch
                     - action: alarm_control_panel.alarm_trigger
                       target:
                         entity_id: alarm_control_panel.54ef44cf58f9_alarm
@@ -788,49 +669,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
@@ -886,20 +739,9 @@
                                       target:
                                         entity_id: automation.jin_ji_mo_shi
                                       action: automation.trigger
-                                    - data:
-                                        title: 地震預警系統
-                                        message: |-
-                                          地震預警系統作動
-
-                                          發生有感危險地震，
-                                          地震預警系統預估地震{{level}}級，{{seconds}}秒後到達
-
-                                          預估地震大於4級，
-                                          將啟動緊急模式因應。
-                                      enabled: true
-                                      action: notify.line_notification_group
                                     - action: script.send_line_to_user
                                       data:
+                                        source: "08-6離家保全系統AI (V4.0.0)"
                                         user_id: "{{ earthquake_admin_user_id }}"
                                         payload: >-
                                           {{
@@ -937,49 +779,21 @@
                             seconds: 13
                             milliseconds: 0
                           enabled: false
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            chime: false
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0
                             seconds: 30
                             milliseconds: 0
                           enabled: true
-                        - data:
-                            media:
-                              media_content_id: https://jnas916p.synology.me:8126/local/CWBEEW.mp3
-                              media_content_type: music
-                              metadata: {}
-                          enabled: true
-                          target:
-                            entity_id: media_player.guang_bo_qun_zu_all
-                          action: media_player.play_media
-                        - delay:
-                            hours: 0
-                            minutes: 0
-                            seconds: 13
-                            milliseconds: 0
-                          enabled: true
-                        - data:
-                            message: >-
-                              保全系統警告:
-                              系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！
-                            media_player_entity_id: media_player.guang_bo_qun_zu_all
-                            cache: true
-                          enabled: true
-                          action: tts.speak
-                          metadata: {}
-                          target:
-                            device_id: c01a1336ef43795fd0679631c3e6ce62
+                        - action: script.announce
+                          data:
+                            level: emergency
+                            message: "保全系統警告: 系統偵測所有人未在家，且已啟動離家模式，但鐵門與門鎖皆已打開！請確認！保全系統未解除狀態下鐵門與門鎖目前已打開，請確認！"
                         - delay:
                             hours: 0
                             minutes: 0

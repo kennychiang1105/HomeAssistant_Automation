@@ -1,0 +1,116 @@
+- id: '1643737297436'
+  alias: 00-2廣播系統測試
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - variables:
+      line_bot_target_user_id: '{{ states(''sensor.line_bot_target_user_id'') }}'
+  - data:
+      message: 廣播測試 廣播測試 TESTING
+      media_player_entity_id: media_player.googletv8199
+      cache: true
+    enabled: true
+    action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 15
+      milliseconds: 0
+  - data:
+      entity_id: media_player.ba101
+      message: 廣播系統測試
+    enabled: false
+    action: tts.google_translate_say
+  - data:
+      entity_id: media_player.xiaomi_s12_46ed_play_control
+      message: 廣播系統測試
+    enabled: false
+    action: tts.google_translate_say
+  - data:
+      entity_id: media_player.tatv_8000
+      message: 廣播測試中
+    enabled: false
+    action: tts.google_translate_say
+  - data:
+      level: info
+      line: false
+      source: 00-2廣播系統測試
+      message: 廣播系統測試
+      title: 廣播系統
+    enabled: false
+    action: script.notify_dispatch
+  - data:
+      message: 系統測試
+      title: 通知系統
+    enabled: false
+    action: notify.line_notification_group
+  - data:
+      cache: true
+      message: 廣播系統測試
+      media_player_entity_id: media_player.wu_lou
+    enabled: false
+    action: tts.speak
+    metadata: {}
+    target:
+      device_id: c01a1336ef43795fd0679631c3e6ce62
+  - action: script.send_line_to_user
+    data:
+      source: 00-2廣播系統測試
+      user_id: '{{ line_bot_target_user_id }}'
+      payload: "{% set messages = [\n  {\"type\":\"text\",\"text\":\"推播通知測試\"},\n\
+        \  {\"type\":\"text\",\"text\":\"⏳ 即將進行地震預警系統測試\"},\n  {\"type\":\"text\"\
+        ,\"text\":\"將進行播音及警告測試，測試測試。\"}\n] %} {{ messages | tojson }}"
+  - action: media_player.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.googletv8199
+  - action: media_player.turn_off
+    metadata: {}
+    target:
+      device_id: e714f40b069c00487d69fe6bd35cf1a3
+    data: {}
+  - action: media_player.turn_on
+    metadata: {}
+    target:
+      entity_id: media_player.googletv8199
+    data: {}
+  mode: single
+- id: '1690887532200'
+  alias: 00-3 手動清理空間
+  description: ''
+  trigger: []
+  condition: []
+  action:
+  - service: recorder.purge
+    data:
+      repack: true
+      keep_days: 365
+  mode: single
+- id: '1692462784644'
+  alias: 106-1晚安情境一段時間後關閉樓梯燈
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - alarm_control_panel.0x54ef4410008d7276_alarm
+    to: armed_night
+    for:
+      hours: 0
+      minutes: 6
+      seconds: 0
+  condition: []
+  action:
+  - service: switch.turn_off
+    data: {}
+    target:
+      entity_id:
+      - switch.dc8e95fffe8d68f0_03
+      - switch.e0798dfffec3163b_01
+      - switch.dc8e95fffe8d68f0_01
+      - switch.dc8e95fffe83684d_01
+  mode: single

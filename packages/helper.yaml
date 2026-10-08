@@ -1,6 +1,37 @@
 # ──────────────────────────────────────────────
-# Helpers（V3.23.0）
+# Helpers（V4.0.0）
 # ──────────────────────────────────────────────
+# 新增 (V4.0.0 正式版補充)：
+#   • 新增 packages：topfloor.yaml（頂樓動線與樓梯燈參數／旗標／計時器，含深夜與起床亮度、色溫、「上次為深夜亮度」旗標）、
+#     persons.yaml（person.kenny／iris／jerry／elay，08-6 離家保全使用）、doorlock_battery.yaml（門鎖電量每日紀錄與日耗電率感測器）、
+#     announce_tts.yaml（廣播合成與快取暖機 shell_command）。
+#   • input_boolean.garage_arrival_ha_notify（104-4 HA 通知開關）、ambient_* 氣氛燈情境相關開關、mood_alert_ap_off 等。
+#   • input_text.line_bot_last_notice_key 去重鍵改為「Bot編號」（同一個 Bot 只預告一次，每月 1 日清除）。
+#   • 資料庫（recorder）保留天數與排除清單見 configuration.yaml V3.6。
+#
+# 新增 (V4.0-beta1 / LINE Bot):
+#   • input_number.line_bot_sticky：Auto 模式「主用 Bot」記憶（1~3），跨月沿用，減少切換次數。
+#   • input_text.line_bot_last_notice_key：「即將切換 Bot」預告去重鍵（Bot編號:剩餘則數）。
+#   • input_text.line_bot_monthly_history：各月最後使用的 Bot 紀錄（最近 12 個月）。
+#   • input_boolean.notify_ha_info/general/important_enable：HA 通知分級開關（資訊/一般/重要；緊急級永遠顯示）。
+#     不設 initial，重開機不覆蓋；首次由 00-2D通知開關初始化AI 一次性全部開啟，之後由使用者自行調整。
+#   • input_button.notify_test_*：統一通知測試按鈕（00-2E通知測試AI）。
+#   • input_text.notify_ha_switch_init：HA 通知開關首次初始化旗標（done 後不再自動開啟）。
+#   • input_boolean.mood_alert_enable/_important_enable/_emergency_enable：氣氛燈提醒開關（首次由 00-2D 一次性開啟）；mood_alert_active 提醒中旗標；
+#     input_text.mood_alert_last（上次提醒 時間|等級）、mood_alert_switch_init（初始化旗標）。
+#   • input_boolean.scene_announce_enable（首次由 00-2D 一次性開啟）、input_text.scene_announce_last / scene_announce_init：離家/晚安/早安/到家情境執行廣播。
+#   • input_text.mood_mem_4181/f618/0fb7/13b8：氣氛燈提醒用 RGB 燈的開燈狀態記憶（顏色/色溫/亮度，供提醒後還原；由 00-2H 維護）。
+#   • input_number.announce_volume_general/important/emergency：統一廣播音量（全部統一為更新前的 0.65（00-2D 一次性設定），之後由使用者調整）。
+#   • input_text.scene_origin_device：漸進情境起點（觸發開關 device_id），由開關自動化寫入、script.stage_scene 讀取後清空。
+#
+# 新增與強化 (V3.24.0):
+#   • 修復 binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan 與 binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan：
+#     1. 增加 delay_off: 30s，徹底解決 Wi-Fi 節能休眠與 AP 漫遊切換期間的瞬態抖動與假離線。
+#     2. 納入 Kenny iPad AP MAC（sensor.at_home_kenny_ipad_ap_mac）至車庫/二樓綜合感應範圍。
+#   • 強化 5 處 sensor.at_home_*_ap_mac 取值邏輯：在 expand(ids) 中過濾 selectattr('attributes.ap_mac', 'defined')，
+#     避免裝置清單含有 GPS/App 追蹤器時因缺乏 ap_mac 屬性導致判定失敗。
+#   • 修正 Iris 預設裝置追蹤器名稱為目前有效實體 device_tracker.iphone13promaxiris。
+#
 # 新增 (V3.23.0):
 #   • 新增 input_boolean.line_bot_quota_exhausted_notified：LINE Bot 額度用盡通知去重狀態開關，
 #     確保所有 Bot 配額用盡時僅推播一次告警，避免重複洗版。
@@ -409,6 +440,39 @@ input_datetime:
     has_date: true
     has_time: true
 input_boolean:
+  scene_announce_enable:
+    name: 情境執行廣播開關
+    icon: mdi:bullhorn-outline
+  mood_alert_enable:
+    name: 氣氛燈提醒_總開關
+    icon: mdi:lightbulb-alert-outline
+  mood_alert_important_enable:
+    name: 氣氛燈提醒_重要級
+    icon: mdi:lightbulb-on-outline
+  mood_alert_emergency_enable:
+    name: 氣氛燈提醒_緊急級
+    icon: mdi:lightbulb-alert
+  mood_alert_active:
+    name: 氣氛燈提醒中（旗標）
+    icon: mdi:lightbulb-flash-outline
+  garage_arrival_ha_notify:
+    name: 104-4車庫回家_HA通知
+    icon: mdi:garage-open-variant
+  ambient_scene_off:
+    name: 機台氣氛燈_停用情境色
+    icon: mdi:router-wireless-off
+  mood_alert_ap_off:
+    name: 機台氣氛燈_停用通知閃爍
+    icon: mdi:router-wireless-off
+  notify_ha_info_enable:
+    name: HA通知_資訊級開關
+    icon: mdi:information-outline
+  notify_ha_general_enable:
+    name: HA通知_一般級開關
+    icon: mdi:bell-outline
+  notify_ha_important_enable:
+    name: HA通知_重要級開關
+    icon: mdi:bell-alert-outline
   line_bot_quota_exhausted_notified:
     name: LINE_Bot額度耗盡已通知狀態
     icon: mdi:bell-alert-outline
@@ -574,6 +638,18 @@ input_boolean:
     icon: mdi:lightbulb-off-outline
 
 input_button:
+  notify_test_info:
+    name: 通知測試_資訊
+    icon: mdi:information-outline
+  notify_test_general:
+    name: 通知測試_一般（含廣播）
+    icon: mdi:bell-outline
+  notify_test_important:
+    name: 通知測試_重要（含廣播）
+    icon: mdi:bell-alert-outline
+  notify_test_emergency:
+    name: 通知測試_緊急（僅文字）
+    icon: mdi:alert-octagon-outline
   ding_lou_si_lou_lou_ti_deng_xiao_zheng:
     name: 頂樓四樓樓梯燈校正
     icon: mdi:lightbulb-sync
@@ -591,6 +667,34 @@ input_button:
     icon: mdi:battery-heart-variant
 
 input_number:
+  announce_volume_general:
+    name: 廣播音量_一般
+    icon: mdi:volume-medium
+    min: 0.1
+    max: 1
+    step: 0.05
+    mode: box
+  announce_volume_important:
+    name: 廣播音量_重要
+    icon: mdi:volume-high
+    min: 0.1
+    max: 1
+    step: 0.05
+    mode: box
+  announce_volume_emergency:
+    name: 廣播音量_緊急
+    icon: mdi:volume-high
+    min: 0.1
+    max: 1
+    step: 0.05
+    mode: box
+  line_bot_sticky:
+    name: LINE_Bot主用Bot（Auto沿用）
+    icon: mdi:robot-happy
+    min: 1
+    max: 3
+    step: 1
+    mode: box
   garage_light_cooldown_sec:
     name: 車庫燈手動關閉冷卻（秒）
     icon: mdi:timer-off
@@ -844,6 +948,98 @@ input_number:
     step: 0.1
 
 input_text:
+  announce_volume_test_flag:
+    name: 廣播音量測試值旗標
+    icon: mdi:flag-checkered
+    max: 10
+  announce_volume_unify_flag:
+    name: 廣播音量統一旗標
+    icon: mdi:flag-checkered
+    max: 10
+  announce_volume_init:
+    name: 廣播音量首次初始化旗標
+    icon: mdi:flag-checkered
+    max: 10
+  mood_mem_4181:
+    name: 氣氛燈燈況記憶_客廳小燈
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_106d:
+    name: 氣氛燈燈況記憶_客廳燈1
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_8e3f:
+    name: 氣氛燈燈況記憶_客廳燈3
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_f618:
+    name: 氣氛燈燈況記憶_餐廳燈2
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_0fb7:
+    name: 氣氛燈燈況記憶_四樓樓梯燈
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_13b8:
+    name: 氣氛燈燈況記憶_頂樓樓梯燈
+    icon: mdi:palette-outline
+    max: 120
+  scene_announce_last:
+    name: 情境廣播上次（情境|時間）
+    icon: mdi:clock-outline
+    max: 30
+  scene_announce_init:
+    name: 情境廣播開關首次初始化旗標
+    icon: mdi:flag-checkered
+    max: 10
+  mood_alert_last:
+    name: 氣氛燈上次提醒（時間|等級）
+    icon: mdi:clock-alert-outline
+    max: 20
+  ambient_scene_state:
+    name: 機台氣氛燈目前情境（情境|RGB|時間）
+    icon: mdi:router-wireless
+    max: 60
+  ambient_color_leave:
+    name: 機台情境色_離家（r,g,b；空白=預設紅）
+    icon: mdi:palette
+    max: 20
+  ambient_color_goodnight:
+    name: 機台情境色_晚安（r,g,b；空白=預設暖橘）
+    icon: mdi:palette
+    max: 20
+  ambient_color_morning:
+    name: 機台情境色_早安（r,g,b；空白=預設綠）
+    icon: mdi:palette
+    max: 20
+  ambient_color_arrive:
+    name: 機台情境色_到家（r,g,b；空白=預設綠）
+    icon: mdi:palette
+    max: 20
+  mood_alert_switch_init:
+    name: 氣氛燈開關首次初始化旗標
+    icon: mdi:flag-checkered
+    max: 10
+  notify_selftest_flag:
+    name: 通知自我測試旗標
+    icon: mdi:flask-outline
+    max: 20
+  notify_ha_switch_init:
+    name: HA通知開關首次初始化旗標
+    icon: mdi:flag-checkered
+    max: 10
+  scene_origin_device:
+    name: 漸進情境起點開關ID
+    icon: mdi:map-marker-radius
+    max: 40
+  line_bot_last_notice_key:
+    name: LINE_Bot即將切換預告去重鍵
+    icon: mdi:bell-check-outline
+    max: 30
+  line_bot_monthly_history:
+    name: LINE_Bot各月最後使用紀錄
+    icon: mdi:history
+    max: 255
   # AtHome 在家系統專用（可替換追蹤裝置）
   at_home_kenny_trackers:
     name: AtHome Kenny 追蹤裝置清單
@@ -987,6 +1183,18 @@ input_select:
       - 未偵測
       - EAK8030
       - EBH8030
+  # 3D 視覺化樓層控制選擇器
+  floorplan_active_floor:
+    name: 3D 樓層顯示選擇
+    options:
+      - 1F 車庫
+      - 2F 客廳餐廳
+      - 3F 主臥室
+      - 4F 次臥
+      - 5F 頂樓
+      - 全棟立體透視
+    initial: 2F 客廳餐廳
+    icon: mdi:floor-plan
 template:
     - trigger:
         - platform: homeassistant
@@ -1433,7 +1641,7 @@ template:
           device_class: presence
           state: >-
             {% set raw = states('input_text.at_home_iris_trackers')|trim %}
-            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
+            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone13promaxiris').split(',') | map('trim') | list %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_anyone_home
           unique_id: at_home_anyone_home
@@ -1457,14 +1665,18 @@ template:
         - name: che_ku_wa_fi_gan_ying_zong_he_pan_duan
           unique_id: che_ku_wa_fi_gan_ying_zong_he_pan_duan
           device_class: occupancy
+          delay_off:
+            seconds: 30
           state: >-
             {% set garage_ap = 'd0:21:f9:1f:1a:30' %}
-            {{ [
+            {% set aps = [
               states('sensor.at_home_kenny_ap_mac')|lower,
+              states('sensor.at_home_kenny_ipad_ap_mac')|lower,
               states('sensor.at_home_elay_ap_mac')|lower,
               states('sensor.at_home_jerry_ap_mac')|lower,
               states('sensor.at_home_iris_ap_mac')|lower
-            ] | select('eq', garage_ap) | list | count > 0 }}
+            ] %}
+            {{ garage_ap in aps }}
           attributes:
             friendly_name: 車庫 Wi-Fi 感應綜合判斷
             area: 車庫
@@ -1473,6 +1685,7 @@ template:
               {% set garage_ap = 'd0:21:f9:1f:1a:30' %}
               {% set ns = namespace(names=[]) %}
               {% if states('sensor.at_home_kenny_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Kenny'] %}{% endif %}
+              {% if states('sensor.at_home_kenny_ipad_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Kenny (iPad)'] %}{% endif %}
               {% if states('sensor.at_home_elay_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Elay'] %}{% endif %}
               {% if states('sensor.at_home_jerry_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Jerry'] %}{% endif %}
               {% if states('sensor.at_home_iris_ap_mac')|lower == garage_ap %}{% set ns.names = ns.names + ['Iris'] %}{% endif %}
@@ -1480,14 +1693,18 @@ template:
         - name: er_lou_ping_mu_gan_ying_zong_he_pan_duan
           unique_id: er_lou_ping_mu_gan_ying_zong_he_pan_duan
           device_class: occupancy
+          delay_off:
+            seconds: 30
           state: >-
             {% set second_floor_ap = '60:22:32:9c:82:55' %}
-            {{ [
+            {% set aps = [
               states('sensor.at_home_kenny_ap_mac')|lower,
+              states('sensor.at_home_kenny_ipad_ap_mac')|lower,
               states('sensor.at_home_elay_ap_mac')|lower,
               states('sensor.at_home_jerry_ap_mac')|lower,
               states('sensor.at_home_iris_ap_mac')|lower
-            ] | select('eq', second_floor_ap) | list | count > 0 }}
+            ] %}
+            {{ second_floor_ap in aps }}
           attributes:
             friendly_name: 二樓坪幕感應綜合判斷
             area: 二樓 (客廳/廚房/廁所)
@@ -1496,6 +1713,7 @@ template:
               {% set second_floor_ap = '60:22:32:9c:82:55' %}
               {% set ns = namespace(names=[]) %}
               {% if states('sensor.at_home_kenny_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Kenny'] %}{% endif %}
+              {% if states('sensor.at_home_kenny_ipad_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Kenny (iPad)'] %}{% endif %}
               {% if states('sensor.at_home_elay_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Elay'] %}{% endif %}
               {% if states('sensor.at_home_jerry_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Jerry'] %}{% endif %}
               {% if states('sensor.at_home_iris_ap_mac')|lower == second_floor_ap %}{% set ns.names = ns.names + ['Iris'] %}{% endif %}
@@ -1528,33 +1746,33 @@ template:
           state: >-
             {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list %}
-            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_elay_ap_mac
           unique_id: at_home_elay_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_elay_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list %}
-            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_jerry_ap_mac
           unique_id: at_home_jerry_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list %}
-            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_iris_ap_mac
           unique_id: at_home_iris_ap_mac
           state: >-
             {% set raw = states('input_text.at_home_iris_trackers')|trim %}
-            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_13_pro_max_iris_2').split(',') | map('trim') | list %}
-            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone13promaxiris').split(',') | map('trim') | list %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_kenny_location
           unique_id: at_home_kenny_location
           state: >-
@@ -1569,9 +1787,9 @@ template:
           state: >-
             {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
             {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
-            {% set homes = expand(ids) | selectattr('state','eq','home') | list %}
+            {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
-            {{ state_attr(e.entity_id, 'ap_mac') if e else '離家' }}
+            {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_kenny_ipad_location
           unique_id: at_home_kenny_ipad_location
           state: >-
@@ -1629,8 +1847,12 @@ automation:
           versions: {}
           versions_json: "{}"
           changed_lines_text: ""
-      - service: persistent_notification.create
+      - service: script.notify_dispatch
         data:
+          level: info
+          line: false
+          source: "版本快照記憶清除器"
+          version: "{{ automation_version | default('', true) }}"
           title: 更新紀錄比對記憶已清除
           message: >-
             已重置 ai_version_snapshot_history 快照。
@@ -1640,8 +1862,12 @@ automation:
             entity_id: input_boolean.ai_version_snapshot_debug_enable
             state: "on"
         then:
-          - service: persistent_notification.create
+          - service: script.notify_dispatch
             data:
+              level: info
+              line: false
+              source: "版本快照記憶清除器"
+              version: "{{ automation_version | default('', true) }}"
               title: 更新紀錄比對記憶（Debug）
               message: "{{ debug_message }}"
 
@@ -1687,8 +1913,12 @@ automation:
           versions: "{{ current_versions }}"
           versions_json: "{{ current_versions | tojson }}"
           changed_lines_text: ""
-      - service: persistent_notification.create
+      - service: script.notify_dispatch
         data:
+          level: info
+          line: false
+          source: "版本快照基準寫入器"
+          version: "{{ automation_version | default('', true) }}"
           title: 更新紀錄比對基準已寫入
           message: >-
             已將目前版本寫入 ai_version_snapshot_history 作為比對基準。
@@ -1698,8 +1928,12 @@ automation:
             entity_id: input_boolean.ai_version_snapshot_debug_enable
             state: "on"
         then:
-          - service: persistent_notification.create
+          - service: script.notify_dispatch
             data:
+              level: info
+              line: false
+              source: "版本快照基準寫入器"
+              version: "{{ automation_version | default('', true) }}"
               title: 更新紀錄比對基準（Debug）
               message: "{{ debug_message }}"
 

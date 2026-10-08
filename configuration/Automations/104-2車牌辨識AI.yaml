@@ -1,7 +1,9 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V3.1.1)
+# 104-2車牌辨識AI (V4.0.0)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.1.1：修補版；車牌/設備代號 舊家用車牌 全域更名為 EBH8030，Webhook ID 與通知文字同步。
 # - V3.1.0：功能版；沿用 LPR Debug 開關控管預備/取消類永久通知，新增車牌開門通知 Helper 控管實際自動開門通知；實際自動關門仍保留永久通知。
 # - V3.0：正式版；安全緩衝時間由 90 秒下修為 45 秒。
@@ -10,7 +12,7 @@
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V3.1.1)
+- alias: 104-2車牌辨識AI (V4.0.0)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、EBH8030）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -38,7 +40,7 @@
       to: "open"
 
   variables:
-    automation_version: "V3.1.1"
+    automation_version: "V4.0.0"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -113,8 +115,12 @@
                             - condition: template
                               value_template: "{{ open_notify_enabled | bool(false) }}"
                           sequence:
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
                                 message: >-
                                   時間：{{ event_time }}
@@ -130,8 +136,12 @@
                             - condition: template
                               value_template: "{{ debug_on | bool(false) }}"
                           sequence:
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "ℹ️ LPR 事件通知 ({{ automation_version }})"
                                 message: >-
                                   時間：{{ event_time }}
@@ -156,8 +166,12 @@
                     - condition: template
                       value_template: "{{ debug_on | bool(false) }}"
                   sequence:
-                    - service: persistent_notification.create
+                    - service: script.notify_dispatch
                       data:
+                        level: info
+                        line: false
+                        source: "104-2車牌辨識AI (V4.0.0)"
+                        version: "{{ automation_version | default('', true) }}"
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: >-
                           {% if lpr_opened_recently %}
@@ -206,8 +220,12 @@
                                     - condition: template
                                       value_template: "{{ debug_on | bool(false) }}"
                                   sequence:
-                                    - service: persistent_notification.create
+                                    - service: script.notify_dispatch
                                       data:
+                                        level: info
+                                        line: false
+                                        source: "104-2車牌辨識AI (V4.0.0)"
+                                        version: "{{ automation_version | default('', true) }}"
                                         title: "⛔ 已取消自動關門 (車輛未駛出)"
                                         message: "鐵門開啟後 6 分鐘內未捕捉到任何駛出憑證，為保護安全已暫停本次自動關門。"
                             - stop: "Canceled because no car left"
@@ -215,8 +233,12 @@
                             - condition: template
                               value_template: "{{ wait.trigger is not none and (debug_on | bool(false)) }}"
                           sequence:
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "✅ 已取得駛出憑證"
                                 message: "已取得駛出憑證（{{ wait.trigger.platform }}），立即進入 45 秒安全緩衝，不會繼續等待到 6 分鐘上限。"
 
@@ -240,8 +262,12 @@
                             - condition: template
                               value_template: "{{ debug_on | bool(false) }}"
                           sequence:
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "⛔ 已取消自動關門 (偵測到人)"
                                 message: "等待期間攝影機偵測到人員活動，為保護安全已暫停關門。"
                     - stop: "Canceled by presence"
@@ -271,16 +297,24 @@
                             - service: cover.close_cover
                               target:
                                 entity_id: cover.garage
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "🤖 自動關門已執行 ({{ automation_version }})"
                                 message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
                         - conditions:
                             - condition: template
                               value_template: "{{ (not (auto_close_enabled | bool(false))) and (debug_on | bool(false)) }}"
                           sequence:
-                            - service: persistent_notification.create
+                            - service: script.notify_dispatch
                               data:
+                                level: info
+                                line: false
+                                source: "104-2車牌辨識AI (V4.0.0)"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "🤖（預備）條件式關門：會關"
                                 message: "預判會關門。目前僅通知；開啟『LPR自動關門』即可生效。"
                 # 不符合條件
@@ -288,8 +322,12 @@
                     - condition: template
                       value_template: "{{ (not ((gate_still_open | bool(false)) and (arm_away_later | bool(false)) and (nobody_later | bool(false)))) and (debug_on | bool(false)) }}"
                   sequence:
-                    - service: persistent_notification.create
+                    - service: script.notify_dispatch
                       data:
+                        level: info
+                        line: false
+                        source: "104-2車牌辨識AI (V4.0.0)"
+                        version: "{{ automation_version | default('', true) }}"
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
                           條件未滿足：保全={{ 'Arm Away' if (arm_away_later | bool(false)) else '非 Arm Away' }}、

@@ -1,0 +1,124 @@
+{# ──────────────────────────────────────────────────────
+   通知內文圖示 (V4.0.0)：只在有明確關鍵字的行前面放一個小圖示（平面圓形圖示），其他行維持純文字，每則最多 max_icons 個。
+   用法：{% from 'notify_body.jinja' import pick, flex_rows, md_lines %}
+   圖示檔：/local/icons/b/<name>.png（96px），新增圖示或關鍵字時修改本檔並重啟 HA。
+   ────────────────────────────────────────────────────── #}
+{% macro pick(t) -%}
+{%- if t | regex_search('門鈴') -%}doorbell
+{%- elif t | regex_search('電量|電池|耗材') -%}battery
+{%- elif t | regex_search('溫度|°C|體感|冷氣|空調') -%}thermo
+{%- elif t | regex_search('濕度|降雨|豪雨|下雨|水位|洩洪') -%}drop
+{%- elif t | regex_search('PM2|PM1|空氣|清淨機') -%}air
+{%- elif t | regex_search('風扇|風速') -%}fan
+{%- elif t | regex_search('門鎖|上鎖|已鎖|解鎖') -%}lock
+{%- elif t | regex_search('鐵門|車庫') -%}gate
+{%- elif t | regex_search('車牌|Tesla|充電|車輛') -%}car
+{%- elif t | regex_search('攝影|影像|截圖|影片|監視') -%}camera
+{%- elif t | regex_search('地震|震度|規模') -%}quake
+{%- elif t | regex_search('天氣|颱風|氣象') -%}weather
+{%- elif t | regex_search('保全|闖入|入侵|防區') -%}shield
+{%- elif t | regex_search('網路|網關|Wi-Fi|WiFi|連線|離線|伺服器|斷線') -%}network
+{%- elif t | regex_search('更新|版本') -%}update
+{%- elif t | regex_search('廣播|喇叭|語音') -%}speaker
+{%- elif t | regex_search('燈') -%}bulb
+{%- elif t | regex_search('家人|有人|人員|在家|離家|回家|到家') -%}person
+{%- elif t | regex_search('\d{1,2}:\d{2}|分鐘|小時|秒後|預估|天數|時間') -%}clock
+{%- elif t | regex_search('注意|警告|異常|請確認|⚠|‼|❗') -%}alarm
+{%- elif t | regex_search('已完成|成功|已關閉|已開啟|已啟動|已執行|正常|✅') -%}check
+{%- elif t | regex_search('設定|系統|參數|模式') -%}gear
+{%- endif -%}
+{%- endmacro %}
+
+{# 去掉行首的項目符號與 emoji（圖示取代它們）；bullet 只去掉項目符號（沒有圖示的行保留 emoji） #}
+{% macro clean(t) -%}
+{{- (t | trim) | regex_replace('^[\s•·\-\*]*([🌀-🫿☀-➿⬀-⯿️]\s*)*', '') | trim -}}
+{%- endmacro %}
+{% macro bullet(t) -%}
+{{- (t | trim) | regex_replace('^[•·\-\*]+\s*', '') | trim -}}
+{%- endmacro %}
+
+{# 手機好讀：每句（以「。」結尾）自成一行，空行保留當段落間距；網址行不拆 #}
+{% macro prep(lines) -%}
+{%- set ns = namespace(out=[]) -%}
+{%- for l in lines -%}
+  {%- set t = (l | string) | trim -%}
+  {%- if t == '' -%}
+    {%- set ns.out = ns.out + [''] -%}
+  {%- elif t | regex_search('https?://') -%}
+    {%- set ns.out = ns.out + [t] -%}
+  {%- else -%}
+    {%- for part in (t | regex_replace('。\\s*', '。\n')).split('\n') -%}
+      {%- if part | trim != '' -%}{%- set ns.out = ns.out + [part | trim] -%}{%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endfor -%}
+{{- ns.out | tojson -}}
+{%- endmacro %}
+
+{# 先判斷哪些行會有圖示：同一則每種圖示只出現一次、最多 max_icons 個；回傳以 | 分隔的圖示名稱清單（與非空行一一對應，沒有圖示為空） #}
+{% macro plan(lines, max_icons=5) -%}
+{%- set ns = namespace(used=[], out=[]) -%}
+{%- for l in lines -%}
+  {%- set t = (l | string) | trim -%}
+  {%- if t != '' -%}
+    {%- set name = pick(t) | trim -%}
+    {%- if name != '' and name not in ns.used and ns.used | length < max_icons -%}
+      {%- set ns.used = ns.used + [name] -%}
+      {%- set ns.out = ns.out + [name] -%}
+    {%- else -%}
+      {%- set ns.out = ns.out + ['-'] -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+{{- ns.out | join('|') -}}
+{%- endmacro %}
+
+{# LINE Flex：回傳 JSON 字串（清單）。第一行粗體；有圖示的行是「圖示＋文字」，其餘行縮排對齊文字欄；空行代表段落間距 #}
+{% macro flex_rows(lines0, base, max_icons=5) -%}
+{%- set lines = prep(lines0) | from_json([]) -%}
+{%- set names = plan(lines, max_icons).split('|') -%}
+{%- set any_icon = (names | reject('equalto', '-') | list | length) > 0 -%}
+{%- set ns = namespace(out=[], i=0, gap=false) -%}
+{%- for l in lines -%}
+  {%- set t = (l | string) | trim -%}
+  {%- if t == '' -%}
+    {%- set ns.gap = true -%}
+  {%- else -%}
+    {%- set name = names[ns.i] if ns.i < names | length else '-' -%}
+    {%- set first = (ns.i == 0) -%}
+    {%- set margin = 'lg' if ns.gap else 'md' -%}
+    {%- set weight = 'bold' if first else 'regular' -%}
+    {%- set color = '#1F2937' if first else '#374151' -%}
+    {%- if name != '-' -%}
+      {%- set c = clean(t) -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "margin": margin, "contents": [{"type": "image", "url": base ~ name ~ ".png?v=1", "size": "20px", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": (c if c else t), "size": "sm", "weight": weight, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": color}]}] -%}
+    {%- elif any_icon and not first -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": margin, "paddingStart": "28px", "contents": [{"type": "text", "text": bullet(t), "size": "sm", "wrap": true, "lineSpacing": "4px", "color": color}]}] -%}
+    {%- else -%}
+      {%- set ns.out = ns.out + [{"type": "text", "text": bullet(t), "size": "sm", "weight": weight, "wrap": true, "margin": margin, "lineSpacing": "4px", "color": color}] -%}
+    {%- endif -%}
+    {%- set ns.i = ns.i + 1 -%}
+    {%- set ns.gap = false -%}
+  {%- endif -%}
+{%- endfor -%}
+{{- ns.out | tojson -}}
+{%- endmacro %}
+
+{# HA 通知（Markdown）：第一行粗體；有圖示的行前面放小圖示（<img>），其他行維持清單 #}
+{% macro md_lines(lines0, base, url='', max_icons=5) -%}
+{%- set lines = prep(lines0) | from_json([]) -%}
+{%- set names = plan(lines, max_icons).split('|') -%}
+{%- set ns = namespace(i=0) -%}
+{%- for l in lines -%}
+  {%- set t = (l | string) | trim -%}
+  {%- if t != '' -%}
+    {%- set name = names[ns.i] if ns.i < names | length else '-' -%}
+    {%- set c = clean(t) if name != '-' else bullet(t) -%}
+    {%- set body = (c if c else t) -%}
+    {%- set body = body | replace(url, '[開啟連結](' ~ url ~ ')') if url else body -%}
+    {%- set img = ('<img src="' ~ base ~ name ~ '.png" width="18" height="18"> ') if name != '-' else '' -%}
+{{ ('**' ~ img ~ body ~ '**') if ns.i == 0 else ('- ' ~ img ~ body) }}
+{% set ns.i = ns.i + 1 %}
+  {%- endif -%}
+{%- endfor -%}
+{%- endmacro %}

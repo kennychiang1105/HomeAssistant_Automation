@@ -1,0 +1,20 @@
+# ────────────────────────────────────────────────────────
+# 00-2L廣播快取暖機AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。HA 啟動後 2 分鐘與每日 03:30 執行 shell_command.warm_announce（背景執行 /config/scripts/warm_announce.py），
+#           預先合成地震預警等固定廣播句並更新檔案時間（避免被 14 天清理刪除），讓地震廣播不用等即時合成（約省 1.7 秒），斷網也能播。
+# ────────────────────────────────────────────────────────
+- alias: 00-2L廣播快取暖機AI (V4.0.0)
+  id: ai_00_2l_announce_cache_warm
+  description: 預先合成地震等固定廣播句（快取暖機），每日更新
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+    - trigger: time
+      at: "03:30:00"
+  action:
+    - delay: "00:02:00"
+    - action: shell_command.warm_announce
+      continue_on_error: true

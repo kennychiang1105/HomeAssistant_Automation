@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────
+# 家人（person）(V4.0.0)
+# 更新紀錄：
+# - V4.0.0：新增。以 person 綁定每位家人的手機追蹤裝置；自動化改用 person.* 判斷在不在家，
+#           換手機時只要改這裡的 device_trackers，不用改自動化（08-6 離家保全已使用）。
+# 規則：同一個人有多支手機時全部列在 device_trackers，任何一支在家就算在家。
+# ─────────────────────────────────────────────────────────────
+person:
+  - name: Kenny
+    id: kenny
+    device_trackers:
+      - device_tracker.iphone_17_pro_max_kenny
+  - name: Iris
+    id: iris
+    device_trackers:
+      - device_tracker.iphone13promaxiris
+  - name: Jerry
+    id: jerry
+    device_trackers:
+      - device_tracker.iphone_16_jerry
+      - device_tracker.redmi_note_11_pro_5g
+  - name: Elay
+    id: elay
+    device_trackers:
+      - device_tracker.unifi_16_cc_a1_4d_4f_42_default

@@ -1,0 +1,77 @@
+# ────────────────────────────────────────────────────────
+# 車庫快照AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增 script.garage_snapshot。對車庫攝影機（camera.g6_instant_high_resolution_channel）截圖存到
+#           /config/www/snap/（隨機檔名，3 天後由 00-2I快照清理AI 刪除），回傳可供 LINE 卡片使用的 https 網址。
+#           回傳：response_variable.url
+# ────────────────────────────────────────────────────────
+garage_snapshot:
+  alias: 車庫快照AI (V4.0.0)
+  description: 車庫攝影機截圖並回傳 LINE 可用的圖片網址（camera 欄位可改為其他攝影機，例如五樓）
+  mode: parallel
+  max: 5
+  fields:
+    camera:
+      description: 攝影機 entity_id（預設車庫）
+      required: false
+  variables:
+    cam_entity: "{{ camera if (camera is defined and camera) else 'camera.g6_instant_high_resolution_channel' }}"
+    automation_version: 'V4.0.0'
+    fname: "snap_{{ now().strftime('%Y%m%d_%H%M%S') }}_{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}{{ range(10000, 99999) | random }}.jpg"
+  sequence:
+    - action: camera.snapshot
+      target:
+        entity_id: "{{ cam_entity }}"
+      data:
+        filename: "/config/www/snap/{{ fname }}"
+      continue_on_error: true
+    - delay: "00:00:00.5"
+    - variables:
+        snap_result:
+          url: "https://family.kteam.tw:8126/local/snap/{{ fname }}"
+    - stop: "快照完成"
+      response_variable: snap_result
+
+garage_snapshot_if:
+  alias: 車庫快照（條件式）AI (V4.0.0)
+  description: enabled 為 true 時啟動即時影像並截圖，回傳截圖網址；否則直接回傳空字串（供 LINE 轉換流程使用）
+  mode: parallel
+  max: 5
+  fields:
+    enabled:
+      required: true
+    token:
+      description: 即時影像隨機代碼
+      required: true
+    kind:
+      description: garage（預設）或 top（五樓／頂樓攝影機）
+      required: false
+  variables:
+    is_top: "{{ kind is defined and kind == 'top' }}"
+  sequence:
+    - if: "{{ enabled | string | lower != 'true' }}"
+      then:
+        - variables:
+            none_result:
+              url: ""
+        - stop: "未啟用"
+          response_variable: none_result
+    - action: script.turn_on
+      target:
+        entity_id: script.garage_live
+      data:
+        variables:
+          token: "{{ token }}"
+          camera: "{{ 'camera.wu_lou_she_ying_ji_medium' if is_top else 'camera.che_ku_she_ying_ji_medium_resolution_channel' }}"
+    - action: script.garage_snapshot
+      data:
+        camera: "{{ 'camera.wu_lou_she_ying_ji_high' if is_top else 'camera.g6_instant_high_resolution_channel' }}"
+      response_variable: snap
+      continue_on_error: true
+    - variables:
+        ok_result:
+          url: "{{ snap.url if (snap is defined and snap is mapping and snap.url is defined) else '' }}"
+    - stop: "完成"
+      response_variable: ok_result
+

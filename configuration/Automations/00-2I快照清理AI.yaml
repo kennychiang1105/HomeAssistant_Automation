@@ -1,0 +1,20 @@
+# ─────────────────────────────────────────────────────────────
+# 00-2I快照清理AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：同時清除 /config/www/live/ 超過 10 分鐘的即時畫面殘檔。
+# - V4.0.0：每 6 小時刪除 /config/www/snap/ 內超過 3 天的車庫快照（隱私與空間）。
+# ─────────────────────────────────────────────────────────────
+- alias: 00-2I快照清理AI (V4.0.0)
+  id: ai_00_2i_snapshot_cleanup
+  description: 清除超過 3 天的車庫快照
+  mode: single
+  trigger:
+    - trigger: time_pattern
+      hours: "/6"
+      minutes: "7"
+  action:
+    - action: shell_command.clean_snaps
+      continue_on_error: true
+    - action: shell_command.clean_live
+      continue_on_error: true

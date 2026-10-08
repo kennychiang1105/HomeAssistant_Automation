@@ -1,11 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2BLINE推播AI (V3.4)
-# 相容版本：Helpers V3.23.0（已確認）
+# 00-2BLINE推播AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
-# - V3.4：修補版。配額計算門檻修正為低於 5 則即視為完全用盡；所有 Bot 額度用盡時僅推播一次告警（去重防騷擾）；每月 1 號自動復位通知狀態鎖。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
+# - V3.5：通知改用 script.notify_dispatch（扁平 Flex + HA 通知）：切換/低額度=重要、用盡=緊急、例行摘要=資訊(僅HA)；LINE 仍發給管理者測試 ID。
+# - V3.5：新增 Bot 切換偵測（Auto 模式切換時記住主用 Bot、發送「已切換為 BotN」通知）、每月 1 日紀錄當月沿用 Bot；
+#         例行摘要加入主用 Bot 與各月紀錄；修復範本遺失引號（states/trigger.id 比對）導致條件失效的問題。
+# - V3.5：修補版。配額計算門檻修正為低於 5 則即視為完全用盡；所有 Bot 額度用盡時僅推播一次告警（去重防騷擾）；每月 1 號自動復位通知狀態鎖。
 # - V3.3：低額度(<12)只通知 Bot0；例行摘要改每月 1/15 日，不再開機通知。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2BLINE推播AI (V3.4)
+- alias: 00-2BLINE推播AI (V4.0.0)
   id: ai_line_bot_quota_guard
   description: LINE Bot 額度監控與緊急推播（低於 5 視為用盡，用盡去重通知一次）
   mode: single
@@ -18,10 +22,10 @@
     - id: final_low
       trigger: template
       value_template: >-
-        {{ states(sensor.bot_msg_remaining0)|int(0) < 5 and
-           states(sensor.bot_msg_remaining1)|int(0) < 5 and
-           states(sensor.bot_msg_remaining2)|int(0) < 5 and
-           states(sensor.bot_msg_remaining3)|int(0) < 5 }}
+        {{ states('sensor.bot_msg_remaining0')|int(0) < 5 and
+           states('sensor.bot_msg_remaining1')|int(0) < 5 and
+           states('sensor.bot_msg_remaining2')|int(0) < 5 and
+           states('sensor.bot_msg_remaining3')|int(0) < 5 }}
       for: "00:05:00"
     - id: monthly_update_1
       trigger: time
@@ -36,89 +40,144 @@
       trigger: numeric_state
       entity_id: sensor.bot_msg_remaining0
       below: 5
+    - id: bot_switched
+      trigger: state
+      entity_id: sensor.line_bot_rotation_target
+      for: "00:00:30"
   condition:
     - condition: template
       value_template: >-
-        {% if trigger.id == monthly_update_1 %}
+        {% if trigger.id == 'monthly_update_1' %}
           {{ now().day == 1 }}
-        {% elif trigger.id == monthly_update_15 %}
+        {% elif trigger.id == 'monthly_update_15' %}
           {{ now().day == 15 }}
-        {% elif trigger.id == monthly_reset %}
+        {% elif trigger.id == 'monthly_reset' %}
           {{ now().day == 1 }}
+        {% elif trigger.id == 'bot_switched' %}
+          {{ is_state('input_select.line_bot_mode', 'Auto')
+             and trigger.to_state.state in ['0','1','2','3']
+             and trigger.from_state is not none
+             and trigger.from_state.state in ['0','1','2','3']
+             and trigger.from_state.state != trigger.to_state.state
+             and trigger.to_state.state | int(-1) != states('input_number.line_bot_sticky') | int(-1) }}
         {% else %}
           true
         {% endif %}
   variables:
-    automation_version: "V3.4"
-    notif_title: "【LINE Bot 配額監控 {{ automation_version }}】"
+    automation_version: "V4.0.0"
     quota_user_id: U9eeaaf5d404dbde249039924567992d3
-    remain0: "{{ states(sensor.bot_msg_remaining0) }}"
-    count0: "{{ states(sensor.bot_msg_count0) }}"
-    allow_line_warn: "{{ is_state(input_boolean.notify_line_important_enable,on) }}"
-    allow_line_final: "{{ is_state(input_boolean.notify_line_emergency_enable,on) }}"
-    already_notified: "{{ is_state(input_boolean.line_bot_quota_exhausted_notified,on) }}"
+    remain0: "{{ states('sensor.bot_msg_remaining0') }}"
+    count0: "{{ states('sensor.bot_msg_count0') }}"
+    sticky_bot: "{{ states('input_number.line_bot_sticky')|int(1) }}"
+    history_key: "{{ now().strftime('%Y-%m') }}"
+    already_notified: "{{ is_state('input_boolean.line_bot_quota_exhausted_notified','on') }}"
   action:
     - choose:
-        - conditions: "{{ trigger.id == monthly_reset }}"
+        - conditions: "{{ trigger.id == 'bot_switched' }}"
           sequence:
+            - service: input_number.set_value
+              target:
+                entity_id: input_number.line_bot_sticky
+              data:
+                value: "{{ trigger.to_state.state|int(1) if trigger.to_state.state != '0' else sticky_bot|int(1) }}"
+            - if:
+                - condition: template
+                  value_template: "{{ trigger.to_state.state != '0' }}"
+              then:
+                - service: input_text.set_value
+                  target:
+                    entity_id: input_text.line_bot_monthly_history
+                  data:
+                    value: >-
+                      {% set items = states('input_text.line_bot_monthly_history').split(',') | map('trim') | select('match', '^[0-9]{4}-[0-9]{2}:') | reject('match', history_key) | list %}
+                      {{ ([history_key ~ ':Bot' ~ trigger.to_state.state] + items)[:12] | join(', ') }}
+            - action: script.notify_dispatch
+              data:
+                level: important
+                title: LINE Bot 切換
+                message: >-
+                  Bot{{ trigger.from_state.state }} 已達切換門檻，已自動改用 Bot{{ trigger.to_state.state }}{{ '（緊急 Bot）' if trigger.to_state.state == '0' else '' }}。
+                source: 00-2BLINE推播AI
+                version: "{{ automation_version }}"
+                user_id: "{{ quota_user_id }}"
+
+        - conditions: "{{ trigger.id == 'monthly_reset' }}"
+          sequence:
+            # 每月額度重置：清掉「即將切換」預告去重鍵，下個月才會再預告
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.line_bot_last_notice_key
+              data:
+                value: ""
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.line_bot_monthly_history
+              data:
+                value: >-
+                  {% set items = states('input_text.line_bot_monthly_history').split(',') | map('trim') | select('match', '^[0-9]{4}-[0-9]{2}:') | reject('match', history_key) | list %}
+                  {{ ([history_key ~ ':Bot' ~ sticky_bot] + items)[:12] | join(', ') }}
             - service: input_boolean.turn_off
               target:
                 entity_id: input_boolean.line_bot_quota_exhausted_notified
 
-        - conditions: "{{ trigger.id == bot0_zero }}"
+        - conditions: "{{ trigger.id == 'bot0_zero' }}"
           sequence:
-            - service: notify.persistent_notification
-              data:
-                title: "{{ notif_title }}"
-                message: "Bot0 配額已低於 5 則（已完全用盡），請儘速更換 Token。"
             - if:
                 - condition: template
-                  value_template: "{{ allow_line_final and not already_notified }}"
+                  value_template: "{{ not already_notified }}"
               then:
-                - service: script.send_line_to_user
+                - action: script.notify_dispatch
                   data:
+                    level: emergency
+                    title: Bot0 額度用盡
+                    message: >-
+                      Bot0 配額已低於 5 則（已完全用盡），請儘速更換 Token。
+                    source: 00-2BLINE推播AI
+                    version: "{{ automation_version }}"
                     user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'緊急 Emergency 🚨 Bot0 配額剩餘低於 5 則（已完全用盡），請儘速更換 Token。'}] | tojson }}"
-                - service: input_boolean.turn_on
+                - action: input_boolean.turn_on
                   target:
                     entity_id: input_boolean.line_bot_quota_exhausted_notified
 
-        - conditions: "{{ trigger.id == bot0_low }}"
+        - conditions: "{{ trigger.id == 'bot0_low' }}"
           sequence:
-            - service: notify.persistent_notification
+            - action: script.notify_dispatch
               data:
-                title: "{{ notif_title }}"
-                message: "Bot0 剩餘 {{ remain0 }} / 200 次（已用 {{ count0 }}）。"
+                level: important
+                title: Bot0 額度偏低
+                message: >-
+                  Bot0 剩餘 {{ remain0 }} / 200 次（已用 {{ count0 }}），請預備更換。
+                source: 00-2BLINE推播AI
+                version: "{{ automation_version }}"
+                user_id: "{{ quota_user_id }}"
+
+        - conditions: "{{ trigger.id in ['monthly_update_1','monthly_update_15'] }}"
+          sequence:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                title: LINE Bot 例行摘要
+                message: >-
+                  目前主用 Bot{{ sticky_bot }}（月初沿用上月最後使用的 Bot），Bot0 已用 {{ count0 }}、剩餘 {{ remain0 }}。各月紀錄：{{ states('input_text.line_bot_monthly_history') }}
+                source: 00-2BLINE推播AI
+                version: "{{ automation_version }}"
+                user_id: "{{ quota_user_id }}"
+
+        - conditions: "{{ trigger.id == 'final_low' }}"
+          sequence:
             - if:
                 - condition: template
-                  value_template: "{{ allow_line_warn }}"
+                  value_template: "{{ not already_notified }}"
               then:
-                - service: script.send_line_to_user
+                - action: script.notify_dispatch
                   data:
+                    level: emergency
+                    title: 所有 Bot 額度用盡
+                    message: >-
+                      所有 Bot 配額低於 5 則（已完全用盡），請儘速處理。
+                    source: 00-2BLINE推播AI
+                    version: "{{ automation_version }}"
                     user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'重要 Important ⚠️ Bot0 剩餘次數低於 12，請預備更換。'}] | tojson }}"
-
-        - conditions: "{{ trigger.id in [monthly_update_1,monthly_update_15] }}"
-          sequence:
-            - service: notify.persistent_notification
-              data:
-                title: "{{ notif_title }}"
-                message: "例行配額摘要：Bot0 已用 {{ count0 }}，剩餘 {{ remain0 }}。"
-
-        - conditions: "{{ trigger.id == final_low }}"
-          sequence:
-            - service: notify.persistent_notification
-              data:
-                title: "{{ notif_title }}"
-                message: "所有 Bot 配額已低於 5 則（已完全用盡）。"
-            - if:
-                - condition: template
-                  value_template: "{{ allow_line_final and not already_notified }}"
-              then:
-                - service: script.send_line_to_user
-                  data:
-                    user_id: "{{ quota_user_id }}"
-                    payload: "{{ [{'type':'text','text':notif_title},{'type':'text','text':'最終告警 ‼️ 所有 Bot 配額低於 5 則，已完全用盡。'}] | tojson }}"
-                - service: input_boolean.turn_on
+                - action: input_boolean.turn_on
                   target:
                     entity_id: input_boolean.line_bot_quota_exhausted_notified

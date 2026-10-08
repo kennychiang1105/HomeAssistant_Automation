@@ -1,0 +1,47 @@
+# ────────────────────────────────────────────────────────
+# 00-2K頂樓參數初始化AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。頂樓感應優化的 input_number 沒有 initial（避免重啟覆蓋），新建時會停在最小值，
+#           因此首次啟動時一次性寫入預設值（旗標 input_text.topfloor_param_init = done）；之後完全由使用者調整。
+# ────────────────────────────────────────────────────────
+- alias: 00-2K頂樓參數初始化AI (V4.0.0)
+  id: ai_00_2k_topfloor_param_init
+  description: 首次啟動時一次性寫入頂樓感應參數預設值，之後完全由使用者調整
+  mode: single
+  trigger:
+    - trigger: homeassistant
+      event: start
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.topfloor_param_init') != 'done' }}"
+  action:
+    - delay: "00:00:30"
+    - repeat:
+        for_each:
+          - {e: input_number.topfloor_evidence_window_s, v: 12}
+          - {e: input_number.topfloor_line_debounce_s, v: 3}
+          - {e: input_number.topfloor_arrive_off_delay_s, v: 5}
+          - {e: input_number.topfloor_down_4f_delay_s, v: 10}
+          - {e: input_number.topfloor_vacancy_s, v: 45}
+          - {e: input_number.topfloor_study_vacancy_min, v: 5}
+          - {e: input_number.topfloor_study_max_min, v: 60}
+          - {e: input_number.topfloor_study_leave_down_min, v: 3}
+          - {e: input_number.topfloor_stairs_night_brightness, v: 60}
+          - {e: input_number.topfloor_stairs_night_kelvin, v: 3000}
+          - {e: input_number.topfloor_stairs_day_bri_0fb7, v: 75}
+          - {e: input_number.topfloor_stairs_day_k_0fb7, v: 3571}
+          - {e: input_number.topfloor_stairs_day_bri_13b8, v: 90}
+          - {e: input_number.topfloor_stairs_day_k_13b8, v: 4000}
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: "{{ repeat.item.e }}"
+            data:
+              value: "{{ repeat.item.v }}"
+            continue_on_error: true
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.topfloor_param_init
+      data:
+        value: done

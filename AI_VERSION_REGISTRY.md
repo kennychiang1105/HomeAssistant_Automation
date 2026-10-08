@@ -16,44 +16,56 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V3.23.0`
-- configuration 主設定檔版本（`configuration.yaml`）：`V3.5`
+- Helper 套件版本（`packages/helper.yaml`）：`V4.0.0`
+- configuration 主設定檔版本（`configuration.yaml`）：`V3.6`
+- 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V3.4)` | `ai_line_bot_quota_guard` | `V3.4` |
-| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.3` |
-| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V3.3)` | `ai_00_2a_release_note_push` | `V3.3` |
-| `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V3.1.4)` | `ai_00_2c_supply_battery_notify` | `V3.1.4` |
-| `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V3.0)` | `ai_miaoli_weather_disaster_notify` | `V3.0` |
-| `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V3.1)` | `ai_05b_emergency_mode_notify_v3` | `V3.1` |
+| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2) / 00-01系統回應穩定自動化AI_小燕網關看門狗 (V3.0.1) / 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
+| `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V4.0.0)` | `ai_00_2a_release_note_push` | `V4.0.0` |
+| `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V4.0.0)` | `ai_line_bot_quota_guard` | `V4.0.0` |
+| `configuration/Automations/00-2D通知開關初始化AI.yaml` | `00-2D通知開關初始化AI (V4.0.0)（共 6 支）` | `ai_00_2d_notify_ha_switch_init` / `ai_00_2d_mood_alert_switch_init` / `ai_00_2d_scene_announce_init` / `ai_00_2d_announce_volume_init` / `ai_00_2d_announce_volume_unify` / `ai_00_2d_announce_volume_test` | `V4.0.0` |
+| `configuration/Automations/00-2E通知測試AI.yaml` | `00-2E通知測試AI (V4.0.0)` | `ai_00_2e_notify_test` | `V4.0.0` |
+| `configuration/Automations/00-2H燈況記憶AI.yaml` | `00-2H燈況記憶AI (V4.0.0)` | `ai_00_2h_light_memory` | `V4.0.0` |
+| `configuration/Automations/00-2I快照清理AI.yaml` | `00-2I快照清理AI (V4.0.0)` | `ai_00_2i_snapshot_cleanup` | `V4.0.0` |
+| `configuration/Automations/00-2J氣氛燈情境同步AI.yaml` | `00-2J氣氛燈情境同步AI (V4.0.0)` | `ai_00_2j_ambient_scene_sync` | `V4.0.0` |
+| `configuration/Automations/00-2K頂樓參數初始化AI.yaml` | `00-2K頂樓參數初始化AI (V4.0.0)` | `ai_00_2k_topfloor_param_init` | `V4.0.0` |
+| `configuration/Automations/00-2L廣播快取暖機AI.yaml` | `00-2L廣播快取暖機AI (V4.0.0)` | `ai_00_2l_announce_cache_warm` | `V4.0.0` |
+| `configuration/Automations/00-2M實體引用檢查AI.yaml` | `00-2M實體引用檢查AI (V4.0.0)` | `ai_00_2m_entity_reference_check` | `V4.0.0` |
+| `configuration/Automations/00-2P門鎖電量每日紀錄AI.yaml` | `00-2P門鎖電量每日紀錄AI (V4.0.0)` | `ai_00_2p_doorlock_battery_daily` | `V4.0.0` |
+| `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V4.0.0)` | `ai_miaoli_weather_disaster_notify` | `V4.0.0` |
+| `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V4.0.0)` | `ai_05b_emergency_mode_notify_v3` | `V4.0.0` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
-| `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
-| `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A五樓保全系統AI (V3.3.1)` | `ai_08_5a_5f_security_webhook_guard` | `V3.3.1` |
-| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V3.4.0)` | `ai_topfloor_stairs_scene` | `V3.4.0` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V3.4.6)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` | `V3.4.6` |
-| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V3.3.1)` | `ai_08_5g_study_motion_light` | `V3.3.1` |
-| `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V3.1)` | `ai_away_security_system` | `V3.1` |
-| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2)` | `ai_08_8a_kitchen_motion_light` | `V3.2` |
-| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B 廁所感應燈AI (V3.0.3)` | `ai_08_8b_toilet_motion_light` | `V3.0.3` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V3.4.1)` | `ai_auto_leave_system` | `V3.4.1` |
-| `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V3.0)` | `ai_doorlock_battery_stage_notify` | `V3.0` |
-| `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V3.1)` | `ai_doorlock_battery_cycle_calibration` | `V3.1` |
-| `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
-| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.4.0)` | `ai_104_1_garage_gate_motion_light` | `V3.4.0` |
-| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V3.1.1)` | `ai_lpr_recognition` | `V3.1.1` |
-| `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V3.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V3.3.1` |
-| `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V3.1.0)` | `ai_105_front_door_doorbell_notify` | `V3.1.0` |
-| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V3.3.1)` | `ai_gateway_anomaly_guard` | `V3.3.1` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V3.2.1)` | `ai_living_room_fan_integrated_control` | `V3.2.1` |
-| `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V3.1)` | `ai_living_room_fan_anomaly_alert` | `V3.1` |
-| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V3.3.0)` | `ai_topfloor_fan_automation` | `V3.3.0` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V3.4.0)` | `ai_107_tesla_charger_status_notify` | `V3.4.0` |
+| `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)` | `ai_08_5a_5f_security_webhook_guard` | `V4.0.0` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.0.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` |
+| `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.0.0) / 08-5F頂樓下樓補判AI (V4.0.0)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.0.0` |
+| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.0.0)（共 4 支）` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.0.0` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V3.1.0)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` | `V3.1.0` |
+| `configuration/Automations/08-5J頂樓動線推理AI.yaml` | `08-5J頂樓動線推理AI (V4.0.0) / 08-5J頂樓感應週報 (V4.0.0)` | `ai_08_5j_topfloor_path_inference` / `ai_08_5j_topfloor_weekly_report` | `V4.0.0` |
+| `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` | `V4.0.0` |
+| `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V4.0.0)` | `ai_away_security_system` | `V4.0.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.4.0` |
+| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2)` | `ai_08_8a_kitchen_motion_light` | `V3.2` |
+| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3)` | `ai_08_8b_toilet_motion_light` | `V3.0.3` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.0.0)` | `ai_auto_leave_system` | `V4.0.0` |
+| `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
+| `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_cycle_calibration` | `V4.0.0` |
+| `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
+| `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V3.0)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V3.0` |
+| `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V3.4.3)` | `ai_104_1_garage_gate_motion_light` | `V3.4.3` |
+| `configuration/Automations/104-2車牌辨識AI.yaml` | `104-2車牌辨識AI (V4.0.0)` | `ai_lpr_recognition` | `V4.0.0` |
+| `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V4.0.0)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V4.0.0` |
+| `configuration/Automations/104-4車庫回家通知系統AI.yaml` | `104-4車庫回家通知系統AI (V4.0.0)` | `ai_104_4_garage_arrival_notice` | `V4.0.0` |
+| `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V4.0.0)` | `ai_105_front_door_doorbell_notify` | `V4.0.0` |
+| `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.0.0)` | `ai_gateway_anomaly_guard` | `V4.0.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.0.0)` | `ai_107_tesla_charger_status_notify` | `V4.0.0` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.0.0)` | `ai_living_room_fan_integrated_control` | `V4.0.0` |
+| `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
+| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.0.0)` | `ai_topfloor_fan_automation` | `V4.0.0` |
 
 ## 維護約定
 - 調整邏輯時：
@@ -65,6 +77,9 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.0.0 | 2026-10-08 | V4.0 發布：新增通知分級／氣氛燈／廣播／頂樓動線／LINE Bot 輪替／車庫回家／門鎖日耗電率等 helper；新增 packages：`topfloor.yaml`、`persons.yaml`、`doorlock_battery.yaml`、`announce_tts.yaml`（詳見 helper.yaml 檔頭與本檔「本次調整（V4.0）」）。 |
+| V4.0-beta 1 | 2026-10-04 | UI 重新設計：3D 平面圖 `picture-elements` + 單燈疊圖（`mix-blend-mode: lighten`，亮度/色相/飽和度同步），新增 iPad 橫向與 iPhone 直向首頁；由 `scripts/generate_floorplan_v4.py` 依 `spatial_scene_graph.json` 與 `render_manifest.yaml` 產生各樓層卡片（`floorplan_v4/`）。底圖暫用舊 3D SVG，待實際渲染圖。另新增 `entity_positions.yaml/json` 與 `ENTITY_POSITIONS.md` 位置實體表（含 5F 使用者校正後座標），供後續自動化使用。 |
+| V3.24.0 | 2026-09-23 | 修復車庫/二樓 Wi-Fi 綜合判斷（加 30s delay_off、納入 Kenny iPad），強化 AP MAC 模板過濾與更新 Iris 預設追蹤器。 |
 | V3.23.0 | 2026-09-20 | 新增 `input_boolean.line_bot_quota_exhausted_notified`（LINE Bot 額度用盡通知去重狀態開關），確保所有 Bot 配額用盡時僅推播一次告警。 |
 | V3.22.0 | 2026-08-16 | 新增 `input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng`（頂樓四樓樓梯燈校正虛擬按鈕），將實體開關按鍵校正功能改由虛擬實體按鈕接管。 |
 | V3.21.1 | 2026-08-09 | 修復 `supply_batt_lowest_23cd3dc` 的 friendly_name 為「耗材電量最低値_廚房無線開關」。 |
@@ -76,6 +91,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V3.6 | 2026-10-08 | recorder 保留 45 天並排除高頻雜訊實體（`button.*_info`、網路使用率、耗電電流電壓）；新增自動化管理面板與整合儀表板 `lovelace-smart`；packages 新增與 `person` 設定。 |
 | V3.5 | 2026-08-16 | 依據 Home Assistant 2026.8 規範移除已棄用之 `http:` 區塊（由 HA 系統網路介面管理）；新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。 |
 | V3.0 | 2026-03-01 | 基礎架構重組，導入 AI managed automations & scripts include，設定 recorder、logger 與 Google Translate TTS。 |
 
@@ -220,7 +236,41 @@
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V3.4)` | `eq99` | `V3.4` |
+| `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V4.0.0)` | `eq99` | `V4.0.0` |
+| `configuration/Scripts/情境檢查AI.yaml` | `情境檢查AI (V4.0.0) / 情境執行廣播AI (V4.0.0) / 離家樓梯燈延遲關閉 (V4.0.0)` | `scene_verify` / `scene_announce` / `stairs_delayed_off` | `V4.0.0` |
+| `configuration/Scripts/氣氛燈AI.yaml` | `氣氛燈單區閃爍 (V4.0.0) / 氣氛燈關閉燈具顏色還原 (V4.0.0) / 氣氛燈機台整段變色 (V4.0.0)…` | `mood_alert_pulse` / `mood_alert_restore_off` / `mood_alert_ap_hold` / `mood_alert_ap_blink` / `ambient_scene` / `mood_alert` | `V4.0.0` |
+| `configuration/Scripts/漸進情境AI.yaml` | `漸進情境AI (V4.0.0)` | `stage_scene` | `V4.0.0` |
+| `configuration/Scripts/統一通知AI.yaml` | `統一通知AI (V4.0.0) / 統一廣播AI (V4.0.0) / 廣播音量保險 (V4.0.0)` | `notify_dispatch` / `announce` / `announce_volume_guard` | `V4.0.0` |
+| `configuration/Scripts/車庫即時影像AI.yaml` | `車庫即時影像AI (V4.0.0)` | `garage_live` | `V4.0.0` |
+| `configuration/Scripts/車庫快照AI.yaml` | `車庫快照AI (V4.0.0) / 車庫快照（條件式）AI (V4.0.0)` | `garage_snapshot` / `garage_snapshot_if` | `V4.0.0` |
+| `configuration/Scripts/車庫錄影AI.yaml` | `車庫錄影AI (V4.0.0) / 車庫短片LINE發送AI (V4.0.0)` | `garage_video` / `garage_video_line` | `V4.0.0` |
+| `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.0.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0)…` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.0.0` |
+
+## 本次調整（V4.0 - 2026-10-08 AI 4.0 正式版：通知分級、氣氛燈與廣播、頂樓動線重構、車庫回家通知、LINE Bot 輪替）
+
+### 1. 通知與廣播全面統一
+- `script.notify_dispatch`：四級（資訊／一般／重要／緊急）HA 通知＋LINE 扁平卡片，內文自動配主題圖示、每句換行；HA 通知分級開關（`notify_ha_*`）；資訊級只發 HA。
+- `script.announce`：一律播放「提示音＋語音」合成單一音檔（`mk_announce.py`，同文字快取；`00-2L` 開機與每日 03:30 預先合成 530 句），合成失敗重試 3 次、仍失敗只播提示音並發 HA 資訊通知；可同時指定多個喇叭；新增 `announce_volume_guard`（HomePod 逾時中斷時等廣播結束後還原音量）。
+- 地震預警（`eq99`）：廣播最先、不阻塞，開頭廣播與氣氛燈同時開始；第一段（預估秒數）播完 0.1 秒內接第二段緊急音效＋避難提示並再閃一次氣氛燈（原本固定等 25 秒會空 11 秒）。
+
+### 2. 情境與氣氛燈
+- 氣氛燈提醒（`mood_alert`）：緊急級各區同時閃、機台 LED（UniFi AP）同步；燈況記憶（`00-2H`）依「色溫＋亮度」還原，還原後確認回到色溫模式（最多重送 3 次）；排隊上限 10；去重窗口 8 秒。
+- 情境氣氛燈（`00-2J`）：離家紅／晚安暖橘／早安與到家綠；漸進情境、情境檢查、情境廣播。
+- 夜燈情境（08-5D）：確認關閉後單純開燈，讓床頭燈回到最暗夜燈模式。
+
+### 3. 頂樓動線重構（08-5C / 5F / 5G / 5J / 5K）
+- 新增 08-5J 動線推理（攝影機、跨線 Webhook、PIR 左（房間）／右（書房）、AP 多證據推理）、08-5K 燈具使用權（手動開燈 5 分鐘保護）。
+- 08-5G 書房燈：開燈與無人檢查看右側（書房）PIR；「書房回房間」（左側觸發＋剛上樓或右側先觸發）關書房燈並依延遲關樓梯燈；不再被「進房間」推理事件誤關。
+- 08-5C 樓梯燈：深夜（熟睡鎖）60%／3000K，起床後第一次開燈用「燈況記憶」的平常亮度／色溫；牆壁開關、實體按鈕（12A／12B／12D）一致；走出房間（左→右）開燈。
+- 08-5F 新增下樓補判；11B 長按暫停頂樓感應（書房燈閃 1／2 下）。
+
+### 4. 其他新增與修復
+- 新增 104-4 車庫回家通知系統（遙控開鐵門時廣播＋氣氛燈，不發 LINE）。
+- LINE Bot：Auto 沿用主用 Bot（sticky）；「即將切換」預告同一個 Bot 只報一次；切換通知加 30 秒穩定與「不等於主用 Bot」防誤報。
+- 107 Tesla：拔槍重插（狀態經 unknown）補發開始充電通知；插槍後「充電完成」但沒充電的 00:02 提醒；充飽不拔槍不再誤報 6 小時未充電。
+- 修復：08-6 離家保全（Iris 手機實體已失效）改用 `person.*`；21A 風扇備援感測器與 `t_eff` 判斷；13 魔方、00-2C 魔方電量失效實體；`sensor.lights_on`；門鎖日耗電率 `doorlock_battery_drop_mean_7d` 重建（00-2P 每日紀錄）。
+- 新增 00-2M 每晚 03:40 實體引用檢查（`scripts/check_entities.py`）；資料庫保留 45 天並排除雜訊實體；自動化管理側邊欄面板與整合儀表板「智慧家庭」。
+- 移出載入範圍：測試觸發機制 00-2G 與 `test_trigger` package（保存在 `deprecated_automations_backup/Archived_20261008/` 與 `scripts/dev_tools/`）、106-1、00-2廣播系統測試、00-3 手動清理空間。
 
 ## 本次調整（V3.6.9 - 2026-09-20 AI 4.0 測試導入、LINE Bot 額度判定與去重修復、Tesla 充電樁充電完成通知邏輯修復、車庫主燈與樓梯燈自動關閉修復）
 - **AI 4.0 測試導入（全新 Agent 與次世代模型完整接管，全面 AI 化更新）**：
@@ -247,7 +297,9 @@
 - **107Tesla充電器狀態與通知AI 升級至 `V3.4.0`**：
   - **狀態分類修正**：將 `charging_finished` / `charging finished` 自「斷開連接（`disconnected_states`）」移出，建立獨立之 `finished_states`。解決先前狀態由 `charging_finished` 轉入 `waiting_car` 時，被誤判為剛插槍而提早將 `tesla_charger_session_charged` 旗標歸零的 bug。
   - **杜絕重複發送與保護**：在完成通知發送序列最前段加入 `input_boolean.turn_off` 立即重置 `input_boolean.tesla_charger_session_charged`，杜絕充電完成後車輛預熱（Preconditioning）微幅充電或拔槍時引發的二次/重複完成通知。
-  - **車輛名稱精準識別**：完成時優先依據充電中（`charging` $ightarrow$ Tesla、`charging_reduced` $ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
+  - **車輛名稱精準識別**：完成時優先依據充電中（`charging` $
+ightarrow$ Tesla、`charging_reduced` $
+ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 ## 本次調整（V3.6.7 Patch (a) - 2026-08-16 Terncy 2026.8+ 底層事件重構、三擊全域統一、樓梯燈優化、晚安情境防誤判修復與設定檔升級）
 - **Terncy 開關觸發條件轉換**：將 `automations.yaml` 中 25 支 Terncy 開關自動化及 `08-8B廁所感應燈AI.yaml` 之觸發器從舊版 `platform: device / trigger: device` 遷移為底層 `trigger: event`（`event_type: terncy_pressed` / `event_type: terncy_long_press`），完整保留原始 `device_id`。
@@ -492,3 +544,35 @@
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。
+
+## 本次調整（V4.0-beta1 追加 - 2026-10-05：通知分級、統一廣播、漸進情境、LINE Bot 輪替修正）
+
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| LINE Bot 輪替 | `packages/linebot.yaml` | V1.12 | 沿用主用 Bot（跨月不回 Bot1）、切換預告以 196 門檻計算；`send_line_to_user` 自動將「標題+等級+內文」多泡泡合併為 1 則扁平 Flex 卡片（節省額度） |
+| LINE 額度監控 | `00-2BLINE推播AI` | V3.5 | 改用 `notify_dispatch`；切換/低額度=重要、用盡=緊急、例行摘要=資訊 |
+| 統一通知 | `Scripts/統一通知AI.yaml` | V1.0.2 | `script.notify_dispatch`（HA 通知+LINE Flex，資訊級不發 LINE）、`script.announce`（提示音播完才播 TTS，播完恢復音量；提示音改本機 media-source，保底秒數=實際長度） |
+| 漸進情境 | `Scripts/漸進情境AI.yaml` | V1.0.2 | 依按鈕位置由近到遠分環開/關；離家由開關觸發時樓梯燈豁免，3 分鐘後關閉 |
+| 情境檢查 | `Scripts/情境檢查AI.yaml` | V1.0.2 | 晚安/離家/早安/到家執行後檢查、補救；補救成功=資訊（僅 HA），失敗=重要（HA+LINE） |
+| 通知開關初始化 | `00-2D通知開關初始化AI` | V1.0.0 | HA 通知資訊/一般/重要開關首次一次性開啟，之後由使用者調整 |
+| 通知測試 | `00-2E通知測試AI` | V1.0.0 | 4 個測試按鈕 |
+| 等級套用 | 約 20 個 `*AI.yaml` + `automations.yaml` | — | `notify.persistent_notification` → `script.notify_dispatch`（line:false，保留原 LINE 發送）；45 組「提示音+固定延遲+TTS」→ `script.announce` |
+| 廣播群組 | HA 設定 | — | 廣播群組All→緊急、通知→重要，新增「廣播群組一般」（客廳 HomePod+車庫攝影機）；實體 ID 不變 |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | 新增 `notify_ha_*_enable`、`notify_test_*`、`line_bot_sticky`、`scene_origin_device` 等 |
+
+### V4.0-beta1 追加：情境與狀況氣氛燈AI（2026-10-05）
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| 氣氛燈提醒 | `Scripts/氣氛燈AI.yaml` | V1.0.1 | `script.mood_alert`：LINE（重要/緊急）或廣播送出時，客廳小燈→餐廳燈2→三樓樓梯燈→四樓→頂樓樓梯燈依序閃爍（重要=琥珀橘約 4 秒、緊急=紅色約 6 秒），完成後還原；離家模式不提醒、晚安/夜燈情境只有緊急提醒、緊急模式 05A/05B/05E 執行中或 3 分鐘內略過；25 秒內與 LINE/廣播同事件去重 |
+| 呼叫點 | `統一通知AI.yaml` V1.0.4、`packages/linebot.yaml` V1.13 | — | `notify_dispatch`、`announce`、舊格式 LINE 送出後觸發 `mood_alert` |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | `mood_alert_enable/_important_enable/_emergency_enable`（首次由 00-2D 一次性開啟）、`mood_alert_active`、`mood_alert_last` |
+
+### V4.0-beta1 追加：情境執行廣播（2026-10-05）
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| 情境廣播 | `Scripts/情境檢查AI.yaml` | V1.0.4 | 新增 `script.scene_announce`：離家/晚安/早安/到家執行時用「一般」廣播播報；離家、晚安僅手動（實體開關）觸發時播，早安、到家一律播；60 秒內同情境不重複；`scene_verify` 開頭呼叫 |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | `scene_announce_enable`（首次由 00-2D 一次性開啟）、`scene_announce_last`、`scene_announce_init` |
+| 其他 | 漸進情境 V1.0.3、`07*` 空氣清淨機自動化 | — | 早安/到家不再開空氣清淨機；07/07-1/07-2/07-3 需有人在家（aqara_zai_jia）才啟動 |
+
+### AI 4.0 版號統一（2026-10-05）
+V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。

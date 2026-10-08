@@ -1,0 +1,211 @@
+# ────────────────────────────────────────────────────────
+# 情境檢查AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：情境執行廣播提示音改為「噔噔」兩聲（/media/scene_ding.mp3，約 0.75 秒）。
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V1.0.4：新增 script.scene_announce（情境執行廣播，一般級）；scene_verify 開頭呼叫。
+# - V1.0.3：空氣清淨機不再檢查狀態（07-4 會在 PM2.5 < 10 時立刻關閉它，與到家/早安開啟互相抵觸）；情境仍會送出開/關指令，確認有執行即可。
+# - V1.0.2：通知改用 script.notify_dispatch（補救成功/離線=資訊級僅 HA；補救失敗=重要級 HA+LINE Flex）。
+# - V1.0.1：離家由實體開關觸發時樓梯燈豁免（檢查不要求關閉），並新增 script.stairs_delayed_off 3 分鐘後關閉。
+# - V1.0.0：功能版；新增 script.scene_verify，晚安/離家/早安/到家四情境共用。
+#           依情境檢查應有狀態（燈、電扇、電視、空氣清淨機、保全模式；頂樓不檢查），僅對落差設備補動作一次，5 秒後複檢。
+#           通知：全部正常或補救成功 → 僅 HA 一般通知（補救成功才發，全正常不發）；補救後仍失敗 → HA 通知 + LINE 重要 ⚠️（SOP-2/10）。
+#           離線(unavailable) 設備略過並於 HA 通知標示；60 秒內重複呼叫靜默略過（mode single）。
+# ────────────────────────────────────────────────────────
+scene_verify:
+  alias: 情境檢查AI (V4.0.0)
+  description: 情境執行後檢查設備是否符合預期，落差補動作，結果以 HA 一般通知（失敗另發 LINE 重要）
+  mode: single
+  max_exceeded: silent
+  fields:
+    scene:
+      description: goodnight / leave / morning / arrive
+      required: true
+  variables:
+    automation_version: 'V4.0.0'
+    notif_title: "【情境檢查 {{ automation_version }}】"
+    scene_name: "{{ {'goodnight':'晚安','leave':'離家','morning':'早安','arrive':'到家'}.get(scene, scene) }}"
+    base_off: >-
+      {{ ['light.yeelink_color5_4181_light','light.ke_ting_deng_zu_1_ha','light.ke_ting_deng_zu_2','light.ke_ting_deng_zu_3','light.can_ting_deng_zu_1_ha',
+          'switch.chu_fang_deng','switch.ce_suo_deng','switch.can_ting_bi_deng','switch.lou_ti_deng','switch.can_ting_kan_deng','switch.ke_ting_kan_deng',
+          'switch.men_kou_deng','switch.lu_deng','switch.ke_ting_huan_rao_deng','switch.ke_ting_bi_deng','switch.che_ku_zhu_deng',
+          'fan.ke_ting_dian_feng_shan','remote.ke_ting_dian_shi'] }}
+    expect_on: >-
+      {% if scene == 'morning' %}{{ ['light.can_ting_deng_zu_1_ha'] }}
+      {% elif scene == 'arrive' %}{{ ['light.yeelink_color5_4181_light','light.yeelink_color5_106d_light','light.yeelink_color5_8e3f_light','light.yeelink_color5_2024_light','light.yeelink_color5_fab7_light','light.yeelink_color5_5007_light','light.yeelink_color5_f21d_light','light.yeelink_color5_53ed_light','light.yeelink_color5_f618_light','light.yeelink_color5_c8d3_light'] }}
+      {% else %}{{ [] }}{% endif %}
+    alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
+    alarm_expect: "{{ {'goodnight':'armed_night','leave':'armed_away','morning':'armed_home','arrive':'armed_home'}.get(scene, '') }}"
+    alarm_service: "{{ {'armed_night':'alarm_arm_night','armed_away':'alarm_arm_away','armed_home':'alarm_arm_home'}.get(alarm_expect, '') }}"
+  sequence:
+    # ── 讀取起點並清除；離家由實體開關觸發時，樓梯燈豁免（讓人往下走），3 分鐘後另行關閉 ──
+    - variables:
+        exempt: "{{ scene == 'leave' and states('input_text.scene_origin_device') | trim not in ['', 'unknown', 'unavailable', 'None'] }}"
+        origin_dev: "{{ states('input_text.scene_origin_device') | trim }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.scene_origin_device
+      data:
+        value: ""
+      continue_on_error: true
+    - if: "{{ exempt }}"
+      then:
+        - action: script.turn_on
+          target:
+            entity_id: script.stairs_delayed_off
+          data:
+            variables:
+              device: "{{ origin_dev }}"
+    # ── 情境執行廣播（一般級；自動離家/自動晚安不播，早安/到家一律播）──
+    - action: script.turn_on
+      target:
+        entity_id: script.scene_announce
+      data:
+        variables:
+          scene: "{{ scene }}"
+          manual: "{{ origin_dev not in ['', 'unknown', 'unavailable', 'None'] }}"
+    # ── 第一次檢查 ──
+    - variables:
+        expect_off: >-
+          {% if scene == 'goodnight' %}{{ base_off }}
+          {% elif scene == 'leave' %}{{ base_off | reject('eq', 'switch.lou_ti_deng') | list if exempt else base_off + ['switch.er_san_lou_lou_ti_deng','switch.san_lou_lou_ti_deng','switch.san_si_lou_lou_ti_deng','light.yeelink_color5_0fb7_light'] }}
+          {% else %}{{ [] }}{% endif %}
+        bad_on: "{{ expect_on | reject('is_state', 'on') | reject('is_state', 'unavailable') | list }}"
+        bad_off: "{{ expect_off | reject('is_state', 'off') | reject('is_state', 'unavailable') | list }}"
+        alarm_bad: "{{ alarm_expect != '' and not is_state(alarm_entity, alarm_expect) and not is_state(alarm_entity, 'unavailable') }}"
+        offline: "{{ (expect_on + expect_off) | select('is_state', 'unavailable') | list }}"
+        scene_flag: "{{ {'goodnight':'input_boolean.aqara_wan_an','leave':'input_boolean.aqara_li_jia','morning':'input_boolean.aqara_zai_jia','arrive':'input_boolean.aqara_zai_jia'}.get(scene, '') }}"
+    - if: "{{ bad_on | length == 0 and bad_off | length == 0 and not alarm_bad }}"
+      then:
+        - if: "{{ offline | length > 0 }}"
+          then:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                title: "{{ scene_name }}情境檢查"
+                message: "{{ scene_name }}情境完成，但以下設備離線無法檢查\n{{ offline | map('state_attr', 'friendly_name') | reject('none') | join('、') }}"
+                source: 情境檢查AI
+                version: "{{ automation_version }}"
+        - stop: "全部符合預期"
+    # ── 情境已被手動改變則不補（避免把使用者手動操作改回去） ──
+    - if: "{{ scene_flag != '' and not is_state(scene_flag, 'on') }}"
+      then:
+        - stop: "情境已被手動改變，略過檢查"
+    # ── 補動作（只對落差） ──
+    - if: "{{ bad_on | length > 0 }}"
+      then:
+        - action: homeassistant.turn_on
+          target:
+            entity_id: "{{ bad_on }}"
+          continue_on_error: true
+    - if: "{{ bad_off | length > 0 }}"
+      then:
+        - action: homeassistant.turn_off
+          target:
+            entity_id: "{{ bad_off }}"
+          continue_on_error: true
+    - if: "{{ alarm_bad and alarm_service != '' }}"
+      then:
+        - action: "alarm_control_panel.{{ alarm_service }}"
+          target:
+            entity_id: "{{ alarm_entity }}"
+          continue_on_error: true
+    - delay: "00:00:05"
+    # ── 複檢 ──
+    - variables:
+        fail_on: "{{ bad_on | reject('is_state', 'on') | list }}"
+        fail_off: "{{ bad_off | reject('is_state', 'off') | reject('is_state', 'unavailable') | list }}"
+        fail_alarm: "{{ alarm_bad and not is_state(alarm_entity, alarm_expect) }}"
+        fail_names: >-
+          {% set ns = namespace(n=[]) %}
+          {% for e in (fail_on + fail_off) %}{% set ns.n = ns.n + [state_attr(e, 'friendly_name') or e] %}{% endfor %}
+          {% if fail_alarm %}{% set ns.n = ns.n + ['保全模式'] %}{% endif %}
+          {{ ns.n | join('、') }}
+        fixed_names: >-
+          {% set ns = namespace(n=[]) %}
+          {% for e in (bad_on + bad_off) if e not in fail_on and e not in fail_off %}{% set ns.n = ns.n + [state_attr(e, 'friendly_name') or e] %}{% endfor %}
+          {% if alarm_bad and not fail_alarm %}{% set ns.n = ns.n + ['保全模式'] %}{% endif %}
+          {{ ns.n | join('、') }}
+    # ── 補救成功：資訊級（僅 HA，不發 LINE） ──
+    - if: "{{ fixed_names | trim != '' }}"
+      then:
+        - action: script.notify_dispatch
+          data:
+            level: info
+            title: "{{ scene_name }}情境檢查"
+            message: "{{ scene_name }}情境首次未到位，已自動補救成功\n{{ fixed_names | trim }}"
+            source: 情境檢查AI
+            version: "{{ automation_version }}"
+    # ── 補救後仍失敗：重要級（HA + LINE） ──
+    - if: "{{ fail_names | trim != '' }}"
+      then:
+        - action: script.notify_dispatch
+          data:
+            level: important
+            title: "{{ scene_name }}情境檢查"
+            message: "{{ scene_name }}情境補救後仍未到位，請留意\n{{ fail_names | trim }}"
+            source: 情境檢查AI
+            version: "{{ automation_version }}"
+
+scene_announce:
+  alias: 情境執行廣播AI (V4.0.0)
+  description: 離家/晚安/早安/到家情境執行時以一般廣播播報（離家、晚安僅限手動觸發；60 秒內同情境不重複）
+  mode: queued
+  max: 4
+  fields:
+    scene:
+      description: goodnight / leave / morning / arrive
+      required: true
+    manual:
+      description: 是否由實體開關/手動觸發（離家、晚安僅手動時播報）
+      required: false
+  variables:
+    msg: >-
+      {{ {'leave': '已啟動離家模式，電器與燈光已關閉，請確認門窗，路上小心。',
+          'goodnight': '晚安，已啟動晚安模式，燈光與電器已關閉，祝您有個好夢。',
+          'morning': '早安，已啟動早安模式，祝您有美好的一天。',
+          'arrive': '歡迎回家，已啟動到家模式。'}.get(scene, '') }}
+    is_manual: "{{ manual | default(false) in [true, 'true', 'True'] }}"
+    last_raw: "{{ states('input_text.scene_announce_last') }}"
+    last_scene: "{{ last_raw.split('|')[0] if '|' in last_raw else '' }}"
+    last_age: "{{ (as_timestamp(now()) - (last_raw.split('|')[1] | float(0))) if '|' in last_raw else 9999 }}"
+    allow: >-
+      {{ msg != '' and is_state('input_boolean.scene_announce_enable', 'on')
+         and (scene in ['morning', 'arrive'] or is_manual)
+         and not (last_scene == scene and last_age < 60) }}
+  sequence:
+    - if: "{{ not allow }}"
+      then:
+        - stop: "略過情境廣播"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.scene_announce_last
+      data:
+        value: "{{ scene }}|{{ as_timestamp(now()) | int }}"
+    - action: script.announce
+      data:
+        level: general
+        message: "{{ msg }}"
+        chime_media: media-source://media_source/local/scene_ding.mp3
+        chime_media_s: 0.75
+        merge_audio: true
+
+stairs_delayed_off:
+  alias: 離家樓梯燈延遲關閉 (V4.0.0)
+  description: 離家情境由實體開關觸發時樓梯燈豁免立即關閉，3 分鐘後（含 1F 樓梯）漸進關閉；再次觸發會重新計時。
+  mode: restart
+  fields:
+    device:
+      description: 觸發的開關 device_id（決定樓梯燈關閉的起點樓層）
+      required: false
+  sequence:
+    - delay: "00:03:00"
+    - action: script.stage_scene
+      data:
+        scene: stairs_off
+        device: "{{ device | default('') }}"
+    - action: switch.turn_off
+      target:
+        entity_id: switch.lou_ti_deng
+      continue_on_error: true

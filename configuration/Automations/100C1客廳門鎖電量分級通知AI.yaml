@@ -1,10 +1,12 @@
+# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 100C1客廳門鎖電量分級通知AI (V3.0)
+# 100C1客廳門鎖電量分級通知AI (V4.0.0)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100C1客廳門鎖電量分級通知AI (V3.0)
+- alias: 100C1客廳門鎖電量分級通知AI (V4.0.0)
   id: ai_doorlock_battery_stage_notify
   description: 門鎖電量到 35/15/5% 時分級通知；同款電池才顯示預估天數；僅等級變化時通知一次
   mode: single
@@ -27,7 +29,7 @@
       for: "00:01:00"
 
   variables:
-    automation_version: "V3.0"
+    automation_version: "V4.0.0"
     notif_title_base: "【AI電量告警系統 {{ automation_version }}】"
     notif_title_warn: |-
       {{ notif_title_base }}
@@ -99,8 +101,12 @@
                             - condition: template
                               value_template: "{{ stage_now == 'EQ0' }}"
                           sequence:
-                            - service: notify.persistent_notification
+                            - service: script.notify_dispatch
                               data:
+                                level: emergency
+                                line: false
+                                source: "過濾 unknown → -1 假觸發"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_alarm }}"
                                 message: "🟥 門鎖電量完全沒電（0%）！請以行動電源供電後解鎖。此時「自動離家」與「網關保護」可能異常。"
                             - if:
@@ -123,8 +129,12 @@
                             - condition: template
                               value_template: "{{ stage_now == 'LT5' }}"
                           sequence:
-                            - service: notify.persistent_notification
+                            - service: script.notify_dispatch
                               data:
+                                level: emergency
+                                line: false
+                                source: "過濾 unknown → -1 假觸發"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_alarm }}"
                                 message: "🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
                             - if:
@@ -134,6 +144,7 @@
                               then:
                                 - service: script.send_line_to_user
                                   data:
+                                    source: "過濾 unknown → -1 假觸發"
                                     user_id: "{{ line_bot_target_user_id }}"
                                     payload: >-
                                       {{
@@ -147,8 +158,12 @@
                             - condition: template
                               value_template: "{{ stage_now == 'LT15' }}"
                           sequence:
-                            - service: notify.persistent_notification
+                            - service: script.notify_dispatch
                               data:
+                                level: important
+                                line: false
+                                source: "過濾 unknown → -1 假觸發"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_warn }}"
                                 message: "🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
                             - if:
@@ -171,8 +186,12 @@
                             - condition: template
                               value_template: "{{ stage_now == 'LT35' }}"
                           sequence:
-                            - service: notify.persistent_notification
+                            - service: script.notify_dispatch
                               data:
+                                level: important
+                                line: false
+                                source: "過濾 unknown → -1 假觸發"
+                                version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_warn }}"
                                 message: "🟨 門鎖電量 35% 以下，建議安排電池更換。"
                             - if:
@@ -182,6 +201,7 @@
                               then:
                                 - service: script.send_line_to_user
                                   data:
+                                    source: "過濾 unknown → -1 假觸發"
                                     user_id: "{{ line_bot_target_user_id }}"
                                     payload: >-
                                       {{

@@ -1,0 +1,202 @@
+# ────────────────────────────────────────────────────────
+# 頂樓感應AI (V4.0.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.0.0：新增。頂樓感應優化共用腳本：
+#           topfloor_publish_path：08-5J 發布動線事件（去重、事件、紀錄、計數、時間戳）；
+#           topfloor_stairs_off_one：只關「感應自己開的」樓梯燈（手動開的燈旗標為非感應、9A 常開不關；手動保持計時由 08-5K 管理，結束後接管）；
+#           topfloor_stairs_apply_day / topfloor_stairs_button_toggle：套用平常亮度、實體按鈕切換樓梯燈（深夜用深夜亮度）。
+#           topfloor_kandeng_off_if_auto：只關「感應自己開的」坎燈（深夜不動、床頭燈/檯燈亮著不關）。
+# ────────────────────────────────────────────────────────
+topfloor_publish_path:
+  alias: 頂樓動線事件發布 (V4.0.0)
+  description: 08-5J 發布動線事件：去重（同事件 10 秒、進書房 120 秒）、發出 topfloor_path 事件、寫紀錄與時間戳
+  mode: queued
+  max: 20
+  fields:
+    path:
+      description: arrive_up / down_start / down / enter_study / leave_study_bedroom / leave_study_down / enter_bedroom / vacant_landing
+      required: true
+    evidence:
+      description: 判斷依據（人看得懂的文字）
+      required: false
+  variables:
+    last_raw: "{{ states('input_text.topfloor_last_path') | string }}"
+    last_p: "{{ last_raw.split('|')[0] if '|' in last_raw else '' }}"
+    last_t: "{{ (last_raw.split('|')[1] | float(0)) if '|' in last_raw else 0 }}"
+    dedupe_s: "{{ 120 if path == 'enter_study' else 10 }}"
+    dup: "{{ last_p == path and (now().timestamp() - last_t) < (dedupe_s | float) }}"
+    ev: "{{ evidence | default('', true) | string }}"
+    line_txt: "{{ now().strftime('%H:%M:%S') ~ ' ' ~ path ~ '（' ~ ev ~ '）' }}"
+  sequence:
+    - if: "{{ dup }}"
+      then:
+        - stop: "同一動線事件短時間內已發布，略過"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.topfloor_last_path
+      data:
+        value: "{{ path }}|{{ now().timestamp() | int }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.topfloor_decision_log
+      data:
+        value: "{{ line_txt[:240] }}"
+    - event: topfloor_path
+      event_data:
+        path: "{{ path }}"
+        evidence: "{{ ev }}"
+    - action: logbook.log
+      data:
+        name: 頂樓動線
+        message: "{{ line_txt }}"
+        entity_id: input_text.topfloor_decision_log
+      continue_on_error: true
+    - action: counter.increment
+      target:
+        entity_id: counter.topfloor_path_events
+      continue_on_error: true
+    - choose:
+        - conditions: "{{ path == 'enter_study' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id:
+                  - input_datetime.topfloor_study_last_entered
+                  - input_datetime.topfloor_path_enter_study
+              data:
+                timestamp: "{{ now().timestamp() }}"
+        - conditions: "{{ path in ['leave_study_bedroom', 'leave_study_down'] }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_study_last_exited
+              data:
+                timestamp: "{{ now().timestamp() }}"
+        - conditions: "{{ path == 'enter_bedroom' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_path_bedroom
+              data:
+                timestamp: "{{ now().timestamp() }}"
+        - conditions: "{{ path == 'down' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_path_down
+              data:
+                timestamp: "{{ now().timestamp() }}"
+
+topfloor_stairs_off_one:
+  alias: 頂樓樓梯燈感應關燈（單盞） (V4.0.0)
+  description: 只關「感應自己開的」樓梯燈；9A 常開、非感應開的（手動／其他自動化開的）燈一律不關
+  mode: parallel
+  max: 6
+  fields:
+    key:
+      description: 0fb7（4F 樓梯燈）或 13b8（5F 梯廳燈）
+      required: true
+  variables:
+    light_e: "{{ 'light.yeelink_color5_' ~ key ~ '_light' }}"
+    auto_e: "{{ 'input_boolean.topfloor_' ~ key ~ '_auto' }}"
+  sequence:
+    - if: >-
+        {{ is_state(auto_e, 'on')
+           and is_state('input_boolean.topfloor_stairs_keep_on', 'off') }}
+      then:
+        - action: light.turn_off
+          target:
+            entity_id: "{{ light_e }}"
+          continue_on_error: true
+        - action: input_boolean.turn_off
+          target:
+            entity_id: "{{ auto_e }}"
+
+topfloor_kandeng_off_if_auto:
+  alias: 頂樓坎燈感應關燈 (V4.0.0)
+  description: 只關「感應自己開的」坎燈；深夜（熟睡鎖）不動、床頭燈或檯燈亮著不關
+  mode: parallel
+  max: 4
+  sequence:
+    - if: >-
+        {{ is_state('input_boolean.topfloor_kandeng_auto', 'on')
+           and is_state('input_boolean.sleep_silent_active', 'off')
+           and is_state('light.yeelink_bslamp2_4329_light', 'off')
+           and is_state('light.yeelink_lamp2_678c_light', 'off') }}
+      then:
+        - action: light.turn_off
+          target:
+            entity_id: light.ding_lou_kan_deng
+          continue_on_error: true
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.topfloor_kandeng_auto
+
+topfloor_stairs_apply_day:
+  alias: 頂樓樓梯燈套用平常亮度 (V4.0.0)
+  description: 把指定樓梯燈設成「你平常的亮度／色溫」：優先用燈況記憶（mood_mem_<key>），讀不到才用面板的「起床後」參數。燈必須是亮著或要被打開。
+  mode: parallel
+  max: 4
+  fields:
+    key:
+      description: 燈代號（0fb7＝4F 樓梯燈、13b8＝5F 梯廳燈）
+      required: true
+  sequence:
+    - variables:
+        raw: "{{ states('input_text.mood_mem_' ~ key) }}"
+        # raw 會被 HA 自動轉成 dict（內容是 JSON 時），所以兩種型別都要處理
+        mem: "{{ raw if raw is mapping else ((raw | from_json({})) if (raw is string and raw.startswith('{')) else {}) }}"
+        use_mem: "{{ mem.get('b') is not none and mem.get('k') is not none and mem.get('b') | int(0) > 0 and mem.get('k') | int(0) > 0 }}"
+        bri: >-
+          {{ mem.get('b') | int(0) if use_mem
+             else ((states('input_number.topfloor_stairs_day_bri_' ~ key) | int(80)) * 255 / 100) | round(0) | int }}
+        kel: >-
+          {{ mem.get('k') | int(0) if use_mem
+             else states('input_number.topfloor_stairs_day_k_' ~ key) | int(3800) }}
+    - action: light.turn_on
+      target:
+        entity_id: "light.yeelink_color5_{{ key }}_light"
+      data:
+        brightness: "{{ bri }}"
+        color_temp_kelvin: "{{ kel }}"
+      continue_on_error: true
+
+topfloor_stairs_button_toggle:
+  alias: 頂樓樓梯燈實體按鈕切換 (V4.0.0)
+  description: 實體按鈕（12A／12B／12D）切換樓梯燈：亮著就關；關著就開——熟睡鎖開啟時用深夜亮度／色溫，否則用平常亮度（燈況記憶）。
+  mode: parallel
+  max: 4
+  fields:
+    key:
+      description: 燈代號（0fb7＝4F 樓梯燈、13b8＝5F 梯廳燈）
+      required: true
+  sequence:
+    - choose:
+        - conditions: "{{ is_state('light.yeelink_color5_' ~ key ~ '_light', 'on') }}"
+          sequence:
+            - action: light.turn_off
+              target:
+                entity_id: "light.yeelink_color5_{{ key }}_light"
+              continue_on_error: true
+        - conditions: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: "light.yeelink_color5_{{ key }}_light"
+              data:
+                brightness_pct: "{{ states('input_number.topfloor_stairs_night_brightness') | int(60) }}"
+                color_temp_kelvin: "{{ states('input_number.topfloor_stairs_night_kelvin') | int(3000) }}"
+              continue_on_error: true
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.topfloor_stairs_night_used
+      default:
+        - action: script.topfloor_stairs_apply_day
+          data:
+            key: "{{ key }}"
+        - if: "{{ is_state('light.yeelink_color5_' ~ ('13b8' if key == '0fb7' else '0fb7') ~ '_light', 'off') }}"
+          then:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.topfloor_stairs_night_used

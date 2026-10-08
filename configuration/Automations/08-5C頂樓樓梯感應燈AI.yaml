@@ -1,7 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5C頂樓樓梯感應燈AI (V3.4.6)
+# 08-5C頂樓樓梯感應燈AI (V4.0.0)
 # 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.0：頂樓感應優化 P3 重寫。開燈：攝影機／PIR 右／arrive_up／down_start；深夜（頂樓熟睡手動鎖）樓梯燈 50% 2700K，其他時段不指定亮度；
+#           關燈改依 08-5J 動線事件（抵達目的地 15 秒後 4F→5F 漸進關、下樓 5F 先關、樓梯口清空、保底 2:30 有人則續），
+#           且只關「感應自己開的」燈（手動、9B、情境開的，或 5 分鐘手動保持、9A 常開都不關）；不再碰書房燈；坎燈深夜不動。
+# - V4.0.0：頂樓感應優化 P1：自動關閉流程不再關閉書房燈（原本會在使用者坐在書房時被書房 PIR 觸發而誤關，造成書房燈反覆閃爍）；書房燈改由 08-5G 負責。
 # - V3.4.6：修補版；為自動關閉流程加入 max_exceeded: silent，抑制 22 秒動態監聽期間重複觸發產生之 Already running 警告日誌。
 # - V3.4.5：動態置空救援版；徹底解決無線 Webhook 偶發性漏抓痛點。
 #           將細緻過濾邏輯由 Conditions 下移至 Actions 執行：
@@ -21,283 +25,301 @@
 #         並優化左側感應自動關燈邏輯（移除複雜 if/else，改為直接關燈流程），
 #         並在主流程加入 8 秒防呆，避免關燈後攝影機延遲訊號立刻重開。
 # ─────────────────────────────────────────────────────────────
-
 - id: ai_08_5c_topfloor_stairs_motion_light
-  alias: 08-5C頂樓樓梯感應燈AI (V3.4.6)
+  alias: 08-5C頂樓樓梯感應燈AI (V4.0.0)
   description: >
-    頂樓樓梯感應燈主流程：五樓攝影機偵測到人時開啟樓梯相關燈具，
-    並在 2 分 30 秒後關閉相關燈具；若當時由此流程點亮坎燈，會一併嘗試關閉。
-  mode: restart
-  variables:
-    automation_version: V3.4.6
-    webhook_mode: "{{ states('input_select.topfloor_webhook_mode') | default('綜合模式', true) }}"
-    webhook_enabled: "{{ webhook_mode in ['綜合模式', 'Webhook模式'] }}"
-    original_enabled: "{{ webhook_mode in ['綜合模式', '原本模式'] }}"
-    sleep_silent_start_min: "{{ states('input_number.sleep_silent_start_min') | int(150) }}"
-    sleep_silent_end_min: "{{ states('input_number.sleep_silent_end_min') | int(540) }}"
-    sleep_silent_active: >-
-      {% set s = sleep_silent_start_min | int %}
-      {% set e = sleep_silent_end_min | int %}
-      {% set n = now().hour * 60 + now().minute %}
-      {{ (n >= s and n < e) if s <= e else (n >= s or n < e) }}
-
-  triggers:
-    - id: bedroom_line
-      platform: webhook
-      webhook_id: 5fbedroomline
-      local_only: false
-    - id: studyroom_line
-      platform: webhook
-      webhook_id: 5fstudyroomline
-      local_only: false
-    - id: stairs_line
-      platform: webhook
-      webhook_id: 5fstairsline
-      local_only: false
-    - id: camera_person
-      trigger: state
-      entity_id:
-        - binary_sensor.wu_lou_she_ying_ji_person_detected
-      to: 'on'
-
-  conditions:
-    - condition: or
-      conditions:
-        - condition: template
-          value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
-        - condition: and
-          conditions:
-            - condition: template
-              value_template: "{{ original_enabled }}"
-            - condition: template
-              value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 'camera_person' }}"
-            - condition: state
-              entity_id: light.yeelink_color5_13b8_light
-              state: 'off'
-              for:
-                seconds: 2
-            - condition: template
-              value_template: >-
-                {{
-                  (as_timestamp(now()) -
-                  as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light_auto_off', 'last_triggered') | default(0, true)))
-                  > 10
-                }}
-
-  actions:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ webhook_enabled and not (sleep_silent_active | bool) and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['bedroom_line', 'studyroom_line', 'stairs_line'] }}"
-          sequence:
-            - parallel:
-                - action: light.turn_on
-                  target:
-                    entity_id:
-                      - light.yeelink_color5_0fb7_light
-                      - light.yeelink_color5_13b8_light
-                - action: light.turn_on
-                  target:
-                    entity_id: light.ding_lou_kan_deng
-            - delay:
-                minutes: 2
-                seconds: 30
-            - action: light.turn_off
-              target:
-                entity_id:
-                  - light.yeelink_color5_0fb7_light
-                  - light.yeelink_color5_13b8_light
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: light.yeelink_lamp2_678c_light
-                      state: 'off'
-                    - condition: state
-                      entity_id: light.yeelink_bslamp2_4329_light
-                      state: 'off'
-                  sequence:
-                    - action: light.turn_off
-                      target:
-                        entity_id: light.ding_lou_kan_deng
-            - stop: Webhook 補燈綠色通道完成，原攝影機防呆流程不需等待。
-    - choose:
-        - conditions:
-            - condition: state
-              entity_id: light.ding_lou_kan_deng
-              state: 'on'
-          sequence:
-            - action: light.turn_on
-              target:
-                entity_id:
-                  - light.yeelink_color5_0fb7_light
-                  - light.yeelink_color5_13b8_light
-            - delay:
-                minutes: 2
-                seconds: 30
-            - action: light.turn_off
-              target:
-                entity_id:
-                  - light.yeelink_color5_0fb7_light
-                  - light.yeelink_color5_13b8_light
-      default:
-        - parallel:
-            - action: light.turn_on
-              target:
-                entity_id: light.ding_lou_kan_deng
-            - action: light.turn_on
-              target:
-                entity_id:
-                  - light.yeelink_color5_0fb7_light
-                  - light.yeelink_color5_13b8_light
-        - delay:
-            minutes: 2
-            seconds: 30
-        - action: light.turn_off
-          target:
-            entity_id:
-              - light.yeelink_color5_13b8_light
-              - light.yeelink_color5_0fb7_light
-        - choose:
-            - conditions:
-                - condition: state
-                  entity_id: light.yeelink_lamp2_678c_light
-                  state: 'off'
-                - condition: state
-                  entity_id: light.yeelink_bslamp2_4329_light
-                  state: 'off'
-              sequence:
-                - action: light.turn_off
-                  target:
-                    entity_id: light.ding_lou_kan_deng
-
-- id: ai_08_5c_topfloor_stairs_motion_light_auto_off
-  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V3.4.6)
-  description: >
-    書房左側感應觸發後，僅在主流程觸發後 180 秒內執行輔助關燈流程。
-    Conditions 僅保留模式與 180 秒安全閥；Actions 以 Webhook 軌跡完好秒關，
-    或 22 秒攝影機動態清除救援流判別回房/出房，避免臥室線 Webhook 丟包造成回房漏關。
-  mode: single
+    頂樓樓梯感應燈開燈：攝影機看到人、走道 PIR、或 08-5J 判定上樓／下樓開始時，開 4F 樓梯燈與 5F 梯廳燈（坎燈白天傍晚才一起開）。
+    深夜（頂樓熟睡手動鎖開啟）亮度 50%、2700K；其他時段不指定亮度，沿用燈泡原本設定。已亮的燈不動。
+  mode: queued
+  max: 5
   max_exceeded: silent
   variables:
-    automation_version: V3.4.6
-
+    automation_version: V4.0.0
   triggers:
-    - trigger: state
-      entity_id:
-        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
-      to: 'on'
-
+    - id: cam_on
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
+    # 走出房間：一定先碰左側（房間），隨後碰右側（書房側）→ 開樓梯燈
+    - id: pir_out
+      trigger: state
+      entity_id: binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+      to: "on"
+    - id: arrive_up
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: arrive_up
+    - id: down_start
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: down_start
   conditions:
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
+    # 剛走進房間、樓梯燈被關後 20 秒內，攝影機看到人不重新開（人已在房裡，不是要出門；右側比左側晚觸發＝往外走，不擋）
     - condition: template
-      value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', '原本模式'] }}"
+      value_template: "{{ trigger.id != 'pir_out' or (now().timestamp() - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0)) <= 8 }}"
     - condition: template
-      value_template: >-
-        {% set main_last_triggered = as_timestamp(state_attr('automation.ai_08_5c_topfloor_stairs_motion_light', 'last_triggered'), none) %}
-        {{ main_last_triggered is not none and (as_timestamp(now()) - main_last_triggered) < 180 }}
+      value_template: "{{ trigger.id != 'cam_on' or is_state('timer.topfloor_room_arrived', 'idle')
+         or is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
+         or as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) > as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) }}"
+  actions:
+    - variables:
+        night: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
+        bri: "{{ states('input_number.topfloor_stairs_night_brightness') | int(50) }}"
+        night_k: "{{ states('input_number.topfloor_stairs_night_kelvin') | int(3000) }}"
+        was_night: "{{ is_state('input_boolean.topfloor_stairs_night_used', 'on') }}"
+    - repeat:
+        for_each:
+          - k: "0fb7"
+          - k: "13b8"
+        sequence:
+          - if: "{{ is_state('light.yeelink_color5_' ~ repeat.item.k ~ '_light', 'off') and is_state('input_boolean.topfloor_stairs_keep_on', 'off') }}"
+            then:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: "input_boolean.topfloor_{{ repeat.item.k }}_auto"
+              - if: "{{ night }}"
+                then:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "light.yeelink_color5_{{ repeat.item.k }}_light"
+                    data:
+                      brightness_pct: "{{ bri }}"
+                      color_temp_kelvin: "{{ night_k }}"
+                    continue_on_error: true
+                  - action: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.topfloor_stairs_night_used
+                else:
+                  # 上次是深夜亮度（燈泡會記住）→ 這次起床後改回正常亮度／色溫；否則沿用燈泡原本設定
+                  - if: "{{ was_night }}"
+                    then:
+                      - action: light.turn_on
+                        target:
+                          entity_id: "light.yeelink_color5_{{ repeat.item.k }}_light"
+                        data:
+                          # 優先用燈況記憶（你平常調的亮度／色溫）；記憶讀不到才用面板的「起床後」參數
+                          brightness: >-
+                            {% set raw = states('input_text.mood_mem_' ~ repeat.item.k) %}
+                            {% set mem = (raw | from_json({})) if (raw is string and raw.startswith('{')) else {} %}
+                            {{ mem.get('b') | int(0) if mem.get('b') is not none and mem.get('k') is not none and mem.get('b') | int(0) > 0
+                               else ((states('input_number.topfloor_stairs_day_bri_' ~ repeat.item.k) | int(80)) * 255 / 100) | round(0) | int }}
+                          color_temp_kelvin: >-
+                            {% set raw = states('input_text.mood_mem_' ~ repeat.item.k) %}
+                            {% set mem = (raw | from_json({})) if (raw is string and raw.startswith('{')) else {} %}
+                            {{ mem.get('k') | int(0) if mem.get('b') is not none and mem.get('k') is not none and mem.get('b') | int(0) > 0 and mem.get('k') | int(0) > 0
+                               else states('input_number.topfloor_stairs_day_k_' ~ repeat.item.k) | int(3800) }}
+                        continue_on_error: true
+                    else:
+                      - action: light.turn_on
+                        target:
+                          entity_id: "light.yeelink_color5_{{ repeat.item.k }}_light"
+                        continue_on_error: true
+    - if: "{{ was_night and not night }}"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.topfloor_stairs_night_used
+    # 坎燈：深夜完全不動；白天傍晚在坎燈、床頭燈、檯燈都關著時一起開
+    - if: >-
+        {{ not night
+           and is_state('light.ding_lou_kan_deng', 'off')
+           and is_state('light.yeelink_bslamp2_4329_light', 'off')
+           and is_state('light.yeelink_lamp2_678c_light', 'off') }}
+      then:
+        - action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.topfloor_kandeng_auto
+        - action: light.turn_on
+          target:
+            entity_id: light.ding_lou_kan_deng
+          continue_on_error: true
+    - action: timer.start
+      target:
+        entity_id: timer.topfloor_stairs_max
 
+- id: ai_08_5c_topfloor_stairs_motion_light_auto_off
+  alias: 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0)
+  description: >
+    依 08-5J 動線事件關樓梯燈：抵達書房／臥室後延遲 4F→5F 關、下樓 5F 先關 4F 晚關、樓梯口清空兩盞一起關、保底 2 分 30 秒（仍有人則續）。
+    只關「感應自己開的」燈；有人又走動（攝影機／上樓／下樓開始）會取消進行中的延遲關燈。不再碰書房燈。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    automation_version: V4.0.0
+  triggers:
+    - id: dest
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: enter_study
+    - id: dest
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: enter_bedroom
+    - id: dest
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: leave_study_bedroom
+    - id: down
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: down
+    - id: vacant
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: vacant_landing
+    - id: max
+      trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.topfloor_stairs_max
+    - id: keep
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: arrive_up
+    - id: keep
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: down_start
+    - id: keep
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
   actions:
     - choose:
-        - conditions:
-            - condition: template
-              value_template: >-
-                {% set bedroom_ts = as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) %}
-                {{ bedroom_ts > 0 and (as_timestamp(now()) - bedroom_ts) <= 5 }}
-            - condition: template
-              value_template: >-
-                {% set from_state = trigger.from_state if trigger is defined and trigger is not none and trigger.from_state is defined else none %}
-                {{ from_state is not none and from_state.state == 'off' and (as_timestamp(now()) - as_timestamp(from_state.last_changed)) >= 10 }}
+        # 有人又走動：只用來取消進行中的延遲關燈（mode: restart）
+        - conditions: "{{ trigger.id == 'keep' }}"
           sequence:
-            - parallel:
-                - action: switch.turn_off
+            - stop: "有人走動，取消進行中的延遲關燈"
+        # 抵達目的地（書房／臥室）：延遲後 4F→5F 漸進關
+        - conditions: "{{ trigger.id == 'dest' }}"
+          sequence:
+            - delay:
+                seconds: "{{ states('input_number.topfloor_arrive_off_delay_s') | int(15) }}"
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "0fb7"
+            - delay: "00:00:01"
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "13b8"
+            - delay: "00:00:02"
+            - action: script.topfloor_kandeng_off_if_auto
+        # 下樓：5F 先關，4F 稍晚
+        - conditions: "{{ trigger.id == 'down' }}"
+          sequence:
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "13b8"
+            - delay:
+                seconds: "{{ states('input_number.topfloor_down_4f_delay_s') | int(10) }}"
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "0fb7"
+            - delay: "00:00:02"
+            - action: script.topfloor_kandeng_off_if_auto
+        # 樓梯口清空：兩盞一起關
+        - conditions: "{{ trigger.id == 'vacant' }}"
+          sequence:
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "0fb7"
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "13b8"
+            - delay: "00:00:02"
+            - action: script.topfloor_kandeng_off_if_auto
+        # 保底計時結束：仍有人（攝影機有人或 30 秒內走道 PIR 有動作）就續，否則關
+        - conditions: "{{ trigger.id == 'max' }}"
+          sequence:
+            - if: >-
+                {{ is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'on') }}
+              then:
+                - action: timer.start
                   target:
-                    entity_id: switch.shu_fang_deng
-                - action: light.turn_off
+                    entity_id: timer.topfloor_stairs_max
+                - stop: "仍有人，保底計時重新開始"
+            - if: >-
+                {{ is_state('input_boolean.topfloor_0fb7_auto', 'on') or is_state('input_boolean.topfloor_13b8_auto', 'on') }}
+              then:
+                - action: counter.increment
                   target:
-                    entity_id:
-                      - light.yeelink_color5_0fb7_light
-                      - light.yeelink_color5_13b8_light
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: light.ding_lou_kan_deng
-                      state: 'on'
-                    - condition: state
-                      entity_id: light.yeelink_lamp2_678c_light
-                      state: 'off'
-                    - condition: state
-                      entity_id: light.yeelink_bslamp2_4329_light
-                      state: 'off'
-                  sequence:
-                    - action: light.turn_off
-                      target:
-                        entity_id: light.ding_lou_kan_deng
-            - stop: Webhook 軌跡完好，已執行秒級關燈。
-      default:
-        - choose:
-            - conditions:
-                - condition: state
-                  entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-                  state: 'off'
-              sequence:
-                - parallel:
-                    - action: switch.turn_off
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - action: light.turn_off
-                      target:
-                        entity_id:
-                          - light.yeelink_color5_0fb7_light
-                          - light.yeelink_color5_13b8_light
-                - choose:
-                    - conditions:
-                        - condition: state
-                          entity_id: light.ding_lou_kan_deng
-                          state: 'on'
-                        - condition: state
-                          entity_id: light.yeelink_lamp2_678c_light
-                          state: 'off'
-                        - condition: state
-                          entity_id: light.yeelink_bslamp2_4329_light
-                          state: 'off'
-                      sequence:
-                        - action: light.turn_off
-                          target:
-                            entity_id: light.ding_lou_kan_deng
-                - stop: 攝影機已為未偵測狀態，立即補刀救援關燈。
-        - wait_for_trigger:
-            - platform: state
-              entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
-              to: 'off'
-          timeout: "00:00:22"
-          continue_on_timeout: true
-        - choose:
-            - conditions:
-                - condition: template
-                  value_template: "{{ wait.completed }}"
-              sequence:
-                - parallel:
-                    - action: switch.turn_off
-                      target:
-                        entity_id: switch.shu_fang_deng
-                    - action: light.turn_off
-                      target:
-                        entity_id:
-                          - light.yeelink_color5_0fb7_light
-                          - light.yeelink_color5_13b8_light
-                - choose:
-                    - conditions:
-                        - condition: state
-                          entity_id: light.ding_lou_kan_deng
-                          state: 'on'
-                        - condition: state
-                          entity_id: light.yeelink_lamp2_678c_light
-                          state: 'off'
-                        - condition: state
-                          entity_id: light.yeelink_bslamp2_4329_light
-                          state: 'off'
-                      sequence:
-                        - action: light.turn_off
-                          target:
-                            entity_id: light.ding_lou_kan_deng
-                - stop: 22秒內攝影機動態清除，已補刀救援關燈。
-        - stop: 22秒攝影機仍維持有人，判定出室動線並保持主流程照明。
+                    entity_id: counter.topfloor_fallback_off
+                  continue_on_error: true
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "0fb7"
+            - action: script.topfloor_stairs_off_one
+              data:
+                key: "13b8"
+            - delay: "00:00:02"
+            - action: script.topfloor_kandeng_off_if_auto
+
+- alias: 08-5C頂樓樓梯燈解除深夜亮度AI (V4.0.0)
+  id: ai_08_5c_stairs_leave_night_level
+  description: >
+    樓梯燈還是深夜亮度（旗標「上次為深夜亮度」開啟）時，只要熟睡鎖已解除：
+    ① 熟睡鎖從 on 變 off → 立刻把亮著的樓梯燈調成平常亮度／色溫；
+    ② 樓梯燈被打開（傳統牆壁開關、HomeKit、App 等任何來源）→ 把那盞燈調成平常亮度／色溫。
+    調整完旗標清掉（另一盞還亮著時，等它也調整完才清）。實體按鈕與感應開燈已各自處理，這裡只補其他來源。
+  mode: queued
+  max: 4
+  max_exceeded: silent
+  triggers:
+    - id: lock_off
+      trigger: state
+      entity_id: input_boolean.sleep_silent_active
+      from: "on"
+      to: "off"
+    - id: light_on
+      trigger: state
+      entity_id:
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.topfloor_stairs_night_used
+      state: "on"
+    - condition: state
+      entity_id: input_boolean.sleep_silent_active
+      state: "off"
+  actions:
+    # 燈被打開：等 3 秒，讓感應（08-5C）或實體按鈕腳本先處理；它們處理完旗標會被清掉，這裡就不再動
+    - if: "{{ trigger.id == 'light_on' }}"
+      then:
+        - delay: "00:00:03"
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_night_used
+          state: "on"
+        - action: script.topfloor_stairs_apply_day
+          data:
+            key: "{{ trigger.entity_id.split('_')[2] }}"
+      else:
+        - repeat:
+            for_each:
+              - "0fb7"
+              - "13b8"
+            sequence:
+              - if: "{{ is_state('light.yeelink_color5_' ~ repeat.item ~ '_light', 'on') }}"
+                then:
+                  - action: script.topfloor_stairs_apply_day
+                    data:
+                      key: "{{ repeat.item }}"
+    - if: >-
+        {{ is_state('light.yeelink_color5_0fb7_light', 'off') or is_state('light.yeelink_color5_13b8_light', 'off') or trigger.id == 'lock_off' }}
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.topfloor_stairs_night_used
