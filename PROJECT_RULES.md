@@ -93,10 +93,12 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
 ### 步驟 8：GitHub Release 發布後之儀表板實體同步（Post-Release Dashboard Sync）
 在 GitHub Release 發布完成後，AI 必須立即透過 Home Assistant 服務調用同步「更新推播系統」儀表板手動版本實體（**注意：嚴禁主動按下「目前版本設為比對基準」**，以保留版本差異供每日 18:00 的 `00-2A更新紀錄推播AI` 自動偵測並推播通知）：
 
-1. **更新手動版本 Helper 實體**（呼叫 `input_text.set_value`）：
-   * `input_text.automation_package_version_manual`：更新為最新發布之更新包版本號（例如 `V3.6.9`）。
-   * `input_text.automation_framework_version_manual`：更新為最新自動化架構版本（例如 `AI4.0 測試版`）。
-   * `input_text.ai_manual_update_note`：更新為本次發布之簡明更新重點與說明。
+1. **更新手動版本 Helper 實體**（`input_text.set_value`）。**沿用歷史寫法**（見資料庫歷史）：
+   * `input_text.automation_package_version_manual`：更新包版本，格式 `Vx.y.z`（例：`V3.6.9`、`V4.0`；修補版可加 `Patch (a)`，測試期 `V4.0-beta 8`）。
+   * `input_text.automation_framework_version_manual`：架構版本，格式 `AIx.y`（例：`AI3.6`、`AI4.0`；測試期 `AI4.0 Beta 8`）。
+   * `input_text.ai_manual_update_note`：**單行**簡明更新重點（≤255 字），開頭寫版本，重點以頓號分隔、結尾可帶一句總結，ASCII 與中文之間不加空格，例：`V4.0：通知分級與統一廣播(合成音檔快取)、氣氛燈情境、…，AI 4.0正式版`。不要用換行或模板。
+   * **沒有 API 權杖時的寫入方式（一次性自動化）**：在 `/homeassistant/configuration/Automations/` 新增 `00-2Z發布後同步一次性.yaml`，觸發為 `homeassistant: start`、`delay 00:01:00` 後依序 `input_text.set_value` 上述三個實體；通過 `check_config` 後重啟 HA（先告知使用者），用資料庫確認三個值已更新，再**刪除該檔**（不納入 commit）。
+   * 同步時一併處理：頂樓感應週報計數（`counter.topfloor_path_events`／`ghost_line`／`miss_line`／`fallback_off`／`study_max_off`）若累積了測試資料，在同一支一次性自動化內 `counter.reset`。
 2. **比對基準設定規則（保留供 00-2A 自動寫入）**：
    * **嚴禁主動按下** `input_button.ai_version_snapshot_set_baseline`（目前版本設為比對基準）。
    * 每日 18:00 `00-2A更新紀錄推播AI` 觸發時，會自動偵測版本差異、發送 LINE 與 HA 系統更新推播，並在推播完成後**自動觸發事件將最新版本寫入快照基準**。
