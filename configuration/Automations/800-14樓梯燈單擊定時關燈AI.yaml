@@ -1,0 +1,399 @@
+# ──────────────────────────────────────────────
+# 800-開關系列-14 樓梯燈單擊定時3分鐘關燈、雙擊常開AI (V4.1.3)
+# 更新紀錄：
+# - V4.1.3（2026-10-10）：14D 四樓樓梯燈倒數到時，若頂樓感應正在使用梯廳燈，改交給頂樓感應接管、與頂樓樓梯燈一起關。
+# - V4.1.3（2026-10-10）：四樓樓梯燈倒數時間到時，若頂樓感應正在使用梯廳燈（topfloor_13b8_auto 與五樓梯廳燈都開著），改交給頂樓感應接管（設 topfloor_0fb7_auto），跟頂樓樓梯燈一起關。
+# - V4.1.2（2026-10-10）：新增「雙擊常開」：單擊定時的按鈕，雙擊＝開燈且不自動關（再單擊關燈）。
+#           三盞繼電器燈直接開著即可；四樓樓梯燈（燈泡）會被頂樓感應在 5 分鐘手動保持後接管，所以雙擊時另外打開 9A 的常開旗標
+#           （topfloor_stairs_keep_on）並記在 stairs_si_lou_hold，燈關掉時自動清除，避免旗標長期影響頂樓感應。
+# - V4.1.1（2026-10-10）：由單一自動化擴充為 4 盞樓梯燈（二三樓、三樓、三四樓、四樓；頂樓與車庫樓梯燈不做）。
+#           優先順序：原本的功能優先——9A 常開（topfloor_stairs_keep_on）或 9B「樓梯間燈全開一段時間」執行中時，
+#           時間到不關燈（交給 9B 結束時的 stairs_off／9C 全關處理）；原本各按鈕的單擊開關功能（12D 四樓樓梯燈切換、
+#           9A／9B／9C 的按鈕）都不動，這裡只是「多加」3 分鐘後關燈。
+# - V4.1.0（2026-10-10）：新增，三樓開關下3（二三樓樓梯燈）單擊定時 3 分鐘關燈。
+# 按鈕種類：
+#   relay_own     按鈕自己的繼電器直接開關（無線開關為關閉），收到單擊後 1 秒確認燈亮才計時
+#   remote_toggle 繼電器停用的遙控鍵：單擊由 HA 切換燈（關→開並計時；開→關並取消計時）
+#   double_on     雙擊：開燈並重新計時（不切換）
+#   bulb_toggle   燈泡由其他自動化（12D）切換；依事件發生當下的狀態判斷這次是開還是關（燈泡回報較慢）
+#   double_keep   雙擊常開：開燈並取消倒數，不自動關
+#   light_off     （只有四樓）燈泡關掉時，清除這支自動化打開的常開旗標
+# ──────────────────────────────────────────────
+- id: ai_800_13_san_lou_xia_3_timed_off
+  alias: 800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)
+  description: >
+    單擊（或客廳主開關下1 雙擊）後 3 分鐘自動關燈；雙擊同一顆按鈕＝常開（開燈、不自動關）。9A 常開、9B 全開一段時間執行中時不關（原本功能優先）。
+    倒數中再單擊把燈關掉會取消倒數；倒數中又開燈則重新計時。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    light: switch.er_san_lou_lou_ti_deng
+    off_delay: "00:03:00"
+    # 事件發生當下（燈泡回報較慢，尚未被切換）的燈狀態
+    was_on: "{{ is_state(light, 'on') }}"
+  triggers:
+    - id: relay_own
+      alias: "[按鈕] 三樓開關下3 單擊"
+      trigger: state
+      entity_id: event.er_san_lou_lou_ti_deng_single_press
+    - id: double_keep
+      alias: "[按鈕] 三樓開關下3 雙擊（常開）"
+      trigger: state
+      entity_id: event.er_san_lou_lou_ti_deng_double_press
+    - id: double_on
+      alias: "[按鈕] 客廳主開關下1 雙擊"
+      trigger: state
+      entity_id: event.ke_ting_zhu_kai_guan_xia_1_double_press
+  conditions:
+    - alias: "事件是剛發生的 (5 秒內)，避免重啟還原舊事件（燈泡關閉的觸發不用檢查）"
+      condition: template
+      value_template: >-
+        {{ trigger.id == 'light_off'
+           or (trigger.to_state is not none
+               and trigger.to_state.state not in ['unavailable', 'unknown']
+               and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5) }}
+  actions:
+    - choose:
+        - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
+          conditions: "{{ trigger.id == 'relay_own' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - stop: "這次單擊是關燈，取消倒數"
+        - alias: "雙擊：開燈並重新計時"
+          conditions: "{{ trigger.id == 'double_on' }}"
+          sequence:
+            - action: switch.turn_on
+              target:
+                entity_id: "{{ light }}"
+        - alias: "雙擊：常開（開燈、取消倒數、不自動關；再單擊關燈）"
+          conditions: "{{ trigger.id == 'double_keep' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - action: switch.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+            - stop: "雙擊常開，不自動關燈"
+    - alias: "倒數 3 分鐘"
+      delay: "{{ off_delay }}"
+    - alias: "時間到：原本功能優先（9A 常開、9B 全開一段時間執行中就不關）；仍亮著才關"
+      if:
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_keep_on
+          state: "off"
+        - condition: template
+          alias: "9B 樓梯間燈全開一段時間：沒有在執行"
+          value_template: "{{ (state_attr('automation.automation_41', 'current') | int(0)) == 0 }}"
+        - condition: template
+          value_template: "{{ is_state(light, 'on') }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id: "{{ light }}"
+
+- id: ai_800_14b_san_lou_stairs_timed_off
+  alias: 800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)
+  description: >
+    單擊（或客廳主開關下1 雙擊）後 3 分鐘自動關燈；雙擊同一顆按鈕＝常開（開燈、不自動關）。9A 常開、9B 全開一段時間執行中時不關（原本功能優先）。
+    倒數中再單擊把燈關掉會取消倒數；倒數中又開燈則重新計時。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    light: switch.san_lou_lou_ti_deng
+    off_delay: "00:03:00"
+    # 事件發生當下（燈泡回報較慢，尚未被切換）的燈狀態
+    was_on: "{{ is_state(light, 'on') }}"
+  triggers:
+    - id: relay_own
+      alias: "[按鈕] 三樓開關下1 單擊"
+      trigger: state
+      entity_id: event.san_lou_lou_ti_deng_single_press
+    - id: double_keep
+      alias: "[按鈕] 三樓開關下1 雙擊（常開）"
+      trigger: state
+      entity_id: event.san_lou_lou_ti_deng_double_press
+    - id: remote_toggle
+      alias: "[按鈕] 三樓開關上3 單擊"
+      trigger: state
+      entity_id: event.san_lou_kai_guan_shang_3_single_press
+    - id: double_keep
+      alias: "[按鈕] 三樓開關上3 雙擊（常開）"
+      trigger: state
+      entity_id: event.san_lou_kai_guan_shang_3_double_press
+  conditions:
+    - alias: "事件是剛發生的 (5 秒內)，避免重啟還原舊事件（燈泡關閉的觸發不用檢查）"
+      condition: template
+      value_template: >-
+        {{ trigger.id == 'light_off'
+           or (trigger.to_state is not none
+               and trigger.to_state.state not in ['unavailable', 'unknown']
+               and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5) }}
+  actions:
+    - choose:
+        - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
+          conditions: "{{ trigger.id == 'relay_own' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - stop: "這次單擊是關燈，取消倒數"
+        - alias: "遙控鍵：燈亮著→關燈並取消倒數；燈關著→開燈並開始倒數"
+          conditions: "{{ trigger.id == 'remote_toggle' }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ was_on }}"
+              then:
+                - action: switch.turn_off
+                  target:
+                    entity_id: "{{ light }}"
+                - stop: "遙控鍵把燈關掉，取消倒數"
+              else:
+                - action: switch.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+        - alias: "雙擊：常開（開燈、取消倒數、不自動關；再單擊關燈）"
+          conditions: "{{ trigger.id == 'double_keep' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - action: switch.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+            - stop: "雙擊常開，不自動關燈"
+    - alias: "倒數 3 分鐘"
+      delay: "{{ off_delay }}"
+    - alias: "時間到：原本功能優先（9A 常開、9B 全開一段時間執行中就不關）；仍亮著才關"
+      if:
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_keep_on
+          state: "off"
+        - condition: template
+          alias: "9B 樓梯間燈全開一段時間：沒有在執行"
+          value_template: "{{ (state_attr('automation.automation_41', 'current') | int(0)) == 0 }}"
+        - condition: template
+          value_template: "{{ is_state(light, 'on') }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id: "{{ light }}"
+
+- id: ai_800_14c_san_si_lou_stairs_timed_off
+  alias: 800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)
+  description: >
+    單擊（或客廳主開關下1 雙擊）後 3 分鐘自動關燈；雙擊同一顆按鈕＝常開（開燈、不自動關）。9A 常開、9B 全開一段時間執行中時不關（原本功能優先）。
+    倒數中再單擊把燈關掉會取消倒數；倒數中又開燈則重新計時。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    light: switch.san_si_lou_lou_ti_deng
+    off_delay: "00:03:00"
+    # 事件發生當下（燈泡回報較慢，尚未被切換）的燈狀態
+    was_on: "{{ is_state(light, 'on') }}"
+  triggers:
+    - id: relay_own
+      alias: "[按鈕] 三樓開關上1 單擊"
+      trigger: state
+      entity_id: event.san_si_lou_lou_ti_deng_single_press
+    - id: double_keep
+      alias: "[按鈕] 三樓開關上1 雙擊（常開）"
+      trigger: state
+      entity_id: event.san_si_lou_lou_ti_deng_double_press
+    - id: remote_toggle
+      alias: "[按鈕] 四樓開關下3 單擊"
+      trigger: state
+      entity_id: event.si_lou_kai_guan_xia_3_single_press
+    - id: double_keep
+      alias: "[按鈕] 四樓開關下3 雙擊（常開）"
+      trigger: state
+      entity_id: event.si_lou_kai_guan_xia_3_double_press
+  conditions:
+    - alias: "事件是剛發生的 (5 秒內)，避免重啟還原舊事件（燈泡關閉的觸發不用檢查）"
+      condition: template
+      value_template: >-
+        {{ trigger.id == 'light_off'
+           or (trigger.to_state is not none
+               and trigger.to_state.state not in ['unavailable', 'unknown']
+               and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5) }}
+  actions:
+    - choose:
+        - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
+          conditions: "{{ trigger.id == 'relay_own' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - stop: "這次單擊是關燈，取消倒數"
+        - alias: "遙控鍵：燈亮著→關燈並取消倒數；燈關著→開燈並開始倒數"
+          conditions: "{{ trigger.id == 'remote_toggle' }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ was_on }}"
+              then:
+                - action: switch.turn_off
+                  target:
+                    entity_id: "{{ light }}"
+                - stop: "遙控鍵把燈關掉，取消倒數"
+              else:
+                - action: switch.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+        - alias: "雙擊：常開（開燈、取消倒數、不自動關；再單擊關燈）"
+          conditions: "{{ trigger.id == 'double_keep' }}"
+          sequence:
+            - delay: "00:00:01"
+            - if:
+                - condition: template
+                  value_template: "{{ not is_state(light, 'on') }}"
+              then:
+                - action: switch.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+            - stop: "雙擊常開，不自動關燈"
+    - alias: "倒數 3 分鐘"
+      delay: "{{ off_delay }}"
+    - alias: "時間到：原本功能優先（9A 常開、9B 全開一段時間執行中就不關）；仍亮著才關"
+      if:
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_keep_on
+          state: "off"
+        - condition: template
+          alias: "9B 樓梯間燈全開一段時間：沒有在執行"
+          value_template: "{{ (state_attr('automation.automation_41', 'current') | int(0)) == 0 }}"
+        - condition: template
+          value_template: "{{ is_state(light, 'on') }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id: "{{ light }}"
+
+- id: ai_800_14d_si_lou_stairs_timed_off
+  alias: 800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.3)
+  description: >
+    單擊（或客廳主開關下1 雙擊）後 3 分鐘自動關燈；雙擊同一顆按鈕＝常開（開燈、不自動關）。9A 常開、9B 全開一段時間執行中時不關（原本功能優先）。
+    倒數中再單擊把燈關掉會取消倒數；倒數中又開燈則重新計時。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    light: light.yeelink_color5_0fb7_light
+    off_delay: "00:03:00"
+    # 事件發生當下（燈泡回報較慢，尚未被切換）的燈狀態
+    was_on: "{{ is_state(light, 'on') }}"
+  triggers:
+    - id: bulb_toggle
+      alias: "[按鈕] 四樓開關下1 單擊"
+      trigger: state
+      entity_id: event.si_lou_lou_ti_deng_single_press
+    - id: double_keep
+      alias: "[按鈕] 四樓開關下1 雙擊（常開）"
+      trigger: state
+      entity_id: event.si_lou_lou_ti_deng_double_press
+    - id: light_off
+      alias: "[燈泡] 四樓樓梯燈關閉（清除常開旗標）"
+      trigger: state
+      entity_id: light.yeelink_color5_0fb7_light
+      to: "off"
+      not_from:
+        - unavailable
+        - unknown
+  conditions:
+    - alias: "事件是剛發生的 (5 秒內)，避免重啟還原舊事件（燈泡關閉的觸發不用檢查）"
+      condition: template
+      value_template: >-
+        {{ trigger.id == 'light_off'
+           or (trigger.to_state is not none
+               and trigger.to_state.state not in ['unavailable', 'unknown']
+               and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5) }}
+  actions:
+    - choose:
+        - alias: "燈泡（由 12D 切換）：事件當下燈是亮的＝這次是關燈，取消倒數"
+          conditions: "{{ trigger.id == 'bulb_toggle' }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ was_on }}"
+              then:
+                - stop: "這次單擊是關燈，取消倒數"
+        - alias: "雙擊：常開（開燈、取消倒數、不自動關；再單擊關燈）"
+          conditions: "{{ trigger.id == 'double_keep' }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ not was_on }}"
+              then:
+                - action: light.turn_on
+                  target:
+                    entity_id: "{{ light }}"
+            - wait_template: "{{ is_state(light, 'on') }}"
+              timeout: "00:00:20"
+              continue_on_timeout: true
+            - if:
+                - condition: state
+                  entity_id: input_boolean.topfloor_stairs_keep_on
+                  state: "off"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id:
+                      - input_boolean.topfloor_stairs_keep_on
+                      - input_boolean.stairs_si_lou_hold
+            - stop: "雙擊常開，不自動關燈"
+        - alias: "四樓樓梯燈關了：若常開旗標是雙擊打開的，一併清除"
+          conditions: "{{ trigger.id == 'light_off' }}"
+          sequence:
+            - if:
+                - condition: state
+                  entity_id: input_boolean.stairs_si_lou_hold
+                  state: "on"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id:
+                      - input_boolean.topfloor_stairs_keep_on
+                      - input_boolean.stairs_si_lou_hold
+            - stop: "四樓樓梯燈已關，結束"
+    - alias: "倒數 3 分鐘"
+      delay: "{{ off_delay }}"
+    - alias: "時間到：原本功能優先（9A 常開、9B 全開一段時間執行中就不關）；仍亮著才關"
+      if:
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_keep_on
+          state: "off"
+        - condition: template
+          alias: "9B 樓梯間燈全開一段時間：沒有在執行"
+          value_template: "{{ (state_attr('automation.automation_41', 'current') | int(0)) == 0 }}"
+        - condition: template
+          value_template: "{{ is_state(light, 'on') }}"
+      then:
+        - alias: "頂樓感應正在使用梯廳燈 → 四樓樓梯燈交給頂樓感應，跟頂樓樓梯燈一起關；否則照常關"
+          choose:
+            - conditions:
+                - condition: state
+                  entity_id: input_boolean.topfloor_13b8_auto
+                  state: "on"
+                - condition: state
+                  entity_id: light.yeelink_color5_13b8_light
+                  state: "on"
+              sequence:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.topfloor_0fb7_auto
+          default:
+            - action: light.turn_off
+              target:
+                entity_id: "{{ light }}"

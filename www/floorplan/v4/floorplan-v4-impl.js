@@ -1,12 +1,12 @@
 import("/local/floorplan/v4/floorplan-v4-3d.js?t=" + Date.now()).catch((e) => console.error("floorplan-v4-3d failed", e));
-/* Floorplan V4.0-beta 1
+/* Floorplan V4.0-beta6
  * custom:floorplan-v4-card      floor tabs + pan/zoom map (pinch, wheel, drag, double-tap reset)
  * custom:floorplan-v4-controls  per-floor control card that follows the floor chosen in the map card
  *
  * config:
  *   default: 2F
  *   floors: { "1F": {label: "1F", card: <any card config>}, ... }
- * The selected floor is kept client-side (localStorage), not in an input_select.
+ * The selected floor is kept client-side (sessionStorage, shared with floorplan-v4-3d.js), not in an input_select.
  */
 (() => {
   if (customElements.get("floorplan-v4-card")) return;
@@ -14,11 +14,11 @@ import("/local/floorplan/v4/floorplan-v4-3d.js?t=" + Date.now()).catch((e) => co
   const EVT = "floorplan-v4-floor";
   const getFloor = (cfg) => {
     let f = null;
-    try { f = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
+    try { f = sessionStorage.getItem(KEY); } catch (e) { /* ignore */ }   // same store as floorplan-v4-3d.js
     return f && cfg.floors[f] ? f : cfg.default || Object.keys(cfg.floors)[0];
   };
   const setFloor = (f) => {
-    try { localStorage.setItem(KEY, f); } catch (e) { /* ignore */ }
+    try { sessionStorage.setItem(KEY, f); localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
     window.dispatchEvent(new CustomEvent(EVT, { detail: f }));
   };
 
@@ -194,4 +194,34 @@ import("/local/floorplan/v4/floorplan-v4-3d.js?t=" + Date.now()).catch((e) => co
   window.customCards = window.customCards || [];
   window.customCards.push({ type: "floorplan-v4-card", name: "Floorplan V4 map" });
   window.customCards.push({ type: "floorplan-v4-controls", name: "Floorplan V4 controls" });
+})();
+
+// ── kiosk mode: open any dashboard URL with ?kiosk to hide HA's sidebar and the menu / search / ⋮ buttons but keep the view tabs (cosmetic only; ?kiosk=0 turns it off) ──
+(() => {
+  try {
+    if (/[?&]kiosk=0\b/.test(location.search)) {
+      sessionStorage.removeItem("fp4_kiosk");
+      setTimeout(() => document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-dock-sidebar", { detail: { dock: "docked" } })), 1500);   // give the sidebar back
+    }
+    else if (/[?&]kiosk(=|&|$)/.test(location.search)) sessionStorage.setItem("fp4_kiosk", "1");
+    if (sessionStorage.getItem("fp4_kiosk") !== "1") return;
+  } catch (e) { return; }
+  const put = (root, id, css) => {
+    if (!root || root.querySelector("#" + id)) return;
+    const st = document.createElement("style"); st.id = id; st.textContent = css; root.appendChild(st);
+  };
+  let docked = false;
+  const apply = () => {
+    const ha = document.querySelector("home-assistant");
+    if (!docked && ha?.hass) { docked = true; ha.dispatchEvent(new CustomEvent("hass-dock-sidebar", { detail: { dock: "always_hidden" } })); }   // HA's own setting: no reserved column
+    const main = document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main");
+    put(main?.shadowRoot, "fp4k-main", "ha-sidebar{display:none!important} ha-drawer{--mdc-drawer-width:0px!important} :host{--mdc-drawer-width:0px!important}");
+    const drawer = main?.shadowRoot?.querySelector("ha-drawer");
+    put(drawer?.shadowRoot, "fp4k-drawer", ".mdc-drawer{display:none!important;width:0!important} .mdc-drawer-app-content{margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;padding-left:0!important} :host{--mdc-drawer-width:0px!important}");
+    put(main?.shadowRoot, "fp4k-main2", "partial-panel-resolver,ha-panel-lovelace{margin-left:0!important;padding-left:0!important;width:100%!important} .mdc-drawer-app-content{margin-left:0!important}");
+    const root = main?.shadowRoot?.querySelector("ha-panel-lovelace")?.shadowRoot?.querySelector("hui-root");
+    put(root?.shadowRoot, "fp4k-root", "ha-menu-button,.action-items,.edit-mode,ha-button-menu,ha-icon-button-arrow-prev{display:none!important} .toolbar{padding-inline-start:12px!important}");
+  };
+  setInterval(apply, 700);
+  apply();
 })();

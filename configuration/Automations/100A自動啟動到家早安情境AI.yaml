@@ -1,0 +1,147 @@
+# ──────────────────────────────────────────────
+# 100A自動啟動到家早安情境AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增。取代舊 100A（device 條件＋七個匿名觸發）：具名觸發（Trigger-by）、實體條件；
+#   最早啟動時間依 sensor.tw_day_type_today 分平日（05:30）／假日（07:00），可由 helper 調整；
+#   早安／到家：scene_window_use_sun 為 on 時用 binary_sensor.scene_morning_window，否則維持舊的 05:00–17:00；
+#   防重複沿用 aqara_last_away_goodnight_triggered（180 秒）；自動啟動後發 HA 資訊通知（不發 LINE），並寫 input_text.auto_scene_last。
+#   影子模式（input_boolean.auto_scene_shadow，預設 on）：只寫 logbook「影子：會觸發 早安/到家（原因）」，不呼叫 101／103；舊 100A 維持啟用不動。
+# ──────────────────────────────────────────────
+- id: ai_100a_auto_arrive_morning_v41
+  alias: 100A自動啟動到家早安情境AI (V4.1.0)
+  description: >
+    家裡有活動跡象（燈、風扇、鐵門關閉）且保全不是在家模式時，自動啟動早安或到家情境。預設影子模式。
+  mode: single
+  variables:
+    shadow: "{{ is_state('input_boolean.auto_scene_shadow', 'on') }}"
+    day_type: "{{ states('sensor.tw_day_type_today') }}"
+    earliest: >-
+      {{ states('input_datetime.auto_scene_earliest_holiday') if day_type == 'holiday' else states('input_datetime.auto_scene_earliest_workday') }}
+    use_sun: "{{ is_state('input_boolean.scene_window_use_sun', 'on') }}"
+    is_morning: >-
+      {{ is_state('binary_sensor.scene_morning_window', 'on') if use_sun else (5 <= now().hour < 17) }}
+    scene_name: "{{ '早安' if is_morning else '到家' }}"
+    reasons:
+      lamp: 客廳小燈亮著
+      dining: 餐廳燈亮著
+      toilet: 廁所燈亮著
+      kitchen: 廚房燈亮著
+      fan: 客廳電風扇開啟
+      garage_long: 車庫鐵門關閉超過 8 分鐘
+      garage_short: 車庫鐵門關閉超過 2 分鐘
+    reason: "{{ reasons.get(trigger.id, trigger.id) }}"
+  triggers:
+    - trigger: state
+      id: lamp
+      alias: "[客廳小燈] 狀態改變 15 秒"
+      entity_id: light.yeelink_color5_4181_light
+      for: "00:00:15"
+    - trigger: state
+      id: dining
+      alias: "[餐廳燈] 狀態改變 45 秒"
+      entity_id: light.yeelink_color5_53ed_light
+      for: "00:00:45"
+    - trigger: state
+      id: toilet
+      alias: "[廁所燈] 狀態改變 45 秒"
+      entity_id: switch.ce_suo_deng
+      for: "00:00:45"
+    - trigger: state
+      id: kitchen
+      alias: "[廚房燈] 狀態改變 2 分鐘"
+      entity_id: switch.chu_fang_deng
+      for: "00:02:00"
+    - trigger: state
+      id: fan
+      alias: "[客廳電風扇] 開啟 15 秒"
+      entity_id: fan.ke_ting_dian_feng_shan
+      to: "on"
+      for: "00:00:15"
+    - trigger: state
+      id: garage_long
+      alias: "[車庫鐵門] 關閉 8 分鐘"
+      entity_id: cover.garage
+      to: "closed"
+      for: "00:08:00"
+    - trigger: state
+      id: garage_short
+      alias: "[車庫鐵門] 關閉 2 分鐘"
+      entity_id: cover.garage
+      to: "closed"
+      for: "00:02:00"
+  conditions:
+    - alias: "總開關"
+      condition: state
+      entity_id: input_boolean.auto_scene_enable
+      state: "on"
+    - alias: "最早啟動時間（平日／假日不同）與 23:59 前"
+      condition: template
+      value_template: >-
+        {{ earliest[0:5] <= now().strftime('%H:%M') < '23:59' }}
+    - alias: "3 分鐘內沒有離家／晚安剛觸發（防重複）"
+      condition: template
+      value_template: >-
+        {% set last_ts = as_timestamp(states('input_datetime.aqara_last_away_goodnight_triggered'), 0) %}
+        {{ last_ts == 0 or (as_timestamp(now()) - last_ts) > 180 }}
+    - alias: "保全不是在家模式（夜間／離家／解除）"
+      condition: state
+      entity_id: alarm_control_panel.54ef44cf58f9_alarm
+      state:
+        - armed_night
+        - armed_away
+        - disarmed
+    - alias: "家裡有活動跡象"
+      condition: or
+      conditions:
+        - condition: state
+          entity_id: light.yeelink_color5_4181_light
+          state: "on"
+          for: "00:01:00"
+        - condition: state
+          entity_id: light.yeelink_color5_53ed_light
+          state: "on"
+        - condition: state
+          entity_id: switch.ce_suo_deng
+          state: "on"
+        - condition: state
+          entity_id: switch.chu_fang_deng
+          state: "on"
+        - condition: state
+          entity_id: fan.ke_ting_dian_feng_shan
+          state: "on"
+        - condition: and
+          conditions:
+            - condition: state
+              entity_id: cover.garage
+              state: "closed"
+              for: "08:00:00"
+            - condition: state
+              entity_id: switch.lou_ti_deng
+              state: "on"
+  actions:
+    - action: logbook.log
+      data:
+        name: 100A自動啟動到家早安情境AI
+        message: "{{ '影子：會觸發 ' if shadow else '已觸發 ' }}{{ scene_name }}（{{ reason }}；{{ '假日' if day_type == 'holiday' else '平日' }}）"
+    - if:
+        - condition: template
+          value_template: "{{ not shadow }}"
+      then:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.auto_scene_last
+          data:
+            value: "{{ scene_name }}｜{{ now().strftime('%m-%d %H:%M') }}｜{{ reason }}"
+        - action: automation.trigger
+          target:
+            entity_id: "{{ 'automation.101zao_an_qing_jing' if is_morning else 'automation.103dao_jia_qing_jing' }}"
+          data:
+            skip_condition: true
+        - action: script.notify_dispatch
+          data:
+            level: info
+            line: false
+            source: 100A自動啟動到家早安情境AI
+            version: V4.1.0
+            title: "自動啟動{{ scene_name }}情境"
+            message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"

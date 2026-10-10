@@ -1,0 +1,7 @@
+# 樓梯燈雙擊常開輔助旗標（V4.1.2，2026-10-10）
+# stairs_si_lou_hold：四樓樓梯燈（燈泡）被「四樓開關下1 雙擊常開」打開 9A 常開旗標（topfloor_stairs_keep_on）時記錄，
+# 讓 800-14D 在燈關掉時只清除自己打開的旗標，不影響 9A 的原本常開。
+input_boolean:
+  stairs_si_lou_hold:
+    name: 四樓樓梯燈雙擊常開（內部旗標）
+    icon: mdi:stairs

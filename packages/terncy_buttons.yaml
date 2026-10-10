@@ -1,0 +1,7 @@
+# Terncy 無線按鈕輔助（V4.1.0）
+# input_text.terncy_btn_last：08-9 切換繼電器前寫入「switch 實體 id|epoch 秒」，供 104-1 判斷手動操作。
+input_text:
+  terncy_btn_last:
+    name: Terncy 按鈕最後切換的繼電器
+    max: 120
+    initial: ""

@@ -5,6 +5,7 @@
 # 更新紀錄（統一格式）：
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.0（功能版）：風速曲線門檻全數上調 0.2°C，睡眠降速改由 sleep_silent_active 控制，睡眠與非夏季減成擴大為 -10% 並移除睡眠最低限制。
+# - V4.0.1（2026-10-10）：修補版；HomePod 溫濕度感測器自 2026-10-09 19:23 起回傳帶單位文字（例：26.4°C），改用 regex 取出數字再轉 float，避免每次執行都丟 ValueError。
 # - V3.2.1（修補版）：修復 t_eff 為 none/unavailable 時的 float 轉型錯誤，補強 t_eff_valid 判斷並加入 t_eff 安全預設值避免自動化中斷。
 # - V3.2：修正手動開啟清除過冷記憶、手動關機防護改為無溫度限制；新增手動調速防護罩（下次開機自動解除）。
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
@@ -78,16 +79,18 @@
         hp_raw_temp: "{{ states('sensor.5f_homepodmini_temperature') }}"
         hp_temp_base: >
           {% set s = states('sensor.5f_homepodmini_temperature') %}
-          {% if s not in ['unknown','unavailable','none',''] %}
-            {{ s | float }}
+          {% set m = (s | regex_findall('-?[0-9]+(?:[.][0-9]+)?')) if s not in ['unknown','unavailable','none',''] else [] %}
+          {% if m | length > 0 %}
+            {{ m[0] | float }}
           {% else %}
             {{ -9999 }}
           {% endif %}
         hp_raw_humidity: "{{ states('sensor.5f_homepodmini_humidity') }}"
         hp_humidity: >
           {% set h = states('sensor.5f_homepodmini_humidity') %}
-          {% if h not in ['unknown','unavailable','none',''] %}
-            {{ h | float }}
+          {% set m = (h | regex_findall('-?[0-9]+(?:[.][0-9]+)?')) if h not in ['unknown','unavailable','none',''] else [] %}
+          {% if m | length > 0 %}
+            {{ m[0] | float }}
           {% else %}
             {{ -9999 }}
           {% endif %}

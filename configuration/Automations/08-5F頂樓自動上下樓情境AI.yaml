@@ -3,6 +3,10 @@
 # 08-5F頂樓自動上下樓情境AI (V4.0.0)
 # 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.4（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac（person.kenny 的 source），不再自己從 input_text.iphone_tracker_entity_kenny 解析；其餘邏輯不變。
+# - V4.0.3（2026-10-10）：熟睡判定統一只看熟睡鎖（sleep_silent_active），移除 02:30→09:30／10:30 時間窗與寫死的 570／630；移除本檔 7 處自行關閉熟睡鎖（解鎖統一由 08-5H 熟睡鎖管理：起床情境、動態解鎖時間）。
+# - V4.0.2：修補版；依照使用者需求，週末睡眠靜默窗結束時間調整為 10:30（630 分鐘），配合熟睡鎖保護晨間起夜。
+# - V4.0.1：修補版；修正週末睡眠靜默窗結束時間，週末（週六/週日）自動延長至 10:00（600 分鐘），避免週末晨間誤判上樓開燈。
 # - V4.0.0：頂樓感應優化 P1：書房線不再寫入「最後進入書房」（避免 08-5G 誤判書房有人而不關燈）；「Webhook 上樓」需攝影機 60 秒內有人或 iPhone 在 5F AP 佐證。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.4.0：功能版；新增 input_boolean.sleep_silent_active 手動熟睡鎖，上樓判定全面納入熟睡中拒絕，且所有自動下樓/離家複檢成立時自動復歸熟睡鎖。
@@ -13,7 +17,7 @@
 # - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V4.0.0)
+- alias: 08-5F頂樓自動上下樓情境AI (V4.0.4)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -47,7 +51,7 @@
         {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set iphone_ent =
         'device_tracker.iphone_17_pro_max_kenny' if s1 in
         ['unknown','unavailable',''] else s1 %} {% set iphone_ap  =
-        (state_attr(iphone_ent,'ap_mac')|default(''))|lower %} {% set ap_raw     =
+        states('sensor.kenny_phone_ap_mac') %} {% set ap_raw     =
         states('input_text.topfloor_ap_macs_5f') %} {% set ap_list_raw =
         '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in
         ['unknown','unavailable',''] else ap_raw %} {% set ap_list =
@@ -59,7 +63,7 @@
         {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set
         iphone_ent = 'device_tracker.iphone_17_pro_max_kenny' if s1 in
         ['unknown','unavailable',''] else s1 %} {% set iphone_ap  =
-        (state_attr(iphone_ent,'ap_mac')|default(''))|lower %} {% set ap_raw     =
+        states('sensor.kenny_phone_ap_mac') %} {% set ap_raw     =
         states('input_text.topfloor_ap_macs_5f') %} {% set ap_list_raw =
         '70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if ap_raw in
         ['unknown','unavailable',''] else ap_raw %} {% set ap_list =
@@ -73,12 +77,7 @@
         {% set mode = states('input_select.topfloor_webhook_mode') | default('綜合模式', true) %}
         {% set tid = trigger.id if trigger is defined and trigger is not none and trigger.id is defined else 'unknown' %}
         {% set webhook_trigger = tid in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line'] %}
-        {% set s = states('input_number.sleep_silent_start_min') | int(150) %}
-        {% set e = states('input_number.sleep_silent_end_min') | int(540) %}
-        {% set n = now().hour * 60 + now().minute %}
-        {% set time_sleep_silent = (n >= s and n < e) if s <= e else (n >= s or n < e) %}
-        {% set manual_sleep_silent = is_state('input_boolean.sleep_silent_active', 'on') %}
-        {% set sleep_silent = time_sleep_silent or manual_sleep_silent %}
+        {% set sleep_silent = is_state('input_boolean.sleep_silent_active', 'on') %}
         {{ tid == 't_leave_ai_confirmed' or
            (mode in ['綜合模式', 'Webhook模式'] and webhook_trigger and not sleep_silent) or
            (mode in ['綜合模式', '原本模式'] and is_state('device_tracker.iphone_17_pro_max_kenny', 'home')) }}
@@ -189,15 +188,12 @@
                         - conditions:
                             - condition: template
                               value_template: >-
-                                {% set live_iphone_ap = (state_attr(iphone_entity, 'ap_mac') | default('')) | lower %}
+                                {% set live_iphone_ap = states('sensor.kenny_phone_ap_mac') %}
                                 {{ live_iphone_ap not in ap_list }}
                           sequence:
                             - action: input_boolean.turn_on
                               target:
                                 entity_id: input_boolean.ding_lou_xia_lou_qing_jing
-                            - action: input_boolean.turn_off
-                              target:
-                                entity_id: input_boolean.sleep_silent_active
                             - action: input_boolean.turn_off
                               target:
                                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -252,9 +248,8 @@
           }}　L2亮度: {{ lamp2_bri }} • 全黑(all off): {{ Y if lights_all_off else N
           }}　極暗/全暗(off_or_dim): {{ Y if lights_off_or_dim else N }} • 連續黑≥15s: {{
           Y if dark_15s else N }}　燈剛關({{ light_off_cooldown_sec }}s內): {{ Y if
-          recent_light_off else N }} ───────────────────────────── 💤 睡眠靜默 • Sleep
-          Window 啟用? {{ Y if sleep_silent_active else N }}（{{
-          sleep_silent_start_min }}→{{ sleep_silent_end_min }} 分）
+          recent_light_off else N }} ───────────────────────────── 💤 睡眠靜默 • 熟睡鎖
+          啟用? {{ Y if sleep_silent_active else N }}（解鎖由 08-5H 鎖管理決定）
           ───────────────────────────── 🛡️ 保護窗 / 黏著鎖 • guard_active: {{ Y if
           guard_active else N }} • lock_up_active(上樓鎖): {{ Y if lock_up_active
           else N }} • lock_down_active(下樓鎖): {{ Y if lock_down_active else N }}
@@ -272,7 +267,7 @@
               data:
                 level: info
                 line: false
-                source: "08-5F頂樓自動上下樓情境AI (V4.0.0)"
+                source: "08-5F頂樓自動上下樓情境AI (V4.0.1)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "[DEBUG] 頂樓偵測（可讀版）"
                 message: "{{ _pretty }}"
@@ -311,9 +306,6 @@
                     - action: input_boolean.turn_on
                       target:
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
-                    - action: input_boolean.turn_off
-                      target:
-                        entity_id: input_boolean.sleep_silent_active
                     - action: input_boolean.turn_off
                       target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -445,9 +437,6 @@
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                     - action: input_boolean.turn_off
                       target:
-                        entity_id: input_boolean.sleep_silent_active
-                    - action: input_boolean.turn_off
-                      target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                     - action: timer.start
                       target:
@@ -525,9 +514,6 @@
                     - action: input_boolean.turn_on
                       target:
                         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
-                    - action: input_boolean.turn_off
-                      target:
-                        entity_id: input_boolean.sleep_silent_active
                     - action: input_boolean.turn_off
                       target:
                         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -678,9 +664,6 @@
                                       entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                                   - action: input_boolean.turn_off
                                     target:
-                                      entity_id: input_boolean.sleep_silent_active
-                                  - action: input_boolean.turn_off
-                                    target:
                                       entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                                   - action: timer.start
                                     target:
@@ -786,9 +769,6 @@
                                 entity_id: input_boolean.ding_lou_xia_lou_qing_jing
                             - action: input_boolean.turn_off
                               target:
-                                entity_id: input_boolean.sleep_silent_active
-                            - action: input_boolean.turn_off
-                              target:
                                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
                             - action: timer.start
                               target:
@@ -815,7 +795,7 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.0.4"
     iphone_entity: >
       {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
@@ -827,7 +807,7 @@
     ap_list: >
       {{ ap_list_raw | lower | replace(' ','') | replace(';',',') |
       regex_findall('[^,]+') }}
-    iphone_ap: "{{ (state_attr(iphone_entity, 'ap_mac') | default('')) | lower }}"
+    iphone_ap: "{{ states('sensor.kenny_phone_ap_mac') }}"
     upstairs_phone_raw: "{{ iphone_ap in ap_list }}"
     iphone_ap_valid: "{{ iphone_ap not in ['', 'unknown', 'unavailable', none] }}"
     upstairs_present_up: "{{ upstairs_phone_raw }}"
@@ -884,19 +864,13 @@
       or ((now_ts - as_timestamp(l1.last_changed)) < 60 and l1.state == 'off') %}
       {% set on2 = (l2.state == 'on') or ((now_ts - as_timestamp(l2.last_changed))
       < 60 and l2.state == 'off') %} {{ on1 or on2 }}
-    sleep_silent_start_min: "{{ states('input_number.sleep_silent_start_min')|int(150) }}"
-    sleep_silent_end_min: "{{ states('input_number.sleep_silent_end_min')|int(540) }}"
-    _now_minute_of_day: "{{ now().hour*60 + now().minute }}"
-    sleep_silent_active: >
-      {% set s = sleep_silent_start_min|int %} {% set e = sleep_silent_end_min|int
-      %} {% set n = _now_minute_of_day|int %} {% set time_silent = (n >= s and n < e) if s <= e else (n >= s or n < e) %}
-      {{ is_state('input_boolean.sleep_silent_active', 'on') or time_silent }}
+    sleep_silent_active: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
     guard_active: "{{ not is_state('timer.topfloor_down_intent_guard','idle') }}"
     lock_up_active: "{{ not is_state('timer.topfloor_lock_after_up','idle') }}"
     lock_down_active: "{{ not is_state('timer.topfloor_lock_after_down','idle') }}"
     debug_on: "{{ is_state('input_boolean.debug_topfloor_kenny', 'on') }}"
 
-- alias: 08-5F頂樓下樓補判AI (V4.0.0)
+- alias: 08-5F頂樓下樓補判AI (V4.0.1)
   id: ai_topfloor_down_assist_v4
   description: >
     補主流程的漏洞：上樓後 90 秒鎖內就下樓時，主流程在鎖內看到「iPhone 離開頂樓 AP」被略過，之後不再重判。
@@ -908,7 +882,7 @@
       value_template: >-
         {% set s1 = states('input_text.iphone_tracker_entity_kenny') %}
         {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s1 in ['unknown','unavailable',''] else s1 %}
-        {% set ap = (state_attr(ent, 'ap_mac') | default('')) | lower %}
+        {% set ap = states('sensor.kenny_phone_ap_mac') %}
         {% set raw = states('input_text.topfloor_ap_macs_5f') %}
         {% set lst = ('70:a7:41:e4:54:1f,70:a7:41:e4:5a:bf,d0:21:f9:f2:fc:4c' if raw in ['unknown','unavailable',''] else raw) | lower | replace(' ','') | replace(';',',') | regex_findall('[^,]+') %}
         {{ ap not in ['', 'unknown', 'unavailable'] and ap not in lst and is_state('device_tracker.iphone_17_pro_max_kenny', 'home') }}
@@ -928,9 +902,7 @@
         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
     - action: input_boolean.turn_off
       target:
-        entity_id:
-          - input_boolean.sleep_silent_active
-          - input_boolean.ding_lou_shang_lou_qing_jing
+        entity_id: input_boolean.ding_lou_shang_lou_qing_jing
     - action: timer.start
       target:
         entity_id: timer.topfloor_lock_after_down

@@ -3,7 +3,7 @@
 # 更新紀錄：
 # - V4.0.0：新增。以 person 綁定每位家人的手機追蹤裝置；自動化改用 person.* 判斷在不在家，
 #           換手機時只要改這裡的 device_trackers，不用改自動化（08-6 離家保全已使用）。
-# 規則：同一個人有多支手機時全部列在 device_trackers，任何一支在家就算在家。
+# 規則：同一個人有多支手機時全部列在 device_trackers，任何一支在家就算在家；Jerry 只列主要手機（iPhone 16），Redmi 不影響在不在家。
 # ─────────────────────────────────────────────────────────────
 person:
   - name: Kenny
@@ -17,8 +17,7 @@ person:
   - name: Jerry
     id: jerry
     device_trackers:
-      - device_tracker.iphone_16_jerry
-      - device_tracker.redmi_note_11_pro_5g
+      - device_tracker.iphone_16_jerry   # 主要手機；Redmi（redmi_note_11_pro_5g）不列入，與 100B 等「全員位置」判斷（at_home_jerry_trackers）一致
   - name: Elay
     id: elay
     device_trackers:

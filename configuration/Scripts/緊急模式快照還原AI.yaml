@@ -1,0 +1,198 @@
+# ────────────────────────────────────────────────────────
+# 緊急模式快照與還原AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增 script.emergency_snapshot_save／emergency_restore。05A 啟動時先存「05A 會改動的設備」快照（scene.create），
+#   誤觸時由 106C（解除網關警報，批次 8）呼叫還原。涵蓋：12 燈、18 開關、3 風扇、3 插座、頂樓空調、警報觸發開關；車庫鐵門另存狀態，
+#   只在「快照前是關、現在是開、車庫攝影機沒偵測到人或車」時才自動關回，否則只通知；二樓門鎖無法由 HA 還原，只通知。
+#   V4.1.1：還原後終止 05B 仍在進行的緊急廣播、來源記為 restored；地震預警／CO 自動觸發（auto）排除狀況後同樣可還原。
+#   測試用參數：entities（覆寫實體清單）、scene_id、source、test（略過警報／鐵門／通知）。
+# ────────────────────────────────────────────────────────
+emergency_snapshot_save:
+  alias: 緊急模式快照 (V4.1.0)
+  description: 存下緊急模式前的設備狀態（快照有效中不重存，避免存到緊急後的狀態）
+  mode: single
+  fields:
+    entities:
+      description: 覆寫要存的實體清單（測試用，省略＝05A 會動到的設備）
+      required: false
+    scene_id:
+      description: 場景 id（預設 emergency_snapshot）
+      required: false
+    source:
+      description: 覆寫來源（測試用）
+      required: false
+  variables:
+    default_ents:
+      - light.can_ting_deng_zu_1_ha
+      - light.yeelink_color5_4181_light
+      - light.ke_ting_deng_zu_1_ha
+      - light.ke_ting_deng_zu_2
+      - light.ke_ting_deng_zu_3
+      - light.ding_lou_deng_zu_1
+      - light.ding_lou_deng_zu_2
+      - light.ding_lou_kan_deng
+      - light.yeelink_bslamp2_4329_light
+      - light.yeelink_lamp2_678c_light
+      - light.yeelink_color5_0fb7_light
+      - light.yeelink_color5_13b8_light
+      - fan.kong_qi_qing_jing_ji
+      - fan.ke_ting_dian_feng_shan
+      - fan.dmaker_p33_eabd_fan
+      - switch.0x00158d0003923796_plug
+      - switch.cha_zuo_1
+      - switch.cha_zuo_3
+      - switch.shu_fang_deng
+      - switch.yang_tai_deng
+      - switch.bi_deng
+      - switch.sheng_dan_deng_cha_zuo
+      - switch.ding_lou_lou_ti_deng
+      - switch.chu_fang_deng
+      - switch.che_ku_zhu_deng
+      - switch.can_ting_bi_deng
+      - switch.ce_suo_deng
+      - switch.lou_ti_deng
+      - switch.can_ting_kan_deng
+      - switch.ke_ting_kan_deng
+      - switch.men_kou_deng
+      - switch.lu_deng
+      - switch.ke_ting_bi_deng
+      - switch.er_san_lou_lou_ti_deng
+      - switch.san_lou_lou_ti_deng
+      - switch.san_si_lou_lou_ti_deng
+      - climate.ding_lou_kong_diao
+      - switch.54ef44cf58f9_alarm_trigger
+    ents: "{{ entities if (entities is defined and entities) else default_ents }}"
+    avail: >-
+      {% set ns = namespace(l=[]) %}{% for e in ents if states(e) not in ['unavailable', 'unknown'] %}{% set ns.l = ns.l + [e] %}{% endfor %}{{ ns.l }}
+    sid: "{{ scene_id if (scene_id is defined and scene_id) else 'emergency_snapshot' }}"
+    src: >-
+      {% if source is defined and source %}{{ source }}
+      {% elif is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto', 'on') %}auto
+      {% elif is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu', 'on') %}button
+      {% elif is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual', 'on') %}manual
+      {% else %}homekit{% endif %}
+  sequence:
+    - alias: "總開關開、且快照尚未有效才存"
+      condition: template
+      value_template: >-
+        {{ is_state('input_boolean.emergency_restore_enable', 'on') and is_state('input_boolean.emergency_snapshot_valid', 'off') }}
+    - action: scene.create
+      data:
+        scene_id: "{{ sid }}"
+        snapshot_entities: "{{ avail }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.emergency_garage_prev
+      data:
+        value: "{{ states('cover.garage') }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.emergency_trigger_source
+      data:
+        value: "{{ src | trim }}"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.emergency_snapshot_at
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.emergency_snapshot_valid
+    - action: timer.start
+      target:
+        entity_id: timer.emergency_snapshot_expire
+      data:
+        duration: "02:00:00"
+
+emergency_restore:
+  alias: 緊急模式還原 (V4.1.0)
+  description: 把緊急模式前的設備狀態還原（誤觸時使用）；鐵門與二樓門鎖依安全規則處理
+  mode: single
+  fields:
+    scene_id:
+      description: 場景 id（預設 emergency_snapshot）
+      required: false
+    test:
+      description: 測試用：只還原場景並清旗標，略過警報、鐵門、通知
+      required: false
+  variables:
+    sid: "{{ scene_id if (scene_id is defined and scene_id) else 'emergency_snapshot' }}"
+    is_test: "{{ test is defined and test in [true, 'true'] }}"
+    garage_prev: "{{ states('input_text.emergency_garage_prev') }}"
+  sequence:
+    - alias: "快照有效才還原"
+      condition: state
+      entity_id: input_boolean.emergency_snapshot_valid
+      state: "on"
+    - action: scene.turn_on
+      target:
+        entity_id: "scene.{{ sid }}"
+      data:
+        transition: 2
+    - if: "{{ not is_test }}"
+      then:
+        - alias: "警報觸發開關一定還原為關"
+          action: switch.turn_off
+          target:
+            entity_id: switch.54ef44cf58f9_alarm_trigger
+          continue_on_error: true
+        - choose:
+            - alias: "鐵門：快照前是關、現在是開、攝影機無人車 → 自動關回"
+              conditions:
+                - condition: template
+                  value_template: "{{ garage_prev == 'closed' and states('cover.garage') in ['open', 'opening'] }}"
+                - condition: state
+                  entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+                  state: "off"
+                - condition: state
+                  entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+                  state: "off"
+              sequence:
+                - action: cover.close_cover
+                  target:
+                    entity_id: cover.garage
+            - alias: "鐵門：快照前是關、現在是開，但攝影機有人或車 → 只通知"
+              conditions:
+                - condition: template
+                  value_template: "{{ garage_prev == 'closed' and states('cover.garage') in ['open', 'opening'] }}"
+              sequence:
+                - action: script.notify_dispatch
+                  data:
+                    level: general
+                    line: false
+                    source: 緊急模式快照還原AI
+                    version: V4.1.0
+                    title: 車庫鐵門仍開著
+                    message: "緊急模式前鐵門是關閉的，但車庫攝影機偵測到人或車，未自動關閉。\n請確認安全後自行關閉。"
+        - action: script.notify_dispatch
+          data:
+            level: general
+            line: false
+            source: 緊急模式快照還原AI
+            version: V4.1.0
+            title: 已還原緊急模式前的狀態
+            message: "燈、開關、風扇、插座與頂樓空調已還原到緊急模式前。\n二樓門鎖無法由系統還原，請確認是否需要重新上鎖。"
+    - if: "{{ not is_test }}"
+      then:
+        - alias: "終止 05B 還在跑的緊急廣播／延遲通知，避免還原後又播「緊急模式啟動」"
+          action: automation.turn_off
+          target:
+            entity_id: automation.ai_05b_emergency_mode_notify_v3
+          data:
+            stop_actions: true
+          continue_on_error: true
+        - action: automation.turn_on
+          target:
+            entity_id: automation.ai_05b_emergency_mode_notify_v3
+          continue_on_error: true
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.emergency_trigger_source
+      data:
+        value: restored
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.emergency_snapshot_valid
+    - action: timer.cancel
+      target:
+        entity_id: timer.emergency_snapshot_expire

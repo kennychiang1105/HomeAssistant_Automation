@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────
+# 手動廣播 Helper 套件 (V4.1.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.1.0：新增手動通知 helper（notify_manual_*）。
+# - V4.1.0：新增。自動化管理面板「總覽」的手動廣播：輸入文字、勾選廣播喇叭、選擇重要性，按「發送廣播」→ script.announce_manual → script.announce。
+# ─────────────────────────────────────────────────────────────
+input_text:
+  announce_manual_text:
+    name: 手動廣播｜內容
+    max: 200
+    icon: mdi:message-text-outline
+  announce_manual_result:
+    name: 手動廣播｜結果（內部）
+    max: 120
+    icon: mdi:check-circle-outline
+  notify_manual_text:
+    name: 手動通知｜內容
+    max: 255
+    icon: mdi:message-text-outline
+  notify_manual_result:
+    name: 手動通知｜結果（內部）
+    max: 120
+    icon: mdi:check-circle-outline
+input_select:
+  announce_manual_level:
+    name: 手動廣播｜重要性
+    options: ["一般", "重要", "緊急"]
+    initial: "一般"
+    icon: mdi:bell-alert-outline
+  notify_manual_level:
+    name: 手動通知｜重要性
+    options: ["資訊", "一般", "重要", "緊急"]
+    initial: "一般"
+    icon: mdi:bell-alert-outline
+input_boolean:
+  notify_manual_ha:
+    name: 手動通知｜HA 通知
+    icon: mdi:home-assistant
+    initial: true
+  notify_manual_line:
+    name: 手動通知｜LINE
+    icon: mdi:chat-processing-outline
+  notify_manual_clear:
+    name: 手動通知｜發送後清除內容
+    icon: mdi:eraser
+    initial: true
+  announce_manual_ke_ting_homepod:
+    name: 手動廣播｜客廳 HomePod
+    icon: mdi:speaker
+  announce_manual_ding_lou_homepod:
+    name: 手動廣播｜頂樓 HomePod
+    icon: mdi:speaker
+  announce_manual_si_lou_homepod:
+    name: 手動廣播｜四樓 HomePod mini
+    icon: mdi:speaker
+  announce_manual_che_ku_speaker:
+    name: 手動廣播｜車庫攝影機喇叭
+    icon: mdi:cctv
+  announce_manual_wu_lou_speaker:
+    name: 手動廣播｜頂樓攝影機喇叭
+    icon: mdi:cctv
+  announce_manual_clear:
+    name: 手動廣播｜發送後清除內容
+    icon: mdi:eraser
+    initial: true

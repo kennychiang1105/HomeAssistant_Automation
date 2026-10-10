@@ -648,65 +648,60 @@ views:
           - entity: input_select.floorplan_active_floor
             name: 選擇樓層
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      # ── 平面圖（HA 2026.10 原生 Visibility 按當前選擇樓層顯示）──
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "1F 車庫"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_1f_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_1f_3d.svg
+        tap_action:
+          action: none
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "2F 客廳餐廳"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_2f_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_2f_3d.svg
+        tap_action:
+          action: none
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "3F 主臥室"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_3f_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_3f_3d.svg
+        tap_action:
+          action: none
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "4F 次臥"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_4f_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_4f_3d.svg
+        tap_action:
+          action: none
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "5F 頂樓"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_5f_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_5f_3d.svg
+        tap_action:
+          action: none
 
-      - type: conditional
-        conditions:
-          - entity: input_select.floorplan_active_floor
+      - type: picture
+        visibility:
+          - condition: state
+            entity: input_select.floorplan_active_floor
             state: "全棟立體透視"
-        card:
-          type: picture
-          image: /local/floorplan/3d/floor_all_3d.svg
-          tap_action:
-            action: none
+        image: /local/floorplan/3d/floor_all_3d.svg
+        tap_action:
+          action: none
 
       - type: markdown
         content: |

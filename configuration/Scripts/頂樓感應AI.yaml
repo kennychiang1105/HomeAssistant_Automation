@@ -9,8 +9,8 @@
 #           topfloor_kandeng_off_if_auto：只關「感應自己開的」坎燈（深夜不動、床頭燈/檯燈亮著不關）。
 # ────────────────────────────────────────────────────────
 topfloor_publish_path:
-  alias: 頂樓動線事件發布 (V4.0.0)
-  description: 08-5J 發布動線事件：去重（同事件 10 秒、進書房 120 秒）、發出 topfloor_path 事件、寫紀錄與時間戳
+  alias: 頂樓動線事件發布 (V4.1.0)
+  description: 08-5J 發布動線事件：去重（同事件 10 秒、進書房 120 秒）、動線仲裁（剛進書房 10 秒內不可能離開；4 秒內與前一動線方向矛盾時依 PIR 先後，看不出方向則依先前紀錄保留）、發出 topfloor_path 事件、寫紀錄與時間戳
   mode: queued
   max: 20
   fields:
@@ -28,10 +28,45 @@ topfloor_publish_path:
     dup: "{{ last_p == path and (now().timestamp() - last_t) < (dedupe_s | float) }}"
     ev: "{{ evidence | default('', true) | string }}"
     line_txt: "{{ now().strftime('%H:%M:%S') ~ ' ' ~ path ~ '（' ~ ev ~ '）' }}"
+    # ── 動線仲裁（V4.1.0）：同一次通行常同時觸發多條跨線／PIR，產生互相矛盾的動線 ──
+    # 分類：in＝人在書房；out＝人在書房外（回臥室、準備下樓）。PIR 右＝書房側、PIR 左＝房間側（使用者 2026-10-06 確認）。
+    arb_now: "{{ now().timestamp() }}"
+    arb_last_age: "{{ arb_now | float - last_t | float }}"
+    arb_pl_age: "{{ arb_now | float - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) }}"
+    arb_pr_age: "{{ arb_now | float - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) }}"
+    arb_cls: "{{ {'enter_study': 'in', 'leave_study_bedroom': 'out', 'leave_study_down': 'out', 'enter_bedroom': 'out', 'down_start': 'out'} }}"
+    arb_new: "{{ arb_cls.get(path, '') }}"
+    arb_old: "{{ arb_cls.get(last_p, '') }}"
+    arb_hint: >-
+      {%- if arb_pr_age <= 10 and arb_pr_age < arb_pl_age -%}in
+      {%- elif arb_pl_age <= 10 and arb_pl_age < arb_pr_age -%}out
+      {%- endif -%}
+    arb_verdict: >-
+      {%- if path in ['leave_study_bedroom', 'leave_study_down'] and last_p == 'enter_study' and arb_last_age < 10 -%}
+        skip:剛進書房 {{ arb_last_age | int }} 秒，停留時間不足 10 秒，不可能已離開
+      {%- elif arb_new != '' and arb_old != '' and arb_new != arb_old and arb_last_age < 4 -%}
+        {%- if arb_hint == '' -%}
+          skip:{{ last_p }} 才發生 {{ arb_last_age | int }} 秒，感應器看不出方向，依先前紀錄保留
+        {%- elif arb_hint == arb_new -%}
+          ok
+        {%- else -%}
+          skip:PIR 先後順序（{{ '書房側' if arb_hint == 'in' else '房間側' }}最後觸發）與 {{ path }} 不符
+        {%- endif -%}
+      {%- else -%}
+        ok
+      {%- endif -%}
   sequence:
     - if: "{{ dup }}"
       then:
         - stop: "同一動線事件短時間內已發布，略過"
+    - if: "{{ arb_verdict | trim != 'ok' }}"
+      then:
+        - action: logbook.log
+          data:
+            name: 頂樓動線
+            message: "{{ now().strftime('%H:%M:%S') }} 動線仲裁：略過 {{ path }}（{{ (arb_verdict | trim)[5:] }}）"
+          continue_on_error: true
+        - stop: "動線仲裁：與剛發生的動線矛盾，略過"
     - action: input_text.set_value
       target:
         entity_id: input_text.topfloor_last_path

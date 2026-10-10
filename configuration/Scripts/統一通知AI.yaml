@@ -18,6 +18,7 @@
 # - V4.0.0：announce 音量改依原本設定（原預設，已被上一行取代，可由 input_number.announce_volume_* 調整）；TTS 沒開始播放時自動重送一次。
 # - V4.0.0：未指定 icon 時，依標題/來源/內文關鍵字自動配主題圖示（門鈴、鐵門、門鎖、電量、保全、天氣、地震、風扇、空氣、網路、更新、Bot…）。
 # - V4.0.0：新增 link2_note（第二個按鈕下方備註）。
+# - V4.1.1：新增 to_ha／force_send 欄位（手動通知用：可只發 LINE、可忽略等級開關）；其餘行為不變。
 # - V4.0.0：HomePod 音量「個別調整與還原」：只對這次實際播放的 HomePod（依播放群組/單一喇叭判斷）設定播報音量，並各自還原到播放前；沒播放的那台不動。
 # - V4.0.0：新增 link2_url / link2_label：第二個按鈕（如開啟「家庭」App）。
 # - V4.0.0：新增 link_url / link_label / link_note：卡片底部連結按鈕與備註（例如攝影機網址，備註僅限家裡 Wi-Fi）。
@@ -78,6 +79,12 @@ notify_dispatch:
     link_note:
       description: 按鈕下方的小字備註（例如「僅限連接家裡 Wi-Fi 時可開啟」）
       required: false
+    to_ha:
+      description: 是否發 HA 通知（預設 true；設 false 只發 LINE，手動通知用）
+      required: false
+    force_send:
+      description: 手動通知用：忽略 notify_ha_*／notify_line_* 的等級開關，強制依 to_ha／line 發送（預設 false）
+      required: false
     link2_url:
       description: 第二個按鈕的連結（例如開啟「家庭」App 的轉址頁）
       required: false
@@ -117,9 +124,14 @@ notify_dispatch:
       {% set ns = namespace(c=[]) %}{% for b in detail_line.split('\n\n') %}{% if b | trim %}{% set ns.c = ns.c + [{"type": "text", "text": (b | trim), "size": "xs", "color": "#6B7280", "wrap": true, "margin": "md"}] %}{% endif %}{% endfor %}{{ ns.c | tojson }}
     body_lines: >-
       {% set ns = namespace(o=[]) %}{% for l in lines %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | tojson }}
-    ha_on: "{{ lv == 'emergency' or is_state('input_boolean.notify_ha_' ~ lv ~ '_enable', 'on') }}"
+    ha_on: "{{ (to_ha | default(true)) and (force_send | default(false) or lv == 'emergency' or is_state('input_boolean.notify_ha_' ~ lv ~ '_enable', 'on')) }}"
     line_switch: "{{ {'general':'input_boolean.notify_line_general_enable','important':'input_boolean.notify_line_important_enable','emergency':'input_boolean.notify_line_emergency_enable'}.get(lv, '') }}"
-    line_on: "{{ lv != 'info' and (line | default(true)) and line_switch != '' and is_state(line_switch, 'on') }}"
+    line_on: "{{ lv != 'info' and (line | default(true)) and line_switch != '' and (force_send | default(false) or is_state(line_switch, 'on')) }}"
+    # 保全／鐵門／家電未關類提醒：自動帶「家庭控制」連結（呼叫端自己給 link_url 時以呼叫端為準）。外網需登入，內網依 HA 登入設定。
+    lk_auto: "{{ (title_c ~ ' ' ~ head_line) | regex_search('保全|鐵門|未關|忘記關|沒關|家電') and not (link_url is defined and link_url) }}"
+    lk_url: "{{ link_url if (link_url is defined and link_url) else ('https://family.kteam.tw:8130/' if lk_auto else '') }}"
+    lk_label: "{{ link_label if (link_label is defined and link_label) else ('開啟家庭控制' if lk_auto else '') }}"
+    lk_note: "{{ link_note if (link_note is defined and link_note) else ('帳號:kiosk\n密碼:kiosk1105@\nPIN:477924\n(僅外網需要)' if lk_auto else '') }}"
   sequence:
     - if: "{{ ha_on }}"
       then:
@@ -157,7 +169,7 @@ notify_dispatch:
                     ] + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
-                    "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link_label if (link_label is defined and link_label) else "開啟連結"), "uri": link_url}}] if (link_url is defined and link_url) else []) + ([{"type": "text", "text": link_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link_url is defined and link_url and link_note is defined and link_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
+                    "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
                 }, **hero_extra)
               }] | tojson }}
     - if: "{{ line_on and lv in ['important', 'emergency'] }}"

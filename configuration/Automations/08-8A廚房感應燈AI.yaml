@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 08-8A廚房感應燈AI (V3.2)
 # 更新紀錄：
+# - V3.3.0（2026-10-10）：新增「重新偵測」自動化：手動關燈後再進廚房也會亮。小米人體感應器有人活動時約每 20 秒回報一次（狀態仍是 on、只更新 last_triggered），原本只看「狀態變 on」所以被忽略；新增依 last_triggered 屬性變化，燈關著超過 10 秒才再開燈。毫米波存在感應器容易誤判，不參與開燈。長按關閉廚房感應燈自動化（10B）時不動作。
 # - V3.2：修補版；移除手動按鍵後 60 秒的防誤觸冷卻判斷，感應燈偵測到動作時將直接開燈。
 # - V3.1：調整開燈偵測器為 binary_sensor.kitchen_motion。將手動按鍵後的防誤觸冷卻時間從 3 分鐘縮短為 1 分鐘 (60秒)。
 # ─────────────────────────────────────────────────────────────
@@ -44,3 +45,41 @@
             - action: switch.turn_off
               target:
                 entity_id: switch.chu_fang_deng
+
+- alias: 08-8A 廚房感應燈重新偵測AI (V3.3.0)
+  id: ai_08_8a_kitchen_motion_retrigger
+  description: >
+    手動關燈後馬上再進廚房，小米人體感應器的狀態還停在 on（約 90 秒才回報無人），原本的自動化不會再開燈。
+    感應器有人活動時約每 20 秒更新一次 last_triggered。毫米波存在感應器容易誤判（偵測範圍太遠），不用來開燈，只留給原自動化判斷無人關燈。
+    燈關著超過 10 秒才再開燈（關燈走出去時最後的動作不算）；
+    長按把「廚房感應燈自動化」關掉（手動模式）時不處理。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - id: pir_refresh
+      alias: "[感應] 廚房小米感應器有人活動（last_triggered 更新）"
+      trigger: state
+      entity_id: binary_sensor.kitchen_motion
+      attribute: last_triggered
+  conditions:
+    - alias: "感應器回報是剛發生的 (10 秒內)"
+      condition: template
+      value_template: >-
+        {{ trigger.to_state is not none
+           and trigger.to_state.attributes.last_triggered is defined
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.attributes.last_triggered, 0)) < 10 }}
+    - alias: "廚房感應燈自動化沒有被長按關閉（手動模式）"
+      condition: state
+      entity_id: automation.ai_08_8a_kitchen_motion_light
+      state: "on"
+    - alias: "廚房燈關著"
+      condition: state
+      entity_id: switch.chu_fang_deng
+      state: "off"
+    - alias: "燈已經關超過 10 秒"
+      condition: template
+      value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.chu_fang_deng.last_changed, 0)) >= 10 }}"
+  actions:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.chu_fang_deng

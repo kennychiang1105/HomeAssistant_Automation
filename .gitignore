@@ -25,7 +25,8 @@ onlineBackupsData/
 node-red/
 scrypted/
 ssl/
-custom_components/
+custom_components/*
+!custom_components/spatial_context/
 
 # ──────── V4.0 補充：不要上傳的內容（公開倉庫）────────
 backup_*/

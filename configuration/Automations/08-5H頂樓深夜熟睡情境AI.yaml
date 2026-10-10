@@ -1,18 +1,24 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5H頂樓深夜熟睡情境AI (V3.1.0)
-# 相容版本：Helpers V3.15（已確認）
+# 08-5H頂樓深夜熟睡情境AI (V4.3.0)
+# 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
-# - V3.1.0：功能版；執行深夜下樓情境前先記錄頂樓深夜熟睡手動鎖狀態，情境執行與重試後皆恢復 input_boolean.sleep_silent_active 原本開關狀態，並以模板 action 精簡復原流程。
-# - V3.0.2：修正下樓情境重試判斷的變數作用域問題，改為直接檢查床頭燈實際狀態，避免重試條件沿用舊值。
-# - V3.0.1：修復下樓情境確認流程，改為 1 分鐘後檢查床頭燈；失敗時自動重跑一次下樓流程，僅在確認成功後恢復風扇狀態。
-# - V3.0：新增平日 03:00 / 假日 05:00 深夜熟睡情境；執行下樓情境並在 HomeKit 外部關閉風扇時做狀態救援（系統來源不視為手動關機）。
+# - V4.3.0（2026-10-10）：熟睡下樓時間（03:00／05:00）與鎖的最早解鎖基準（09:30／10:30）改成可由 helper 調整，並可搭配國定假日
+#           （功能開關 input_boolean.sleep_holiday_aware，預設 off＝與 V4.2.1 行為相同；on＝用 sensor.tw_day_type_today／tomorrow 判斷平日／假日，helper 見 packages/v41_sleep_holiday.yaml）。
+# - V4.2.1（2026-10-10）：修正熟睡鎖動態解鎖：夜燈情境時間超過 14 小時（或沒按夜燈、08-5H 凌晨強制開鎖、手動切鎖）時，改以「鎖被打開的時間」計算，只等到早上基準時間，避免鎖在開啟後 1 分鐘內被舊時間誤解除。
+# - V4.2.0：功能增強版；熟睡手動鎖改由使用者點擊「夜燈情境」時開啟並記錄啟動時間；
+#           導入動態解鎖機制（點擊時間+8.5小時 與 平日09:30/假日10:30 兩者晚到的為主自動解鎖）；
+#           平日 03:00 / 假日 05:00 執行下樓情境時嚴格豁免，不關閉手動鎖且不刷新初始夜燈時間；
+#           其餘時間執行上樓、下樓（包含04:00等非03:00/05:00下樓）或閱讀情境視為起床解除手動鎖。
+# - V4.1.0：功能增強版；保留平日 03:00 / 假日 05:00 執行下樓情境以關閉 HomeKit 專屬設備並保留風扇救援。
+# - V4.0.0：重構版；深夜熟睡情境僅關閉頂樓臥室與書房燈具，不再觸發下樓情境。
+# - V3.1.0：功能版；執行深夜下樓情境前先記錄頂樓深夜熟睡手動鎖狀態。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5H頂樓深夜熟睡情境AI (V3.1.0)
+- alias: 08-5H頂樓深夜熟睡情境AI (V4.3.0)
   id: ai_08_5h_topfloor_deep_sleep_scene_guard
-  description: 深夜熟睡情境定時執行下樓，1 分鐘後複檢床頭燈確認是否成功，必要時重試一次，並避免 HomeKit 連動關閉風扇造成 AI 溫控軌道偏移。
+  description: 深夜熟睡情境定時執行下樓情境以關閉 HomeKit 設備，風扇狀態救援，並強制保持頂樓深夜熟睡手動鎖開啟（不刷新夜燈開始時間）。
   mode: single
   variables:
-    automation_version: "V3.1.0"
+    automation_version: "V4.3.0"
 
   triggers:
     - trigger: time
@@ -21,32 +27,51 @@
     - trigger: time
       at: "05:00:00"
       id: weekend_0500
+    # V4.3.0：開關 sleep_holiday_aware = on 時改用 helper 時間與假日判斷（預設兩者等於 03:00／05:00）
+    - trigger: time
+      at: input_datetime.sleep_5h_workday
+      id: weekday_h
+    - trigger: time
+      at: input_datetime.sleep_5h_holiday
+      id: weekend_h
 
   conditions:
     - condition: template
       value_template: >
-        {{ (trigger.id == 'weekday_0300' and now().weekday() in [0,1,2,3,4])
-           or (trigger.id == 'weekend_0500' and now().weekday() in [5,6]) }}
+        {% if is_state('input_boolean.sleep_holiday_aware', 'on') %}
+          {{ (trigger.id == 'weekday_h' and states('sensor.tw_day_type_today') == 'workday')
+             or (trigger.id == 'weekend_h' and states('sensor.tw_day_type_today') == 'holiday')
+             or (trigger.id == 'weekday_h' and states('sensor.tw_day_type_today') not in ['workday', 'holiday'] and now().weekday() in [0,1,2,3,4])
+             or (trigger.id == 'weekend_h' and states('sensor.tw_day_type_today') not in ['workday', 'holiday'] and now().weekday() in [5,6]) }}
+        {% else %}
+          {{ (trigger.id == 'weekday_0300' and now().weekday() in [0,1,2,3,4])
+             or (trigger.id == 'weekend_0500' and now().weekday() in [5,6]) }}
+        {% endif %}
 
   actions:
+    # 1. 啟用風扇系統守護
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.ding_lou_fan_system_action_guard
 
     - variables:
         fan_was_on: "{{ is_state('fan.dmaker_p33_eabd_fan','on') }}"
-        sleep_silent_was_on: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
+
+    # 2. 確保熟睡手動鎖為 on，並執行下樓情境以關閉 HomeKit 設備（不覆蓋夜燈時間）
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.sleep_silent_active
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.ding_lou_xia_lou_qing_jing
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.ding_lou_shang_lou_qing_jing
-    - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+    - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.sleep_silent_active
 
-    # 1 分鐘後以床頭燈關閉狀態確認下樓情境是否成功
+    # 3. 1 分鐘後以床頭燈關閉狀態確認下樓情境是否成功
     - delay: "00:01:00"
 
     # 若第一次未成功，重跑一次下樓流程後再次檢查
@@ -61,11 +86,12 @@
             - action: input_boolean.turn_off
               target:
                 entity_id: input_boolean.ding_lou_shang_lou_qing_jing
-            - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+            - action: input_boolean.turn_on
               target:
                 entity_id: input_boolean.sleep_silent_active
             - delay: "00:01:00"
 
+    # 4. 風扇救援
     - choose:
         - conditions:
             - condition: template
@@ -79,10 +105,118 @@
               target:
                 entity_id: fan.dmaker_p33_eabd_fan
 
-    - action: "input_boolean.turn_{{ 'on' if sleep_silent_was_on | bool else 'off' }}"
+    # 5. 確保熟睡手動鎖維持開啟
+    - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.sleep_silent_active
 
+    # 6. 解除風扇系統守護
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.ding_lou_fan_system_action_guard
+
+- alias: 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)
+  id: ai_08_5h_topfloor_sleep_lock_manager
+  description: >
+    管理頂樓深夜熟睡手動鎖（sleep_silent_active）：
+    使用者點擊夜燈情境時記錄時間並開啟手動鎖；
+    動態解鎖（點擊時間+8.5小時 與 平日09:30/假日10:30 兩者晚到的為主）；
+    其餘時間執行上樓、下樓（排除平日03:00/假日05:00熟睡下樓）或閱讀情境時視為起床關閉手動鎖。
+  mode: queued
+  max: 10
+  triggers:
+    # ── 1. 點擊夜燈情境：開啟手動鎖並記錄時間 ──
+    - trigger: state
+      entity_id: input_boolean.ding_lou_ye_deng_qing_jing
+      to: "on"
+      id: night_light_pressed
+
+    # ── 2. 每分鐘動態輪詢檢查是否達到解鎖時間（只有手動鎖為 on 時檢查） ──
+    - trigger: time_pattern
+      minutes: "/1"
+      id: dynamic_unlock_check
+
+    # ── 3. 使用者執行情境（起床解除手動鎖） ──
+    - trigger: state
+      entity_id:
+        - input_boolean.ding_lou_shang_lou_qing_jing
+        - input_boolean.ding_lou_xia_lou_qing_jing
+        - input_boolean.ding_lou_yue_du_qing_jing
+      to: "on"
+      id: scene_wake_up
+
+  actions:
+    - choose:
+        # A. 點擊夜燈情境：記錄時間並開啟熟睡手動鎖
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'night_light_pressed' }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_night_light_started
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.sleep_silent_active
+
+        # B. 動態解鎖檢查：熟睡手動鎖為 on 且已達到 (點擊時間+8.5h 與 平日09:30/假日10:30 晚到的為主)
+        - conditions:
+            - condition: template
+              value_template: >-
+                {% if trigger.id == 'dynamic_unlock_check' and is_state('input_boolean.sleep_silent_active', 'on') %}
+                  {% set now_ts = as_timestamp(now()) %}
+                  {% set lock_ts = as_timestamp(states.input_boolean.sleep_silent_active.last_changed) %}
+                  {% set raw_start = states('input_datetime.topfloor_night_light_started') %}
+                  {% set start_ts = as_timestamp(raw_start, 0) if raw_start not in ['unknown', 'unavailable', ''] else 0 %}
+                  {# 夜燈情境時間在 14 小時內才算「這一晚」的紀錄；沒按夜燈（例如 08-5H 凌晨強制開鎖、手動切鎖）時，改以鎖被打開的時間為準，只等到早上基準時間 #}
+                  {% set fresh = start_ts > 0 and (now_ts - start_ts) <= 50400 %}
+                  {% set ref_ts = start_ts if fresh else lock_ts %}
+                  {% set ref_dt = now() - timedelta(seconds=(now_ts - ref_ts)) %}
+                  {% set next_date = (ref_dt + timedelta(days=1)) if ref_dt.hour >= 12 else ref_dt %}
+                  {% set aware = is_state('input_boolean.sleep_holiday_aware', 'on') %}
+                  {# V4.3.0：開關 on 時，睡醒那天是否假日改看 tw_day_type（今天或明天），拿不到就退回週末＝假日 #}
+                  {% set nd_delta = (next_date.date() - now().date()).days %}
+                  {% set dt_type = states('sensor.tw_day_type_tomorrow') if nd_delta >= 1 else states('sensor.tw_day_type_today') %}
+                  {% set is_weekend = (dt_type == 'holiday') if (aware and dt_type in ['workday', 'holiday']) else (next_date.weekday() in [5, 6]) %}
+                  {% set base_time = (states('input_datetime.sleep_unlock_holiday') if is_weekend else states('input_datetime.sleep_unlock_workday')) if aware else ('10:30:00' if is_weekend else '09:30:00') %}
+                  {% set baseline_ts = as_timestamp(next_date.strftime('%Y-%m-%d') ~ ' ' ~ base_time) %}
+                  {% set unlock_ts = ([ref_ts + 30600, baseline_ts] | max) if fresh else baseline_ts %}
+                  {{ now_ts >= unlock_ts }}
+                {% else %}
+                  false
+                {% endif %}
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.sleep_silent_active
+
+        # C. 執行情境代表起床解除手動鎖（排除平日 03:00~03:05 與假日 05:00~05:05 熟睡關燈下樓）
+        - conditions:
+            - condition: template
+              value_template: >-
+                {% if trigger.id == 'scene_wake_up' %}
+                  {% if trigger.entity_id == 'input_boolean.ding_lou_xia_lou_qing_jing' %}
+                    {% if is_state('input_boolean.sleep_holiday_aware', 'on') %}
+                      {# V4.3.0：豁免窗 = 今天類型對應的熟睡下樓 helper 時間起 5 分鐘；拿不到類型就退回週末判斷 #}
+                      {% set tt = states('sensor.tw_day_type_today') %}
+                      {% set hol = (tt == 'holiday') if tt in ['workday', 'holiday'] else (now().weekday() in [5,6]) %}
+                      {% set st = states('input_datetime.sleep_5h_holiday') if hol else states('input_datetime.sleep_5h_workday') %}
+                      {% set d = (now().hour * 60 + now().minute) - ((st[0:2] | int(3)) * 60 + (st[3:5] | int(0))) %}
+                      {{ not (0 <= d < 5) }}
+                    {% else %}
+                    {% set is_weekday_0300 = (now().weekday() in [0,1,2,3,4]) and (now().hour == 3 and now().minute < 5) %}
+                    {% set is_weekend_0500 = (now().weekday() in [5,6]) and (now().hour == 5 and now().minute < 5) %}
+                    {{ not (is_weekday_0300 or is_weekend_0500) }}
+                    {% endif %}
+                  {% else %}
+                    true
+                  {% endif %}
+                {% else %}
+                  false
+                {% endif %}
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.sleep_silent_active

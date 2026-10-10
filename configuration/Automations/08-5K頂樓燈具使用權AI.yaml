@@ -5,7 +5,7 @@
 # - V4.0.0：新增。頂樓感應優化：判斷樓梯燈（4F 0fb7／5F 13b8）、坎燈、書房燈是「感應開的」還是「手動／其他自動化開的」。
 #           感應開的燈由 08-5C／08-5G 負責關；手動開的樓梯燈保持 5 分鐘後恢復感應控制（9A 常開除外，需 9C 全關）；
 #           手動開的坎燈永遠不自動關。Yeelink 狀態更新約延遲 10 秒，所以「感應開」的判斷窗口放寬為 20 秒。
-#           另含：樓梯燈手動保持結束接管、11B 感應暫停到期自動恢復（HA 資訊通知）。
+#           另含：樓梯燈手動保持結束接管、11B 感應暫停到期自動恢復（HA 資訊通知）、重啟自癒檢查（避免樓梯燈在重啟後成為關不掉的孤兒燈）。
 # ────────────────────────────────────────────────────────
 - id: ai_08_5k_topfloor_light_ownership
   alias: 08-5K頂樓燈具使用權AI (V4.0.0)
@@ -121,3 +121,34 @@
         version: "V4.0.0"
         title: 頂樓感應已自動恢復
         message: 頂樓感應暫停的 2 小時已到期，感應燈與書房燈恢復自動控制。
+
+- id: ai_08_5k_topfloor_reconcile_on_start
+  alias: 08-5K頂樓開機狀態自癒檢查AI (V4.0.0)
+  description: 重啟後檢查頂樓燈具狀態；若有亮著的樓梯燈但計時中斷且非常開，啟動手動保持或由感應接管，避免成為關不掉的孤兒燈
+  mode: single
+  triggers:
+    - trigger: homeassistant
+      event: start
+  actions:
+    - delay: "00:00:30"
+    - if: >-
+        {{ is_state('input_boolean.topfloor_stairs_keep_on', 'off')
+           and (is_state('light.yeelink_color5_0fb7_light', 'on') or is_state('light.yeelink_color5_13b8_light', 'on')) }}
+      then:
+        - if: >-
+            {{ is_state('timer.topfloor_stairs_manual_hold', 'idle')
+               and is_state('input_boolean.topfloor_0fb7_auto', 'off')
+               and is_state('input_boolean.topfloor_13b8_auto', 'off') }}
+          then:
+            - action: timer.start
+              target:
+                entity_id: timer.topfloor_stairs_manual_hold
+            - action: logbook.log
+              data:
+                name: 頂樓動線
+                message: "{{ now().strftime('%H:%M:%S') }} 重啟自癒：偵測到樓梯燈亮起但計時中斷，補啟動 5 分鐘手動保持計時保護"
+              continue_on_error: true
+          else:
+            - action: timer.start
+              target:
+                entity_id: timer.topfloor_stairs_max

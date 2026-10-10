@@ -1,0 +1,229 @@
+# ──────────────────────────────────────────────
+# 06環境異常通知AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增。監測廚房環境感測器（CO2／CO／溫度，另含3個危險二元感測器）、五樓與車庫攝影機 CO 警報、環境感測器失聯 30 分鐘。
+#   三級門檻全改 helper（packages/v41_env_alert.yaml）；每項 30 分鐘冷卻；夜間（熟睡鎖 on）一般／重要只通知不廣播；
+#   env_alert_mute 可暫停一般／重要通知（緊急不受影響）；LINE 只用在重要（含）以上。
+#   CO 危險（任一來源持續 2 分鐘，或兩個以上來源同時）→ 緊急模式：預設「乾跑」（input_boolean.env_alert_co_dry_run = on）只發資訊通知與 logbook，
+#   絕不觸發 05A、不設緊急旗標。要實際接線必須使用者在場並同意後關閉乾跑。
+# ──────────────────────────────────────────────
+- id: ai_06_env_alert_v41
+  alias: 06環境異常通知AI (V4.1.0)
+  description: >
+    廚房環境（CO2／CO／溫度／危險感測器）、攝影機 CO 警報、感測器失聯的分級通知；CO 危險自動緊急模式（預設乾跑）。
+  mode: queued
+  max: 10
+  max_exceeded: silent
+  variables:
+    kitchen: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang
+    is_metric: "{{ trigger.id.startswith('m_') }}"
+    metric: "{{ trigger.id.split('_')[1] if trigger.id.startswith('m_') else '' }}"
+    lvl: >-
+      {% if trigger.id.startswith('m_') %}{{ trigger.id.split('_')[2] | int(1) }}{% else %}{{ {'dangerco': 3, 'dangeraq': 2, 'dangerch2o': 2, 'cam5f': 3, 'camgar': 3, 'offline': 0, 'coone': 3, 'cotwo': 3}.get(trigger.id, 1) }}{% endif %}
+    cdkey: >-
+      {% if trigger.id == 'offline' %}offline_{{ trigger.entity_id.split('.')[1][-14:] }}{% elif trigger.id in ['coone', 'cotwo'] %}emerg{% elif trigger.id in ['m_co_3', 'dangerco', 'cam5f', 'camgar'] %}co_danger{% else %}{{ trigger.id }}{% endif %}
+    now_ts: "{{ as_timestamp(now()) | int }}"
+    cd_map: >-
+      {% set ns = namespace(d={}) %}{% for i in states('input_text.env_alert_cd').split(';') if '=' in i %}{% set kv = i.split('=') %}{% set ns.d = dict(ns.d, **{kv[0]: (kv[1] | int(0))}) %}{% endfor %}{{ ns.d }}
+    cooldown_s: "{{ (states('input_number.env_alert_cooldown_min') | float(30)) * 60 }}"
+    cd_ok: "{{ (now_ts - (cd_map.get(cdkey, 0) | int(0))) >= cooldown_s }}"
+    night: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
+    muted: "{{ is_state('input_boolean.env_alert_mute', 'on') }}"
+    dry_run: "{{ is_state('input_boolean.env_alert_co_dry_run', 'on') }}"
+    m_name: "{{ {'co2': '二氧化碳 CO2', 'co': '一氧化碳 CO', 'temp': '廚房溫度'}.get(metric, '') }}"
+    m_unit: "{{ {'co2': 'ppm', 'co': 'ppm', 'temp': '°C'}.get(metric, '') }}"
+    m_entity: "{{ {'co2': kitchen ~ '_co2', 'co': kitchen ~ '_yi_yang_hua_tan_co', 'temp': kitchen ~ '_wen_du'}.get(metric, '') }}"
+    m_value: "{{ (states(m_entity) | float(0) | round(1)) if m_entity != '' else '' }}"
+    level_name: "{{ {1: '一般', 2: '重要', 3: '嚴重'}.get(lvl | int(1), '') }}"
+    notify_level: "{{ {0: 'info', 1: 'general', 2: 'important', 3: 'emergency'}.get(lvl | int(1)) }}"
+    title: >-
+      {% if is_metric %}{{ m_name }}{{ level_name }}警示{% elif trigger.id == 'dangerco' %}廚房一氧化碳危險{% elif trigger.id == 'dangeraq' %}廚房空氣品質危險{% elif trigger.id == 'dangerch2o' %}廚房甲醛危險{% elif trigger.id == 'cam5f' %}五樓偵測到一氧化碳警報{% elif trigger.id == 'camgar' %}車庫偵測到一氧化碳警報{% elif trigger.id == 'offline' %}環境感測器失聯{% else %}一氧化碳危險{% endif %}
+    body: >-
+      {% if is_metric %}{{ m_name }}目前 {{ m_value }} {{ m_unit }}，已超過{{ level_name }}門檻。{% elif trigger.id == 'offline' %}{{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }} 已失聯超過 30 分鐘，請檢查裝置。{% else %}{{ title }}，請立即確認現場並開窗通風。{% endif %}
+    voice_text: >-
+      {% if is_metric %}智慧家庭通知，{{ m_name }}過高，請開窗通風。{% else %}智慧家庭通知，{{ title }}，請立即確認並通風。{% endif %}
+    do_voice: "{{ lvl | int(1) >= 1 and (not night or lvl | int(1) >= 3) }}"
+  triggers:
+    - trigger: numeric_state
+      id: m_co2_1
+      alias: "[CO2] 一般門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_co2
+      above: input_number.env_co2_l1
+      for: "00:05:00"
+    - trigger: numeric_state
+      id: m_co2_2
+      alias: "[CO2] 重要門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_co2
+      above: input_number.env_co2_l2
+      for: "00:05:00"
+    - trigger: numeric_state
+      id: m_co2_3
+      alias: "[CO2] 嚴重門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_co2
+      above: input_number.env_co2_l3
+      for: "00:05:00"
+    - trigger: numeric_state
+      id: m_co_1
+      alias: "[CO] 一般門檻 2 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co
+      above: input_number.env_co_l1
+      for: "00:02:00"
+    - trigger: numeric_state
+      id: m_co_2
+      alias: "[CO] 重要門檻 2 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co
+      above: input_number.env_co_l2
+      for: "00:02:00"
+    - trigger: numeric_state
+      id: m_co_3
+      alias: "[CO] 危險門檻 2 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co
+      above: input_number.env_co_l3
+      for: "00:02:00"
+    - trigger: numeric_state
+      id: m_temp_1
+      alias: "[廚房溫度] 一般門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_wen_du
+      above: input_number.env_temp_l1
+      for: "00:05:00"
+    - trigger: numeric_state
+      id: m_temp_2
+      alias: "[廚房溫度] 重要門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_wen_du
+      above: input_number.env_temp_l2
+      for: "00:05:00"
+    - trigger: numeric_state
+      id: m_temp_3
+      alias: "[廚房溫度] 嚴重門檻 5 分鐘"
+      entity_id: sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_wen_du
+      above: input_number.env_temp_l3
+      for: "00:05:00"
+    - trigger: state
+      id: dangerco
+      alias: "[廚房] 一氧化碳危險"
+      entity_id: binary_sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_wei_xian
+      to: "on"
+      for: "00:01:00"
+    - trigger: state
+      id: dangeraq
+      alias: "[廚房] 空氣品質危險"
+      entity_id: binary_sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_kong_qi_pin_zhi_wei_xian
+      to: "on"
+      for: "00:02:00"
+    - trigger: state
+      id: dangerch2o
+      alias: "[廚房] 甲醛危險"
+      entity_id: binary_sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_jia_quan_wei_xian
+      to: "on"
+      for: "00:02:00"
+    - trigger: state
+      id: cam5f
+      alias: "[五樓攝影機] 一氧化碳警報"
+      entity_id: binary_sensor.wu_lou_she_ying_ji_co_alarm_detected
+      to: "on"
+      for: "00:00:30"
+    - trigger: state
+      id: camgar
+      alias: "[車庫攝影機] 一氧化碳警報"
+      entity_id: binary_sensor.che_ku_she_ying_ji_co_alarm_detected
+      to: "on"
+      for: "00:00:30"
+    - trigger: state
+      id: offline
+      alias: "[感測器] 環境感測器失聯 30 分鐘"
+      entity_id:
+        - sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_wen_du
+        - sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_shi_du
+        - sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_co2
+        - sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co
+        - sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_pm2_5
+        - sensor.kong_qi_qing_jing_ji_pm2_5
+        - sensor.livingroom_homepodmini_temperature
+        - sensor.5f_homepodmini_temperature
+      to: "unavailable"
+      for: "00:30:00"
+    - trigger: template
+      id: coone
+      alias: "[CO 緊急] 任一來源危險持續 2 分鐘"
+      value_template: >-
+        {{ [ states('sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co') | float(0) >= states('input_number.env_co_l3') | float(100),
+              is_state('binary_sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_wei_xian','on'),
+              is_state('binary_sensor.wu_lou_she_ying_ji_co_alarm_detected','on'),
+              is_state('binary_sensor.che_ku_she_ying_ji_co_alarm_detected','on') ] | select | list | length >= 1 }}
+      for: "00:02:00"
+    - trigger: template
+      id: cotwo
+      alias: "[CO 緊急] 兩個以上來源同時危險"
+      value_template: >-
+        {{ [ states('sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_co') | float(0) >= states('input_number.env_co_l3') | float(100),
+              is_state('binary_sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_yi_yang_hua_tan_wei_xian','on'),
+              is_state('binary_sensor.wu_lou_she_ying_ji_co_alarm_detected','on'),
+              is_state('binary_sensor.che_ku_she_ying_ji_co_alarm_detected','on') ] | select | list | length >= 2 }}
+  conditions:
+    - alias: "同項目冷卻"
+      condition: template
+      value_template: "{{ cd_ok }}"
+    - alias: "暫停通知時只放行緊急（危險）與失聯以外的重大"
+      condition: template
+      value_template: "{{ not muted or lvl | int(1) >= 3 }}"
+  actions:
+    - alias: "記錄通知時間（影子的冷卻也靠這個）"
+      action: input_text.set_value
+      target:
+        entity_id: input_text.env_alert_cd
+      data:
+        value: >-
+          {% for k, v in dict(cd_map, **{cdkey: now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
+    - choose:
+        - alias: "CO 緊急模式（乾跑／實際）"
+          conditions:
+            - condition: template
+              value_template: "{{ trigger.id in ['coone', 'cotwo'] }}"
+          sequence:
+            - action: logbook.log
+              data:
+                name: 06環境異常通知AI
+                message: "{{ '乾跑：會觸發緊急模式（05A）' if dry_run else '已觸發緊急模式（05A）' }}（{{ trigger.alias }}）"
+            - choose:
+                - alias: "乾跑：只發資訊通知"
+                  conditions:
+                    - condition: template
+                      value_template: "{{ dry_run }}"
+                  sequence:
+                    - action: script.notify_dispatch
+                      data:
+                        level: info
+                        line: false
+                        source: 06環境異常通知AI
+                        version: V4.1.0
+                        title: 乾跑：CO 危險會觸發緊急模式
+                        message: "偵測到一氧化碳危險（{{ trigger.alias }}）。\n目前為乾跑，只通知、不會觸發緊急模式。"
+              default:
+                - alias: "實際：設自動旗標 ii 並觸發 05A（需使用者在場同意後才可關閉乾跑）"
+                  action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
+                - action: automation.trigger
+                  target:
+                    entity_id: automation.jin_ji_mo_shi
+                  data:
+                    skip_condition: true
+                - action: script.notify_dispatch
+                  data:
+                    level: emergency
+                    line: true
+                    source: 06環境異常通知AI
+                    version: V4.1.0
+                    title: 一氧化碳危險，已啟動緊急模式
+                    message: "偵測到一氧化碳危險（{{ trigger.alias }}）。\n已自動啟動緊急模式，請立即確認現場。"
+                    voice: "智慧家庭緊急通知，偵測到一氧化碳危險，已啟動緊急模式，請立即離開並通風。"
+      default:
+        - action: script.notify_dispatch
+          data:
+            level: "{{ notify_level }}"
+            line: "{{ lvl | int(1) >= 2 }}"
+            source: 06環境異常通知AI
+            version: V4.1.0
+            title: "{{ title }}"
+            message: "{{ body }}"
+            voice: "{{ voice_text if do_voice else none }}"

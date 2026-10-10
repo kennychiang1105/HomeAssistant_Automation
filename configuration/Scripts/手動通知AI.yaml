@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────
+# 手動通知AI (V4.1.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.1.0：新增。自動化管理面板「總覽」輸入內容、勾選 HA／LINE、選擇重要性（資訊／一般／重要／緊急），按「傳送通知」
+#           → script.notify_dispatch（標題固定「系統通知訊息」、來源「手動通知」、force_send 忽略等級開關）。
+#           資訊級不發 LINE（統一通知規則）；內容空白或兩者都沒勾時不送出並在按鈕顯示原因。
+#           結果寫入 input_text.notify_manual_result（「訊息|時間戳」），面板按鈕顯示 15 秒。
+# ─────────────────────────────────────────────────────────────
+notify_manual:
+  alias: 手動通知AI (V4.1.0)
+  description: 從自動化管理面板輸入文字、選擇 HA／LINE 與重要性後送出（呼叫統一通知 script.notify_dispatch）
+  mode: single
+  variables:
+    text: "{{ states('input_text.notify_manual_text') | trim }}"
+    lv: "{{ {'資訊': 'info', '一般': 'general', '重要': 'important', '緊急': 'emergency'}.get(states('input_select.notify_manual_level'), 'general') }}"
+    to_ha: "{{ is_state('input_boolean.notify_manual_ha', 'on') }}"
+    to_line: "{{ is_state('input_boolean.notify_manual_line', 'on') }}"
+    problem: >-
+      {% if text == '' or text in ['unknown', 'unavailable'] %}請先輸入要傳送的內容
+      {%- elif not to_ha and not to_line %}請至少勾選 HA 或 LINE
+      {%- elif lv == 'info' and not to_ha %}資訊級不發 LINE，請勾選 HA 或改選其他重要性
+      {%- endif %}
+  sequence:
+    - if:
+        - condition: template
+          value_template: "{{ problem | trim != '' }}"
+      then:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.notify_manual_result
+          data:
+            value: "⚠ {{ problem | trim }}|{{ now().timestamp() | int }}"
+        - stop: "{{ problem | trim }}"
+    - action: script.notify_dispatch
+      data:
+        level: "{{ lv }}"
+        title: 系統通知訊息
+        message: "{{ text }}"
+        source: 手動通知
+        to_ha: "{{ to_ha }}"
+        line: "{{ to_line and lv != 'info' }}"
+        force_send: true
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.notify_manual_result
+      data:
+        value: >-
+          ✓ 通知已送出（{{ states('input_select.notify_manual_level') }}・{{ 'HA' if to_ha else '' }}{{ '＋' if to_ha and to_line and lv != 'info' else '' }}{{ 'LINE' if to_line and lv != 'info' else '' }}{{ '・測試模式' if is_state('input_boolean.line_bot_test_mode', 'on') and to_line and lv != 'info' else '' }}）|{{ now().timestamp() | int }}
+    - if:
+        - condition: state
+          entity_id: input_boolean.notify_manual_clear
+          state: "on"
+      then:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.notify_manual_text
+          data:
+            value: ""

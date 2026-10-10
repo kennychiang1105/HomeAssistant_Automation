@@ -1,0 +1,68 @@
+# 空氣清淨機整合 AI 輔助項目（V4.1.0，2026-10-10；C／項目 6）
+# 由 07空氣清淨機整合AI 使用。濾網壽命不在這裡（由 00-2C 負責）。
+# air_ai_shadow（影子模式，預設 on）：on 時新自動化只寫 logbook「影子：會…」，不控制風扇、不發通知；舊 07／07-1～07-4 維持啟用。
+input_boolean:
+  air_ai_shadow:
+    name: 空氣清淨機AI影子模式（只記錄不動作）
+    icon: mdi:ghost-outline
+    initial: true
+input_number:
+  air_pm_start:
+    name: PM2.5 啟動門檻
+    min: 5
+    max: 100
+    step: 1
+    initial: 25
+    mode: box
+    unit_of_measurement: μg/m³
+  air_pm_notice:
+    name: PM2.5 一般通知門檻（持續10分鐘）
+    min: 5
+    max: 200
+    step: 1
+    initial: 30
+    mode: box
+    unit_of_measurement: μg/m³
+  air_pm_severe:
+    name: PM2.5 嚴重門檻（持續10分鐘）
+    min: 50
+    max: 400
+    step: 5
+    initial: 150
+    mode: box
+    unit_of_measurement: μg/m³
+  air_pm_very_severe:
+    name: PM2.5 非常嚴重門檻（即時）
+    min: 100
+    max: 600
+    step: 5
+    initial: 300
+    mode: box
+    unit_of_measurement: μg/m³
+  air_pm_stop:
+    name: PM2.5 自動關閉門檻（持續5分鐘）
+    min: 1
+    max: 50
+    step: 1
+    initial: 10
+    mode: box
+    unit_of_measurement: μg/m³
+  air_notify_cooldown_min:
+    name: 空氣通知同等級冷卻（分）
+    min: 5
+    max: 240
+    step: 5
+    initial: 30
+    mode: box
+  air_manual_off_hold_min:
+    name: 手動關機後不自動重啟（分）
+    min: 5
+    max: 240
+    step: 5
+    initial: 30
+    mode: box
+input_text:
+  air_ai_state:
+    name: 空氣清淨機AI狀態（內部）
+    max: 255
+    icon: mdi:air-purifier

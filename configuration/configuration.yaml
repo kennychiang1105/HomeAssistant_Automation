@@ -2,10 +2,15 @@
 # AI Configuration（V3.6）
 # ──────────────────────────────────────────────
 # 更新紀錄（統一格式）：
+# - V4.1（2026-10-09）：
+#   • 啟用空間感知拓撲整合（spatial_context），深度對接 Home Assistant 2026.10 官方 MCP Server。
+#   • 將 spatial_scene_graph.json 與 spatial_context.md 轉換為 MCP 原生空間推理提示詞與專屬工具（spatial_context__query_entity、spatial_context__get_floor_layout、spatial_context__get_sensor_geometry）。
+#
 # - V3.6（2026-10-08）：
 #   • recorder 保留期由 180 天改為 45 天，並排除高頻雜訊實體（button.*_info、網路使用率、耗電電流電壓、tesla 電網相關）與 automation／script 網域。
 #   • 新增自動化管理側邊欄面板（lovelace-automation）與整合儀表板「智慧家庭」（lovelace-smart，取代原橫向／直向兩個儀表板）。
 #   • packages 新增 topfloor／persons／doorlock_battery／announce_tts（person 以 YAML 設定）。
+#   • 移除舊的獨立儀表板 3d-home（3D 智慧家庭）；3D 立體圖已整合在 lovelace-smart，3d-floorplan.yaml 檔案保留。
 #
 # - V3.5（2026-08-16）：
 #   • 依據 Home Assistant 2026.8 規範移除已棄用之 http: 區塊（改由 HA 系統網路介面管理），消除 2027.2.0 失效警告。
@@ -22,6 +27,9 @@ homeassistant:
   
 # Configure a default setup of Home Assistant (frontend, api, etc)
 default_config:
+
+# 空間感知拓撲 (AI 4.0 Model Context Protocol)
+spatial_context:
 # Text to speech
 tts:
   - platform: google_translate
@@ -443,6 +451,10 @@ google_assistant:
       room: "伺服器"
       expose: true
     switch.54ef44cf58f9_alarm_trigger:
+      name: "網關警報觸發開關"
+      room: "伺服器"
+      expose: false
+    input_boolean.jie_chu_wang_guan_jing_bao:
       name: "解除網關警報"
       room: "伺服器"
       expose: true
@@ -567,14 +579,6 @@ lovelace:
     - url: /local/floorplan/3d/card-3d-floorplan.js
       type: module
   dashboards:
-    3d-home:
-      mode: yaml
-      title: 3D 智慧家庭
-      icon: mdi:cube-outline
-      show_in_sidebar: true
-      require_admin: false
-      filename: 3d-floorplan.yaml
-
     lovelace-smart:
       mode: yaml
       title: 智慧家庭

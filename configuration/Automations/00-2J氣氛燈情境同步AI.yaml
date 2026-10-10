@@ -1,17 +1,19 @@
 # ────────────────────────────────────────────────────────
-# 00-2J氣氛燈情境同步AI (V4.0.0)
+# 00-2J氣氛燈情境同步AI (V4.0.1)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.0（2026-10-10）：早安／到家判斷可改用日出日落時間窗（input_boolean.scene_window_use_sun，預設開；關閉則退回 06:00～17:00）。
+# - V4.0.1（2026-10-10）：新增觸發：按情境（早安／到家／離家／晚安）時，即使網關模式沒變也重新套用顏色（原本只在模式改變才同步，已在家模式再按早安不會換色，手動改過的網關 LED 無法一鍵還原）。
 # - V4.0.0：新增。以網關（Aqara 保全模式：晚安 / 離家 / 在家，與網關警戒狀態）判斷目前情境，
 #           呼叫 script.ambient_scene 替 UniFi 機台 LED 換色：離家=紅、晚安=暖橘、早安（06~17 點）=綠、到家=綠。
 #           不管情境是實體開關、HomeKit、定位或手動觸發，只要網關模式改變都會同步。
 # ────────────────────────────────────────────────────────
-- alias: 00-2J氣氛燈情境同步AI (V4.0.0)
+- alias: 00-2J氣氛燈情境同步AI (V4.1.0)
   id: ai_00_2j_ambient_scene_sync
   description: 依網關模式（離家/晚安/在家）同步機台氣氛燈顏色
   mode: restart
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.1.0"
   trigger:
     - trigger: state
       entity_id:
@@ -25,6 +27,15 @@
         - armed_away
         - armed_night
         - armed_home
+    # 按情境實體按鈕（早安／到家／離家／晚安）時，就算網關模式沒有改變（例如已經是在家模式再按早安）也重新套用顏色，
+    # 讓手動改過的網關／機台 LED 能一鍵還原
+    - trigger: state
+      entity_id:
+        - automation.101zao_an_qing_jing
+        - automation.103dao_jia_qing_jing
+        - automation.101li_jia_qing_jing
+        - automation.wan_an_qing_jing
+      attribute: last_triggered
   action:
     # 情境會同時改好幾個旗標，等 4 秒讓網關狀態穩定再判斷
     - delay: "00:00:04"
@@ -33,7 +44,7 @@
         scene: >-
           {% if is_state('input_boolean.aqara_wan_an', 'on') %}goodnight
           {% elif is_state('input_boolean.aqara_li_jia', 'on') %}leave
-          {% elif is_state('input_boolean.aqara_zai_jia', 'on') or alarm == 'armed_home' %}{{ 'morning' if 6 <= now().hour < 17 else 'arrive' }}
+          {% elif is_state('input_boolean.aqara_zai_jia', 'on') or alarm == 'armed_home' %}{{ 'morning' if ((is_state('binary_sensor.scene_morning_window', 'on')) if is_state('input_boolean.scene_window_use_sun', 'on') else (6 <= now().hour < 17)) else 'arrive' }}
           {% elif alarm == 'armed_night' %}goodnight
           {% elif alarm == 'armed_away' %}leave
           {% else %}none{% endif %}

@@ -139,6 +139,7 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('Auto
 6. **面板本身的設定**：`/homeassistant/configuration.yaml` 的 `lovelace → dashboards → lovelace-automation`（`mode: yaml`、`filename: automation-panel.yaml`、`show_in_sidebar: true`）。僅在第一次建立或改檔名時需要動它，並需重啟 HA。
 7. **失效殘留**：面板「總覽」會顯示已失效（`unavailable`）舊自動化的數量；可到「設定 → 自動化」手動清理（目前沒有 API 權杖，無法由程式代刪）。
 8. **驗證**：更新後開啟側邊欄「自動化管理」，確認新項目出現在正確分頁、開關可切換、參數可調整。
+9. **版面（2026-10-08 起）**：所有分頁用 layout-card 的 `custom:vertical-layout`（最多 4 欄、每欄最小 340px）：卡片依「說明 → 自動化開關 → 功能小組（`SUBGROUPS` 順序）→ 其他元件種類」排列，程式依估計高度把卡片**按順序**切成最多 4 段放進各欄（`partition()`），欄數不夠時依序往下接——手機 1 欄、iPad 直放 2 欄時順序不變。超過 10 列的清單會拆成連續卡片（標題加「（續）」）。說明卡永遠與下一張卡片同欄。實體來源改讀 `core.restore_state`（最新一批），新增／刪除實體後最多 15 分鐘才會反映。
 
 ---
 

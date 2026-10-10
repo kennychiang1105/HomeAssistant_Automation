@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────
+# 手動廣播AI (V4.1.0)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.1.0：結果寫入 input_text.announce_manual_result（「訊息|時間戳」），面板按鈕據此顯示 15 秒的成功／失敗提示。
+# - V4.1.0：新增。依「手動廣播」helper（內容、喇叭勾選、重要性）呼叫 script.announce 廣播；
+#           內容空白或沒勾選任何喇叭時不播，改發 HA 持續通知說明原因；不發 LINE。
+#           重要性：一般 → general、重要 → important、緊急 → emergency（緊急會播緊急提示音並觸發氣氛燈提醒）。
+# ─────────────────────────────────────────────────────────────
+announce_manual:
+  alias: 手動廣播AI (V4.1.0)
+  description: 從自動化管理面板輸入文字、勾選喇叭、選擇重要性後廣播（呼叫統一廣播 script.announce）
+  mode: single
+  variables:
+    text: "{{ states('input_text.announce_manual_text') | trim }}"
+    lv: "{{ {'一般': 'general', '重要': 'important', '緊急': 'emergency'}.get(states('input_select.announce_manual_level'), 'general') }}"
+    players: >-
+      {% set m = {'input_boolean.announce_manual_ke_ting_homepod': 'media_player.ke_ting_homepod',
+                  'input_boolean.announce_manual_ding_lou_homepod': 'media_player.ding_lou_homepod',
+                  'input_boolean.announce_manual_si_lou_homepod': 'media_player.si_lou_homepod_mini_si_lou_homepod_mini',
+                  'input_boolean.announce_manual_che_ku_speaker': 'media_player.che_ku_she_ying_ji_speaker',
+                  'input_boolean.announce_manual_wu_lou_speaker': 'media_player.wu_lou_she_ying_ji_speaker'} %}
+      {% set ns = namespace(o=[]) %}
+      {% for k, v in m.items() %}{% if is_state(k, 'on') %}{% set ns.o = ns.o + [v] %}{% endif %}{% endfor %}
+      {{ ns.o }}
+  sequence:
+    - if:
+        - condition: template
+          value_template: "{{ text == '' or text in ['unknown', 'unavailable'] or players | length == 0 }}"
+      then:
+        - action: persistent_notification.create
+          data:
+            title: 手動廣播未送出
+            notification_id: announce_manual_invalid
+            message: "{{ '請先輸入要廣播的內容。' if text == '' else '請至少勾選一個廣播喇叭。' }}"
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.announce_manual_result
+          data:
+            value: "{{ '⚠ 請先輸入要廣播的內容' if text == '' else '⚠ 請至少勾選一個喇叭' }}|{{ now().timestamp() | int }}"
+        - stop: 內容空白或未選喇叭
+    - action: script.announce
+      data:
+        level: "{{ lv }}"
+        message: "{{ text }}"
+        player: "{{ players }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.announce_manual_result
+      data:
+        value: "✓ 廣播已送出（{{ states('input_select.announce_manual_level') }}・{{ players | length }} 個喇叭）|{{ now().timestamp() | int }}"
+    - if:
+        - condition: state
+          entity_id: input_boolean.announce_manual_clear
+          state: "on"
+      then:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.announce_manual_text
+          data:
+            value: ""
