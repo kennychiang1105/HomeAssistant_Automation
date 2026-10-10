@@ -1,0 +1,3 @@
+reload:
+  name: 重新載入空間資料
+  description: 從磁碟重新讀取 spatial_scene_graph.json 與 memory/spatial_context.md，不需重啟。
