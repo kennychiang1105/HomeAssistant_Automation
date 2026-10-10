@@ -401,6 +401,13 @@ def manual_broadcast_section():
 
 
 def overview_sections(autos, stale):
+    def _auto_eid(prefix, default):
+        """依自動化名稱開頭找實體 ID（版號改了、實體 ID 後綴會跟著不同，不寫死）。"""
+        for v in autos.values():
+            for fn, eid in v:
+                if fn.startswith(prefix):
+                    return eid
+        return default
     total = sum(len(v) for v in autos.values())
     intro = (f"啟用中的自動化 **{total}** 支（另有 {stale} 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。"
              "上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。")
@@ -422,7 +429,7 @@ def overview_sections(autos, stale):
                 ("switch.smartpower_strip_2f_udmse", "UDM-SE 電源"),
                 ("switch.smartpower_strip_2f_tbcwang_lu_he", "TBC 網路盒電源"),
                 ("switch.xiao_yan_wang_guan_cha_zuo", "小燕網關插座"),
-                ("automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"),
+                (_auto_eid("106C", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0"), "106C_解除網關警報整合AI"),
                 ("automation.ai_gateway_anomaly_guard", "106網關系統AI"),
                 ("automation.ai_00_01_xiaoyan_gateway_watchdog", "小燕網關看門狗")]
     top = [("input_boolean.topfloor_motion_pause", "頂樓感應暫停"), ("input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"),
