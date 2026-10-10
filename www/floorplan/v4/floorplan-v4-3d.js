@@ -1,4 +1,4 @@
-/* Floorplan V4.0-beta 1 - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta6) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -22,11 +22,11 @@ const loadThree = () => {
 };
 const getFloor = (cfg) => {
   let f = null;
-  try { f = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
+  try { f = sessionStorage.getItem(KEY); } catch (e) { /* ignore */ }
   return f && (cfg.floors[f] || f === "全棟") ? f : cfg.default || Object.keys(cfg.floors)[0];
 };
 const setFloor = (f) => {
-  try { localStorage.setItem(KEY, f); } catch (e) { /* ignore */ }
+  try { sessionStorage.setItem(KEY, f); localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
   window.dispatchEvent(new CustomEvent(EVT, { detail: f }));
 };
 
@@ -137,6 +137,10 @@ const iconFor = (s, d) => {
 const POS_KEY = "floorplan_v4_positions";
 const CATS = [["light", "燈光"], ["device", "設備"], ["sensor", "感測"], ["camera", "攝影機"], ["env", "環境"],
   ["stair", "樓梯"], ["people", "成員"]];
+const PRESET_ICONS = { all: "mdi:view-grid-outline", light: "mdi:lightbulb-outline", device: "mdi:power-plug-outline", detect: "mdi:motion-sensor", custom: "mdi:tune-variant" };
+const CAT_ICONS = { light: "mdi:lightbulb-outline", device: "mdi:power-plug-outline", sensor: "mdi:motion-sensor", camera: "mdi:cctv", env: "mdi:thermometer", stair: "mdi:stairs", people: "mdi:account-multiple-outline" };
+const DETECT_FLOORS = ["2F", "5F"];                          // floors that open in 偵測; all others show everything
+const PRESET_TTL = 10 * 60 * 1000;                           // a reload within 10 min keeps the chosen filter, later ones go back to the defaults
 const PRESETS = [["all", "全部"], ["light", "燈光"], ["device", "設備"], ["detect", "偵測"], ["custom", "自訂"]];
 const PRESET_CATS = { all: CATS.map((c) => c[0]), light: ["light", "stair"], device: ["device", "stair"],
   detect: ["sensor", "camera", "env", "stair", "people"] };
@@ -191,7 +195,7 @@ class FloorplanV43D extends HTMLElement {
     this._groups = {};
     this._spots = [];
     this._ready = false;
-    this._labels = true;
+    this._labels = window.innerWidth >= 768;
     this._edit = false;
     this._ovr = {};
   }
@@ -199,7 +203,14 @@ class FloorplanV43D extends HTMLElement {
     if (!cfg.floors) throw new Error("floors is required");
     this._cfg = JSON.parse(JSON.stringify(cfg));     // own copy: positions can be edited
     this._floor = getFloor(cfg);
-    try { this._labels = localStorage.getItem("floorplan_v4_labels") !== "0"; } catch (e) { /* ignore */ }
+    const isSmall = window.innerWidth < 768;
+    try {
+      localStorage.removeItem("floorplan_v4_labels");
+      const saved = sessionStorage.getItem("floorplan_v4_labels");
+      this._labels = saved !== null ? saved === "1" : !isSmall;
+    } catch (e) {
+      this._labels = !isSmall;
+    }
     const order = [...Object.keys(cfg.floors), "全棟"];
     const tabs = cfg.tabs
       ? `<div class="tabs">${order.map((k) => `<button data-f="${k}">${k}</button>`).join("")}</div>` : "";
@@ -214,18 +225,34 @@ class FloorplanV43D extends HTMLElement {
                 background:radial-gradient(ellipse at 50% 35%, #2a2f3a 0%, #14161b 70%); }
         canvas { width:100%; height:100%; display:block; touch-action:none; outline:none; }
         .spots { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-        .pin { position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; --off:24px; }
-        .pin.hide, .pin.missing { display:none !important; }
+        .pin { position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; --off:24px;
+               -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+        .pin.hide, .pin.missing, .pin:not([style*="left"]) { display:none !important; }
         .dot { position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%;
-               background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,.55); pointer-events:auto; }
+               background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,.55); pointer-events:auto; z-index:1;
+               -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
         .links { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
         .links polyline { fill:none; stroke:rgba(255,255,255,.78); stroke-width:1.5; stroke-linejoin:round; }
-        .tag { position:absolute; left:0; top:0; display:flex; align-items:center;
+        .tag { position:absolute; left:0; top:0; z-index:2; display:flex; align-items:center;
                gap:6px; padding:3px 9px 3px 3px; border-radius:20px; white-space:nowrap; pointer-events:auto; cursor:pointer;
                background:rgba(20,21,25,.88); border:1px solid rgba(255,255,255,.28); color:#fff;
-               user-select:none; -webkit-user-select:none; touch-action:none; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+               user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none; box-shadow:0 2px 8px rgba(0,0,0,.4);
+               transition:scale 0.18s cubic-bezier(0.2, 0.9, 0.4, 1), filter 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.18s ease;
+               -webkit-tap-highlight-color:transparent; }
+        .tag:active, .tag.tapping { scale:0.96; filter:brightness(1.18); background:rgba(36,39,47,.95); border-color:rgba(255,255,255,.45); }
+        .pin.pending .tag { border-color:#FFB900 !important; animation:pin-pending-glow 1.6s infinite ease-in-out; }
+        .pin.pending .ic { animation:pin-pending-breath 1.6s infinite ease-in-out; }
+        @keyframes pin-pending-glow {
+          0%, 100% { box-shadow: 0 0 0 1px rgba(255,185,0,.35), 0 2px 8px rgba(0,0,0,.4); filter:brightness(1); }
+          50% { box-shadow: 0 0 0 2px rgba(255,185,0,.75), 0 4px 16px rgba(255,185,0,.35); filter:brightness(1.15); }
+        }
+        @keyframes pin-pending-breath {
+          0%, 100% { filter:brightness(1); }
+          50% { filter:brightness(1.3); }
+        }
         .ic { width:30px; height:30px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center;
-              background:#3a3d45; --mdc-icon-size:18px; transition:background .2s; }
+              background:#3a3d45; --mdc-icon-size:18px; transition:background .2s;
+              -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
         .tx { display:flex; flex-direction:column; line-height:1.15; }
         .nm { font:700 12px sans-serif; }
         .ty { font:500 10.5px sans-serif; color:rgba(255,255,255,.7); }
@@ -234,7 +261,25 @@ class FloorplanV43D extends HTMLElement {
         .sm .tools button, .sm .zones button { padding:6px 8px; font-size:11px; } .sm .scn button { padding:8px 4px; font-size:12px; }
         .nolabels .tx, .pin.compact .tx { display:none; }
         .pin.compact .tag { padding:3px; }
-        .scn { position:absolute; left:8px; right:8px; bottom:56px; display:flex; gap:8px; z-index:4; justify-content:center; }
+        .scn button, .zones button, .tools button, .seg button, .chips button {
+          transition:scale 0.18s cubic-bezier(0.2, 0.9, 0.4, 1), filter 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+          -webkit-tap-highlight-color:transparent; }
+        .scn button:active, .zones button:active, .tools button:active, .seg button:active, .chips button:active {
+          scale:0.96; filter:brightness(1.15); }
+        .wrap.light { background:radial-gradient(ellipse at 50% 35%, #ffffff 0%, #dde3ec 78%); }
+        .wrap.light .tag { background:rgba(255,255,255,.95); border-color:rgba(0,0,0,.16); color:#16181d; box-shadow:0 2px 8px rgba(0,0,0,.16); }
+        .wrap.light .tag:active, .wrap.light .tag.tapping { background:rgba(240,243,248,.98); border-color:rgba(0,0,0,.3); }
+        .wrap.light .pin:not(.on):not(.trig):not(.alert):not(.env):not(.stair):not(.cam):not(.ap) .ic { background:#e4e8ef; color:#2b303a; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+        .wrap.light .tag { border-color:rgba(0,0,0,.24); }
+        .wrap.light .ty { color:rgba(0,0,0,.58); }
+        .wrap.light .links polyline { stroke:rgba(30,35,45,.55); }
+        .wrap.light .dot { box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 0 3px rgba(0,0,0,.25); }
+        .wrap.light .hint { color:rgba(0,0,0,.45); } .wrap.light .ver { color:rgba(0,0,0,.4); }
+        .wrap.light .tools button:not(.on), .wrap.light .chips button:not(.on), .wrap.light .zones button:not(.on) { background:rgba(255,255,255,.92); color:#16181d; box-shadow:0 1px 4px rgba(0,0,0,.14); }
+        .wrap.light .seg { background:rgba(255,255,255,.92); box-shadow:0 1px 6px rgba(0,0,0,.16); }
+        .wrap.light .seg button:not(.on) { color:#16181d; }
+        .wrap.light .scn button:not(.on) { background:rgba(255,255,255,.94); color:#16181d; box-shadow:0 1px 6px rgba(0,0,0,.16); }
+        .scn { position:absolute; left:8px; right:8px; bottom:72px; display:flex; gap:8px; z-index:4; justify-content:center; }
         .scn button { flex:1; max-width:120px; border:0; border-radius:14px; padding:10px 6px; cursor:pointer;
                       display:flex; align-items:center; justify-content:center; gap:6px; --mdc-icon-size:20px;
                       background:rgba(20,21,25,.9); color:#fff; font:700 13px sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.4); }
@@ -260,8 +305,19 @@ class FloorplanV43D extends HTMLElement {
         .filter { position:absolute; left:8px; right:8px; bottom:12px; display:flex; gap:6px; align-items:flex-end; z-index:4; }
         .seg { display:flex; gap:2px; padding:3px; border-radius:12px; background:rgba(20,21,25,.88); flex:none;
                box-shadow:0 2px 8px rgba(0,0,0,.4); }
-        .seg button { border:0; border-radius:9px; padding:8px 11px; font:700 12.5px sans-serif; cursor:pointer;
-                      background:transparent; color:#fff; }
+        .seg button { border:0; border-radius:9px; padding:8px 10px; font:700 12.5px sans-serif; cursor:pointer;
+                      background:transparent; color:#fff; display:flex; align-items:center; gap:4px; --mdc-icon-size:17px; }
+        .seg button[data-p="default"] { padding:8px 7px; opacity:.8; border-right:1px solid rgba(255,255,255,.18); border-radius:9px 4px 4px 9px; margin-right:2px; }
+        .wrap.light .seg button[data-p="default"] { border-right-color:rgba(0,0,0,.14); }
+        .tools button { display:inline-flex; align-items:center; gap:3px; }
+        .phone .seg button .t:not(.keep), .phone .chips button .t, .phone .tools button[data-t="edit"] .t { display:none; }
+        .phone .seg button { padding:8px 9px; } .phone .chips button { padding:8px 10px; }
+        .chips button { display:flex; align-items:center; gap:4px; --mdc-icon-size:17px; }
+        .chips.show { padding:5px 6px; border-radius:14px; background:rgba(20,21,25,.9); border:1px solid rgba(255,185,0,.6);
+                      box-shadow:0 2px 10px rgba(0,0,0,.4); animation:chipsIn .24s cubic-bezier(.2,.9,.3,1), chipsGlow 2.6s ease-in-out infinite; }
+        .wrap.light .chips.show { background:rgba(255,255,255,.94); box-shadow:0 2px 10px rgba(0,0,0,.18); }
+        @keyframes chipsIn { from { opacity:0; transform:translateY(8px) scale(.96); } to { opacity:1; transform:none; } }
+        @keyframes chipsGlow { 0%,100% { border-color:rgba(255,185,0,.35); } 50% { border-color:rgba(255,185,0,.95); box-shadow:0 0 0 2px rgba(255,185,0,.22), 0 2px 10px rgba(0,0,0,.35); } }
         .seg button.on { background:#FFB900; color:#111; }
         .chips { display:none; gap:6px; overflow-x:auto; scrollbar-width:none; }
         .chips.show { display:flex; }
@@ -275,20 +331,30 @@ class FloorplanV43D extends HTMLElement {
       </style>
       ${tabs}
       <div class="wrap"><canvas></canvas><div class="spots"></div>
-        <div class="tools"><button data-t="labels">名稱</button><button data-t="edit">✎ 調整位置</button>
+        <div class="tools"><button data-t="view" title="預設視角" style="display:flex;align-items:center;justify-content:center;padding:7px 9px;"><ha-icon icon="mdi:cube-scan" style="--mdc-icon-size:18px;"></ha-icon></button><button data-t="labels">名稱</button><button data-t="edit" title="調整位置" style="display:none"><ha-icon icon="mdi:pencil" style="--mdc-icon-size:16px;"></ha-icon><span class="t"> 調整位置</span></button>
           <button data-t="reset" style="display:none">重設</button></div>
-        <div class="filter"><div class="seg">${PRESETS.map(([k, n]) => `<button data-p="${k}">${n}</button>`).join("")}</div>
-          <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}">${n}</button>`).join("")}</div></div>
+        <div class="filter"><div class="seg"><button data-p="default" title="恢復此樓層預設顯示"><ha-icon icon="mdi:restore"></ha-icon></button>${PRESETS.map(([k, n]) => `<button data-p="${k}" title="${n}"><ha-icon icon="${PRESET_ICONS[k]}"></ha-icon><span class="t${k === "custom" ? " keep" : ""}">${n}</span></button>`).join("")}</div>
+          <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
-        <div class="ver">UI4.0</div>
-        <div class="msg">載入 3D…</div></div>`;
+        <div class="ver">UI4.0-beta6</div>
+        <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
+    this._renderScenes();
+    this._renderZones();
     this._init();
   }
   set hass(h) {
     const first = !this._hass;
     this._hass = h;
+    const light = h.themes?.darkMode === false;               // follows the HA theme (light by day / dark by night)
+    const admin = h.user?.is_admin === true;                   // position editing is for administrators only
+    if (admin !== this._admin) {
+      this._admin = admin;
+      const eb = this.shadowRoot.querySelector('[data-t="edit"]'); if (eb) eb.style.display = admin ? "" : "none";
+      if (!admin && this._edit) { this._edit = false; this._syncTools?.(); }
+    }
+    if (light !== this._light) { this._light = light; this.shadowRoot.querySelector(".wrap")?.classList.toggle("light", light); }
     if (first) this._loadOverrides();
     if (!this._ready) return;
     const now = Date.now();                       // HA pushes every state change: sync at most ~3 times a second
@@ -324,12 +390,12 @@ class FloorplanV43D extends HTMLElement {
     const sync = () => {
       root.querySelector('[data-t="labels"]').classList.toggle("on", this._labels);
       root.querySelector('[data-t="edit"]').classList.toggle("on", this._edit);
-      root.querySelector('[data-t="reset"]').style.display = this._edit ? "" : "none";
+      root.querySelector('[data-t="reset"]').style.display = this._edit && this._admin ? "" : "none";
       root.querySelector(".spots").classList.toggle("nolabels", !this._labels);
       root.querySelector(".spots").classList.toggle("editing", this._edit);
       const preset = this._presetFor(this._floor);
       this._cats = new Set(preset === "custom" ? [...this._custom] : PRESET_CATS[preset]);
-      root.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.p === preset));
+      root.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.p === preset && b.dataset.p !== "default"));
       root.querySelector(".chips").classList.toggle("show", preset === "custom");
       root.querySelectorAll(".chips button").forEach((b) => b.classList.toggle("on", this._custom.has(b.dataset.c)));
       this._applyCats?.();
@@ -338,31 +404,47 @@ class FloorplanV43D extends HTMLElement {
     };
     const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (err) { return d; } };
     const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (err) { /* ignore */ } };
-    this._custom = new Set(load("floorplan_v4_custom", CATS.map((c) => c[0])));
-    this._presets = load("floorplan_v4_presets", {});           // chosen preset per floor
+    const fresh = Date.now() - load("floorplan_v4_presets_ts", 0) < PRESET_TTL;
+    this._custom = new Set(fresh ? load("floorplan_v4_custom", CATS.map((c) => c[0])) : CATS.map((c) => c[0]));
+    this._presets = fresh ? load("floorplan_v4_presets", {}) : {};   // chosen preset per floor (expires after 10 min)
+    const touch = () => save("floorplan_v4_presets_ts", Date.now());
     this._syncTools = sync;
     root.querySelector(".seg").addEventListener("click", (e) => {
       const p = e.target.closest("button")?.dataset.p;
       if (!p) return;
-      this._presets[this._floor] = p;
-      save("floorplan_v4_presets", this._presets);
+      try { navigator.vibrate?.(15); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "selection" }));
+      if (p === "default") delete this._presets[this._floor]; else this._presets[this._floor] = p;
+      save("floorplan_v4_presets", this._presets); touch();
       sync();
       this._dirty = true;
     });
     root.querySelector(".chips").addEventListener("click", (e) => {
       const c = e.target.closest("button")?.dataset.c;
       if (!c) return;
+      try { navigator.vibrate?.(15); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "selection" }));
       if (this._custom.has(c)) this._custom.delete(c); else this._custom.add(c);
-      save("floorplan_v4_custom", [...this._custom]);
+      save("floorplan_v4_custom", [...this._custom]); touch();
       sync();
       this._dirty = true;
     });
     root.querySelector(".tools").addEventListener("click", (e) => {
       const t = e.target.closest("button")?.dataset.t;
-      if (t === "labels") {
+      if (!t) return;
+      try { navigator.vibrate?.(18); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "selection" }));
+      if (t === "view") {
+        this._hasInteracted = false;
+        this._focus = null;
+        this._zone = null;
+        this._expanded = null;
+        this._frame();
+        this._dirty = true;
+      } else if (t === "labels") {
         this._labels = !this._labels;
-        try { localStorage.setItem("floorplan_v4_labels", this._labels ? "1" : "0"); } catch (err) { /* ignore */ }
-      } else if (t === "edit") this._edit = !this._edit;
+        try { sessionStorage.setItem("floorplan_v4_labels", this._labels ? "1" : "0"); } catch (err) { /* ignore */ }
+      } else if (t === "edit") { if (this._admin) this._edit = !this._edit; }
       else if (t === "reset" && confirm("清除所有自訂位置，回到平面圖原始位置？")) {
         this._ovr = {};
         this._saveOverrides();
@@ -376,9 +458,7 @@ class FloorplanV43D extends HTMLElement {
 
   _presetFor(floor) {
     if (this._presets?.[floor]) return this._presets[floor];
-    const fls = floor === "全棟" ? Object.values(this._cfg.floors) : [this._cfg.floors[floor]].filter(Boolean);
-    const busy = fls.reduce((n, fl) => n + fl.devices.filter((d) => ["light", "device"].includes(catOf(d))).length, 0);
-    return busy > BUSY_FLOOR ? "detect" : "all";
+    return DETECT_FLOORS.includes(floor) ? "detect" : "all";
   }
 
   // ---- position overrides (saved per HA user with frontend/set_user_data) ----
@@ -414,6 +494,7 @@ class FloorplanV43D extends HTMLElement {
     try { await this._init2(say); } catch (e) {
       console.error("floorplan-v4-3d", e);
       say("3D 錯誤：" + (e && (e.stack || e.message) || e).toString().slice(0, 300));
+      const m = this.shadowRoot.querySelector(".msg"); if (m) m.style.display = "flex";     // the loading placeholder is hidden by default
     }
   }
 
@@ -426,8 +507,8 @@ class FloorplanV43D extends HTMLElement {
     this._SVG = SVGLoader;
     const root = this.shadowRoot;
     const canvas = root.querySelector("canvas");
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
     renderer.localClippingEnabled = true;
     this._renderer = renderer;
     const scene = new THREE.Scene();
@@ -443,7 +524,10 @@ class FloorplanV43D extends HTMLElement {
     this._cam = cam;
     const controls = new OrbitControls(cam, canvas);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.12;
+    controls.dampingFactor = 0.22;
+    controls.rotateSpeed = 1.05;
+    controls.panSpeed = 1.0;
+    controls.zoomSpeed = 1.15;
     controls.maxPolarAngle = Math.PI * 0.47;
     controls.minPolarAngle = 0.12;
     controls.screenSpacePanning = true;
@@ -455,7 +539,11 @@ class FloorplanV43D extends HTMLElement {
     };
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     controls.addEventListener("change", () => { this._dirty = true; });
+    controls.addEventListener("start", () => { this._hasInteracted = true; this._isDragging = true; });
+    controls.addEventListener("end", () => { this._isDragging = false; this._dirty = true; });
     this._controls = controls;
+    this._hasInteracted = false;
+    this._isDragging = false;
     this._ray = new THREE.Raycaster();
 
     const c = document.createElement("canvas");
@@ -469,22 +557,40 @@ class FloorplanV43D extends HTMLElement {
     this._glowTex = new THREE.CanvasTexture(c);
 
     const loader = new SVGLoader();
-    say("載入平面圖…");
     const names = Object.keys(this._cfg.floors);
-    await Promise.all(names.map(async (n, idx) => {
-      const fl = this._cfg.floors[n];
-      const text = await (await fetch(fl.plan)).text();
-      this._groups[n] = this._buildFloor(THREE, loader, text, fl, idx);
-      scene.add(this._groups[n].group);
-    }));
-    say("組裝 3D…");
+    const active = names.includes(this._floor) ? this._floor : names[0];
+    const actIdx = names.indexOf(active);
+    const actFl = this._cfg.floors[active];
+    const actText = await (await fetch(actFl.plan)).text();
+    this._groups[active] = this._buildFloor(THREE, loader, actText, actFl, actIdx);
+    scene.add(this._groups[active].group);
+
     root.querySelector(".msg")?.remove();
     this._ready = true;
     this._applyOverrides(false);
-    this._applyFloor();
     this._resize();
+    this._applyFloor();
     if (this._hass) this._sync();
     this._loop();
+
+    // the other floors build in the background; whichever the user is looking at (or the whole house) is re-applied once built
+    const rest = names.filter((n) => n !== active);
+    const loadFloor = async (n, retry = true) => {
+      try {
+        const fl = this._cfg.floors[n];
+        const res = await fetch(fl.plan);
+        if (!res.ok) throw new Error(`${fl.plan}: HTTP ${res.status}`);
+        this._groups[n] = this._buildFloor(THREE, loader, await res.text(), fl, names.indexOf(n));
+        this._groups[n].group.visible = this._floor === "全棟" || this._floor === n;
+        scene.add(this._groups[n].group);
+        this._applyOverrides(false);
+        if (this._floor === "全棟" || this._floor === n) this._applyFloor();
+      } catch (e) {
+        console.warn("floorplan-v4-3d: floor load failed", n, e);
+        if (retry) setTimeout(() => loadFloor(n, false), 2500);
+      }
+    };
+    rest.forEach((n) => loadFloor(n));
   }
 
   _buildFloor(THREE, loader, svgText, fl, idx) {
@@ -1638,13 +1744,16 @@ class FloorplanV43D extends HTMLElement {
     this._zone = null;
     const whole = this._floor === "全棟";
     for (const q of [".filter", ".zones", ".scn", ".tools"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
-    this._renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, whole ? 1.25 : 2));
+    this._renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, whole ? 1.2 : 1.65));
     this._renderScenes();
     this._expanded = null;
     this._focus = null;
     this._renderZones();
+    this._hasInteracted = false;
     this._frame();
     this._sync();
+    this._renderer?.render(this._scene, this._cam);
+    this._syncPins?.();
     this._dirty = true;
   }
 
@@ -1675,6 +1784,8 @@ class FloorplanV43D extends HTMLElement {
     host.onclick = (e) => {
       const b = e.target.closest("button");
       if (!b || !this._hass) return;
+      try { navigator.vibrate?.(20); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "light" }));
       const x = sc[+b.dataset.i];
       this._hass.callService("input_boolean", "turn_on", { entity_id: x.entity });   // scene triggers reset themselves
     };
@@ -1696,6 +1807,8 @@ class FloorplanV43D extends HTMLElement {
     host.onclick = (e) => {
       const b = e.target.closest("button");
       if (!b) return;
+      try { navigator.vibrate?.(15); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "selection" }));
       if (b.dataset.z === "collapse") { this._expanded = null; this._focus = null; }
       else { this._zone = b.dataset.z === "" ? null : zones[+b.dataset.z]; this._expanded = null; this._focus = null; }
       this._frame();
@@ -1728,7 +1841,7 @@ class FloorplanV43D extends HTMLElement {
     const distH = ((eh * (turn ? 0.78 : 0.62) + span) / 2) / (Math.tan(vf) * usable) * 1.06;
     let dist = Math.max(distW, distH, 160);
     const cx = x + w / 2 - ref.width / 2, cz = y + h / 2 - ref.height / 2;
-    const dir = (turn ? new T.Vector3(0.95, 1.05, 0.12) : new T.Vector3(0.3, 0.86, 0.75)).normalize();
+    const dir = (turn ? new T.Vector3(0.85, 1.15, 0.35) : new T.Vector3(0.3, 0.86, 0.75)).normalize();
     this._controls.target.copy(new T.Vector3(cx, span / 2, cz + (turn ? 0 : h * 0.04)));
     this._cam.position.copy(this._controls.target).addScaledVector(dir, dist);
     // refine numerically: project the box corners, then scale/shift until they fill the usable area
@@ -1738,7 +1851,7 @@ class FloorplanV43D extends HTMLElement {
       corners.push(new T.Vector3(px - ref.width / 2, py + span * 0 , pz - ref.height / 2));
     }
     if (span) for (const c of [...corners]) corners.push(new T.Vector3(c.x, c.y + span, c.z));
-    const top = (aspect < 0.95 ? 0.2 : 0.14) * H, bottom = 0.86 * H, usableH = bottom - top, usableW = 0.94 * W;
+    const top = (aspect < 0.95 ? 0.12 : 0.15) * H, bottom = (aspect < 0.95 ? 0.78 : 0.85) * H, usableH = bottom - top, usableW = 0.91 * W;
     for (let it = 0; it < 8; it++) {
       this._cam.lookAt(this._controls.target);
       this._cam.updateMatrixWorld(); this._cam.updateProjectionMatrix();
@@ -1759,8 +1872,10 @@ class FloorplanV43D extends HTMLElement {
       this._cam.position.copy(this._controls.target).addScaledVector(dir, d0 * Math.min(2, Math.max(0.5, scale)));
       dist = d0 * scale;
     }
+    this._cam.lookAt(this._controls.target);
     this._controls.minDistance = dist * 0.25;
     this._controls.maxDistance = dist * 2.8;
+    this._controls.saveState?.();
     this._controls.update();
     this._dirty = true;
   }
@@ -1781,8 +1896,17 @@ class FloorplanV43D extends HTMLElement {
         el.querySelector("ha-icon").setAttribute("icon", "mdi:layers-outline");
         el.querySelector(".nm").textContent = n;
         const tag = el.querySelector(".tag");
-        tag.addEventListener("pointerdown", (e) => e.stopPropagation());
-        tag.addEventListener("pointerup", (e) => { e.stopPropagation(); this._floor = n; setFloor(n); this._applyFloor(); });
+        let moved = false, startX = 0, startY = 0;
+        tag.addEventListener("pointerdown", (e) => {
+          moved = false; startX = e.clientX; startY = e.clientY;
+        });
+        tag.addEventListener("pointermove", (e) => {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) moved = true;
+        });
+        tag.addEventListener("pointerup", (e) => {
+          e.stopPropagation();
+          if (!moved) { this._floor = n; setFloor(n); this._applyFloor(); }
+        });
         host.appendChild(el);
         this._spots.push({ el, ic: el.querySelector("ha-icon"), nm: el.querySelector(".nm"), ty: el.querySelector(".ty"), tag,
           d: { x: g.fl.width / 2, y: g.fl.height / 2, z: 36, kind: "badge" }, floor: n, g, cat: "badge", badge: n });
@@ -1819,21 +1943,34 @@ class FloorplanV43D extends HTMLElement {
         for (const d of c.items) d._group = key;
         const el = this._makePin("light", "group");
         const tag = el.querySelector(".tag");
-        let timer = null, held = false;
+        let timer = null, held = false, moved = false, startX = 0, startY = 0;
         tag.addEventListener("pointerdown", (e) => {
-          e.stopPropagation(); held = false;
+          held = false; moved = false;
+          startX = e.clientX; startY = e.clientY;
           timer = setTimeout(() => {                         // long press: all on / all off
             held = true;
             const anyOn = c.items.some((d) => this._hass?.states[d.entity]?.state === "on");
             this._hass?.callService("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: c.items.map((d) => d.entity) });
-          }, 500);
+            this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "medium" }));
+            try { navigator.vibrate?.(40); } catch (_) {}
+          }, 400);
         });
-        tag.addEventListener("pointerup", (e) => {
-          e.stopPropagation(); clearTimeout(timer);
-          if (held) return;
-          this._expanded = key; this._focus = box;           // tap: zoom in and show every light
-          this._frame(); this._applyCats(); this._renderZones();
+        tag.addEventListener("pointermove", (e) => {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+            moved = true;
+            if (timer) { clearTimeout(timer); timer = null; }
+          }
         });
+        const endCluster = (e) => {
+          e.stopPropagation();
+          if (timer) { clearTimeout(timer); timer = null; }
+          if (e.type === "pointerup" && !held && !moved) {
+            this._expanded = key; this._focus = box;           // tap: zoom in and show every light
+            this._frame(); this._applyCats(); this._renderZones();
+          }
+        };
+        tag.addEventListener("pointerup", endCluster);
+        tag.addEventListener("pointercancel", endCluster);
         host.appendChild(el);
         const d = { x: xs.reduce((a, b) => a + b, 0) / xs.length, y: ys.reduce((a, b) => a + b, 0) / ys.length, kind: "group", z: 6 };
         this._spots.push({ el, ic: el.querySelector("ha-icon"), nm: el.querySelector(".nm"), ty: el.querySelector(".ty"),
@@ -1854,11 +1991,19 @@ class FloorplanV43D extends HTMLElement {
         for (const d of items) d._group = key;
         const el = this._makePin("env", "group sgroup");
         const tag = el.querySelector(".tag");
-        tag.addEventListener("pointerdown", (e) => e.stopPropagation());
+        let moved = false, startX = 0, startY = 0;
+        tag.addEventListener("pointerdown", (e) => {
+          moved = false; startX = e.clientX; startY = e.clientY;
+        });
+        tag.addEventListener("pointermove", (e) => {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) moved = true;
+        });
         tag.addEventListener("pointerup", (e) => {
           e.stopPropagation();
-          this._expanded = key; this._focus = box;           // tap: zoom in and list every reading
-          this._frame(); this._applyCats(); this._renderZones();
+          if (!moved) {
+            this._expanded = key; this._focus = box;           // tap: zoom in and list every reading
+            this._frame(); this._applyCats(); this._renderZones();
+          }
         });
         host.appendChild(el);
         const d = { x: xs.reduce((a, b) => a + b, 0) / xs.length, y: ys.reduce((a, b) => a + b, 0) / ys.length, kind: "sgroup", z: 6 };
@@ -1872,8 +2017,17 @@ class FloorplanV43D extends HTMLElement {
         el.querySelector("ha-icon").setAttribute("icon", st.h1 > 0 ? "mdi:stairs-up" : "mdi:stairs-down");
         el.querySelector(".nm").textContent = `${st.h1 > 0 ? "上" : "下"} ${target}`;
         el.querySelector(".ty").remove();
-        el.querySelector(".tag").addEventListener("pointerdown", (e) => e.stopPropagation());
-        el.querySelector(".tag").addEventListener("pointerup", (e) => { e.stopPropagation(); this._floor = target; setFloor(target); this._applyFloor(); });
+        let moved = false, startX = 0, startY = 0;
+        el.querySelector(".tag").addEventListener("pointerdown", (e) => {
+          moved = false; startX = e.clientX; startY = e.clientY;
+        });
+        el.querySelector(".tag").addEventListener("pointermove", (e) => {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) moved = true;
+        });
+        el.querySelector(".tag").addEventListener("pointerup", (e) => {
+          e.stopPropagation();
+          if (!moved) { this._floor = target; setFloor(target); this._applyFloor(); }
+        });
         host.appendChild(el);
         // anchor at the top step (up) or the entry (down)
         const top = st.dir > 0 ? 0.85 : 0.15;
@@ -1895,25 +2049,45 @@ class FloorplanV43D extends HTMLElement {
   }
 
   _bindSpot(el, d, floor) {
-    let timer = null, held = false, drag = false;
+    let timer = null, held = false, drag = false, moved = false;
+    let startX = 0, startY = 0;
+    const tag = el.querySelector(".tag");
     el.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
       if (this._edit) {
+        e.stopPropagation();
         drag = true;
         this._controls.enabled = false;
         e.target.setPointerCapture?.(e.pointerId);
         return;
       }
+      startX = e.clientX;
+      startY = e.clientY;
+      moved = false;
       held = false;
-      timer = setTimeout(() => { held = true; this._moreInfo(d.entity); }, 500);
+      if (tag) tag.classList.add("tapping");
+      timer = setTimeout(() => {
+        held = true;
+        if (tag) tag.classList.remove("tapping");
+        this._moreInfo(d.entity);
+        this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "medium" }));
+        try { navigator.vibrate?.(40); } catch (_) {}
+      }, 400);
     });
     el.addEventListener("pointermove", (e) => {
-      if (!drag) return;
-      const p = this._planPoint(e, floor);
-      if (p) { d.x = Math.round(p.x * 10) / 10; d.y = Math.round(p.y * 10) / 10; this._moveDecal(floor, d); this._dirty = true; }
+      if (drag) {
+        const p = this._planPoint(e, floor);
+        if (p) { d.x = Math.round(p.x * 10) / 10; d.y = Math.round(p.y * 10) / 10; this._moveDecal(floor, d); this._dirty = true; }
+        return;
+      }
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+        moved = true;
+        if (tag) tag.classList.remove("tapping");
+        if (timer) { clearTimeout(timer); timer = null; }
+      }
     });
     const end = (e) => {
-      clearTimeout(timer);
+      if (tag) setTimeout(() => tag.classList.remove("tapping"), 60);
+      if (timer) { clearTimeout(timer); timer = null; }
       e.stopPropagation();
       if (drag) {
         drag = false;
@@ -1922,11 +2096,10 @@ class FloorplanV43D extends HTMLElement {
         this._saveOverrides();
         return;
       }
-      if (e.type === "pointerup" && !held) this._tap(d);
+      if (e.type === "pointerup" && !held && !moved) this._tap(d);
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
-    el.addEventListener("pointerleave", () => clearTimeout(timer));
   }
   _planPoint(e, floor) {
     const T = this._T, g = this._groups[floor];
@@ -1940,17 +2113,77 @@ class FloorplanV43D extends HTMLElement {
   }
   _tap(d) {
     if (!this._hass) return;
+    try { navigator.vibrate?.(25); } catch (_) {}
+    this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "light" }));
     if (d.kind === "doorlock") return this._moreInfo(d.entity);       // never toggle a door lock by accident
-    if (TOGGLE_KINDS.includes(d.kind)) this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
-    else this._moreInfo(d.entity);
+
+    const sp = this._spots?.find((s) => s.d?.entity === d.entity);
+
+    // Debounce / duplicate click prevention
+    if (this._pendingOps && this._pendingOps.has(d.entity)) {
+      try { navigator.vibrate?.([20, 40, 20]); } catch (_) {}
+      this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "warning" }));
+      return;
+    }
+
+    if (TOGGLE_KINDS.includes(d.kind)) {
+      if (!this._pendingOps) this._pendingOps = new Map();
+
+      if (sp) {
+        sp.el.classList.add("pending");
+        if (d.kind === "cover" && sp.ty) {
+          sp._origTy = sp.ty.textContent;
+          const curState = this._hass.states[d.entity]?.state;
+          sp.ty.textContent = curState === "open" ? "關閉中… ⏳" : "開啟中… ⏳";
+        }
+      }
+
+      const timer = setTimeout(() => {
+        if (this._pendingOps?.has(d.entity)) {
+          this._pendingOps.delete(d.entity);
+          if (sp) {
+            sp.el.classList.remove("pending");
+            if (sp._origTy && sp.ty) {
+              sp.ty.textContent = sp._origTy;
+              sp._origTy = null;
+            }
+          }
+        }
+      }, 3500);
+
+      this._pendingOps.set(d.entity, {
+        timer,
+        origState: this._hass.states[d.entity]?.state,
+        sp
+      });
+
+      this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
+    } else {
+      this._moreInfo(d.entity);
+    }
   }
   _moreInfo(entityId) {
-    this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
+    if (!entityId) return;
+    this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId, entity_id: entityId } }));
   }
 
   _sync() {
     const T = this._T, st = this._hass?.states;
     if (!st) return;
+
+    if (this._pendingOps && this._pendingOps.size > 0) {
+      for (const [entityId, op] of Array.from(this._pendingOps.entries())) {
+        const curState = st[entityId]?.state;
+        if (curState && curState !== op.origState) {
+          clearTimeout(op.timer);
+          this._pendingOps.delete(entityId);
+          if (op.sp) {
+            op.sp.el.classList.remove("pending");
+            op.sp._origTy = null;
+          }
+        }
+      }
+    }
     let alertChanged = false;
     for (const sp of this._spots.filter((x) => x.group && x.d.kind === "sgroup")) {
       const val = (k) => sp.items.filter((d) => d.kind === k).map((d) => parseFloat(st[d.entity]?.state)).filter((v) => !isNaN(v));
@@ -1968,7 +2201,7 @@ class FloorplanV43D extends HTMLElement {
         if (!!d._alert !== a) { d._alert = a; alertChanged = true; }   // an abnormal reading is shown on its own
       }
       const type = alerts.length ? `⚠ 異常 ${alerts.length} 項` : `正常 · ${parts.slice(0, 3).join(" · ")}`;
-      if (sp._type !== type) { sp.nm.textContent = sp.sname; sp.ty.textContent = type; sp._type = type; sp.tw = 0; }
+      if (sp._type !== type) { sp.nm.textContent = sp.sname; sp.ty.textContent = type; sp._type = type; sp.tw = 0; sp.fullW = 0; }
       if (!sp._icon) { sp.ic.setAttribute("icon", "mdi:air-filter"); sp._icon = 1; }
       sp.el.classList.toggle("alert", alerts.length > 0);
       if (!alerts.length && t.length) { const col = tempColor(t[0]); if (sp._col !== col) { sp.el.querySelector(".ic").style.background = col; sp.el.querySelector(".ic").style.color = "#111"; sp._col = col; } }
@@ -1977,7 +2210,7 @@ class FloorplanV43D extends HTMLElement {
     for (const sp of this._spots.filter((x) => x.group && x.d.kind !== "sgroup")) {
       const on = sp.items.filter((d) => st[d.entity]?.state === "on").length;
       const name = `${sp.room || ""}燈光`, type = `${sp.items.length} 盞 · 開 ${on}`;
-      if (sp._type !== type) { sp.nm.textContent = name; sp.ty.textContent = type; sp._type = type; sp.tw = 0; }
+      if (sp._type !== type) { sp.nm.textContent = name; sp.ty.textContent = type; sp._type = type; sp.tw = 0; sp.fullW = 0; }
       if (!sp._icon) { sp.ic.setAttribute("icon", "mdi:lightbulb-group"); sp._icon = 1; }
       sp.el.classList.toggle("on", on > 0);
     }
@@ -1992,7 +2225,7 @@ class FloorplanV43D extends HTMLElement {
         return m && m.floor === sp.badge;
       }).map((p) => p.name.slice(0, 1));
       const type = `燈 ${on}/${lights.length}${people.length ? " · " + people.join("") : ""}${trig ? " · 偵測 " + trig : ""}`;
-      if (sp._type !== type) { sp.ty.textContent = type; sp._type = type; sp.tw = 0; }
+      if (sp._type !== type) { sp.ty.textContent = type; sp._type = type; sp.tw = 0; sp.fullW = 0; }
       sp.el.classList.toggle("on", on > 0);
       sp.el.classList.toggle("trig", trig > 0);
     }
@@ -2046,7 +2279,15 @@ class FloorplanV43D extends HTMLElement {
         const ci = chargerInfo(st);
         type = `充電樁 · ${ci.label}${ci.power}`;
       }
-      if (sp._name !== name || sp._type !== type) { sp.nm.textContent = name; sp.ty.textContent = type; sp._name = name; sp._type = type; sp.tw = 0; }
+      const op = this._pendingOps?.get(d.entity);
+      if (sp._name !== name || (sp._type !== type && !op)) {
+        sp.nm.textContent = name;
+        if (!op) sp.ty.textContent = type;
+        sp._name = name;
+        sp._type = type;
+        sp.tw = 0;
+        sp.fullW = 0;
+      }
       if (sp._icon !== icon) { ic.setAttribute("icon", icon); sp._icon = icon; }
       const on = d.kind === "charger" ? ["charging", "done", "plugged"].includes(chargerInfo(st).key)
         : d.kind === "ap" ? s.state === "connected"
@@ -2163,17 +2404,32 @@ class FloorplanV43D extends HTMLElement {
     const wrap = this.shadowRoot.querySelector(".wrap");
     const w = wrap.clientWidth, h = wrap.clientHeight;
     if (!w || !h) return;
+    wrap.classList.toggle("phone", w < 600);                 // phone: icon-only filter buttons
     const small = w < 900;                                   // e.g. iPad mini landscape: smaller labels and buttons
     if (small !== this._small) {
       this._small = small;
       wrap.classList.toggle("sm", small);
-      for (const sp of this._spots || []) sp.tw = 0;
-      for (const pr of this._persons || []) pr.tw = 0;
+      for (const sp of this._spots || []) { sp.tw = 0; sp.fullW = 0; }
+      for (const pr of this._persons || []) { pr.tw = 0; pr.fullW = 0; }
       this._barDirty = true;
     }
+    try {
+      if (sessionStorage.getItem("floorplan_v4_labels") === null) {
+        const wantLabels = w >= 768;
+        if (this._labels !== wantLabels) {
+          this._labels = wantLabels;
+          this._syncTools?.();
+        }
+      }
+    } catch (_) {}
     this._renderer.setSize(w, h, false);
     this._cam.aspect = w / h;
     this._cam.updateProjectionMatrix();
+    if (!this._hasInteracted) {
+      this._frame();
+    }
+    this._renderer?.render(this._scene, this._cam);
+    this._syncPins?.();
     this._dirty = true;
   }
 
@@ -2181,7 +2437,6 @@ class FloorplanV43D extends HTMLElement {
     if (this._looping) { this._stop = false; return; }     // 迴圈還在跑：只取消待處理的停止
     this._looping = true;
     this._stop = false;
-    const v = new this._T.Vector3();
     const tick = () => {
       if (this._stop) { this._looping = false; return; }
       requestAnimationFrame(tick);
@@ -2190,105 +2445,310 @@ class FloorplanV43D extends HTMLElement {
       if (!this._dirty) return;
       this._dirty = false;
       this._renderer.render(this._scene, this._cam);
-      const wrap = this.shadowRoot.querySelector(".wrap");
-      const w = wrap.clientWidth, h = wrap.clientHeight;
-      if (!this._topBar || this._barDirty) {
-        const bars = [".tools", ".zones"].map((q) => this.shadowRoot.querySelector(q)).filter((e) => e && e.style.visibility !== "hidden" && e.offsetHeight);
-        const wr = wrap.getBoundingClientRect();
-        this._topBar = Math.max(54, ...bars.map((e) => e.getBoundingClientRect().bottom - wr.top + 8));
-        this._barDirty = false;
-      }
-      const items = [];
-      for (const sp of this._spots) {
-        if (sp.el.classList.contains("hide") || sp.el.classList.contains("missing")) continue;
-        const hz = sp.d.z ?? (sp.d.kind === "camera" ? 34 : sp.d.kind === "motion" && sp.d.yaw != null ? 28 : 4);
-        v.set(sp.d.x - sp.g.fl.width / 2, hz, sp.d.y - sp.g.fl.height / 2).add(sp.g.group.position).project(this._cam);
-        if (v.z >= 1) { sp.el.style.display = "none"; continue; }
-        sp.el.style.display = "";
-        items.push({ sp, x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h });
-      }
-      const allFloors = this._floor === "全棟";
-      for (const pr of this._persons || []) {
-        const g = pr.cur && this._groups[pr.cur.floor];
-        if (!g || !(allFloors || pr.cur.floor === this._floor) || pr.el.classList.contains("hide") ||
-          !this._inZone(pr.cur.x, pr.cur.y)) { pr.el.style.display = "none"; continue; }
-        v.set(pr.cur.x - g.fl.width / 2, 20, pr.cur.y - g.fl.height / 2).add(g.group.position).project(this._cam);
-        pr.el.style.display = v.z < 1 ? "" : "none";
-        if (v.z < 1) items.push({ sp: pr, x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h });
-      }
-      // place each label near its point: try short heights first, then slide sideways (elbow line)
-      items.sort((a, b) => b.y - a.y);
-      const placed = [];
-      const hit = (r) => placed.some((p) => r.x < p.x + p.w && r.x + r.w > p.x && r.y < p.y + p.h && r.y + r.h > p.y);
-      const lines = [];
-      const topLimit = this._topBar || 54;                    // keep labels clear of the tool/zone buttons
-      if (allFloors) {                                        // whole house: floor badges in a column on the left, stair lights on the right
-        const cols = { L: items.filter((it) => it.sp.badge), R: items.filter((it) => it.sp.always) };
-        for (const [side, col] of Object.entries(cols)) {
-          // fixed top-to-bottom order: stair lights from the roof down to the garage, floors 5F..1F
-          const STAIR_ORDER = [/頂樓/, /^四樓/, /三四樓/, /^三樓/, /二三樓/, /車庫/];
-          const rank = (it) => side === "L" ? -Object.keys(this._cfg.floors).indexOf(it.sp.badge)
-            : (((i) => (i < 0 ? 99 : i))(STAIR_ORDER.findIndex((re) => re.test(it.sp.d.name || ""))));
-          col.sort((a, b) => rank(a) - rank(b) || a.y - b.y);
-          const boxes = col.map((it) => {
-            const sp = it.sp;
-            if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
-            const compact = !this._labels;
-            if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
-            return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
-          });
-          let y = topLimit;
-          for (const b of boxes) { b.y = Math.max(y, b.it.y - b.th / 2); y = b.y + b.th + 6; }
-          const over = y - 6 - (h - 8);                       // ran off the bottom: slide the column up (not past the top bar)
-          if (over > 0) for (const b of boxes) b.y = Math.max(topLimit, b.y - over);
-          for (const b of boxes) {
-            const { it, tw, th } = b, sp = it.sp;
-            const lx = side === "L" ? 8 : w - tw - 8;
-            placed.push({ x: lx - 3, y: b.y - 3, w: tw + 6, h: th + 6 });
-            sp.el.style.transform = `translate(${it.x}px, ${it.y}px)`;
-            sp.tag.style.transform = `translate(${lx - it.x}px, ${b.y - it.y}px)`;
-            const ly = b.y + th / 2, ex = side === "L" ? lx + tw : lx, mx = (it.x + ex) / 2;
-            lines.push(`<polyline points="${it.x},${it.y} ${mx},${it.y} ${mx},${ly} ${ex},${ly}"/>`);
-          }
-        }
-        for (let i = items.length - 1; i >= 0; i--) if (items[i].sp.badge || items[i].sp.always) items.splice(i, 1);
-      }
-      for (const it of items) {
-        const sp = it.sp;
-        if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
-        const tryPlace = (tw, th, levels) => {
-          const step = tw * 0.5 + 10;
-          for (const lvl of levels) for (const k of [0, 1, -1, 2, -2, 3, -3]) {
-            const dy = 16 + lvl * 24, dx = k * step;
-            const r = { x: it.x + dx - tw / 2 - 3, y: it.y - dy - th - 3, w: tw + 6, h: th + 6 };
-            if (r.x < 2 || r.x + r.w > w - 2 || r.y < topLimit) continue;
-            if (!hit(r)) return { dx, dy, r };
-          }
-          return null;
-        };
-        const labelsOn = this._labels;
-        let best = labelsOn ? tryPlace(sp.tw, sp.th, [0, 1, 2, 3]) : null;
-        let compact = !best;
-        if (!best) best = tryPlace(36, 36, [0, 1, 2, 3, 4]);           // crowded: icon-only bubble
-        if (!best) {                                                   // no room above: hang the bubble below the point
-          const dy = -(36 + 8);
-          best = { dx: 0, dy, r: { x: it.x - 18, y: it.y + 8, w: 36, h: 36 } };
-          compact = true;
-        }
-        if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
-        const tw = compact ? 36 : sp.tw, th = compact ? 36 : sp.th;
-        placed.push(best.r);
-        sp.el.style.transform = `translate(${it.x}px, ${it.y}px)`;
-        sp.tag.style.transform = `translate(${best.dx - tw / 2}px, ${-best.dy - th}px)`;
-        const ly = it.y - best.dy - th / 2;                     // connector: up, then across to the label edge
-        const pts = best.dx === 0 ? `${it.x},${it.y} ${it.x},${it.y - best.dy}`
-          : `${it.x},${it.y} ${it.x},${ly} ${it.x + best.dx + (best.dx > 0 ? -tw / 2 : tw / 2)},${ly}`;
-        lines.push(`<polyline points="${pts}"/>`);
-      }
-      if (this._links) this._links.innerHTML = lines.join("");
+      this._syncPins();
     };
     tick();
   }
+
+  _syncPins() {
+    const wrap = this.shadowRoot.querySelector(".wrap");
+    if (!wrap) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w < 100 || h < 100) return;
+    if (!this._topBar || this._barDirty) {
+      const bars = [".tools", ".zones"].map((q) => this.shadowRoot.querySelector(q)).filter((e) => e && e.style.visibility !== "hidden" && e.offsetHeight);
+      const wr = wrap.getBoundingClientRect();
+      this._topBar = Math.max(54, ...bars.map((e) => e.getBoundingClientRect().bottom - wr.top + 8));
+      this._barDirty = false;
+    }
+    const v = new this._T.Vector3();
+    const items = [];
+    for (const sp of this._spots || []) {
+      if (sp.el.classList.contains("hide") || sp.el.classList.contains("missing")) continue;
+      const hz = sp.d.z ?? (sp.d.kind === "camera" ? 34 : sp.d.kind === "motion" && sp.d.yaw != null ? 28 : 4);
+      v.set(sp.d.x - sp.g.fl.width / 2, hz, sp.d.y - sp.g.fl.height / 2).add(sp.g.group.position).project(this._cam);
+      if (v.z >= 1) { sp.el.style.display = "none"; continue; }
+      sp.el.style.display = "";
+      items.push({ sp, x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h });
+    }
+    const allFloors = this._floor === "全棟";
+    for (const pr of this._persons || []) {
+      const g = pr.cur && this._groups[pr.cur.floor];
+      if (!g || !(allFloors || pr.cur.floor === this._floor) || pr.el.classList.contains("hide") ||
+        !this._inZone(pr.cur.x, pr.cur.y)) { pr.el.style.display = "none"; continue; }
+      v.set(pr.cur.x - g.fl.width / 2, 20, pr.cur.y - g.fl.height / 2).add(g.group.position).project(this._cam);
+      pr.el.style.display = v.z < 1 ? "" : "none";
+      if (v.z < 1) items.push({ sp: pr, x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h });
+    }
+    const isInteracting = !!this._isDragging;
+    if (isInteracting) {
+      this._dragFrame = (this._dragFrame || 0) + 1;
+      if (this._links) this._links.style.visibility = "hidden";          // connectors would lag behind the moving points
+      if (this._dragFrame % 4 !== 0) {
+        for (const it of items) {
+          it.sp.el.style.left = `${it.x}px`; it.sp.el.style.top = `${it.y}px`;
+        }
+        return;
+      }
+    } else {
+      this._dragFrame = 0;
+      if (this._links) this._links.style.visibility = "";
+    }
+    items.sort((a, b) => b.y - a.y);
+    const placed = [];
+    const hit = (r) => placed.some((p) => r.x < p.x + p.w && r.x + r.w > p.x && r.y < p.y + p.h && r.y + r.h > p.y);
+    const lines = [];
+    const topLimit = this._topBar || 54;
+    if (allFloors) {
+      const cols = { L: items.filter((it) => it.sp.badge), R: items.filter((it) => it.sp.always) };
+      for (const [side, col] of Object.entries(cols)) {
+        const STAIR_ORDER = [/頂樓/, /^四樓/, /三四樓/, /^三樓/, /二三樓/, /車庫/];
+        const rank = (it) => side === "L" ? -Object.keys(this._cfg.floors).indexOf(it.sp.badge)
+          : (((i) => (i < 0 ? 99 : i))(STAIR_ORDER.findIndex((re) => re.test(it.sp.d.name || ""))));
+        col.sort((a, b) => rank(a) - rank(b) || a.y - b.y);
+        const boxes = col.map((it) => {
+          const sp = it.sp;
+          if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
+          const compact = !this._labels;
+          if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
+          return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
+        });
+        let y = topLimit;
+        for (const b of boxes) { b.y = Math.max(y, b.it.y - b.th / 2); y = b.y + b.th + 6; }
+        const over = y - 6 - (h - 8);
+        if (over > 0) for (const b of boxes) b.y = Math.max(topLimit, b.y - over);
+        for (const b of boxes) {
+          const { it, tw, th } = b, sp = it.sp;
+          const lx = side === "L" ? 8 : w - tw - 8;
+          placed.push({ x: lx - 3, y: b.y - 3, w: tw + 6, h: th + 6 });
+          sp.el.style.left = `${it.x}px`; sp.el.style.top = `${it.y}px`;
+          sp.tag.style.transform = `translate(${lx - it.x}px, ${b.y - it.y}px)`;
+          const ly = b.y + th / 2, ex = side === "L" ? lx + tw : lx, mx = (it.x + ex) / 2;
+          lines.push(`<polyline points="${it.x},${it.y} ${mx},${it.y} ${mx},${ly} ${ex},${ly}"/>`);
+        }
+      }
+      for (let i = items.length - 1; i >= 0; i--) if (items[i].sp.badge || items[i].sp.always) items.splice(i, 1);
+    }
+    const estimateTagW = (sp) => {
+      const n = (sp.nm?.textContent || "").length;
+      const t = (sp.ty?.textContent || "").length;
+      return Math.max(120, 48 + Math.max(n * 13, t * 10.5));
+    };
+    for (const it of items) {
+      const sp = it.sp;
+      const realW = !sp.el.classList.contains("compact") ? sp.tag.offsetWidth : 0;
+      if (realW && realW >= 60) {
+        sp.fullW = realW;
+        sp.th = sp.tag.offsetHeight || 36;
+      } else if (!sp.fullW) {
+        sp.fullW = estimateTagW(sp);
+        sp.th = 36;
+      }
+      sp.tw = sp.fullW;
+      const tryPlace = (tw, th, levels) => {
+        const step = tw + 12;
+        for (const lvl of levels) for (const k of [0, 1, -1, 2, -2, 3, -3, 4, -4]) {
+          const dy = lvl >= 0 ? 18 + lvl * (th + 8) : -(th + 14 + (-lvl - 1) * (th + 8));
+          const dx = k * step;
+          const r = { x: it.x + dx - tw / 2 - 4, y: it.y - dy - th - 4, w: tw + 8, h: th + 8 };
+          if (r.x < 2 || r.x + r.w > w - 2 || r.y < topLimit || r.y + r.h > h - 8) continue;
+          if (!hit(r)) return { dx, dy, r };
+        }
+        return null;
+      };
+      const labelsOn = this._labels;
+      let best = labelsOn ? tryPlace(sp.tw, sp.th, [0, 1, 2, 3, 4, -1, -2]) : null;
+      let compact = !best;
+      if (!best) best = tryPlace(36, 36, [0, 1, 2, 3, 4, -1, -2]);
+      if (!best) {
+        const dy = -(36 + 10);
+        best = { dx: 0, dy, r: { x: it.x - 18, y: it.y + 10, w: 36, h: 36 } };
+        compact = true;
+      }
+      if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
+      const tw = compact ? 36 : sp.tw, th = compact ? 36 : sp.th;
+      placed.push(best.r);
+      sp.el.style.left = `${it.x}px`; sp.el.style.top = `${it.y}px`;
+      sp.tag.style.transform = `translate(${best.dx - tw / 2}px, ${-best.dy - th}px)`;
+      const ly = it.y - best.dy - th / 2;
+      const pts = best.dx === 0 ? `${it.x},${it.y} ${it.x},${it.y - best.dy}`
+        : `${it.x},${it.y} ${it.x},${ly} ${it.x + best.dx + (best.dx > 0 ? -tw / 2 : tw / 2)},${ly}`;
+      lines.push(`<polyline points="${pts}"/>`);
+    }
+    if (this._links) this._links.innerHTML = lines.join("");
+  }
+}
+
+const escHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function showAqaraAlarmModal(hass, origin) {
+  const existing = document.getElementById("aqara-alarm-modal");
+  if (existing) existing.remove();
+
+  const h = hass || document.querySelector("home-assistant")?.hass || window.hass;
+  const al = h?.states?.["alarm_control_panel.54ef44cf58f9_alarm"];
+  const st = al?.state || "unknown";
+
+  const AL = {
+    disarmed: { text: "已解除 (Disarmed)", color: "#34C759", bg: "rgba(52,199,89,.18)", svg: "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2m-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" },
+    armed_home: { text: "在家警戒 (Armed Home)", color: "#0A84FF", bg: "rgba(10,132,255,.18)", svg: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z" },
+    armed_away: { text: "離家警戒 (Armed Away)", color: "#0A84FF", bg: "rgba(10,132,255,.18)", svg: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z" },
+    armed_night: { text: "夜間警戒 (Armed Night)", color: "#AF52DE", bg: "rgba(175,82,222,.18)", svg: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z" },
+    triggered: { text: "🚨 警報觸發中！(Triggered)", color: "#FF453A", bg: "rgba(255,69,58,.25)", svg: "M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V8h2v4z" },
+    pending: { text: "倒數警戒中 (Pending)", color: "#FF9F0A", bg: "rgba(255,159,10,.18)", svg: "M12 2a10 10 0 1010 10A10 10 0 0012 2zm1 15h-2v-2h2zm0-4h-2V7h2z" },
+    arming: { text: "啟動警戒中 (Arming)", color: "#FF9F0A", bg: "rgba(255,159,10,.18)", svg: "M12 2a10 10 0 1010 10A10 10 0 0012 2zm1 15h-2v-2h2zm0-4h-2V7h2z" }
+  };
+  const info = AL[st] || { text: st, color: "#8E8E93", bg: "rgba(142,142,147,.18)", svg: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" };
+
+  const overlay = document.createElement("div");
+  overlay.id = "aqara-alarm-modal";
+  overlay.style.cssText = `
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    animation: aqaraFadeIn 0.2s ease-out;
+  `;
+
+  overlay.innerHTML = `
+    <style>
+      @keyframes aqaraFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes aqaraPopUp { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      .aqara-card {
+        background: var(--card-background-color, #1c1c1e);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 24px; width: 100%; max-width: 380px; padding: 24px 20px;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.55); color: var(--primary-text-color, #fff);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        box-sizing: border-box; animation: aqaraPopUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .aqara-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+      .aqara-icon {
+        width: 44px; height: 44px; border-radius: 14px; background: ` + info.bg + `;
+        color: ` + info.color + `; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .aqara-title { font-size: 19px; font-weight: 700; color: var(--primary-text-color, #fff); }
+      .aqara-subtitle { font-size: 12px; color: var(--secondary-text-color, #8e8e93); margin-top: 2px; }
+      .aqara-status-box {
+        background: rgba(120,120,128,0.12); border-radius: 16px; padding: 14px 16px;
+        margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+      }
+      .aqara-status-lbl { font-size: 14px; color: var(--secondary-text-color, #8e8e93); font-weight: 500; }
+      .aqara-status-val { font-size: 15px; font-weight: 700; color: ` + info.color + `; }
+      .aqara-btn {
+        width: 100%; border: none; border-radius: 14px; padding: 14px;
+        font-size: 15px; font-weight: 600; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;
+        transition: transform 0.1s ease, filter 0.1s ease;
+      }
+      .aqara-btn:active { transform: scale(0.97); }
+      .aqara-btn-danger {
+        background: #FF453A; color: #fff;
+        box-shadow: 0 4px 14px rgba(255,69,58,0.35);
+      }
+      .aqara-btn-primary {
+        background: rgba(10,132,255,0.18); color: #0A84FF; border: 1px solid rgba(10,132,255,0.3);
+      }
+      .aqara-btn-secondary {
+        background: rgba(120,120,128,0.16); color: var(--primary-text-color, #fff);
+      }
+    </style>
+    <div class="aqara-card" onclick="event.stopPropagation()">
+      <div class="aqara-header">
+        <div class="aqara-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="` + info.svg + `"/>
+          </svg>
+        </div>
+        <div>
+          <div class="aqara-title">保全系統</div>
+          <div class="aqara-subtitle">網關警報控制</div>
+        </div>
+      </div>
+
+      <div class="aqara-status-box">
+        <span class="aqara-status-lbl">目前狀況</span>
+        <span class="aqara-status-val">` + escHtml(info.text) + `</span>
+      </div>
+
+      <button class="aqara-btn aqara-btn-danger" id="aqara-disarm-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+        </svg>
+        解除網關警報
+      </button>
+
+      <button class="aqara-btn aqara-btn-primary" id="aqara-nav-gw-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M4 1h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm0 8h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zm0 8h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM6 3v2h2V3H6zm0 8v2h2v-2H6zm0 8v2h2v-2H6z"/>
+        </svg>
+        查看多功能網關2卡片
+      </button>
+
+      <button class="aqara-btn aqara-btn-secondary" id="aqara-close-btn" style="margin-top: 4px; margin-bottom: 0;">
+        關閉
+      </button>
+    </div>
+  `;
+
+  overlay.onclick = () => overlay.remove();
+  overlay.querySelector("#aqara-close-btn").onclick = () => overlay.remove();
+
+  const disarmBtn = overlay.querySelector("#aqara-disarm-btn");
+  disarmBtn.onclick = () => {
+    disarmBtn.disabled = true;
+    disarmBtn.innerHTML = `已發送解除指令`;
+    disarmBtn.style.background = "#34C759";
+    try {
+      h.callService("input_boolean", "turn_on", { entity_id: "input_boolean.jie_chu_wang_guan_jing_bao" });
+    } catch (err) {
+      console.error(err);
+    }
+    setTimeout(() => overlay.remove(), 1200);
+  };
+
+  const navBtn = overlay.querySelector("#aqara-nav-gw-btn");
+  navBtn.onclick = () => {
+    overlay.remove();
+    setTimeout(() => {
+      const entityId = "alarm_control_panel.54ef44cf58f9_alarm";
+      const ev = new CustomEvent("hass-more-info", {
+        bubbles: true,
+        cancelable: false,
+        composed: true,
+        detail: { entityId: entityId, entity_id: entityId }
+      });
+      if (origin?.isConnected) { origin.dispatchEvent(ev); return; }      // composed event from inside the dashboard reaches HA's more-info handler once
+      const targets = [
+        document.querySelector("home-assistant"),
+        document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main"),
+        document.querySelector("floorplan-v4-3d"),
+        document.querySelector("floorplan-v4-card"),
+        document.querySelector("floorplan-v4-sidebar"),
+        document.querySelector("hui-view"),
+        document.body,
+        window,
+        document
+      ];
+      for (const t of targets) {
+        if (t && typeof t.dispatchEvent === "function") {
+          try { t.dispatchEvent(ev); } catch (_) {}
+        }
+      }
+    }, 40);
+  };
+
+  document.body.appendChild(overlay);
+}
+
+if (!window._aqaraAlarmListenerAdded) {
+  window._aqaraAlarmListenerAdded = true;
+  window.addEventListener("ll-custom", (e) => {
+    if (e.detail?.aqara_alarm) {
+      const h = document.querySelector("home-assistant")?.hass || window.hass;
+      showAqaraAlarmModal(h);
+    }
+  });
+  window.showAqaraAlarmModal = showAqaraAlarmModal;
 }
 
 class FloorplanV4Sidebar extends HTMLElement {
@@ -2304,6 +2764,24 @@ class FloorplanV4Sidebar extends HTMLElement {
                height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column; overflow:hidden; }
         .top { display:flex; align-items:baseline; gap:10px; }
         .time { font:300 34px sans-serif; color:var(--primary-text-color); letter-spacing:1px; }
+        .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; }
+        .hrow { display:flex; align-items:center; gap:8px; } .row2 .led { display:none; } .compact .row2 .led { display:block; }
+        .led { flex:1; min-width:26px; height:4px; border-radius:2px; background:#8e8e93; opacity:.5; transition:background .4s; }
+        .led.blink { opacity:1; animation:ledblink 1s infinite ease-in-out; }
+        @keyframes ledblink { 0%,100% { opacity:1; box-shadow:0 0 6px 1px var(--c); } 50% { opacity:.25; box-shadow:none; } }
+        .cams { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+        .cams button { display:flex; align-items:center; justify-content:center; gap:6px; border:0; border-radius:10px; padding:8px 4px;
+                       background:rgba(79,195,247,.2); color:#1f9bd6; font:700 13px sans-serif; cursor:pointer; --mdc-icon-size:20px; }
+        .cams button:active { filter:brightness(1.2); scale:.97; }
+        .compact.box { height:auto; padding:10px 12px 12px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; }
+        .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
+        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; }
+        .compact .h, .compact .nav, .compact .ppl { display:none; }
+        .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
+        .compact .cams { display:contents; }
+        .compact .row2, .compact .cams button { flex-direction:column; justify-content:center; gap:3px; padding:8px 4px; text-align:center; min-height:54px; --mdc-icon-size:22px; border-radius:12px; }
+        .compact .row2 .n { display:none; } .compact .row2 .v { font-size:11px; }
+        .compact .row2 .led { flex:none; width:22px; }
         .date { font:12px sans-serif; color:var(--secondary-text-color); margin:0 0 8px; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
@@ -2335,9 +2813,9 @@ class FloorplanV4Sidebar extends HTMLElement {
         .ppl .nm { font-size:13px; } .ppl .lc { font-size:11px; }
         ${PEOPLE_CSS}
       </style>
-      <div class="box"><div class="top"><div class="time"></div></div><div class="date"></div>
+      <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div></div><div class="date"></div>
         <div class="wx"></div>
-        <div class="h">保全狀態</div><div class="sec"></div>
+        <div class="h hrow">保全狀態<span class="led"></span></div><div class="sec"></div>
         <div class="nav">${floors.map((f) => `<button data-f="${f}">${f === "全棟" ? "全棟" : f}</button>`).join("")}</div>
         <div class="h">在家成員</div><div class="ppl"></div></div>`;
     this.shadowRoot.querySelector(".nav").addEventListener("click", (e) => {
@@ -2372,7 +2850,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         armed_vacation: ["度假警戒", "ok"], arming: ["啟動中", "warn"], pending: ["倒數中", "warn"], triggered: ["警報中！", "bad"] };
       const rows = [];
       const al = h.states[this._cfg.alarm || "alarm_control_panel.54ef44cf58f9_alarm"];
-      if (al) { const [t, c] = AL[al.state] || [al.state, "warn"]; rows.push([al.entity_id, "mdi:shield-home", "保全系統", t, c]); }
+      if (al) { const [t, c] = AL[al.state] || [al.state, "warn"]; rows.push([al.entity_id, "mdi:shield-home", "保全系統", t, c, "led"]); }
       for (const [id, icon, name] of this._cfg.security || [["input_boolean.er_lou_men_suo_tong_bu_kai_guan", "mdi:lock", "二樓門鎖"],
         ["cover.garage", "mdi:garage-variant", "車庫鐵門"], ["input_boolean.5f_security_temp_disable", "mdi:shield-off", "五樓保全暫解"]]) {
         const st = h.states[id];
@@ -2382,14 +2860,35 @@ class FloorplanV4Sidebar extends HTMLElement {
           : { locked: "已上鎖", unlocked: "未上鎖", open: "開啟", closed: "關閉", opening: "開啟中", closing: "關閉中", on: "啟用", off: "未啟用" }[st.state] || st.state;
         const cls = isDoor ? (st.state === "on" ? "bad" : "ok") : ["unlocked", "open", "opening"].includes(st.state) ? "bad" : st.state === "on" ? "warn" : "ok";
         rows.push([id, isDoor ? (st.state === "on" ? "mdi:lock-open-variant" : "mdi:lock") : st.state === "unlocked" ? "mdi:lock-open-variant" : icon, name, txt, cls]);
+        if (id === "cover.garage") rows.push(["", "", "", "", "", "cams"]);               // camera buttons right under the garage door
       }
-      sec.innerHTML = rows.map(([id, ic, n, v, c]) => `<div class="row2 ${c}" data-id="${id}"><ha-icon icon="${ic}"></ha-icon>
-        <span class="n">${n}</span><span class="v">${v}</span></div>`).join("");
-      sec.onclick = (e) => { const r = e.target.closest(".row2"); if (r) this._more(r.dataset.id); };
+      // the status line follows the router LED (ambient scene colour, flashing while a notification light is running)
+      const led = h.states[this._cfg.led || "light.u6_mesh_1f_led"], rgb = led?.attributes?.rgb_color;
+      const ledCol = led?.state === "on" && rgb ? `rgb(${rgb.join(",")})` : "#8e8e93";
+      const blink = h.states["input_boolean.mood_alert_active"]?.state === "on";
+      const cams = this._cfg.cameras || [["camera.g6_instant_high_resolution_channel", "1F"], ["camera.wu_lou_she_ying_ji_high", "5F"]];
+      const hl = root.querySelector(".hrow .led");
+      if (hl) { hl.style.background = ledCol; hl.style.setProperty("--c", ledCol); hl.classList.toggle("blink", blink); }
+      sec.innerHTML = rows.map(([id, ic, n, v, c, x]) => x === "cams"
+        ? `<div class="cams">${cams.map(([cid, fl]) => `<button data-cam="${cid}"><ha-icon icon="mdi:cctv"></ha-icon>${fl}</button>`).join("")}</div>`
+        : `<div class="row2 ${c}" data-id="${id}"><ha-icon icon="${ic}"></ha-icon>
+        <span class="n">${n}</span>${x === "led" ? `<span class="led ${blink ? "blink" : ""}" style="background:${ledCol};--c:${ledCol}"></span>` : ""}<span class="v">${v}</span></div>`).join("");
+      sec.onclick = (e) => {
+        const cam = e.target.closest("[data-cam]");
+        if (cam) return this._more(cam.dataset.cam);
+        const r = e.target.closest(".row2");
+        if (!r) return;
+        if (r.dataset.id === "alarm_control_panel.54ef44cf58f9_alarm" || r.dataset.id?.startsWith("alarm_control_panel.")) {
+          showAqaraAlarmModal(this._hass, this);
+          return;
+        }
+        this._more(r.dataset.id);
+      };
     }
   }
   _more(entityId) {
-    this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
+    if (!entityId) return;
+    this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId, entity_id: entityId } }));
   }
   _mark() {
     this.shadowRoot.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
@@ -2397,15 +2896,19 @@ class FloorplanV4Sidebar extends HTMLElement {
   _clock() {
     const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date");
     const upd = () => {
+      if (document.hidden) return;
       const n = new Date();
-      t.textContent = n.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false });
-      d.textContent = n.toLocaleDateString("zh-TW", { month: "long", day: "numeric", weekday: "long" });
+      const hm = n.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const html = `${hm}<span class="s">:${String(n.getSeconds()).padStart(2, "0")}</span>`;
+      if (t.innerHTML !== html) t.innerHTML = html;
+      const ds = n.toLocaleDateString("zh-TW", { month: "long", day: "numeric", weekday: "long" });
+      if (d.textContent !== ds) d.textContent = ds;
     };
     upd();
     clearInterval(this._iv);
     clearTimeout(this._ivAlign);
-    // tick exactly on the minute boundary, then every minute
-    this._ivAlign = setTimeout(() => { upd(); this._iv = setInterval(upd, 60000); }, 60000 - (Date.now() % 60000) + 50);
+    // tick on the second boundary
+    this._ivAlign = setTimeout(() => { upd(); this._iv = setInterval(upd, 1000); }, 1000 - (Date.now() % 1000) + 20);
   }
   connectedCallback() {
     this._evt = (e) => { this._floor = e.detail; this._mark(); };

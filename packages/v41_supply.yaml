@@ -1,0 +1,19 @@
+# 耗材通知輔助項目（V4.1.0，2026-10-10；A／項目 8）
+# 由 00-2C耗材更換AI通知 使用：
+#   supply_battery_lastvalid：每顆電池感測器「最後一筆有效讀數」，格式 代碼=電量@epoch秒;（用來在感測器失聯時採用 7 天內的舊值）
+#   supply_battery_stage：每顆電池「已通知階段」，格式 代碼=階段(0-3 或 x=已排除)@epoch秒;（避免重複通知）
+#   supply_filter_notified：空氣清淨機濾網只通知一次的旗標（壽命回升 >50% 才清除）
+# 舊的 input_number.supply_batt_lowest_* 不再使用（保留，待最後統一清理）。
+input_text:
+  supply_battery_lastvalid:
+    name: 耗材電量最後有效讀數（內部）
+    max: 255
+    icon: mdi:battery-check-outline
+  supply_battery_stage:
+    name: 耗材電量已通知階段（內部）
+    max: 255
+    icon: mdi:battery-alert-variant-outline
+input_boolean:
+  supply_filter_notified:
+    name: 濾網壽命已通知（只通知一次）
+    icon: mdi:air-filter

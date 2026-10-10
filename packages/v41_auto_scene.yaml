@@ -1,0 +1,29 @@
+# 自動啟動到家／早安情境 AI 輔助項目（V4.1.0，2026-10-10；B／項目 4）
+# 由 100A自動啟動到家早安情境AI 使用。
+# auto_scene_shadow（影子模式，預設 on）：on 時只寫 logbook「影子：會觸發 早安/到家（原因）」，不呼叫 101／103；舊 100A 維持啟用。
+# auto_scene_enable：自動情境總開關（可公開給 HomeKit，由使用者在 HomeKit 設定公開）。
+input_boolean:
+  auto_scene_enable:
+    name: 自動到家／早安情境（總開關）
+    icon: mdi:home-automation
+    initial: true
+  auto_scene_shadow:
+    name: 自動到家／早安情境影子模式（只記錄不動作）
+    icon: mdi:ghost-outline
+    initial: true
+input_datetime:
+  auto_scene_earliest_workday:
+    name: 自動情境最早啟動（平日）
+    has_date: false
+    has_time: true
+    initial: "05:30"
+  auto_scene_earliest_holiday:
+    name: 自動情境最早啟動（假日）
+    has_date: false
+    has_time: true
+    initial: "07:00"
+input_text:
+  auto_scene_last:
+    name: 上次自動啟動情境（情境、時間、原因）
+    max: 255
+    icon: mdi:history

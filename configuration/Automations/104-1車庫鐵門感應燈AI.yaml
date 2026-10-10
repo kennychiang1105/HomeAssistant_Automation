@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V3.4.3)
+# 104-1車庫鐵門感應燈AI (V4.1.0)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.1（2026-10-10）：修正 5 秒內再開燈的等待秒數樣板（單一數值不能用 max 過濾器，改 [x, 0.5] | max）。
+# - V4.1.1（2026-10-10）：手動關燈冷卻預設改 120 秒；800-10 雙擊切換車庫燈（自動化發出）也視為手動，會啟動冷卻（標記支援逗號分隔的多個實體）。
 # - V3.4.3：功能優化版；
 #           1. 修正動態感測實體：全面改用原生 UniFi Protect binary_sensor.g6_instant_motion，棄用 Scrypted 橋接實體。
 #           2. 新增車庫主燈 5 秒防重複開啟保護：若車庫主燈剛關閉未滿 5 秒，自動延遲補滿 5 秒後始開燈，避免硬體切換至小燈模式；主燈已開啟時不重複發送指令。
@@ -11,7 +13,7 @@
 # - V3.4.0：重構版；徹底解決車庫主燈與樓梯燈無法自動關閉的死結問題。
 # - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V3.4.3)
+- alias: 104-1車庫鐵門感應燈AI (V4.1.1)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門、攝影機事件及手動開關狀態控制車庫主燈與樓梯燈：
@@ -61,11 +63,15 @@
       to: "off"
 
   variables:
-    automation_version: "V3.4.3"
+    automation_version: "V4.1.1"
     cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
     is_cooling_down: "{{ not is_state('timer.garage_light_manual_off_cooldown', 'idle') }}"
     # 判斷是否為外部人工操作（實體按鈕或 App 均無 parent_id；自動化產生的動作會有 parent_id）
-    is_manual_action: "{{ trigger.to_state.context.parent_id is none }}"
+    # V4.1：Terncy 無線按鈕單擊由 08-9 代為切換（會有 parent_id），先寫入 input_text.terncy_btn_last 標記（可為逗號分隔的多個實體，例如 800-10 雙擊切換兩盞車庫燈），5 秒內視為手動
+    is_manual_action: >-
+      {% set m = states('input_text.terncy_btn_last').split('|') %}
+      {{ trigger.to_state.context.parent_id is none
+         or (m | length == 2 and trigger.entity_id in m[0].split(',') and (as_timestamp(now()) - (m[1] | float(0))) < 5) }}
 
   actions:
     - choose:
@@ -113,7 +119,7 @@
                   then:
                     - delay:
                         seconds: >-
-                          {{ (5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil') | max(0.5) }}
+                          {{ [((5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil')), 0.5] | max }}
 
                 # 2. 開啟車庫主燈（若尚未開啟）
                 - if:

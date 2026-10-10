@@ -1,0 +1,97 @@
+# 早安／到家 時間窗（V4.1.0，2026-10-10；B／項目 3）
+# 早安時段 = 日出+offset（預設 -30 分）～日落+offset（預設 -60 分），再套上下限；其餘為到家時段。
+# 介面：binary_sensor.scene_morning_window（on＝早安時段），屬性含 sunrise／sunset／start／end。
+# 功能開關 input_boolean.scene_window_use_sun（2026-10-10 使用者核准改為預設 on）：on＝既有早安／到家規則改用本時間窗；off＝退回舊的 06:00／05:00–17:00。
+input_boolean:
+  scene_window_use_sun:
+    name: 早安到家時間窗改用日出日落（功能開關）
+    icon: mdi:weather-sunset
+    initial: true
+input_number:
+  scene_sunrise_offset_min:
+    name: 早安起點（日出偏移，分）
+    min: -180
+    max: 180
+    step: 5
+    initial: -30
+    mode: box
+    icon: mdi:weather-sunset-up
+  scene_sunset_offset_min:
+    name: 早安終點（日落偏移，分）
+    min: -240
+    max: 120
+    step: 5
+    initial: -60
+    mode: box
+    icon: mdi:weather-sunset-down
+input_datetime:
+  scene_morning_earliest:
+    name: 早安時段最早起點
+    has_date: false
+    has_time: true
+    initial: "05:00"
+  scene_morning_latest_end:
+    name: 早安時段最晚終點
+    has_date: false
+    has_time: true
+    initial: "18:30"
+template:
+  - sensor:
+      - name: 早安時段起點
+        unique_id: v41_scene_morning_start
+        default_entity_id: sensor.scene_morning_start
+        device_class: timestamp
+        icon: mdi:weather-sunset-up
+        state: >-
+          {% set nr = state_attr('sun.sun','next_rising') %}
+          {% if nr is none %}{{ none }}{% else %}
+          {% set t = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
+          {% set r = nr | as_datetime | as_local %}
+          {% set r = r - timedelta(days=1) if r.date() > now().date() else r %}
+          {% set s = r + timedelta(minutes=(states('input_number.scene_sunrise_offset_min') | float(-30))) %}
+          {% set e = states('input_datetime.scene_morning_earliest') %}
+          {% set lo = t.replace(hour=(e[0:2] | int(5)), minute=(e[3:5] | int(0))) %}
+          {{ ([s, lo] | max).isoformat() }}
+          {% endif %}
+        attributes:
+          sunrise: >-
+            {% set nr = state_attr('sun.sun','next_rising') %}
+            {% if nr is not none %}{% set r = nr | as_datetime | as_local %}{{ (r - timedelta(days=1) if r.date() > now().date() else r).isoformat() }}{% endif %}
+      - name: 早安時段終點
+        unique_id: v41_scene_morning_end
+        default_entity_id: sensor.scene_morning_end
+        device_class: timestamp
+        icon: mdi:weather-sunset-down
+        state: >-
+          {% set ns = state_attr('sun.sun','next_setting') %}
+          {% if ns is none %}{{ none }}{% else %}
+          {% set t = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
+          {% set r = ns | as_datetime | as_local %}
+          {% set r = r - timedelta(days=1) if r.date() > now().date() else r %}
+          {% set s = r + timedelta(minutes=(states('input_number.scene_sunset_offset_min') | float(-60))) %}
+          {% set e = states('input_datetime.scene_morning_latest_end') %}
+          {% set hi = t.replace(hour=(e[0:2] | int(18)), minute=(e[3:5] | int(30))) %}
+          {{ ([s, hi] | min).isoformat() }}
+          {% endif %}
+        attributes:
+          sunset: >-
+            {% set ns = state_attr('sun.sun','next_setting') %}
+            {% if ns is not none %}{% set r = ns | as_datetime | as_local %}{{ (r - timedelta(days=1) if r.date() > now().date() else r).isoformat() }}{% endif %}
+  - binary_sensor:
+      - name: 早安時段
+        unique_id: v41_scene_morning_window
+        default_entity_id: binary_sensor.scene_morning_window
+        icon: mdi:weather-sunny
+        state: >-
+          {% set s = states('sensor.scene_morning_start') %}
+          {% set e = states('sensor.scene_morning_end') %}
+          {% if s in ['unknown','unavailable'] or e in ['unknown','unavailable'] %}
+            {{ 6 <= now().hour < 17 }}
+          {% else %}
+            {{ s | as_datetime <= now() < e | as_datetime }}
+          {% endif %}
+        attributes:
+          start: "{{ states('sensor.scene_morning_start') }}"
+          end: "{{ states('sensor.scene_morning_end') }}"
+          sunrise: "{{ state_attr('sensor.scene_morning_start','sunrise') }}"
+          sunset: "{{ state_attr('sensor.scene_morning_end','sunset') }}"

@@ -2,6 +2,7 @@
 # 漸進情境AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.1（2026-10-10）：stairs_off 時，四樓樓梯燈若是頂樓感應正在使用（五樓梯廳燈由感應開著），改交給頂樓感應、與頂樓樓梯燈一起關。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
 # - V4.0.0：手動晚安（實體開關）時，先點亮樓梯燈（2→3F、3F、3→4F、5F、四樓/頂樓樓梯燈）再依序關其他燈，3 分鐘後由 stairs_delayed_off 關閉。
 # - V1.0.3：早安/到家情境不再「開啟空氣清淨機」（改由 07 系列依 PM2.5 且有人在家時才啟動）。
@@ -13,7 +14,7 @@
 #           皆無則 離家=車庫、到家=2F 廁所/廚房側樓梯口（多數人不經大門進入）、其他=客廳。樓梯依按鈕樓層先動，向上下擴散。
 # ────────────────────────────────────────────────────────
 stage_scene:
-  alias: 漸進情境AI (V4.0.0)
+  alias: 漸進情境AI (V4.0.1)
   description: 依按鈕位置由近到遠分環開/關燈與家電（goodnight/leave/morning/arrive/stairs_on/stairs_off）
   mode: parallel
   max: 4
@@ -26,7 +27,7 @@ stage_scene:
       description: 觸發的開關 device_id（可省略，省略時讀取 input_text.scene_origin_device）
       required: false
   variables:
-    automation_version: 'V4.0.0'
+    automation_version: 'V4.0.1'
   sequence:
     - variables:
         src_device: >-
@@ -113,10 +114,30 @@ stage_scene:
     - repeat:
         for_each: "{{ rings }}"
         sequence:
-          - action: "homeassistant.turn_{{ turn_state }}"
-            target:
-              entity_id: "{{ repeat.item }}"
-            continue_on_error: true
+          # V4.0.1：樓梯燈定時關（stairs_off）時，四樓樓梯燈若是頂樓感應正在使用（五樓梯廳燈由感應開著），
+          # 改由頂樓感應接管、跟頂樓樓梯燈一起關，不在這裡單獨先關
+          - variables:
+              handover: >-
+                {{ scene == 'stairs_off'
+                   and 'light.yeelink_color5_0fb7_light' in (repeat.item if repeat.item is iterable and repeat.item is not string else [repeat.item])
+                   and is_state('input_boolean.topfloor_13b8_auto', 'on')
+                   and is_state('light.yeelink_color5_13b8_light', 'on')
+                   and is_state('input_boolean.topfloor_stairs_keep_on', 'off')
+                   and is_state('light.yeelink_color5_0fb7_light', 'on') }}
+              ring_items: >-
+                {% set l = repeat.item if (repeat.item is iterable and repeat.item is not string) else [repeat.item] %}
+                {{ (l | reject('eq', 'light.yeelink_color5_0fb7_light') | list) if handover else (l | list) }}
+          - if: "{{ handover }}"
+            then:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.topfloor_0fb7_auto
+          - if: "{{ ring_items | count > 0 }}"
+            then:
+              - action: "homeassistant.turn_{{ turn_state }}"
+                target:
+                  entity_id: "{{ ring_items }}"
+                continue_on_error: true
           - if: "{{ not repeat.last }}"
             then:
               - delay:

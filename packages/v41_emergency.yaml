@@ -1,0 +1,46 @@
+# 緊急模式快照還原輔助項目（V4.1.0，2026-10-10；A／項目 1）
+# 由 Scripts/緊急模式快照還原AI.yaml（script.emergency_snapshot_save／emergency_restore）與 Automations/05F 使用。
+# emergency_snapshot_valid：快照有效（2 小時內）；emergency_trigger_source：存快照當下依旗標記錄的來源 homekit／manual／button／auto。
+# emergency_restore_enable：總開關（預設 on）；emergency_restore_route：106C 是否走「還原」流程（預設 off，批次 8 由 106C 使用）。
+# binary_sensor.emergency_restorable：快照有效（2 小時內）且總開關開。來源（含地震預警／CO 自動觸發的 auto）只做記錄；使用者排除狀況後按解除網關警報一律可還原。
+input_boolean:
+  emergency_snapshot_valid:
+    name: 緊急模式快照有效
+    icon: mdi:camera-timer
+    initial: false
+  emergency_restore_enable:
+    name: 緊急模式快照還原（總開關）
+    icon: mdi:restore
+    initial: true
+  emergency_restore_route:
+    name: 解除網關警報時走緊急還原流程（106C）
+    icon: mdi:alarm-light-off-outline
+    initial: true
+input_text:
+  emergency_trigger_source:
+    name: 緊急模式來源（homekit／manual／button／auto）
+    max: 30
+    icon: mdi:source-branch
+  emergency_garage_prev:
+    name: 緊急模式前車庫鐵門狀態
+    max: 30
+    icon: mdi:garage
+input_datetime:
+  emergency_snapshot_at:
+    name: 緊急模式快照時間
+    has_date: true
+    has_time: true
+timer:
+  emergency_snapshot_expire:
+    name: 緊急模式快照到期（2 小時）
+    duration: "02:00:00"
+    icon: mdi:timer-sand
+template:
+  - binary_sensor:
+      - name: 緊急模式可還原
+        unique_id: v41_emergency_restorable
+        default_entity_id: binary_sensor.emergency_restorable
+        icon: mdi:backup-restore
+        state: >-
+          {{ is_state('input_boolean.emergency_snapshot_valid', 'on')
+             and is_state('input_boolean.emergency_restore_enable', 'on') }}

@@ -1,0 +1,131 @@
+# ─────────────────────────────────────────────────────────────
+# 106C_解除網關警報整合AI (V4.2.0)
+# 相容版本：Helpers V4.0.0
+# 更新紀錄：
+# - V4.2.0（2026-10-10）：新增「緊急模式還原路徑」：開關 emergency_restore_route（預設 off）on、且快照可還原（2 小時內、來源是 HomeKit／手動／實體按鈕，不含自動觸發）、
+#   且有人在家時，不跑離家與早安／到家，改為解除網關→Aqara 回在家→script.emergency_restore→廣播「已還原緊急模式前的狀態」；其餘維持原流程。
+#   早安／到家時間窗：開關 scene_window_use_sun 為 on 時改用 binary_sensor.scene_morning_window，off 維持 06:00~17:00。
+# - V4.1.1（2026-10-10）：新增一般廣播（只廣播客廳與車庫，不發 LINE／HA 通知）；虛擬按鈕改為一開始就復位，避免流程中斷後卡在 on。
+# - V4.1.0：初版整合上線。
+#   1. 當 HomeKit 虛擬按鈕「解除網關警報」觸發時，先同步執行「102離家情境」以安全重置全屋家電與燈光。
+#   2. 隨即解除伺服器實體網關（alarm_disarm），並開啟 Aqara 解除開關（aqara_guan_bi）。
+#   3. 延遲 2 秒後安全切回正常情境：關閉解除開關、開啟在家開關（aqara_zai_jia）並同步伺服器網關回到在家警戒（alarm_arm_home）。
+#   4. 依當前時段（06:00~17:00 早安，其餘到家）自動執行對應之早安情境或到家情境。
+#   5. 虛擬按鈕自動復位，供 HomeKit 點擊重複使用。
+# ─────────────────────────────────────────────────────────────
+- alias: 106C_解除網關警報整合AI (V4.2.0)
+  id: ai_106c_gateway_alarm_disarm_integration
+  description: 整合伺服器網關與Aqara警報解除、離家/到家情境重置與安全歸位，並提供HomeKit虛擬按鈕一鍵觸發。
+  mode: restart
+
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.jie_chu_wang_guan_jing_bao
+      to: "on"
+
+  variables:
+    automation_version: "V4.2.0"
+    alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
+    anyone_home: "{{ expand('person.kenny', 'person.iris', 'person.jerry', 'person.elay') | selectattr('state', 'eq', 'home') | list | count > 0 }}"
+    restore_route: >-
+      {{ is_state('input_boolean.emergency_restore_route', 'on') and is_state('binary_sensor.emergency_restorable', 'on') and anyone_home }}
+    morning_window: >-
+      {{ is_state('binary_sensor.scene_morning_window', 'on') if is_state('input_boolean.scene_window_use_sun', 'on') else (6 <= now().hour < 17) }}
+
+  conditions: []
+
+  actions:
+    # 步驟 0：虛擬按鈕先復位（流程中途被重啟或中斷時，按鈕才不會卡在 on 而無法再次觸發）
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.jie_chu_wang_guan_jing_bao
+
+    # 步驟 1：同步在解除時執行離家情境（先行重置/關閉家電燈光）
+    - if:
+        - condition: template
+          value_template: "{{ not restore_route }}"
+      then:
+        - action: automation.trigger
+          target:
+            entity_id: automation.101li_jia_qing_jing
+          data:
+            skip_condition: true
+
+    - delay: "00:00:00.5"
+
+    # 步驟 2：解除伺服器實體網關，並開啟 Aqara 解除開關
+    - action: alarm_control_panel.alarm_disarm
+      target:
+        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_zai_jia
+          - input_boolean.aqara_chu_fa
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.aqara_guan_bi
+
+    # 步驟 3：維持解除狀態 2 秒
+    - delay: "00:00:02"
+
+    # 步驟 4：切回正常情境（網關警戒與 Aqara 在家）
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_chu_fa
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.aqara_zai_jia
+    - action: alarm_control_panel.alarm_arm_home
+      target:
+        entity_id: alarm_control_panel.54ef44cf58f9_alarm
+
+    # 步驟 4B：一般廣播（只廣播客廳 HomePod 與車庫攝影機喇叭；不發 LINE、不發 HA 通知）
+    # 用 script.turn_on 不等待播完，避免拖慢後面的情境
+    - action: script.turn_on
+      target:
+        entity_id: script.announce
+      data:
+        variables:
+          level: general
+          player:
+            - media_player.ke_ting_homepod
+            - media_player.che_ku_she_ying_ji_speaker
+          message: >-
+            {% if restore_route %}網關警報已解除，已還原緊急模式前的狀態。{% elif morning_window %}網關警報已解除，已切換為早安情境。{% else %}網關警報已解除，已切換為到家情境。{% endif %}
+
+    # 步驟 5：執行在家或早安情境（06:00~17:00 早安，其餘到家）
+    - choose:
+        - alias: "緊急模式還原路徑：還原緊急模式前的狀態（不跑早安／到家）"
+          conditions:
+            - condition: template
+              value_template: "{{ restore_route }}"
+          sequence:
+            - action: script.emergency_restore
+        - alias: "早安時段"
+          conditions:
+            - condition: template
+              value_template: "{{ morning_window }}"
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.101zao_an_qing_jing
+              data:
+                skip_condition: true
+      default:
+        - action: automation.trigger
+          target:
+            entity_id: automation.103dao_jia_qing_jing
+          data:
+            skip_condition: true
+
+    # 步驟 6：虛擬按鈕自動復位（供 HomeKit 重複點擊）
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.jie_chu_wang_guan_jing_bao

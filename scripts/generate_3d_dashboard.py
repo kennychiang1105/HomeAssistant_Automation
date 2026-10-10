@@ -47,6 +47,7 @@ views:
                 - 💡 車庫主燈：**{{ states('switch.che_ku_zhu_deng') }}**
                 - 🔌 特斯拉充電：**{{ states('sensor.tesla_wall_connector_status') }}**
               {% elif '2F' in active_fl %}
+                - 🌡️ 客廳 HomePod 溫度：**{{ states('sensor.livingroom_homepodmini_temperature') | replace('°C', '') }}°C**
                 - 🌡️ 室內溫度：**{{ states('sensor.kong_qi_qing_jing_ji_temperature') }}°C**
                 - 💧 室內濕度：**{{ states('sensor.kong_qi_qing_jing_ji_humidity') }}%**
                 - 🍃 空氣清淨機：**{{ states('fan.kong_qi_qing_jing_ji') }} (PM2.5: {{ states('sensor.kong_qi_qing_jing_ji_pm2_5') }})**
@@ -59,7 +60,7 @@ views:
                 - 💡 後臥室燈：**{{ states('switch.hou_wo_shi_deng') }}**
                 - 🪜 四樓梯廳：**{{ states('switch.san_si_lou_lou_ti_deng') }}**
               {% elif '5F' in active_fl %}
-                - 🌡️ 頂樓溫度：**{{ states('sensor.5f_homepodmini_temperature') }}°C**
+                - 🌡️ 頂樓溫度：**{{ states('sensor.5f_homepodmini_temperature') | replace('°C', '') }}°C**
                 - ❄️ 頂樓空調：**{{ states('climate.ding_lou_kong_diao') }}**
                 - 💻 書房主機：**{{ states('switch.asusworkstationcha_zuo') }}**
                 - 💡 頂樓主燈：**{{ states('light.ding_lou_deng_zu_1') }}**

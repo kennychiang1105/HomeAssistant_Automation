@@ -2,6 +2,8 @@
 # 08-8B廁所感應燈AI (V3.0.3)
 # 相容版本：Helpers V3.18.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.1.1（2026-10-10）：無人關燈的等待由 1 分鐘縮短為 10 秒（感應器本身約 90 秒才回報無人，離開後約 100 秒關燈，原本約 150 秒）。
+# - V3.1.0（2026-10-10）：新增「重新偵測」自動化：手動關燈後再進廁所也會亮。感測器有人活動時約每 20 秒回報一次（狀態仍是 on、只更新 last_triggered），原本只看「狀態變 on」所以被忽略；新增依 last_triggered 屬性變化，燈關著超過 10 秒、且未啟用手動關閉模式時再開燈。
 # - V3.0.3：重構版；長按觸發升級為 Terncy 底層事件 (terncy_long_press)，符合 HA 2026.8+ 規範。
 # - V3.0.2：修補版；長按觸發改為 Terncy device trigger，修復實體開關長按無反應。
 # - V3.0.1：修補版；長按切換與 flash_count 判斷統一使用 manual_override_entity 變數，避免 helper 實體硬編碼分散。
@@ -10,7 +12,7 @@
 - alias: 08-8B廁所感應燈AI (V3.0.3)
   id: ai_08_8b_toilet_motion_light
   description: >
-    廁所人體感應自動開燈；無人 1 分鐘且未啟用手動關閉模式時自動關燈。
+    廁所人體感應自動開燈；感應器回報無人 10 秒後且未啟用手動關閉模式時自動關燈。
     長按事件切換手動關閉模式，並以燈光閃爍 4 次/2 次回饋。
   mode: restart
 
@@ -23,7 +25,8 @@
       platform: state
       entity_id: binary_sensor.e406bf25caa1_motion
       to: "off"
-      for: "00:01:00"
+      # V3.1.1：感應器自己要等約 90 秒才回報無人，這裡不再多等 1 分鐘（原本共約 2.5 分鐘才關燈），只留 10 秒緩衝
+      for: "00:00:10"
     - id: long_press
       trigger: event
       event_type: terncy_long_press
@@ -76,3 +79,43 @@
                     target:
                       entity_id: switch.ce_suo_deng
                   - delay: "00:00:00.25"
+
+- alias: 08-8B廁所感應燈重新偵測AI (V3.1.0)
+  id: ai_08_8b_toilet_motion_retrigger
+  description: >
+    手動關燈後馬上再進廁所，感應器狀態還停在 on（約 90 秒才回報無人），原本的自動化不會再開燈。
+    感應器有人活動時約每 20 秒更新一次 last_triggered，這裡用它判斷「又有人在動」，燈關著超過 10 秒就再開燈。
+    燈剛關 10 秒內不處理（避免你關燈走出去時最後的動作又把燈開起來）；手動關閉模式（長按）啟用時不處理。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      alias: "[感應] 廁所感應器有人活動（last_triggered 更新）"
+      entity_id: binary_sensor.e406bf25caa1_motion
+      attribute: last_triggered
+  conditions:
+    - alias: "回報是剛發生的 (10 秒內)"
+      condition: template
+      value_template: >-
+        {{ trigger.to_state is not none
+           and trigger.to_state.attributes.last_triggered is defined
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.attributes.last_triggered, 0)) < 10 }}
+    - alias: "感應器目前是有人"
+      condition: state
+      entity_id: binary_sensor.e406bf25caa1_motion
+      state: "on"
+    - alias: "廁所燈關著"
+      condition: state
+      entity_id: switch.ce_suo_deng
+      state: "off"
+    - alias: "未啟用手動關閉模式（長按）"
+      condition: state
+      entity_id: input_boolean.toilet_light_manual_override_mode
+      state: "off"
+    - alias: "燈已經關超過 10 秒（剛關燈時的最後動作不算）"
+      condition: template
+      value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.ce_suo_deng.last_changed, 0)) >= 10 }}"
+  actions:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.ce_suo_deng

@@ -1,0 +1,47 @@
+# ──────────────────────────────────────────────
+# 00-3失效實體巡檢AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增。每週一 10:00 統計「unavailable＋restored（已不存在的空殼）且超過 7 天」的實體，依網域回報（info，不發 LINE）。
+#   只通知、不刪除；清理流程：WebSocket config/entity_registry/remove（先預覽、確認設定檔零引用、只刪 unavailable＋restored，並經使用者核准）。
+# ──────────────────────────────────────────────
+- id: ai_00_3_stale_entity_audit_v41
+  alias: 00-3失效實體巡檢AI (V4.1.0)
+  description: 每週一統計 unavailable＋restored 超過 7 天的實體並回報。
+  mode: single
+  triggers:
+    - trigger: time
+      at: "10:00:00"
+      alias: "[每週一 10:00]"
+  conditions:
+    - condition: time
+      weekday:
+        - mon
+  actions:
+    - variables:
+        stale: >-
+          {% set ns = namespace(l=[]) %}
+          {% for s in states if s.state == 'unavailable' and s.attributes.get('restored', false) and (now() - s.last_changed).total_seconds() > 604800 %}
+          {% set ns.l = ns.l + [s.entity_id] %}
+          {% endfor %}
+          {{ ns.l }}
+        by_domain: >-
+          {% set ns = namespace(d={}) %}
+          {% for e in stale %}
+          {% set dom = e.split('.')[0] %}
+          {% set ns.d = dict(ns.d, **{dom: (ns.d.get(dom, 0) + 1)}) %}
+          {% endfor %}
+          {{ ns.d }}
+    - condition: template
+      alias: "有失效實體才通知"
+      value_template: "{{ stale | count > 0 }}"
+    - action: script.notify_dispatch
+      data:
+        level: info
+        line: false
+        source: 00-3失效實體巡檢AI
+        version: V4.1.0
+        title: 失效實體巡檢
+        message: >-
+          有 {{ stale | count }} 個實體已失效超過 7 天（unavailable＋restored）。
+          {% for k, v in by_domain.items() %}{{ k }}：{{ v }}　{% endfor %}
+          請確認後再請 Claude 清理（設定檔零引用才刪）。

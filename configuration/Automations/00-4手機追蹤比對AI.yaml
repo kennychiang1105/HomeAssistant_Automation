@@ -1,0 +1,38 @@
+# ──────────────────────────────────────────────
+# 00-4手機追蹤比對AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增。每 5 分鐘比對「person 新判斷」與「舊 input_text 判斷」的 Kenny 手機 AP MAC，
+#   一致／不一致次數記在 input_number.v41_phone_match_ok／bad；不一致且持續 2 分鐘才寫 logbook。
+#   連續一致（bad 為 0、ok 夠多）才算可切換頂樓 08-5F／5G／5J 的追蹤器行（切換需使用者說「切換」）。
+# ──────────────────────────────────────────────
+- id: ai_00_4_phone_tracker_compare_v41
+  alias: 00-4手機追蹤比對AI (V4.1.0)
+  description: 比對 person 與舊追蹤器判斷是否一致（驗證用，不控制任何設備）。
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      minutes: "/5"
+      alias: "[每5分鐘] 比對"
+    - trigger: state
+      entity_id: binary_sensor.v41_phone_ap_match
+      to: "off"
+      for: "00:02:00"
+      alias: "[不一致 2 分鐘] 記錄"
+  actions:
+    - choose:
+        - alias: "不一致持續 2 分鐘：寫 logbook"
+          conditions:
+            - condition: trigger
+              id: "1"
+          sequence:
+            - action: logbook.log
+              data:
+                name: 00-4手機追蹤比對AI
+                message: "新舊不一致：新={{ state_attr('binary_sensor.v41_phone_ap_match', 'new') }} 舊={{ state_attr('binary_sensor.v41_phone_ap_match', 'old') }}"
+      default:
+        - alias: "每5分鐘計數"
+          action: "input_number.set_value"
+          target:
+            entity_id: "{{ 'input_number.v41_phone_match_ok' if is_state('binary_sensor.v41_phone_ap_match', 'on') else 'input_number.v41_phone_match_bad' }}"
+          data:
+            value: "{{ (states('input_number.v41_phone_match_ok' if is_state('binary_sensor.v41_phone_ap_match', 'on') else 'input_number.v41_phone_match_bad') | float(0)) + 1 }}"

@@ -2,9 +2,9 @@
 # 情境與狀況氣氛燈AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
-# - V4.0.0：新增 UniFi 機台 LED 氣氛燈。ambient_scene：依情境（離家=紅、晚安=暖橘、早安=綠、到家=綠）替 2 台可換色機台（1F U6 Mesh、4F U6 Extender）換色，亮度不變；
+# - V4.0.0：新增 UniFi 機台 LED 與多功能網關 氣氛燈。ambient_scene：依情境（離家=紅、晚安=暖橘、早安=綠、到家=綠）替 3 台可換色機台（1F U6 Mesh、2F 多功能網關1、4F U6 Extender）換色，亮度不變；
 #           情境由網關（Aqara 保全模式 aqara_li_jia / wan_an / zai_jia 與警戒狀態）判斷，由 00-2J氣氛燈情境同步AI 觸發。
-#           mood_alert 加入機台 LED：RGB 機台整段變色（重要 4 秒 / 緊急 6 秒）後還原；僅開關型機台（6 台）熄滅 1.5 秒再亮（緊急 2 次）。
+#           mood_alert 加入機台 LED 與網關夜燈：RGB 機台/網關整段變色（重要 4 秒 / 緊急 6 秒）後還原；僅開關型機台（6 台）熄滅 1.5 秒再亮（緊急 2 次）。
 #           （實測 UniFi LED 指令約 1.2~1.6 秒才生效，故不做快閃。）
 # - V4.0.0：還原一律用「色溫＋亮度」（不再寫回 RGB）；沒有色溫記憶的燈不處理。
 # - V4.0.0：還原寫入後等待由 0.9 秒加長為 4 秒再關燈（Yeelink 雲端套用顏色有延遲，太快關燈顏色會沒寫進去）。
@@ -123,7 +123,7 @@ mood_alert_restore_off:
 
 mood_alert_ap_hold:
   alias: 氣氛燈機台整段變色 (V4.0.0)
-  description: UniFi RGB 機台 LED 延遲後改成提醒色（還原由 mood_alert 的快照負責）
+  description: UniFi RGB 機台與網關 LED 延遲後改成提醒色（還原由 mood_alert 的快照負責）
   mode: parallel
   max: 6
   fields:
@@ -187,7 +187,7 @@ mood_alert_ap_blink:
 
 ambient_scene:
   alias: 情境氣氛燈AI-機台情境色 (V4.0.0)
-  description: 依情境替可換色的 UniFi 機台 LED（1F U6 Mesh、4F U6 Extender）換色；亮度不變，保持到下一個情境
+  description: 依情境替可換色的機台與網關 LED（1F U6 Mesh、2F 多功能網關1、4F U6 Extender）換色；網關亮度維持 40% 以下（預設 35%），其餘機台亮度不變，保持到下一個情境
   mode: restart
   fields:
     scene:
@@ -204,7 +204,7 @@ ambient_scene:
       {% set c = states('input_text.ambient_color_' ~ scene) | string | trim %}
       {% if c.count(',') == 2 %}{{ c.split(',') | map('trim') | map('int', 0) | list }}{% else %}{{ d.get(scene, [255, 255, 255]) }}{% endif %}
     # 離家/到家/早安由 1F 往 4F，晚安由 4F 往 1F
-    order: "{{ ['light.u6_extender_4f_elay_led', 'light.u6_mesh_1f_led'] if scene == 'goodnight' else ['light.u6_mesh_1f_led', 'light.u6_extender_4f_elay_led'] }}"
+    order: "{{ ['light.u6_extender_4f_elay_led', 'light.lumi_mitw01_8d44_light_2', 'light.u6_mesh_1f_led'] if scene == 'goodnight' else ['light.u6_mesh_1f_led', 'light.lumi_mitw01_8d44_light_2', 'light.u6_extender_4f_elay_led'] }}"
     is_test: "{{ test | default(false) in [true, 'true'] }}"
   sequence:
     - if: "{{ scene not in ['leave', 'goodnight', 'morning', 'arrive'] or is_state('input_boolean.ambient_scene_off', 'on') or is_state('input_boolean.mood_alert_enable', 'unavailable') }}"
@@ -230,12 +230,22 @@ ambient_scene:
         sequence:
           - if: "{{ is_state(repeat.item, 'on') }}"
             then:
-              - action: light.turn_on
-                target:
-                  entity_id: "{{ repeat.item }}"
-                data:
-                  rgb_color: "{{ rgb }}"
-                continue_on_error: true
+              - if: "{{ repeat.item == 'light.lumi_mitw01_8d44_light_2' }}"
+                then:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ repeat.item }}"
+                    data:
+                      rgb_color: "{{ rgb }}"
+                      brightness_pct: 35
+                    continue_on_error: true
+                else:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ repeat.item }}"
+                    data:
+                      rgb_color: "{{ rgb }}"
+                    continue_on_error: true
           - if: "{{ not repeat.last }}"
             then:
               - delay: "00:00:01"
@@ -310,7 +320,7 @@ mood_alert:
         rgb_ok: "{{ rgb_all | reject('is_state', 'unavailable') | reject('is_state', 'unknown') | list }}"
         was_off: "{{ rgb_ok | select('is_state', 'off') | list }}"
         ap_on: "{{ states('input_boolean.mood_alert_ap_off') != 'on' }}"
-        ap_rgb_all: ['light.u6_mesh_1f_led', 'light.u6_extender_4f_elay_led']
+        ap_rgb_all: ['light.u6_mesh_1f_led', 'light.lumi_mitw01_8d44_light_2', 'light.u6_extender_4f_elay_led']
         ap_sw_all: ['light.u6_pro_2f_led', 'light.smartpower_strip_2f_led', 'light.u6_lite_3f_led', 'light.switch_lite_8_poe_3f_led', 'light.u6_iw_4f_jerry_led', 'light.u6_iw_5f_kenny_led']
         ap_rgb_ok: "{{ (ap_rgb_all | select('is_state', 'on') | list) if ap_on else [] }}"
         ap_sw_ok: "{{ (ap_sw_all | select('is_state', 'on') | list) if ap_on else [] }}"
@@ -354,6 +364,11 @@ mood_alert:
           then:
             - action: script.mood_alert_ap_hold
               data: {entity: light.u6_mesh_1f_led, color: "{{ color }}", start_ms: "{{ 0 if level == 'emergency' else 500 }}", hold_ms: "{{ ap_hold_ms }}"}
+              continue_on_error: true
+        - if: "{{ 'light.lumi_mitw01_8d44_light_2' in ap_rgb_ok }}"
+          then:
+            - action: script.mood_alert_ap_hold
+              data: {entity: light.lumi_mitw01_8d44_light_2, color: "{{ color }}", start_ms: "{{ 0 if level == 'emergency' else 900 }}", hold_ms: "{{ ap_hold_ms | int - 400 }}"}
               continue_on_error: true
         - if: "{{ 'light.u6_extender_4f_elay_led' in ap_rgb_ok }}"
           then:

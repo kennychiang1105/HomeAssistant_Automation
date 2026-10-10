@@ -1,0 +1,30 @@
+# 熟睡設定、起床設定搭配國定假日（V4.1.0，2026-10-10；B／項目 7）
+# 由 08-5H頂樓深夜熟睡情境AI（V4.3.0）使用。
+# sleep_holiday_aware（功能開關，預設 off）：off＝與舊版逐字相同（weekday() 判斷、03:00／05:00、09:30／10:30 寫死）；
+#   on＝改用 sensor.tw_day_type_today／tomorrow 判斷假日，並讀下面 4 個時間 helper。
+input_boolean:
+  sleep_holiday_aware:
+    name: 熟睡起床時間搭配國定假日（功能開關）
+    icon: mdi:calendar-sync
+    initial: false
+input_datetime:
+  sleep_5h_workday:
+    name: 熟睡下樓時間（平日）
+    has_date: false
+    has_time: true
+    initial: "03:00"
+  sleep_5h_holiday:
+    name: 熟睡下樓時間（假日）
+    has_date: false
+    has_time: true
+    initial: "05:00"
+  sleep_unlock_workday:
+    name: 熟睡鎖最早解鎖（平日醒來）
+    has_date: false
+    has_time: true
+    initial: "09:30"
+  sleep_unlock_holiday:
+    name: 熟睡鎖最早解鎖（假日醒來）
+    has_date: false
+    has_time: true
+    initial: "10:30"

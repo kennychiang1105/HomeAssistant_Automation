@@ -1,0 +1,99 @@
+# 環境異常通知 AI 輔助項目（V4.1.0，2026-10-10；C／項目 5）
+# 由 06環境異常通知AI 使用。
+# env_alert_co_dry_run（預設 on）：on 時「CO 危險自動緊急模式」只發資訊通知＋寫 logbook，絕不呼叫 05A、不設緊急旗標。
+#   要真的接線，必須使用者在場並同意後才能關掉。
+# env_alert_mute：暫停一般／重要通知（緊急不受影響）。
+input_boolean:
+  env_alert_mute:
+    name: 環境異常通知暫停（不含緊急）
+    icon: mdi:bell-off-outline
+    initial: false
+  env_alert_co_dry_run:
+    name: CO 緊急模式乾跑（只通知不觸發）
+    icon: mdi:flask-outline
+    initial: true
+input_number:
+  env_co2_l1:
+    name: CO2 一般門檻
+    min: 600
+    max: 3000
+    step: 50
+    initial: 1000
+    mode: box
+    unit_of_measurement: ppm
+  env_co2_l2:
+    name: CO2 重要門檻
+    min: 800
+    max: 4000
+    step: 50
+    initial: 1500
+    mode: box
+    unit_of_measurement: ppm
+  env_co2_l3:
+    name: CO2 嚴重門檻
+    min: 1000
+    max: 5000
+    step: 50
+    initial: 2500
+    mode: box
+    unit_of_measurement: ppm
+  env_co_l1:
+    name: CO 一般門檻
+    min: 1
+    max: 100
+    step: 1
+    initial: 9
+    mode: box
+    unit_of_measurement: ppm
+  env_co_l2:
+    name: CO 重要門檻
+    min: 5
+    max: 200
+    step: 1
+    initial: 35
+    mode: box
+    unit_of_measurement: ppm
+  env_co_l3:
+    name: CO 危險門檻
+    min: 20
+    max: 400
+    step: 1
+    initial: 100
+    mode: box
+    unit_of_measurement: ppm
+  env_temp_l1:
+    name: 廚房溫度一般門檻
+    min: 25
+    max: 80
+    step: 1
+    initial: 40
+    mode: box
+    unit_of_measurement: °C
+  env_temp_l2:
+    name: 廚房溫度重要門檻
+    min: 30
+    max: 90
+    step: 1
+    initial: 45
+    mode: box
+    unit_of_measurement: °C
+  env_temp_l3:
+    name: 廚房溫度嚴重門檻
+    min: 35
+    max: 100
+    step: 1
+    initial: 55
+    mode: box
+    unit_of_measurement: °C
+  env_alert_cooldown_min:
+    name: 環境通知同項目冷卻（分）
+    min: 5
+    max: 240
+    step: 5
+    initial: 30
+    mode: box
+input_text:
+  env_alert_cd:
+    name: 環境異常通知冷卻記錄（內部）
+    max: 255
+    icon: mdi:alert-circle-check-outline

@@ -1,0 +1,76 @@
+# 平日／假日判斷（V4.1.0，2026-10-10；B／項目 4、7）
+# 資料來源：Workday 整合（類別只用 government＝政府放假日；workday 類別是不放假的紀念日清單，不可用）。
+# 週六補班：函式庫沒有補班資料，請在 input_text.tw_makeup_workdays 填入補班日期（逗號分隔，格式 2027-02-13），該日視為上班日。
+# 介面：script.tw_day_type（date → {"day_type": "workday"|"holiday"}）、sensor.tw_day_type_today／tomorrow。
+input_text:
+  tw_makeup_workdays:
+    name: 補班日（逗號分隔 YYYY-MM-DD）
+    max: 255
+    icon: mdi:calendar-edit
+script:
+  tw_day_type:
+    alias: 查詢日期是平日或假日
+    mode: parallel
+    max: 10
+    fields:
+      date:
+        description: 日期 YYYY-MM-DD（空白＝今天）
+        example: "2026-10-12"
+    sequence:
+      - variables:
+          d: "{{ (date | default('', true)) if (date | default('', true)) != '' else now().date() | string }}"
+      - action: workday.check_date
+        target:
+          entity_id: binary_sensor.workday_sensor
+        data:
+          check_date: "{{ d }}"
+        response_variable: r
+        continue_on_error: true
+      - variables:
+          lib: "{{ r['binary_sensor.workday_sensor'].workday if (r is defined and r is mapping and 'binary_sensor.workday_sensor' in r) else none }}"
+          wd: "{{ (d | as_datetime).weekday() if d is string else 0 }}"
+          makeup: "{{ d in (states('input_text.tw_makeup_workdays') | replace(' ','') ).split(',') }}"
+          fallback: "{{ lib is none }}"
+          is_work: "{{ makeup or (lib if lib is not none else (wd < 5)) }}"
+          result: >-
+            {{ {'day_type': 'workday' if is_work else 'holiday', 'fallback': fallback, 'makeup': makeup} }}
+      - stop: ok
+        response_variable: result
+template:
+  - triggers:
+      - trigger: time
+        at: "00:05:00"
+      - trigger: time_pattern
+        minutes: "/30"
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+      - trigger: state
+        entity_id: input_text.tw_makeup_workdays
+    actions:
+      - action: script.tw_day_type
+        data:
+          date: "{{ now().date() }}"
+        response_variable: today
+      - action: script.tw_day_type
+        data:
+          date: "{{ (now() + timedelta(days=1)).date() }}"
+        response_variable: tomorrow
+    sensor:
+      - name: 今日日型
+        unique_id: v41_tw_day_type_today
+        default_entity_id: sensor.tw_day_type_today
+        icon: mdi:calendar-today
+        state: "{{ today.day_type }}"
+        attributes:
+          fallback: "{{ today.fallback }}"
+          date: "{{ now().date() }}"
+      - name: 明日日型
+        unique_id: v41_tw_day_type_tomorrow
+        default_entity_id: sensor.tw_day_type_tomorrow
+        icon: mdi:calendar-arrow-right
+        state: "{{ tomorrow.day_type }}"
+        attributes:
+          fallback: "{{ tomorrow.fallback }}"
+          date: "{{ (now() + timedelta(days=1)).date() }}"

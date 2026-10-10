@@ -4,7 +4,7 @@
 # 更新紀錄（統一格式）：
 # - V4.0.0：頂樓感應優化 P3 重寫。開燈：攝影機／PIR 右／arrive_up／down_start；深夜（頂樓熟睡手動鎖）樓梯燈 50% 2700K，其他時段不指定亮度；
 #           關燈改依 08-5J 動線事件（抵達目的地 15 秒後 4F→5F 漸進關、下樓 5F 先關、樓梯口清空、保底 2:30 有人則續），
-#           且只關「感應自己開的」燈（手動、9B、情境開的，或 5 分鐘手動保持、9A 常開都不關）；不再碰書房燈；坎燈深夜不動。
+#           且只關「感應自己開的」燈（手動、9B、情境開的，或 5 分鐘手動保持、9A 常開都不關；手動保護期過後人走動感應會自動接管標記為 auto）；不再碰書房燈；坎燈深夜不動。
 # - V4.0.0：頂樓感應優化 P1：自動關閉流程不再關閉書房燈（原本會在使用者坐在書房時被書房 PIR 觸發而誤關，造成書房燈反覆閃爍）；書房燈改由 08-5G 負責。
 # - V3.4.6：修補版；為自動關閉流程加入 max_exceeded: silent，抑制 22 秒動態監聽期間重複觸發產生之 Already running 警告日誌。
 # - V3.4.5：動態置空救援版；徹底解決無線 Webhook 偶發性漏抓痛點。
@@ -119,6 +119,16 @@
                         target:
                           entity_id: "light.yeelink_color5_{{ repeat.item.k }}_light"
                         continue_on_error: true
+            else:
+              # 燈已在亮著：若手動保護計時已過（或中斷閒置）且非 9A 常開，感應直接接管該燈，避免成為關不掉的孤兒燈
+              - if: >-
+                  {{ is_state('input_boolean.topfloor_stairs_keep_on', 'off')
+                     and is_state('timer.topfloor_stairs_manual_hold', 'idle')
+                     and is_state('input_boolean.topfloor_' ~ repeat.item.k ~ '_auto', 'off') }}
+                then:
+                  - action: input_boolean.turn_on
+                    target:
+                      entity_id: "input_boolean.topfloor_{{ repeat.item.k }}_auto"
     - if: "{{ was_night and not night }}"
       then:
         - action: input_boolean.turn_off
@@ -272,7 +282,7 @@
     樓梯燈還是深夜亮度（旗標「上次為深夜亮度」開啟）時，只要熟睡鎖已解除：
     ① 熟睡鎖從 on 變 off → 立刻把亮著的樓梯燈調成平常亮度／色溫；
     ② 樓梯燈被打開（傳統牆壁開關、HomeKit、App 等任何來源）→ 把那盞燈調成平常亮度／色溫。
-    調整完旗標清掉（另一盞還亮著時，等它也調整完才清）。實體按鈕與感應開燈已各自處理，這裡只補其他來源。
+    兩盞都已亮著並調整完才清旗標；燈還關著時保留旗標，下次感應或開燈再調成平常亮度（修正：原本熟睡鎖解除時燈關著也會清旗標，燈泡就卡在深夜亮度；2026-10-10 重新套用，先前被覆蓋）。實體按鈕與感應開燈已各自處理，這裡只補其他來源。
   mode: queued
   max: 4
   max_exceeded: silent
@@ -318,7 +328,7 @@
                     data:
                       key: "{{ repeat.item }}"
     - if: >-
-        {{ is_state('light.yeelink_color5_0fb7_light', 'off') or is_state('light.yeelink_color5_13b8_light', 'off') or trigger.id == 'lock_off' }}
+        {{ is_state('light.yeelink_color5_0fb7_light', 'on') and is_state('light.yeelink_color5_13b8_light', 'on') }}
       then:
         - action: input_boolean.turn_off
           target:

@@ -2,6 +2,7 @@
 # 104-4車庫回家通知系統AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - 2026-10-10：「車庫沒人」條件改為只排除持續超過 2 分鐘的有人訊號（Wi-Fi 在家判斷、攝影機人員偵測）；剛到車庫門口 2 分鐘內才變成有人不再擋下通知（原本開車回家時攝影機先看到人，通知被誤擋）。
 # - V4.0.0：廣播改為同時播放：客廳 HomePod、車庫攝影機喇叭、頂樓 HomePod、頂樓攝影機喇叭（統一廣播 player 支援清單）。
 # - V4.0.0：新增。在家情境（網關在家模式，非離家／晚安）且頂樓熟睡手動鎖關閉時，車庫鐵門被「非實體按鈕」打開（遙控器、車用遙控、
 #           HomeKit／App 等；由 HA 自動化發出的開門不算，例如 104 鐵門開關V2 實體按鈕、車牌辨識 104-2）→ 重要級廣播「有人即將到家，車庫鐵門正在打開」（語音 2 次、提示音 1 次），
@@ -46,16 +47,15 @@
       state: "off"
     # 車庫沒人：專用實體（家人手機連到車庫 AP 的在家位置判斷）與車庫攝影機人員偵測，任一個判斷有人就視為有人、不通知
     # （攝影機感測器常為 unavailable，所以用「不是 on」判斷，避免因為離線而永遠不通知）
-    - condition: not
-      conditions:
-        - condition: state
-          entity_id: binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan
-          state: "on"
-    - condition: not
-      conditions:
-        - condition: state
-          entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-          state: "on"
+    # 只把「持續超過 2 分鐘」的有人訊號當成車庫有人；2 分鐘內才剛變成有人（例如開車回到家、人剛到車庫門口）不擋通知
+    - condition: template
+      value_template: >-
+        {% set e = states.binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan %}
+        {{ e is none or e.state != 'on' or (now() - e.last_changed).total_seconds() < 120 }}
+    - condition: template
+      value_template: >-
+        {% set e = states.binary_sensor.che_ku_she_ying_ji_person_detected %}
+        {{ e is none or e.state != 'on' or (now() - e.last_changed).total_seconds() < 120 }}
     # 非自動化發出的開門（實體按鈕走 104鐵門開關V2 自動化，context 會帶 parent_id）
     - condition: template
       value_template: "{{ trigger.to_state.context.parent_id is none }}"

@@ -9,6 +9,10 @@
 #           input_boolean / timer 已排除 HomeKit 橋接器。
 # ────────────────────────────────────────────────────────
 input_datetime:
+  topfloor_night_light_started:
+    name: 頂樓_夜燈情境開啟時間
+    has_date: true
+    has_time: true
   topfloor_cam_last_on:
     name: 頂樓_攝影機最後有人
     has_date: true

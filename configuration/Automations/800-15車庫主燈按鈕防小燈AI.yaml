@@ -1,0 +1,62 @@
+# ──────────────────────────────────────────────
+# 800-開關系列-15 車庫主燈按鈕-單擊切換（5 秒防小燈）AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.1（2026-10-10）：修正 5 秒內再按時的等待秒數樣板（max 過濾器不能用在單一數值，燈沒開）。
+# - V4.1.1（2026-10-10）：修正等待秒數樣板（float 不能直接用 max 過濾器，導致 5 秒內再按時報錯、燈沒開）。
+# - V4.1.0（2026-10-10）：新增。車庫主燈剛關閉不到 5 秒就再通電，燈具硬體會切到「小燈」模式（104-1 感應開燈已有 5 秒保護）。
+#           實體按鈕若直接動繼電器就擋不住，所以把「車庫主燈」按鈕改成無線模式（switch.che_ku_zhu_deng_wireless_switch_enabled = on），
+#           單擊只送事件，由這支自動化切換：燈亮著→關燈；燈關著→開燈，但距離上次關燈不到 5 秒就等補滿 5 秒再開
+#           （5 秒內連續多次點擊都只會等到補滿後開一次＝延長打開，不會又切成小燈）。
+#           切換前先寫手動標記 input_text.terncy_btn_last，讓 104-1 把這次關燈當成手動關燈（啟動冷卻）。
+# ──────────────────────────────────────────────
+- id: ai_800_15_garage_main_button_small_light_guard
+  alias: 800-開關系列-15 車庫主燈按鈕-單擊切換（5 秒防小燈）AI (V4.1.1)
+  description: >
+    車庫主燈按鈕（Terncy 車庫主燈，無線模式）單擊：亮著就關；關著就開，但離上次關燈不到 5 秒時，等補滿 5 秒再開，
+    避免燈具切到小燈模式。5 秒內連續點擊視為同一次「延長打開」。
+  mode: restart
+  max_exceeded: silent
+  variables:
+    light: switch.che_ku_zhu_deng
+    min_off_sec: 5.1
+  triggers:
+    - trigger: state
+      alias: "[按鈕] 車庫主燈 單擊"
+      entity_id: event.che_ku_zhu_deng_single_press
+  conditions:
+    - alias: "事件是剛發生的 (5 秒內)，避免重啟還原舊事件"
+      condition: template
+      value_template: >-
+        {{ trigger.to_state is not none
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+    - alias: "燈可控制"
+      condition: template
+      value_template: "{{ states(light) in ['on', 'off'] }}"
+  actions:
+    - alias: "標記這次是按鈕手動操作（104-1 據此啟動手動關燈冷卻）"
+      action: input_text.set_value
+      target:
+        entity_id: input_text.terncy_btn_last
+      data:
+        value: "{{ light }}|{{ as_timestamp(now()) | int }}"
+    - choose:
+        - alias: "燈亮著 → 關燈"
+          conditions: "{{ is_state(light, 'on') }}"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: "{{ light }}"
+      default:
+        - alias: "燈關著 → 距離上次關燈不到 5 秒就等補滿，再開燈"
+          if:
+            - condition: template
+              value_template: >-
+                {{ (as_timestamp(now()) - as_timestamp(states[light].last_changed, 0)) < min_off_sec }}
+          then:
+            - delay:
+                seconds: >-
+                  {{ [((min_off_sec - (as_timestamp(now()) - as_timestamp(states[light].last_changed, 0))) | round(1, 'ceil')), 0.5] | max }}
+        - action: switch.turn_on
+          target:
+            entity_id: "{{ light }}"

@@ -29,10 +29,9 @@
   - data:
       source: 07-1空氣清淨機自動通知
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n  {\n      \"type\": \"text\",\n      \"text\": \"【智慧家庭通知】一般 General\
-        \ \U0001FAA7\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"偵測到空氣品質變差\U0001F7E1\
-        ，\\n將自動啟動空氣清淨機。\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"\
-        自動啟動空氣清淨機\"\n  }\n]\n"
+      payload: "[\n  {\n      \"type\": \"text\",\n      \"text\": \"【智慧家庭通知】一般 General
+        \U0001FAA7\"\n  },\n  {\n      \"type\": \"text\",\n      \"text\": \"偵測到空氣品質變差\U0001F7E1，\\n將自動啟動空氣清淨機。\"\n
+        \ },\n  {\n      \"type\": \"text\",\n      \"text\": \"自動啟動空氣清淨機\"\n  }\n]\n"
     enabled: false
     action: script.send_line_to_user
   - action: script.announce
@@ -62,12 +61,11 @@
     - parallel:
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-            【災防系統通知】一般 General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n\
-            \      },\n      {\n\n           \"type\":\"text\",\n          \"text\"\
-            :\" 地震報告收到以下中央氣象局訊息:\"\n\n       },\n      {\n          \"type\":\"text\"\
-            ,\n          \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n\
-            \  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+            General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
+            \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+            states('sensor.earthquake') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -76,8 +74,8 @@
           source: 01地震災害系統
           version: V4.0.0
           title: 地震報告
-          message: "地震報告收到以下中央氣象局訊息: \n(同步發送至廣播與LINE)\n{{ states('sensor.earthquake')\
-            \ }}"
+          message: "地震報告收到以下中央氣象局訊息: \n(同步發送至廣播與LINE)\n{{ states('sensor.earthquake')
+            }}"
         action: script.notify_dispatch
       - sequence:
         - data:
@@ -103,11 +101,28 @@
   mode: single
 - id: '1644398312711'
   alias: 05A緊急模式
-  description: 照明設備全開，電器全關。
-  triggers: []
+  description: 照明設備全開，電器全關，開啟上樓情境。
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+    to: 'on'
   conditions: []
   actions:
+  - alias: V4.1 緊急模式快照（先存狀態，供誤觸還原；失敗不影響下面的緊急動作）
+    action: script.emergency_snapshot_save
+    continue_on_error: true
   - parallel:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+    - action: timer.start
+      target:
+        entity_id: timer.topfloor_lock_after_up
+      data:
+        duration: 90
     - data: {}
       target:
         entity_id: cover.garage
@@ -172,11 +187,10 @@
     - data:
         source: 05A緊急模式
         user_id: C26ff4e9d30159ba5264a1676f46f8f86
-        payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-          【智慧家庭通知】緊急\\nUrgent ‼️\"\n      },\n      {\n          \"type\":\"text\"\
-          ,\n          \"text\":\"\U0001F198\\n緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n      },\n\
-          \      {\n          \"type\":\"text\",\n\n           \"text\":\"【緊急 Urgent\
-          \ ‼️】\U0001F198 緊急模式\"\n      }\n  ]\n"
+        payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】緊急\\nUrgent
+          ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198\\n緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
+          \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【緊急
+          Urgent ‼️】\U0001F198 緊急模式\"\n      }\n  ]\n"
       enabled: false
       action: script.send_line_to_user
     - repeat:
@@ -236,11 +250,11 @@
     action: script.notify_dispatch
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般\
-        \ General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n    \
-        \  },\n\n       {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\
-        \n\n       },\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-        {{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n
+        \      {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.announce
@@ -267,19 +281,18 @@
   - data:
       source: 02地震災害系統 (按鈕)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\
-        \ Urgent ‼️\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n \
-        \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\
-        \      },\n\n       {\n          \"type\":\"text\",\n          \"text\":\"\
-        {{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急
+        Urgent ‼️\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
+        \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+        \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.announce
     data:
       level: emergency
       chime: false
-      message: "{{ \"地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: \"\n   ~ states('sensor.earthquake')\n\
-        \   ~ \" 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\" }}"
+      message: "{{ \"地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: \"\n   ~ states('sensor.earthquake')\n
+        \  ~ \" 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\" }}"
   mode: single
 - id: '1645805324997'
   alias: 100晚安情境
@@ -462,11 +475,10 @@
   - data:
       source: 07-2空氣嚴重通知
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\
-        \ General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\
-        \          \"text\":\"請注意，\\n偵測到空氣品質較差\U0001F7E0，\\n將自動啟動空氣清淨機。\"\n      },\n\
-        \      {\n          \"type\":\"text\",\n\n           \"text\":\"【一般 General\
-        \ \U0001FAA7】\\n空氣品質異常\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質較差\U0001F7E0，\\n將自動啟動空氣清淨機。\"\n
+        \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【一般
+        General \U0001FAA7】\\n空氣品質異常\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.notify_dispatch
@@ -514,11 +526,10 @@
   - data:
       source: 07-3空氣嚴重通知 (嚴重)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\
-        \ General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\
-        \          \"text\":\"請注意，\\n偵測到空氣品質非常差\U0001F534，\\n將自動啟動空氣清淨機，\\n並加強運作❗。\"\
-        \n      },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"\
-        【一般 General \U0001FAA7】\\n空氣品質異常差 \U0001F534\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"請注意，\\n偵測到空氣品質非常差\U0001F534，\\n將自動啟動空氣清淨機，\\n並加強運作❗。\"\n
+        \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【一般
+        General \U0001FAA7】\\n空氣品質異常差 \U0001F534\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.notify_dispatch
@@ -577,12 +588,10 @@
       entity_id: media_player.ke_ting_homepod
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般\
-        \ General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\
-        \          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\\
-        n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n       },\n      {\n         \
-        \ \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\
-        \n\n       }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n\n
+        \      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -613,17 +622,32 @@
   condition: []
   action:
   - if:
-    - condition: time
-      after: 06:00:00
-      before: '17:00:00'
-      weekday:
-      - sat
-      - fri
-      - thu
-      - wed
-      - tue
-      - mon
-      - sun
+    - condition: or
+      conditions:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'on'
+        - condition: state
+          entity_id: binary_sensor.scene_morning_window
+          state: 'on'
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'off'
+        - condition: time
+          after: 06:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
     then:
     - service: automation.trigger
       data:
@@ -660,9 +684,9 @@
                 media_content_type: audio/mpeg
                 metadata:
                   title: airport.mp3
-                  thumbnail: null
+                  thumbnail:
                   media_class: music
-                  children_media_class: null
+                  children_media_class:
                   navigateIds:
                   - {}
                   - media_content_type: app
@@ -726,9 +750,9 @@
                 media_content_type: audio/mpeg
                 metadata:
                   title: airport.mp3
-                  thumbnail: null
+                  thumbnail:
                   media_class: music
-                  children_media_class: null
+                  children_media_class:
                   navigateIds:
                   - {}
                   - media_content_type: app
@@ -781,11 +805,10 @@
         action: media_player.volume_set
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-            【智慧保全通知】重要 Important ❗\"\n      },\n      {\n          \"type\":\"text\"\
-            ,\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\
-            \n\n       },\n      {\n          \"type\":\"text\",\n          \"text\"\
-            :\"【重要 Important ❗】\\n \U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
+            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
+            Important ❗】\\n \U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -814,11 +837,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-            【智慧保全通知】重要 Important ❗\"\n      },\n      {\n          \"type\":\"text\"\
-            ,\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\
-            \n\n       },\n      {\n          \"type\":\"text\",\n          \"text\"\
-            :\"【重要 Important ❗】\\n\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
+            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
+            Important ❗】\\n\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -869,11 +891,10 @@
   actions:
   - data:
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般\
-        \ General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n\
-        \          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\
-        \n       },\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-        ⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n       }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
+        \      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - data:
@@ -918,13 +939,13 @@
   max_exceeded: silent
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"29a8530c569abeeee2a16c7237a0ed8e\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"29a8530c569abeeee2a16c7237a0ed8e\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: input_text.set_value
     target:
@@ -933,17 +954,32 @@
       value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
         is defined) else '''' }}'
   - if:
-    - condition: time
-      after: 06:00:00
-      before: '17:00:00'
-      weekday:
-      - sat
-      - fri
-      - thu
-      - wed
-      - tue
-      - mon
-      - sun
+    - condition: or
+      conditions:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'on'
+        - condition: state
+          entity_id: binary_sensor.scene_morning_window
+          state: 'on'
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'off'
+        - condition: time
+          after: 06:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
     then:
     - service: automation.trigger
       data:
@@ -1030,13 +1066,13 @@
   max_exceeded: silent
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"cca5b7ed73a48ddcd08d2b6fac6ab5d6\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"cca5b7ed73a48ddcd08d2b6fac6ab5d6\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - service: light.toggle
     target:
@@ -1075,13 +1111,13 @@
   max_exceeded: silent
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"d6e4551be6bf3fd520f5111e4f02a6cf\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"d6e4551be6bf3fd520f5111e4f02a6cf\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - service: light.toggle
     target:
@@ -1175,13 +1211,13 @@
       click_times: 2
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"2b1b9cbffff070f62f05d5f073a16213\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"2b1b9cbffff070f62f05d5f073a16213\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: input_text.set_value
     target:
@@ -1190,17 +1226,32 @@
       value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
         is defined) else '''' }}'
   - if:
-    - condition: time
-      after: 06:00:00
-      before: '17:00:00'
-      weekday:
-      - sat
-      - fri
-      - thu
-      - wed
-      - tue
-      - mon
-      - sun
+    - condition: or
+      conditions:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'on'
+        - condition: state
+          entity_id: binary_sensor.scene_morning_window
+          state: 'on'
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'off'
+        - condition: time
+          after: 06:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
     then:
     - data:
         skip_condition: true
@@ -1327,13 +1378,13 @@
       click_times: 1
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"e35da29662b08cf4ced829f5eb40f179\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"e35da29662b08cf4ced829f5eb40f179\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: script.stage_scene
     data:
@@ -1404,10 +1455,6 @@
     event_type: terncy_long_press
     event_data:
       device_id: 813b3dcce6997d06a893274a9dd365c6
-  - trigger: event
-    event_type: terncy_long_press
-    event_data:
-      device_id: ea7743a9b14b9ce736fb645578dc59db
   conditions: []
   actions:
   - action: input_boolean.turn_off
@@ -1494,6 +1541,22 @@
   max_exceeded: silent
   conditions: []
   actions:
+  - alias: 車庫主燈剛關不到 5 秒就先等補滿 5 秒（避免燈具切到小燈模式；5 秒內連續雙擊視為同一次）
+    if:
+    - condition: state
+      entity_id: switch.che_ku_zhu_deng
+      state: 'off'
+    - condition: template
+      value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}"
+    then:
+    - delay:
+        seconds: "{{ [((5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil')), 0.5] | max }}"
+  - action: input_text.set_value
+    alias: 標記這次是按鈕手動切換（104-1 據此啟動手動關燈冷卻）
+    target:
+      entity_id: input_text.terncy_btn_last
+    data:
+      value: switch.che_ku_zhu_deng,switch.lou_ti_deng|{{ now().timestamp() | int }}
   - service: switch.toggle
     target:
       entity_id:
@@ -1523,13 +1586,13 @@
       device_id: 6f569070d383724fefd1af44770b6f20
   conditions:
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"011d0fc36adf6381e82c6f7e0f130d49\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"011d0fc36adf6381e82c6f7e0f130d49\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: automation.trigger
     data:
@@ -1578,11 +1641,10 @@
         action: media_player.volume_set
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-            【災防系統通知】緊急\\nUrgent ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n\
-            \      {\n\n           \"type\":\"text\",\n          \"text\":\" 政府發布疏散避難警報:\"\
-            \n      },\n\n       {\n          \"type\":\"text\",\n          \"text\"\
-            :\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1663,11 +1725,10 @@
           - media_player.ke_ting_homepod
       - data:
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"\
-            【災防系統通知】緊急\\nUrgent ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n\
-            \      {\n\n           \"type\":\"text\",\n          \"text\":\" 政府發布疏散避難警報:\"\
-            \n      },\n\n       {\n          \"type\":\"text\",\n          \"text\"\
-            :\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
@@ -1746,8 +1807,8 @@
   - platform: state
     entity_id:
     - input_boolean.wu_lou_she_ying_ji_kai_guan
-    from: null
-    to: null
+    from:
+    to:
   condition: []
   action:
   - if:
@@ -1964,14 +2025,14 @@
   alias: 09B-Homepod Sensor sync
   description: Processes temperature and humidity data from the HomePod Mini
   triggers:
-  - minutes: /1
+  - minutes: /2
     id: time
     trigger: time_pattern
   actions:
   - data: {}
-    target:
-      entity_id: input_boolean.collection_of_homekit_sensors
     action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.collection_of_homepod_sensors
   - delay: 00:00:05
     enabled: false
   - data: {}
@@ -2275,12 +2336,12 @@
   - platform: state
     entity_id:
     - remote.ke_ting_homepod
-    from: null
+    from:
     to: 'off'
   - platform: state
     entity_id:
     - remote.ding_lou_homepod
-    from: null
+    from:
     to: 'off'
   condition: []
   action:
@@ -2518,6 +2579,106 @@
     event_data:
       device_id: 277ae0fd30a39c811624da70e6a4398f
       click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: cb46a8bbc8b73c8f84646d615e931f59
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2cd4a08c8687f653e4659d4dfee03c58
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e46ea708c9a09fdfb4c8e5a78e5dce9d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 23213e27cbbb873d03a577bb44ca9330
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad257501722db4a9188b3bb663665750
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 250978f23ba49e53c979a834ce7e50d7
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6256612c9865ec25d6ae9c6285e9441f
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea3408d6ef04109c00c4afb7cbf3a33d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 44c7656c22bb115f6b7bc0f5d3c296d3
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: b35f650c0170dd1d8c0595328a322e68
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 1e6510c64936ff439cceea396afad592
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 956ca79460bffbed56b7e4054d634e81
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2821ac273d1c418615446028b4469d35
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 8c04929f859cd9095bbe203958b6995b
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 601d3693eed2fb67eadb00c79ae1fb8e
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 65af587102927fe6731553692d88c0e8
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: d46328058f0684808b29afc8a02057c3
+      click_times: 3
   - device_id: 8a3a83db44f3e7851c3178495daa7b85
     domain: xiaomi_gateway3
     type: action
@@ -2553,13 +2714,13 @@
     value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_11a_single'',
       ''last_triggered'') | default(0))) > (1) }}'
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"9e8508d9a5b67b29b78e5e8f36a377da\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"9e8508d9a5b67b29b78e5e8f36a377da\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: switch.toggle
     target:
@@ -2743,13 +2904,13 @@
     value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12a_ding_lou_lou_ti_deng_dan_ji'',
       ''last_triggered'') | default(0))) > (1) }}'
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"ea7743a9b14b9ce736fb645578dc59db\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"ea7743a9b14b9ce736fb645578dc59db\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - parallel:
     - action: script.topfloor_stairs_button_toggle
@@ -2775,13 +2936,13 @@
     value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12b'',
       ''last_triggered'') | default(0))) > (1) }}'
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"ad6e414dc8c87f8bb9deb125b792af19\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"ad6e414dc8c87f8bb9deb125b792af19\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: script.topfloor_stairs_button_toggle
     data:
@@ -2832,13 +2993,13 @@
     value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12d'',
       ''last_triggered'') | default(0))) > (1) }}'
   - condition: template
-    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined\
-      \ and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id\
-      \ is defined) else \"e784cc0dd2d58c48f1fb69e51601d2b3\" %}\n{% set btn_events\
-      \ = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{%\
-      \ if btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,\
-      \ 'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()\
-      \ > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"e784cc0dd2d58c48f1fb69e51601d2b3\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - parallel:
     - action: script.topfloor_stairs_button_toggle
@@ -2909,15 +3070,14 @@
       ['''', ''off'', ''unknown'', ''unavailable'', none]) | list | count > 0 }}'
   actions:
   - variables:
-      cube_action: "{% set raw = trigger.to_state.state if trigger.to_state is not\
-        \ none else '' %} {% set attr_action = trigger.to_state.attributes.action\
-        \ if trigger.to_state is not none and trigger.to_state.attributes.action is\
-        \ defined else '' %} {% set attr_action_type = trigger.to_state.attributes.action_type\
-        \ if trigger.to_state is not none and trigger.to_state.attributes.action_type\
-        \ is defined else '' %} {% if raw not in ['', 'off', 'on', 'unknown', 'unavailable']\
-        \ %}\n  {{ raw }}\n{% elif attr_action not in ['', 'off', 'on', 'unknown',\
-        \ 'unavailable'] %}\n  {{ attr_action }}\n{% else %}\n  {{ attr_action_type\
-        \ }}\n{% endif %}"
+      cube_action: "{% set raw = trigger.to_state.state if trigger.to_state is not
+        none else '' %} {% set attr_action = trigger.to_state.attributes.action if
+        trigger.to_state is not none and trigger.to_state.attributes.action is defined
+        else '' %} {% set attr_action_type = trigger.to_state.attributes.action_type
+        if trigger.to_state is not none and trigger.to_state.attributes.action_type
+        is defined else '' %} {% if raw not in ['', 'off', 'on', 'unknown', 'unavailable']
+        %}\n  {{ raw }}\n{% elif attr_action not in ['', 'off', 'on', 'unknown', 'unavailable']
+        %}\n  {{ attr_action }}\n{% else %}\n  {{ attr_action_type }}\n{% endif %}"
   - choose:
     - conditions:
       - condition: template
@@ -3010,17 +3170,32 @@
           }}'
       sequence:
       - if:
-        - condition: time
-          after: 05:00:00
-          before: '17:00:00'
-          weekday:
-          - sat
-          - fri
-          - thu
-          - wed
-          - tue
-          - mon
-          - sun
+        - condition: or
+          conditions:
+          - condition: and
+            conditions:
+            - condition: state
+              entity_id: input_boolean.scene_window_use_sun
+              state: 'on'
+            - condition: state
+              entity_id: binary_sensor.scene_morning_window
+              state: 'on'
+          - condition: and
+            conditions:
+            - condition: state
+              entity_id: input_boolean.scene_window_use_sun
+              state: 'off'
+            - condition: time
+              after: 05:00:00
+              before: '17:00:00'
+              weekday:
+              - sat
+              - fri
+              - thu
+              - wed
+              - tue
+              - mon
+              - sun
         then:
         - data:
             skip_condition: true
@@ -3091,5 +3266,158 @@
       target:
         entity_id: automation.101li_jia_qing_jing
       action: automation.trigger
+  mode: single
+  max_exceeded: silent
+- id: '1747918900001'
+  alias: 800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境
+  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，點亮頂樓樓梯燈，重設鎖定
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+      click_times: 2
+  - trigger: state
+    entity_id:
+    - event.wu_lou_kai_guan_xia_2_double_press
+    - event.si_lou_lou_ti_kai_guan_shang_2_double_press
+    - event.ding_lou_lou_ti_deng_double_press
+  conditions:
+  - condition: template
+    value_template: >-
+      {% if trigger.to_state is defined and trigger.to_state is not none %}
+        {{ trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+      {% else %}
+        true
+      {% endif %}
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+  - action: timer.start
+    target:
+      entity_id: timer.topfloor_lock_after_up
+    data:
+      duration: 90
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.topfloor_debug_last_decision
+    data:
+      value: 手動上樓情境（按鍵雙擊）
+  - action: homeassistant.turn_on
+    target:
+      entity_id:
+      - switch.ding_lou_lou_ti_deng
+      - light.yeelink_color5_0fb7_light
+      - light.yeelink_color5_13b8_light
+    continue_on_error: true
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1747918900002'
+  alias: 800-開關系列-12F 頂樓與四樓開關-長按下樓情境
+  description: 頂樓開關下2與四樓上開關長按觸發下樓情境，清除熟睡鎖，關閉樓梯間燈
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+  - trigger: state
+    entity_id:
+    - event.wu_lou_kai_guan_xia_2_long_press
+    - event.si_lou_lou_ti_kai_guan_shang_2_long_press
+    - event.ding_lou_lou_ti_deng_long_press
+  conditions:
+  - condition: template
+    value_template: >-
+      {% if trigger.to_state is defined and trigger.to_state is not none %}
+        {{ trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+      {% else %}
+        true
+      {% endif %}
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+  - action: input_boolean.turn_off
+    target:
+      entity_id:
+      - input_boolean.ding_lou_shang_lou_qing_jing
+      - input_boolean.sleep_silent_active
+  - action: timer.start
+    target:
+      entity_id: timer.topfloor_lock_after_down
+    data:
+      duration: 90
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.topfloor_debug_last_decision
+    data:
+      value: 手動下樓情境（按鍵長按）
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.topfloor_stairs_keep_on
+    continue_on_error: true
+  - action: timer.cancel
+    target:
+      entity_id: timer.topfloor_stairs_manual_hold
+    continue_on_error: true
+  - action: script.stage_scene
+    data:
+      scene: stairs_off
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined and trigger.event.data is defined) else "" }}'
+    continue_on_error: true
+  - delay: '00:00:00.5'
   mode: single
   max_exceeded: silent

@@ -1,0 +1,27 @@
+# ──────────────────────────────────────────────
+# 05F緊急模式快照到期AI (V4.1.0)
+# 更新紀錄：
+# - V4.1.0（2026-10-10）：新增。快照 2 小時到期（timer.emergency_snapshot_expire finished）或 HA 重啟後計時器已不在時，把 emergency_snapshot_valid 關閉。
+# ──────────────────────────────────────────────
+- id: ai_05f_emergency_snapshot_expire_v41
+  alias: 05F緊急模式快照到期AI (V4.1.0)
+  description: 快照到期後清除有效旗標。
+  mode: single
+  triggers:
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.emergency_snapshot_expire
+      id: finished
+    - trigger: homeassistant
+      event: start
+      id: start
+  actions:
+    - if:
+        - condition: template
+          value_template: >-
+            {{ trigger.id == 'finished' or (trigger.id == 'start' and not is_state('timer.emergency_snapshot_expire', 'active')) }}
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.emergency_snapshot_valid

@@ -1,0 +1,68 @@
+# ──────────────────────────────────────────────
+# 08-9Terncy無線開關單擊切換AI (V4.1.1)
+# 相容版本：Helpers V4.1.0（需 packages/terncy_buttons.yaml）
+# 更新紀錄：
+# - V4.1.1（2026-10-10）：移除 event.che_ku_zhu_deng_single_press。車庫主燈按鈕由 800-15 專門處理，兩支同時切換造成「按一下開了又關」（2 毫秒內 on→off）。
+# - V4.1.0（2026-10-09）：新增。Terncy 按鈕開啟「無線開關」(wireless_switch_enabled) 後，單擊只送事件、不再直接帶動
+#           繼電器，牆壁開關會失效。本自動化在單擊事件時代為切換同一顆按鈕的繼電器 switch，恢復原本手感。
+#           雙擊 / 長按不處理（既有 terncy_pressed click_times 2、3 與 terncy_long_press 自動化照舊）。
+# ──────────────────────────────────────────────
+- id: ai_08_9_terncy_wireless_single_toggle
+  alias: 08-9Terncy無線開關單擊切換AI (V4.1.1)
+  description: >
+    17 顆仍接實體燈具（繼電器可由 HA 控制）的 Terncy 按鈕：已開啟無線開關模式時，單擊即切換該按鈕的繼電器 switch。
+    只在「該按鈕無線開關為 on」時動作（無線關閉時繼電器本身會切換，再切一次會抵銷）。
+    切換前把「實體 id|時間」寫入 input_text.terncy_btn_last，供 104-1 車庫感應燈判斷這是手動操作（自動化動作的 context 一定有 parent_id）。
+  mode: queued
+  max: 10
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      alias: "[按鈕] Terncy 單擊事件"
+      entity_id:
+        - event.bi_deng_single_press
+        - event.yang_tai_deng_single_press
+        - event.shu_fang_deng_single_press
+        - event.er_san_lou_lou_ti_deng_single_press
+        - event.san_lou_lou_ti_deng_single_press
+        - event.san_si_lou_lou_ti_deng_single_press
+        - event.lou_ti_deng_single_press
+        - event.ce_suo_deng_single_press
+        - event.can_ting_kan_deng_single_press
+        - event.can_ting_bi_deng_single_press
+        # 車庫主燈已由 800-15（5 秒防小燈）專門處理，這裡不再重複切換，否則同一次按下會「開了又關」
+        - event.chu_fang_deng_single_press
+        - event.ke_ting_bi_deng_single_press
+        - event.ke_ting_huan_rao_deng_single_press
+        - event.ke_ting_kan_deng_single_press
+        - event.lu_deng_single_press
+        - event.men_kou_deng_single_press
+  variables:
+    automation_version: "V4.1.1"
+    sw: "{{ 'switch.' ~ (trigger.entity_id | replace('event.', '') | replace('_single_press', '')) }}"
+    wireless: "{{ sw ~ '_wireless_switch_enabled' }}"
+  conditions:
+    # 只處理「剛按下」的事件：重啟後事件實體由 unavailable 還原成舊時間戳，時間太舊會被擋掉
+    - alias: "事件是剛發生的 (5 秒內)"
+      condition: template
+      value_template: >-
+        {{ trigger.to_state is not none
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+    - alias: "該按鈕已是無線開關模式 (否則繼電器自己會切換)"
+      condition: template
+      value_template: "{{ is_state(wireless, 'on') }}"
+    - alias: "繼電器 switch 可控制"
+      condition: template
+      value_template: "{{ states(sw) in ['on', 'off'] }}"
+  actions:
+    - alias: "標記這次是按鈕手動操作"
+      action: input_text.set_value
+      target:
+        entity_id: input_text.terncy_btn_last
+      data:
+        value: "{{ sw }}|{{ as_timestamp(now()) | int }}"
+    - alias: "切換繼電器"
+      action: "switch.turn_{{ 'off' if is_state(sw, 'on') else 'on' }}"
+      target:
+        entity_id: "{{ sw }}"
