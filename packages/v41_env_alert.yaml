@@ -3,6 +3,7 @@
 # env_alert_co_dry_run（預設 on）：on 時「CO 危險自動緊急模式」只發資訊通知＋寫 logbook，絕不呼叫 05A、不設緊急旗標。
 #   要真的接線，必須使用者在場並同意後才能關掉。
 # env_alert_mute：暫停一般／重要通知（緊急不受影響）。
+# 2026-10-10 使用者核准：CO 危險自動緊急模式乾跑預設改關（實際接線）。
 input_boolean:
   env_alert_mute:
     name: 環境異常通知暫停（不含緊急）
@@ -11,7 +12,7 @@ input_boolean:
   env_alert_co_dry_run:
     name: CO 緊急模式乾跑（只通知不觸發）
     icon: mdi:flask-outline
-    initial: true
+    initial: false
 input_number:
   env_co2_l1:
     name: CO2 一般門檻
