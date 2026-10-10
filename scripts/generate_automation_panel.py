@@ -21,6 +21,7 @@ import json
 d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
+GONE={"input_boolean.door_light_auto"}
 # restore_state 會保留已刪除實體最多 7 天；現存實體的 last_seen 都是最近一次寫入時間，只收這一批
 from datetime import datetime
 ts=lambda x: datetime.fromisoformat(x["last_seen"].replace("Z","+00:00")).timestamp()
@@ -28,6 +29,7 @@ newest=max(ts(x) for x in d)
 for x in d:
     if ts(x) < newest - 120: continue
     s=x["state"]; eid=s["entity_id"]
+    if eid in GONE: continue                     # 已刪除但 restore_state 還留著的實體
     if eid.split(".")[0] in doms:
         out.append((eid,s["state"],(s.get("attributes") or {}).get("friendly_name","")))
 print(json.dumps(out,ensure_ascii=False))

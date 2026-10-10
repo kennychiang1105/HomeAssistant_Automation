@@ -600,10 +600,10 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - **手機追蹤 person 化**：`helper.yaml` 的 `at_home_*` 範本優先讀 `person.*`；新增 `sensor.kenny_phone_ap_mac`，頂樓 `08-5F`／`5G`／`5J` 改讀它（V4.0.4／V4.1.3／V4.1.1）；`00-4` 比對新舊判斷；`00-3` 每週巡檢 unavailable＋restored 失效實體（清理 71 個舊空殼）。
 - **日出日落時間窗**：`binary_sensor.scene_morning_window`（日出前 30 分～日落前 60 分，上下限 05:00／18:30，皆可調）；`00-2J`、`105`、`800-0／0B／13`、`106C`、新 `100A` 共用，功能開關 `scene_window_use_sun`（預設開）。
 - **假日判斷**：`sensor.tw_day_type_today／tomorrow`、`script.tw_day_type`（Workday 整合只用 `government` 類別；補班日填 `input_text.tw_makeup_workdays`）。
-- **100A 自動到家／早安 AI 版**（V4.1.0）：具名觸發、依平日／假日最早時間、HomeKit 總開關；**影子模式**（預設只記錄不動作，舊 100A 仍運作）。
-- **熟睡起床搭配國定假日**（`08-5H` V4.3.0）：03:00／05:00、09:30／10:30 改為可調 helper，功能開關 `sleep_holiday_aware`（預設關）。
-- **環境異常通知**（`06` V4.1.0）：CO2／CO／廚房溫度三級、危險感測器、攝影機 CO 警報、感測器失聯；CO 危險自動觸發緊急模式預設**乾跑**。
-- **空氣清淨機整合**（`07` V4.1.0）：單一自動化取代舊 07 系列；**影子模式**（預設只記錄）；手動關機尊重 30 分鐘。
+- **100A 自動到家／早安 AI 版**（V4.1.0）：具名觸發、依平日／假日最早時間、HomeKit 總開關；影子模式（`auto_scene_shadow`）預設已關＝實際運作，舊 100A 已停用（未刪除）。
+- **熟睡起床搭配國定假日**（`08-5H` V4.3.0）：03:00／05:00、09:30／10:30 改為可調 helper，功能開關 `sleep_holiday_aware`（預設開）。
+- **環境異常通知**（`06` V4.1.0）：CO2／CO／廚房溫度三級、危險感測器、攝影機 CO 警報、感測器失聯；CO 危險自動觸發緊急模式已實際接線（`env_alert_co_dry_run` 預設關，可打開改回乾跑）。
+- **空氣清淨機整合**（`07` V4.1.0）：單一自動化取代舊 07 系列；影子模式（`air_ai_shadow`）預設已關＝實際運作，舊 07 系列已停用（未刪除）；手動關機尊重 30 分鐘。
 
 ### 開關與樓梯燈
 - **Terncy 無線開關**（`08-9` V4.1.1）：37 鍵無線模式、單擊切換；雙擊／三擊事件對照表。
@@ -623,13 +623,13 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - 自動化 `reload` 會中斷正在等待中的執行（08-5F 下樓 120 秒等待）——操作面提醒，非程式錯誤。
 
 ### Known Bugs／待實體驗證
-- 影子模式觀察中：`07空氣清淨機整合AI`、`100A自動啟動到家早安情境AI`（`air_ai_shadow`、`auto_scene_shadow` 預設開，關閉前要先停用舊 07 系列與舊 100A）。
-- `env_alert_co_dry_run` 預設開：CO 危險自動緊急模式尚未實測（會開全屋燈、車庫鐵門、響網關警報、解二樓門鎖），需使用者在場同意才關乾跑。
-- 緊急模式快照還原端對端（HomeKit 觸發 → 解除網關警報）尚待使用者在場實測；`sleep_holiday_aware` 預設關、補班週六需手動填日期。
+- 新 `07空氣清淨機整合AI`、`100A自動啟動到家早安情境AI` 已實際運作（使用者核准，未經長時間影子觀察）；舊 07／07-1～07-4／舊 100A 已停用但未刪除，異常時重新打開舊的並把 `air_ai_shadow`／`auto_scene_shadow` 開回即可退回。
+- CO 危險自動緊急模式（`env_alert_co_dry_run` 已關）尚未實測：會開全屋燈、車庫鐵門、響網關警報、解二樓門鎖；誤觸時可按解除網關警報還原。
+- 緊急模式快照還原端對端（HomeKit 觸發 → 解除網關警報）尚未實測；`sleep_holiday_aware` 預設開，補班週六需手動填 `tw_makeup_workdays`。
 - `fan.set_preset_mode: Favorite`（空氣非常嚴重加強運作）需實機確認。
 
 ### Next Version（V4.2 候選）
-- 影子模式驗證後：停用／刪除舊 `07`、`07-1～07-4`、舊 `100A`；刪除 `supply_batt_lowest_*`（9 個）與 `input_text.at_home_*_trackers`、`iphone_tracker_entity_kenny`。
+- 觀察穩定後：刪除已停用的舊 `07`、`07-1～07-4`、舊 `100A`；刪除 `supply_batt_lowest_*`（9 個）與 `input_text.at_home_*_trackers`、`iphone_tracker_entity_kenny`。
 - `08-4客廳大門開啟自動開燈` 改用日落／日出；`auto_scene_enable` 公開給 HomeKit。
 - 補班日資料來源（目前手動填）。
 
