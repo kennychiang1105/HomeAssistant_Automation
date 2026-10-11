@@ -16,7 +16,13 @@ SERVICES = {"turn_on","turn_off","toggle","set_value","reload","trigger","start"
             "decrement","reset","create","write","volume_set","play_media","media_stop","open_cover","close_cover",
             "set_percentage","set_datetime","select_option","snapshot","record","alarm_arm_away","alarm_arm_home",
             "alarm_arm_night","alarm_disarm","alarm_trigger","time_fired","data","brightness","color_temperature",
-            "finished","mode","is_on","is_off","last_changed","speak","press","send_message"}
+            "finished","mode","is_on","is_off","last_changed","speak","press","send_message",
+            # V4.1.6：其他常見服務（action）名稱，不是實體
+            "set_preset_mode","get_forecasts","set_temperature","set_hvac_mode","set_fan_mode","set_speed","set_direction",
+            "oscillate","set_humidity","set_position","open","close","stop","lock","unlock","play","pause_media","media_play",
+            "media_pause","media_next_track","media_previous_track","select_next","select_previous","set_options","remove",
+            "update","check_config","restart","stop_tts","clear","dismiss","mark_read","turn_on_all","set_cover_position",
+            "set_cover_tilt_position","start_pause","return_to_base","locate","set_hvac","set_swing_mode"}
 IGNORE = {"binary_sensor.template_sidebar_update_color"}  # themes.yaml 的樣式變數，不是實體
 pat = re.compile(r"\b(%s)\.([a-z0-9_]+)\b" % DOMAINS)
 
@@ -59,7 +65,11 @@ def defined_in_yaml(e):
     obj = e.split(".", 1)[1]
     return re.search(r"^\s{2,4}%s:\s*$" % re.escape(obj), defined_text, re.M) is not None or ("unique_id: " + obj) in defined_text
 
-missing = sorted((e, sorted(fs)[:3]) for e, fs in refs.items() if e not in known and e not in IGNORE and not defined_in_yaml(e))
+# V4.1.6：只是「前綴」的字串（例如 sensor.chu_fang_..._chu_fang，後面用 ~ '_co2' 組起來）不算實體
+def is_prefix(e):
+    return any(k.startswith(e + "_") for k in known)
+
+missing = sorted((e, sorted(fs)[:3]) for e, fs in refs.items() if e not in known and e not in IGNORE and not defined_in_yaml(e) and not is_prefix(e))
 if "--json" in sys.argv:
     print(json.dumps(missing, ensure_ascii=False))
 elif not missing:

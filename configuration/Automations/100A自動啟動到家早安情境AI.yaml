@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
-# 100A自動啟動到家早安情境AI (V4.1.5)
+# 100A自動啟動到家早安情境AI (V4.1.6)
 # 更新紀錄：
+# - V4.1.6（2026-10-11）：新增通知開關 input_boolean.auto_scene_notify_enable（預設 on，自動化管理面板可關）：關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知；情境照常啟動，logbook 與 input_text.auto_scene_last 照常記錄。
 # - V4.1.5（2026-10-11）：併入「105門鎖自動判斷到家」：新增觸發 lock_home（門鎖 sensor.0x54ef4410007ac23c_lock_event 變成 Away-from-home mode is removed，也就是在門鎖解除離家模式）。
 #   與舊 105 一樣直接依時段啟動早安或到家；差別是現在受總開關、影子模式、3 分鐘防重複、保全不是在家模式限制，所以 Wi-Fi 先觸發過（arrive）或剛離家／晚安時，不會重複啟動。
 #   這個觸發不受「最早啟動時間」與「家裡有活動跡象」限制（人剛解鎖進門，還沒有活動）。舊 105（UI 自動化 id 1691155847932）已刪除。
@@ -16,7 +17,7 @@
 #   影子模式（input_boolean.auto_scene_shadow，預設 on）：只寫 logbook「影子：會觸發 早安/到家（原因）」，不呼叫 101／103；舊 100A 維持啟用不動。
 # ──────────────────────────────────────────────
 - id: ai_100a_auto_arrive_morning_v41
-  alias: 100A自動啟動到家早安情境AI (V4.1.5)
+  alias: 100A自動啟動到家早安情境AI (V4.1.6)
   description: >
     家裡有活動跡象（燈、風扇、鐵門關閉）且保全不是在家模式時，自動啟動早安或到家情境。預設影子模式。
   mode: single
@@ -176,11 +177,16 @@
             entity_id: "{{ 'automation.101zao_an_qing_jing' if is_morning else 'automation.103dao_jia_qing_jing' }}"
           data:
             skip_condition: true
-        - action: script.notify_dispatch
-          data:
-            level: info
-            line: false
-            source: 100A自動啟動到家早安情境AI
-            version: V4.1.5
-            title: "自動啟動{{ scene_name }}情境"
-            message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"
+        - if:
+            - condition: state
+              entity_id: input_boolean.auto_scene_notify_enable
+              state: "on"
+          then:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: 100A自動啟動到家早安情境AI
+                version: V4.1.6
+                title: "自動啟動{{ scene_name }}情境"
+                message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"
