@@ -1,6 +1,9 @@
 # ──────────────────────────────────────────────
 # 100A自動啟動到家早安情境AI (V4.1.5)
 # 更新紀錄：
+# - V4.1.5（2026-10-11）：併入「105門鎖自動判斷到家」：新增觸發 lock_home（門鎖 sensor.0x54ef4410007ac23c_lock_event 變成 Away-from-home mode is removed，也就是在門鎖解除離家模式）。
+#   與舊 105 一樣直接依時段啟動早安或到家；差別是現在受總開關、影子模式、3 分鐘防重複、保全不是在家模式限制，所以 Wi-Fi 先觸發過（arrive）或剛離家／晚安時，不會重複啟動。
+#   這個觸發不受「最早啟動時間」與「家裡有活動跡象」限制（人剛解鎖進門，還沒有活動）。舊 105（UI 自動化 id 1691155847932）已刪除。
 # - V4.1.5（2026-10-11）：「最早啟動時間」由平日 05:30／假日 07:00 改為日出時間（input_boolean.auto_scene_earliest_use_sunrise，預設 on；日出後偏移：工作日 input_number.auto_scene_earliest_sunrise_offset_min 預設 30 分、非工作日 input_number.auto_scene_earliest_sunrise_offset_holiday_min 預設 150 分＝2.5 小時）；
 #   關閉開關或讀不到日出時間時，退回原本的平日／假日固定時間。
 # - V4.1.5（2026-10-11）：新增「有人回到家」觸發（arrive）：家裡原本沒人、離家情境（aqara_li_jia）持續超過 10 分鐘，之後有人連上 Wi-Fi（binary_sensor.at_home_nobody_home 由 on 變 off，持續 30 秒）
@@ -43,7 +46,7 @@
       {{ ((now() - trigger.from_state.last_changed).total_seconds() / 60) | round(0) | int if (trigger.id == 'arrive' and trigger.from_state is not none) else 0 }}
     who: "{{ states('sensor.at_home_who_home') }}"
     reason: >-
-      {% if trigger.id == 'arrive' %}{{ who }} 回到家（家裡沒人 {{ away_min }} 分鐘後連上 Wi-Fi）{% else %}{{ reasons.get(trigger.id, trigger.id) }}{% endif %}
+      {% if trigger.id == 'lock_home' %}門鎖解除離家模式{% elif trigger.id == 'arrive' %}{{ who }} 回到家（家裡沒人 {{ away_min }} 分鐘後連上 Wi-Fi）{% else %}{{ reasons.get(trigger.id, trigger.id) }}{% endif %}
   triggers:
     - trigger: state
       id: lamp
@@ -85,6 +88,11 @@
       to: "off"
       for: "00:00:30"
     - trigger: state
+      id: lock_home
+      alias: "[門鎖] 解除離家模式（原 105）"
+      entity_id: sensor.0x54ef4410007ac23c_lock_event
+      to: "Away-from-home mode is removed"
+    - trigger: state
       id: garage_short
       alias: "[車庫鐵門] 關閉 2 分鐘"
       entity_id: cover.garage
@@ -98,7 +106,7 @@
     - alias: "最早啟動時間（平日／假日不同）與 23:59 前"
       condition: template
       value_template: >-
-        {{ trigger.id == 'arrive' or (earliest[0:5] <= now().strftime('%H:%M') < '23:59') }}
+        {{ trigger.id in ['arrive', 'lock_home'] or (earliest[0:5] <= now().strftime('%H:%M') < '23:59') }}
     - alias: "3 分鐘內沒有離家／晚安剛觸發（防重複）"
       condition: template
       value_template: >-
@@ -119,11 +127,11 @@
              and (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() > 600
              and trigger.from_state is not none
              and (now() - trigger.from_state.last_changed).total_seconds() > 600) }}
-    - alias: "家裡有活動跡象（有人回到家的觸發不需要）"
+    - alias: "家裡有活動跡象（有人回到家、門鎖解除離家模式的觸發不需要）"
       condition: or
       conditions:
         - condition: template
-          value_template: "{{ trigger.id == 'arrive' }}"
+          value_template: "{{ trigger.id in ['arrive', 'lock_home'] }}"
         - condition: state
           entity_id: light.yeelink_color5_4181_light
           state: "on"

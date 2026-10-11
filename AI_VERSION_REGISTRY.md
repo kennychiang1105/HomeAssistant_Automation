@@ -626,6 +626,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - `08-5F頂樓自動上下樓情境AI`／`08-5G書房燈感應AI`／`08-5J頂樓動線推理AI`（V4.1.5）：手機追蹤實體改讀 `sensor.kenny_phone_tracker`（person.kenny 的 source），不再讀 `input_text.iphone_tracker_entity_kenny`；該輔助項目與 `00-4手機追蹤比對AI`、`binary_sensor.v41_phone_ap_match`、`input_number.v41_phone_match_ok/bad` 一併移除（切換完成）。
 - `03苗栗天氣告知系統AI`（V4.1.5）：災害訊息依內容分級。重要類（竹南有影響：竹南的淹水警戒／停水停電／洩洪；縣市層級且列有苗栗的颱風警報、豪雨特報、橙紅燈號）→ LINE／HA 用「一般」級、並廣播；緊急類（疏散、土石流、國家級警報）→「重要」級；info（鄰近鄉鎮、大雨預報、解除、演練演習）只發 HA 資訊通知；地震不處理（由 02 負責）；海嘯仍由 03 處理（內文有苗栗→緊急類，解除或沒寫苗栗→info）。新增 `packages/v41_disaster_notify.yaml` 四個開關：`notify_line_disaster_important_enable`／`notify_line_disaster_emergency_enable`（LINE，已公開給 HomeKit『HASS Bridge』）、`notify_ha_disaster_important_enable`／`notify_ha_disaster_emergency_enable`（HA）。另有廣播開關 `announce_disaster_important_enable`／`announce_disaster_emergency_enable`（不公開給 HomeKit；關閉後該類不廣播、早晨補報也停）。自動化管理面板新增「災害訊息廣播開關」小組。歷史 255 則訊息測試：重要 2、緊急 0、info 23、不通知 230。此自動化目前為**關閉**狀態（2026-08-26 起）。
 - `104-4車庫回家通知系統AI`（V4.1.5）：車庫攝影機偵測到人（不論多久）或 60 秒內才剛變沒人時不通知，修正人走進車庫再開鐵門的誤報；Wi-Fi 判斷規則不變。
+- `100A自動啟動到家早安情境AI`（V4.1.5）：併入「105門鎖自動判斷到家」（新增觸發 `lock_home`：門鎖解除離家模式 → 依時段啟動早安／到家，不受最早時間與活動跡象限制，但受總開關、3 分鐘防重複、保全模式限制）；舊 105（UI 自動化 id 1691155847932）已刪除。
 - Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
 
 ## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
