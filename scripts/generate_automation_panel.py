@@ -79,7 +79,7 @@ HELPER_RULES = [
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
     ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
-    ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_mode|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
+    ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
     ("system", r"v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
 ]
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
@@ -113,7 +113,7 @@ SUBGROUPS = {
         ("睡眠靜默與熟睡鎖", r"sleep_silent"),
     ],
     "air_fan": [
-        ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_mode"),
+        ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_"),
         ("客廳風扇", r"living_room_fan|ke_ting_dian_feng"),
         ("頂樓風扇", r"ding_lou_fan|top_floor_fan"),
     ],
