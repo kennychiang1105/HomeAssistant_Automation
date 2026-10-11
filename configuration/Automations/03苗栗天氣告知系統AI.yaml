@@ -5,14 +5,14 @@
 # - V4.1.5（2026-10-11）：災害訊息改成「依內容分級、不重要的不通知」。
 #   問題：原本只要內文有「苗栗」就用「一般」級通知＋廣播；實際 45 天 255 則訊息裡有 114 則提到苗栗，其中 84 則是風力黃燈、109 則是各地水務搶修，幾乎都不重要。
 #   分級（msg_level）：
-#     emergency（緊急類）：疏散撤離／土石流／堰塞湖／國家級警報／空襲飛彈（內文有苗栗，國家級警報不限）。
+#     emergency（緊急類）：疏散撤離／土石流／堰塞湖／海嘯警報（內文有苗栗；解除或沒寫苗栗的降為 info）／國家級警報／空襲飛彈（不限地區）。
 #     important（重要類）：確定「竹南有影響」才算——
 #         · 內文直接寫竹南的淹水警戒、停水停電、水庫洩洪；
 #         · 縣市層級的警報且列有苗栗：颱風警報（含陸上）、豪雨／大豪雨特報、橙色／紅色燈號（竹南屬苗栗縣，視為有影響）。
 #     info（只發 HA 資訊通知，不發 LINE、不廣播）：含苗栗或竹苗的大雨預報、豪雨／大豪雨特報解除、竹南解除淹水警戒、
 #         竹南鄰近（頭份、後龍、三灣、造橋）的淹水警戒／洩洪／停水停電（竹南沒寫到）、內文有「演練」「演習」「模擬」的訊息。
 #     其餘（風力黃燈、黃色高溫、他處水務搶修、火災、消防檢查、全台大雷雨即時訊息…）：不通知。
-#     地震、海嘯由「02地震災害系統」處理，這裡一律不通知。
+#     地震由「02地震災害系統」處理，這裡不通知（海嘯仍由這裡處理）。
 #   通知等級對照（呼叫 notify_dispatch／announce 時）：重要類→「一般」級；緊急類→「重要」級；info→「資訊」級。
 #   開關：packages/v41_disaster_notify.yaml 四個開關（LINE 重要類／緊急類、HA 重要類／緊急類），LINE 兩個公開給 HomeKit。關閉後該類不發對應通知；廣播不受影響。
 #   廣播：只有重要類（07:00–22:00）與緊急類（不限時段）會廣播。
@@ -45,8 +45,9 @@
           {% set county = m | regex_search('苗栗') %}
           {% set cancel = m | regex_search('解除|已無警戒|降至|已降至') %}
           {% if m in ['unknown', 'unavailable', 'none', 'None', ''] %}drop
-          {% elif m | regex_search('地震|海嘯') %}drop
           {% elif m | regex_search('演練|演習|模擬') %}info
+          {% elif m | regex_search('海嘯') %}{{ ('info' if cancel else 'emergency') if county else 'info' }}
+          {% elif m | regex_search('地震') %}drop
           {% elif m | regex_search('國家級警報|空襲|飛彈') %}emergency
           {% elif county and m | regex_search('疏散|撤離|土石流|堰塞') %}emergency
           {% elif county and m | regex_search('颱風警報') and not cancel %}important
