@@ -46,7 +46,7 @@
 #     將原本需實體開關按鍵校正之功能改由 HA 虛擬按鈕觸發。
 #
 # 修正 (V3.21.1):
-#   • 更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
+#   • （V4.1.5 已移除，由 v41_supply 取代）更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
 #
 # 新增 (V3.21.0):
 #   • 新增 input_number.garage_light_cooldown_sec：車庫燈手動關閉冷卻秒數（預設 30 秒，範圍 0～600 秒），
@@ -712,66 +712,6 @@ input_number:
     step: 10
     initial: 120
     unit_of_measurement: s
-    mode: box
-  supply_batt_lowest_garage:
-    name: 耗材電量最低值_車庫感測器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_doorlock:
-    name: 耗材電量最低值_客廳門鎖
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_study_switch:
-    name: 耗材電量最低值_書房感應開關
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_23cd3dc:
-    name: 耗材電量最低値_廚房無線開關
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_27d8a8e:
-    name: 耗材電量最低值_27d8a8e
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_08b95f06b466:
-    name: 耗材電量最低值_廚房小米人體傳感器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_28d1273d78cf:
-    name: 耗材電量最低值_廁所夜燈
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_toilet_motion:
-    name: 耗材電量最低值_二樓廁所人體感應器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_living_room_cube_new:
-    name: 耗材電量最低值_客廳Aqara魔方
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_doorbell_2f:
-    name: 耗材電量最低值_二樓門口電鈴
-    min: 0
-    max: 100
-    step: 1
     mode: box
   system_stability_restart_interval_days:
     name: 系統穩定自動重啟間隔天數

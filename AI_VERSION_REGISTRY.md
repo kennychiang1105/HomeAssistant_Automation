@@ -622,6 +622,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - `21A_客廳電風扇整合控制AI`（V4.1.5）自動調速防抖：t_eff 在門檻上下 0.1°C 抖動會讓風量每 15～30 秒大小來回（30 小時 67 次變化）。改為遲滯（`input_number.living_room_fan_hysteresis_c`，預設 0.3°C）、自動調速最短間隔（`input_number.living_room_fan_min_interval_min`，預設 3 分；`timer.living_room_fan_speed_dwell`）、濕度加成改連續線性、曲線下限 20%。新增 `packages/v41_living_fan.yaml`。
 - `22頂樓電風扇自動化AI`（V4.1.5）：上樓情境「介於門檻」那一段已設過風速時，步驟 5 略過，不再在同一次執行內重複送同一個風速。
 - 決議（2026-10-11 使用者）：`auto_scene_enable` **不**公開給 HomeKit；「補班日資料來源自動化」**不做**（補班日維持手動填 `input_text.tw_makeup_workdays`）。`08-4客廳大門開啟自動開燈` 已用 `sun.sun` 低於地平線判斷（日落／日出），無需再改。
+- 清理（2026-10-11 使用者核可）：移除 `packages/helper.yaml` 內 10 個已不使用的 `input_number.supply_batt_lowest_*`（00-2C V4.1.0 起改用 `supply_battery_lastvalid`／`supply_battery_stage`）。`input_text.iphone_tracker_entity_kenny` 與 `at_home_*_trackers` 仍被 08-5F／5G／5J、`v41_person`、在家判斷樣板使用，**暫不刪除**（待 08-5F／5G／5J 改讀 `sensor.kenny_phone_tracker` 後於 V4.2 處理）。舊 07／07-1～07-4／舊 100A 已於 UI 自動化刪除。
 - Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
 
 ## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
