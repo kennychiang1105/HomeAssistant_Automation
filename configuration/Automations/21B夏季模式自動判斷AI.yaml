@@ -1,0 +1,152 @@
+﻿# ──────────────────────────────────────────────
+# 21B夏季模式自動判斷AI (V4.1.5)
+# 更新紀錄：
+# - V4.1.5（2026-10-11）：新增。依「今日預期」與「今日實測」的體感溫度自動開關 input_boolean.summer_mode（影響 21A 客廳風扇、22 頂樓風扇的風速曲線）。
+#   今日體感分數 ＝ max(今日預報體感最高（weather 每小時預報的 feels_like_temperature）,
+#                      今日已觀察到的實測體感最高（戶外體感感測器 sensor.homeweather_zhu_nan_zhen_feels_like_temperature；讀不到時用戶外溫度）)。
+#   （自己用溫度＋濕度公式算體感會比氣象來源高 3～4°C，會讓涼爽的早晨也超過關閉門檻，所以直接用氣象來源的體感，與預報同一標準。）
+#   分數 ≥ 開啟門檻（預設 28.5°C）→ 開啟；分數 < 關閉門檻（預設 26°C）→ 關閉；兩者之間維持現狀。
+#   每 30 分鐘判斷一次（06:30–18:00，含 HA 啟動後）；實測最高值當天只會往上，所以白天先開、不會因傍晚變涼又關。
+#   人工切換：你（UI、HomeKit、實體）手動開或關夏季模式，會記下當天日期，當天自動判斷不再改它；隔天 06:30 起恢復自動。
+#   判斷依據：自動化自己改的切換 context 帶 parent_id，人工切換沒有，用這個分辨。
+#   自動切換後發 HA 資訊通知（不發 LINE），並寫 input_text.summer_auto_last 與 logbook。
+#   開關與門檻：input_boolean.summer_auto_enable、input_number.summer_auto_on_feels_c／summer_auto_off_feels_c（packages/v41_summer_auto.yaml）。
+# ──────────────────────────────────────────────
+- id: ai_21b_summer_mode_auto_v41
+  alias: 21B夏季模式自動判斷AI (V4.1.5)
+  description: 依今日預報與實測體感溫度自動開關夏季模式；人工切換後當天不再調整，隔天恢復。
+  mode: queued
+  max: 5
+  max_exceeded: silent
+  variables:
+    automation_version: V4.1.5
+    weather_entity: weather.homeweather_zhu_nan_zhen
+  triggers:
+    - trigger: time_pattern
+      id: evaluate
+      minutes: "/30"
+    - trigger: homeassistant
+      id: evaluate
+      event: start
+    - trigger: state
+      id: manual
+      entity_id: input_boolean.summer_mode
+      from:
+        - "on"
+        - "off"
+      to:
+        - "on"
+        - "off"
+  actions:
+    - choose:
+        # ── 人工切換：記下日期（自動化自己改的有 parent_id，不算） ──
+        - conditions:
+            - condition: trigger
+              id: manual
+            - condition: template
+              value_template: "{{ trigger.to_state.context.parent_id is none }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.summer_manual_date
+              data:
+                date: "{{ now().strftime('%Y-%m-%d') }}"
+            - action: logbook.log
+              data:
+                name: 21B夏季模式自動判斷AI
+                message: "偵測到人工{{ '開啟' if trigger.to_state.state == 'on' else '關閉' }}夏季模式，今天不再自動調整，明天恢復。"
+        # ── 定時判斷 ──
+        - conditions:
+            - condition: trigger
+              id: evaluate
+            - condition: state
+              entity_id: input_boolean.summer_auto_enable
+              state: "on"
+            - condition: time
+              after: "06:29:00"
+              before: "18:01:00"
+            - alias: "今天沒有人工切換過"
+              condition: template
+              value_template: "{{ states('input_datetime.summer_manual_date') != now().strftime('%Y-%m-%d') }}"
+          sequence:
+            - alias: "今日每小時預報（失敗就忽略）"
+              action: weather.get_forecasts
+              target:
+                entity_id: "{{ weather_entity }}"
+              data:
+                type: hourly
+              response_variable: fc
+              continue_on_error: true
+            - variables:
+                today: "{{ now().strftime('%Y-%m-%d') }}"
+                fc_max: >-
+                  {% set ns = namespace(m=-99) %}
+                  {% for f in (fc[weather_entity].forecast if (fc is defined and fc is mapping and weather_entity in fc) else []) %}
+                  {% if (f.datetime | as_datetime | as_local).strftime('%Y-%m-%d') == today %}
+                  {% set ns.m = [ns.m, f.feels_like_temperature | float(-99)] | max %}
+                  {% endif %}{% endfor %}{{ ns.m }}
+                # 實測體感：優先用氣象來源的體感溫度（已含濕度，和預報的 feels_like_temperature 同一標準）；沒有時退回戶外溫度
+                act_feels: "{{ states('sensor.homeweather_zhu_nan_zhen_feels_like_temperature') | float(-99) }}"
+                act_t: "{{ states('sensor.homeweather_zhu_nan_zhen_temperature') | float(-99) }}"
+                act_now: "{{ act_feels if act_feels > -90 else act_t }}"
+                stored: "{{ states('input_text.summer_auto_today_flag') }}"
+                stored_max: "{{ stored.split('|')[1] | float(-99) if ('|' in stored and stored.split('|')[0] == today) else -99 }}"
+                today_obs_max: "{{ [stored_max, act_now] | max }}"
+                score: "{{ [fc_max | float(-99), today_obs_max | float(-99)] | max }}"
+                on_thr: "{{ states('input_number.summer_auto_on_feels_c') | float(28.5) }}"
+                off_thr: "{{ states('input_number.summer_auto_off_feels_c') | float(26) }}"
+                cur_on: "{{ is_state('input_boolean.summer_mode', 'on') }}"
+                want: >-
+                  {% if score >= on_thr %}on{% elif score < off_thr and score > -90 %}off{% else %}keep{% endif %}
+                detail: "今日預報體感最高 {{ fc_max | float(0) | round(1) }}°C、實測體感最高 {{ today_obs_max | float(0) | round(1) }}°C（開啟門檻 {{ on_thr }}、關閉門檻 {{ off_thr }}）"
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.summer_auto_today_flag
+              data:
+                value: "{{ today }}|{{ today_obs_max }}"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ (want | trim) == 'on' and not cur_on }}"
+                  sequence:
+                    - action: input_boolean.turn_on
+                      target:
+                        entity_id: input_boolean.summer_mode
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.summer_auto_last
+                      data:
+                        value: "{{ now().strftime('%m-%d %H:%M') }} 自動開啟｜{{ detail }}"
+                    - action: script.notify_dispatch
+                      data:
+                        level: info
+                        line: false
+                        source: 21B夏季模式自動判斷AI
+                        version: "{{ automation_version }}"
+                        title: 夏季模式已自動開啟
+                        message: |-
+                          今天天氣偏熱，已自動開啟夏季模式。
+                          {{ detail }}
+                - conditions:
+                    - condition: template
+                      value_template: "{{ (want | trim) == 'off' and cur_on }}"
+                  sequence:
+                    - action: input_boolean.turn_off
+                      target:
+                        entity_id: input_boolean.summer_mode
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.summer_auto_last
+                      data:
+                        value: "{{ now().strftime('%m-%d %H:%M') }} 自動關閉｜{{ detail }}"
+                    - action: script.notify_dispatch
+                      data:
+                        level: info
+                        line: false
+                        source: 21B夏季模式自動判斷AI
+                        version: "{{ automation_version }}"
+                        title: 夏季模式已自動關閉
+                        message: |-
+                          今天天氣不熱，已自動關閉夏季模式。
+                          {{ detail }}
+
