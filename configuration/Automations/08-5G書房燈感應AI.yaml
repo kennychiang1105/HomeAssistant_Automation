@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5G書房燈感應AI (V4.1.2)
+# 08-5G書房燈感應AI (V4.1.5)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.1.3（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac；其餘邏輯不變。
 # - V4.1.2（2026-10-10）：「書房回房間關燈」加兩道防呆（燈剛亮 10 秒內不處理；08-5J 剛判定 enter_study 10 秒內不處理）。7 天紀錄顯示 10-07 起 60 秒內的書房燈亮了又關幾乎都是此規則造成（進書房時房間側 PIR 跟著觸發）。
 # - V4.1.1（2026-10-10）：修正 08-5G 書房回房間關燈的 regex_replace 反斜線（\1 會被 Jinja 當成八進位跳脫，群組參照失效，頂樓人數恆為 0）。
@@ -12,7 +13,7 @@
 # - V4.0.0：頂樓感應優化 P3 重寫。開燈：08-5J 的 enter_study 或書房 PIR 右（攝影機／iPhone AP 佐證）；關燈：離開書房回房立即關、離開書房下樓保留 3 分鐘、
 #           每分鐘無人檢查（PIR 右安靜 5 分鐘＋攝影機無人，且 iPhone 不在 5F 或已回房／下樓才關）、安靜坐著最長 60 分鐘一律關。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5G 書房燈感應AI (V4.1.3)
+- alias: 08-5G 書房燈感應AI (V4.1.5)
   id: ai_08_5g_study_motion_light
   description: >
     書房燈開燈：08-5J 判定進書房，或書房 PIR 右有動作且攝影機（iPhone 在 5F AP 時放寬到 20 分鐘）近期有人。
@@ -21,7 +22,7 @@
   max: 5
   max_exceeded: silent
   variables:
-    automation_version: V4.1.3
+    automation_version: V4.1.5
   triggers:
     - id: enter_study
       alias: "[動線事件] 08-5J判定進入書房 (enter_study)"
@@ -68,7 +69,7 @@
               alias: "[過濾 3] 影像或5F AP在場佐證 (cam_age ≤ 120s 或 5F AP 20分)"
               value_template: >-
                 {% set cam_age = now().timestamp() - as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) %}
-                {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+                {% set s = states('sensor.kenny_phone_tracker') %}
                 {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
                 {% set ap = states('sensor.kenny_phone_ap_mac') %}
                 {% set raw = states('input_text.topfloor_ap_macs_5f') %}
@@ -82,13 +83,13 @@
       target:
         entity_id: switch.shu_fang_deng
 
-- alias: 08-5G 書房燈關閉AI (V4.1.3)
+- alias: 08-5G 書房燈關閉AI (V4.1.5)
   id: ai_08_5g_study_light_off_v4
   description: 離開書房回臥室立即關；離開書房下樓保留 3 分鐘後關；再次進書房取消
   mode: restart
   max_exceeded: silent
   variables:
-    automation_version: V4.1.3
+    automation_version: V4.1.5
   triggers:
     - id: to_bedroom
       alias: "[動線事件] 離開書房回臥室 (leave_study_bedroom)"
@@ -136,7 +137,7 @@
       target:
         entity_id: input_boolean.topfloor_study_auto
 
-- alias: 08-5G 書房燈無人檢查AI (V4.1.3)
+- alias: 08-5G 書房燈無人檢查AI (V4.1.5)
   id: ai_08_5g_study_vacancy_check
   description: >
     每分鐘檢查書房燈：右側（書房）PIR 安靜超過「書房無人判定」分鐘數、攝影機同樣時間內無人、同樣時間內沒有進書房 → 關。
@@ -169,7 +170,7 @@
              or as_timestamp(states('input_datetime.topfloor_path_down'), 0) > enter_ts
              or as_timestamp(states('input_datetime.topfloor_study_last_exited'), 0) > enter_ts }}
         iphone_5f: >-
-          {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+          {% set s = states('sensor.kenny_phone_tracker') %}
           {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
           {% set ap = states('sensor.kenny_phone_ap_mac') %}
           {% set raw = states('input_text.topfloor_ap_macs_5f') %}
@@ -215,7 +216,7 @@
                 message: "{{ now().strftime('%H:%M:%S') }} 書房燈判定無人（PIR 右安靜 {{ quiet_min }} 分鐘、攝影機 {{ cam_min }} 分鐘無人），已關閉"
               continue_on_error: true
 
-- alias: 08-5G 書房回房間關燈AI (V4.1.3)
+- alias: 08-5G 書房回房間關燈AI (V4.1.5)
   id: ai_08_5g_study_to_room_off
   description: >
     左側（房間）感應器觸發且是「走進房間」（剛上樓，或 120 秒內右側／書房先觸發）→ 關書房燈，並依「抵達後關樓梯燈延遲」關樓梯燈（只關感應開的）。

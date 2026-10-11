@@ -3,6 +3,7 @@
 # 08-5F頂樓自動上下樓情境AI (V4.0.0)
 # 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.0.4（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac（person.kenny 的 source），不再自己從 input_text.iphone_tracker_entity_kenny 解析；其餘邏輯不變。
 # - V4.0.3（2026-10-10）：熟睡判定統一只看熟睡鎖（sleep_silent_active），移除 02:30→09:30／10:30 時間窗與寫死的 570／630；移除本檔 7 處自行關閉熟睡鎖（解鎖統一由 08-5H 熟睡鎖管理：起床情境、動態解鎖時間）。
 # - V4.0.2：修補版；依照使用者需求，週末睡眠靜默窗結束時間調整為 10:30（630 分鐘），配合熟睡鎖保護晨間起夜。
@@ -17,7 +18,7 @@
 # - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V4.0.4)
+- alias: 08-5F頂樓自動上下樓情境AI (V4.1.5)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -48,7 +49,7 @@
       trigger: state
     - id: t_ap_immediate_up
       value_template: >
-        {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set iphone_ent =
+        {% set s1 = states('sensor.kenny_phone_tracker') %} {% set iphone_ent =
         'device_tracker.iphone_17_pro_max_kenny' if s1 in
         ['unknown','unavailable',''] else s1 %} {% set iphone_ap  =
         states('sensor.kenny_phone_ap_mac') %} {% set ap_raw     =
@@ -60,7 +61,7 @@
       trigger: template
     - id: t_ap_left_phone
       value_template: >
-        {% set s1 = states('input_text.iphone_tracker_entity_kenny') %} {% set
+        {% set s1 = states('sensor.kenny_phone_tracker') %} {% set
         iphone_ent = 'device_tracker.iphone_17_pro_max_kenny' if s1 in
         ['unknown','unavailable',''] else s1 %} {% set iphone_ap  =
         states('sensor.kenny_phone_ap_mac') %} {% set ap_raw     =
@@ -795,9 +796,9 @@
                                         message: 下樓成立（尾隨寬限）
                             - stop: 下樓成立（尾隨寬限）
   variables:
-    automation_version: "V4.0.4"
+    automation_version: "V4.1.5"
     iphone_entity: >
-      {% set s = states('input_text.iphone_tracker_entity_kenny') %} {{
+      {% set s = states('sensor.kenny_phone_tracker') %} {{
       'device_tracker.iphone_17_pro_max_kenny' if s in
       ['unknown','unavailable',''] else s }}
     ap_list_raw: >
@@ -880,7 +881,7 @@
     - trigger: template
       for: "00:02:00"
       value_template: >-
-        {% set s1 = states('input_text.iphone_tracker_entity_kenny') %}
+        {% set s1 = states('sensor.kenny_phone_tracker') %}
         {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s1 in ['unknown','unavailable',''] else s1 %}
         {% set ap = states('sensor.kenny_phone_ap_mac') %}
         {% set raw = states('input_text.topfloor_ap_macs_5f') %}

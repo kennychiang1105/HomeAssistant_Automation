@@ -1,7 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 08-5J頂樓動線推理AI (V4.1.0)
+# 08-5J頂樓動線推理AI (V4.1.5)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.1.1（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac；其餘邏輯不變。
 # - V4.1.0（2026-10-09）：項目二升級。全面導入 HA 2026.10 結構化 Trigger by 別名與具名決策分支。標註 12 組觸發源、去抖動過濾與 10 大動線推理分支，使 Traces 時間軸一目了然判定理由與各感測器時差。
 # - V4.0.0：移除「走道 PIR 右→書房 PIR 左 ≤10 秒＝進書房」規則：走過走道（上樓後往臥室、或經過書房門口）就會誤判成進書房，造成書房燈誤開且關不掉。進書房改為：書房線＋PIR 左、或手動開書房燈。
@@ -13,14 +14,14 @@
 #           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
 #           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
 # ────────────────────────────────────────────────────────
-- alias: 08-5J頂樓動線推理AI (V4.1.1)
+- alias: 08-5J頂樓動線推理AI (V4.1.5)
   id: ai_08_5j_topfloor_path_inference
   description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
   mode: parallel
   max: 30
   max_exceeded: silent
   variables:
-    automation_version: "V4.1.1"
+    automation_version: "V4.1.5"
     src: "{{ trigger.event.data.source if trigger.id == 'test' else trigger.id }}"
     W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
     deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
@@ -72,7 +73,7 @@
       alias: "[網路] iPhone連線至5F AP (UniFi AP roaming)"
       trigger: template
       value_template: >-
-        {% set s = states('input_text.iphone_tracker_entity_kenny') %}
+        {% set s = states('sensor.kenny_phone_tracker') %}
         {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown','unavailable',''] else s %}
         {% set ap = states('sensor.kenny_phone_ap_mac') %}
         {% set raw = states('input_text.topfloor_ap_macs_5f') %}
@@ -371,7 +372,7 @@
                 path: vacant_landing
                 evidence: "{{ ev }}"
 
-- alias: 08-5J頂樓感應週報 (V4.1.1)
+- alias: 08-5J頂樓感應週報 (V4.1.5)
   id: ai_08_5j_topfloor_weekly_report
   description: 每週一 09:00 發送頂樓感應準確度週報（只發 HA 通知，不發 LINE），之後計數歸零
   mode: single
