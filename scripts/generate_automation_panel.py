@@ -44,7 +44,7 @@ CATS = [
     ("lighting", "照明與感應燈", "mdi:lightbulb-on-outline", "樓梯燈、廚房／廁所感應燈、客廳／車庫燈、車庫鐵門感應燈。"),
     ("topfloor", "頂樓", "mdi:stairs-up", "五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。"),
     ("security", "保全與門鎖", "mdi:shield-home-outline", "離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。"),
-    ("emergency", "緊急與災防", "mdi:alert-octagon-outline", "緊急模式 05A~05E、地震／天氣／疏散警報。"),
+    ("emergency", "緊急與災防", "mdi:alert-octagon-outline", "緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。"),
     ("air_fan", "空氣與風扇", "mdi:fan", "空氣清淨機、客廳／頂樓風扇、空調溫度門檻、夏季模式。"),
     ("system", "系統維護", "mdi:cog-outline", "穩定重啟、看門狗、更新紀錄／版本、耗材電量、Tesla、測試與初始化、定位追蹤。"),
     ("internal", "內部狀態（勿動）", "mdi:lock-outline", "由自動化自動維護的旗標、紀錄、計時器與計數器，一般不用修改；手動改動可能讓自動化判斷錯誤。"),
@@ -55,7 +55,7 @@ CATS = [
 AUTO_RULES = [
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7A|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
     ("topfloor", r"^(08-5[A-K]|800-開關系列-(11|12)[A-D]?)"),
-    ("emergency", r"^(05[A-F]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
+    ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
     ("security", r"^(08-[236]|08鐵門|104|105大門|106B|106C|100C[123]|100C客廳|08-3)"),
@@ -109,6 +109,9 @@ SUBGROUPS = {
         ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_mode"),
         ("客廳風扇", r"living_room_fan|ke_ting_dian_feng"),
         ("頂樓風扇", r"ding_lou_fan|top_floor_fan"),
+    ],
+    "emergency": [
+        ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
         ("車牌辨識（LPR）", r"lpr_|allowed_plates"),

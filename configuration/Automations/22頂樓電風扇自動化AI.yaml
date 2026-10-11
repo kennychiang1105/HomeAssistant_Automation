@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 22頂樓電風扇自動化AI (V4.0.0)
+# 22頂樓電風扇自動化AI (V4.1.5)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：修補版；手動調速防護罩誤判修正。風扇「關→開」時裝置自己回報的風量變動（0%→N%）、或開機後 10 秒內的風量回報，不再被當成人為調速（原本會誤開 manual_speed_snooze 而停掉自動調速）。另：自動調速門檻由差 5% 降為 2.5%；新增每 5 分鐘定時重算（time_pattern），定時觸發時跳過「冷氣同步開機」避免過冷關機後被反覆開起。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.0（功能版）：風速曲線門檻全數上調 0.2°C，睡眠降速改由 sleep_silent_active 控制，睡眠與非夏季減成擴大為 -10% 並移除睡眠最低限制。
 # - V4.0.1（2026-10-10）：修補版；HomePod 溫濕度感測器自 2026-10-09 19:23 起回傳帶單位文字（例：26.4°C），改用 regex 取出數字再轉 float，避免每次執行都丟 ValueError。
@@ -11,14 +12,14 @@
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V4.0.0)
+- alias: 22頂樓電風扇自動化AI (V4.1.5)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.1.5"
   trigger:
     - platform: state
       entity_id:
@@ -46,6 +47,8 @@
       entity_id: input_boolean.ding_lou_fan_manual_off_hold
       to: "on"
       for: "03:00:00"
+    - platform: time_pattern
+      minutes: "/5"
 
   action:
     - variables:
@@ -54,8 +57,8 @@
         summer_mode: "{{ is_state('input_boolean.summer_mode','on') }}"
         speed_snooze_active: "{{ is_state('input_boolean.ding_lou_fan_manual_speed_snooze','on') }}"
         manual_actor_detected: >
-          {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is not none) else none %}
-          {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is not none) else none %}
+          {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is defined and trigger.to_state is not none) else none %}
+          {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is defined and trigger.to_state is not none) else none %}
           {{ (uid is not none) or ((uid is none) and (pid is none) and not is_state('input_boolean.ding_lou_fan_system_action_guard','on')) }}
 
         # ---- Helpers ----
@@ -74,6 +77,7 @@
         fan_pct_now: "{{ state_attr('fan.dmaker_p33_eabd_fan','percentage') | int(0) }}"
         ac_on: "{{ ac_state == 'cool' }}"
         hhmm: "{{ now().strftime('%H:%M') }}"
+        is_periodic: "{{ trigger is defined and (trigger.platform | default('')) == 'time_pattern' }}"
 
         # ---- HomePod 安全取值 (含濕度) ----
         hp_raw_temp: "{{ states('sensor.5f_homepodmini_temperature') }}"
@@ -258,7 +262,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已自動解除（1 小時）"
                     message: "⏱️ 手動保留超過 1 小時，已恢復溫控自動判斷。"
@@ -283,7 +287,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動關機防護罩已自動解除（3 小時）"
                     message: "⏱️ 手動關機防護罩超過 3 小時，已恢復溫控自動開機判斷。"
@@ -319,7 +323,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "已偵測手動關機（含 HomeKit）→ 啟用手動關機防護罩"
                     message: "🙋‍♂️ 已啟用 3 小時手動關機防護罩，並清除回溫/保留/調速暫停記憶。"
@@ -348,7 +352,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已提前解除"
                     message: "🙋‍♂️ 在手動保留期間關閉風扇，已立即解除保留狀態。"
@@ -362,7 +366,7 @@
           data:
             level: info
             line: false
-            source: "22頂樓電風扇自動化AI (V4.0.0)"
+            source: "22頂樓電風扇自動化AI (V4.1.5)"
             version: "{{ automation_version | default('', true) }}"
             title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
             message: >
@@ -410,6 +414,8 @@
                    and (trigger.attribute is defined and trigger.attribute == 'percentage')
                    and (trigger.to_state is not none and trigger.to_state.state == 'on')
                    and (trigger.from_state is not none)
+                   and ((trigger.from_state.attributes.percentage | int(0)) > 0)
+                   and ((now() - states.fan.dmaker_p33_eabd_fan.last_changed).total_seconds() > 10)
                    and manual_actor_detected
                    and is_state('input_boolean.ding_lou_fan_manual_speed_snooze','off') }}
           sequence:
@@ -445,7 +451,7 @@
                           data:
                             level: info
                             line: false
-                            source: "22頂樓電風扇自動化AI (V4.0.0)"
+                            source: "22頂樓電風扇自動化AI (V4.1.5)"
                             version: "{{ automation_version | default('', true) }}"
                             title: "頂樓風扇自動開啟（上樓）"
                             message: >
@@ -480,7 +486,7 @@
                                   data:
                                     level: info
                                     line: false
-                                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                                     version: "{{ automation_version | default('', true) }}"
                                     title: "頂樓風扇微風開啟（上樓介於門檻）"
                                     message: >
@@ -523,7 +529,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動開啟 — 已啟用保留 1 小時"
                     message: >
@@ -554,7 +560,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動關閉（過冷）"
                     message: >
@@ -587,7 +593,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（回溫）"
                     message: >
@@ -597,7 +603,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ ac_on and not is_state('fan.dmaker_p33_eabd_fan','on') and not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
+              value_template: "{{ ac_on and not is_periodic and not is_state('fan.dmaker_p33_eabd_fan','on') and not is_state('input_boolean.ding_lou_fan_manual_off_hold','on') }}"
           sequence:
             - service: fan.turn_on
               target:
@@ -610,7 +616,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（冷氣同步）"
                     message: "❄️ 冷氣=COOL，ac_temp={{ ac_temp }}°C"
@@ -624,6 +630,8 @@
                and (trigger.attribute is defined and trigger.attribute == 'percentage')
                and (trigger.to_state is not none and trigger.to_state.state == 'on')
                and (trigger.from_state is not none)
+               and ((trigger.from_state.attributes.percentage | int(0)) > 0)
+               and ((now() - states.fan.dmaker_p33_eabd_fan.last_changed).total_seconds() > 10)
                and manual_actor_detected
                and is_state('input_boolean.ding_lou_fan_manual_speed_snooze','off') }}
       then:
@@ -631,12 +639,12 @@
           data:
             level: info
             line: false
-            source: "22頂樓電風扇自動化AI (V4.0.0)"
+            source: "22頂樓電風扇自動化AI (V4.1.5)"
             version: "{{ automation_version | default('', true) }}"
             title: "手動調速防護罩啟用中"
             message: "🙋‍♂️ 偵測到人為調速，將跳過 AI 自動調速，直到風扇下次開機。"
 
-    # 5) 自動調速（差≥5% 才調；凍結時不調；手動調速防護啟用時跳過）
+    # 5) 自動調速（差≥2.5% 才調；凍結時不調；手動調速防護啟用時跳過）
     - if:
         - condition: state
           entity_id: fan.dmaker_p33_eabd_fan
@@ -648,7 +656,7 @@
       then:
         - variables:
             desired_pct: "{{ ((desired_pct_curve|float / 2.5) | round(0) * 2.5) | int }}"
-            need_update: "{{ (desired_pct - fan_pct_now) | abs >= 5 }}"
+            need_update: "{{ (desired_pct - fan_pct_now) | abs >= 2.5 }}"
         - if:
             - condition: template
               value_template: "{{ need_update }}"
@@ -666,7 +674,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.0.0)"
+                    source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇風速調整"
                     message: >

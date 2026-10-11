@@ -16,15 +16,15 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V4.1.0`
-- configuration 主設定檔版本（`configuration.yaml`）：`V3.6`
+- Helper 套件版本（`packages/helper.yaml`）：`V4.1.0`（V4.1.5 新增 `packages/v41_emergency_pause.yaml`）
+- configuration 主設定檔版本（`configuration.yaml`）：`V4.0`
 - 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
 |---|---|---|---|
-| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V3.0.2) / 00-01系統回應穩定自動化AI_小燕網關看門狗 (V3.0.1) / 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V3.0.3)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V3.0.2` |
+| `configuration/Automations/00-01系統回應穩定自動化AI.yaml` | `00-01系統回應穩定自動化AI (V4.0.0) / 00-01系統回應穩定自動化AI_小燕網關看門狗 (V4.0.0) / 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V4.0.0)` | `ai_00_01_system_stability_auto_restart` / `ai_00_01_xiaoyan_gateway_watchdog` / `ai_00_01_unifi_protect_watchdog` | `V4.0.0` |
 | `configuration/Automations/00-2A更新紀錄推播AI.yaml` | `00-2A更新紀錄推播AI (V4.0.0)` | `ai_00_2a_release_note_push` | `V4.0.0` |
 | `configuration/Automations/00-2BLINE推播AI.yaml` | `00-2BLINE推播AI (V4.0.0)` | `ai_line_bot_quota_guard` | `V4.0.0` |
 | `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V4.1.0)` | `ai_00_2c_supply_battery_notify` | `V4.1.0` |
@@ -44,10 +44,11 @@
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/05F緊急模式快照到期AI.yaml` | `05F緊急模式快照到期AI (V4.1.0)` | `ai_05f_emergency_snapshot_expire_v41` | `V4.1.0` |
+| `configuration/Automations/05G緊急三擊維修暫停AI.yaml` | `05G緊急三擊維修暫停AI (V4.1.5)` | `ai_05g_emergency_triple_press_pause` | `V4.1.5` |
 | `configuration/Automations/06環境異常通知AI.yaml` | `06環境異常通知AI (V4.1.0)` | `ai_06_env_alert_v41` | `V4.1.0` |
 | `configuration/Automations/07空氣清淨機整合AI.yaml` | `07空氣清淨機整合AI (V4.1.0)` | `ai_07_air_purifier_v41` | `V4.1.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)` | `ai_08_5a_5f_security_webhook_guard` | `V4.0.0` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.0.0)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` / `V4.1.5` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.0.4) / 08-5F頂樓下樓補判AI (V4.0.1)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.0.4` / `V4.0.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.1.3) / 08-5G 書房燈關閉AI (V4.1.3) / 08-5G 書房燈無人檢查AI (V4.1.3) / 08-5G 書房回房間關燈AI (V4.1.3)` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.1.3` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V4.3.0) / 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` / `ai_08_5h_topfloor_sleep_lock_manager` | `V4.3.0` / `V4.2.1` |
@@ -74,7 +75,7 @@
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.0.0)` | `ai_107_tesla_charger_status_notify` | `V4.0.0` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.0.0)` | `ai_living_room_fan_integrated_control` | `V4.0.0` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
-| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.0.0)` | `ai_topfloor_fan_automation` | `V4.0.0` |
+| `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.1.5)` | `ai_topfloor_fan_automation` | `V4.1.5` |
 | `configuration/Automations/800-14樓梯燈單擊定時關燈AI.yaml` | `800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.3)` | `ai_800_13_san_lou_xia_3_timed_off` / `ai_800_14b_san_lou_stairs_timed_off` / `ai_800_14c_san_si_lou_stairs_timed_off` / `ai_800_14d_si_lou_stairs_timed_off` | `V4.1.2` / `V4.1.3` |
 | `configuration/Automations/800-15車庫主燈按鈕防小燈AI.yaml` | `800-開關系列-15 車庫主燈按鈕-單擊切換（5 秒防小燈）AI (V4.1.1)` | `ai_800_15_garage_main_button_small_light_guard` | `V4.1.1` |
 
@@ -88,6 +89,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.1.5 | 2026-10-11 | 新增 `packages/v41_emergency_pause.yaml`：`input_boolean.emergency_triple_press_pause`（緊急三擊維修暫停，已加入 HomeKit 與自動化管理面板）、`timer.emergency_triple_press_pause`（2 小時自動恢復）。 |
 | V4.1.0 | 2026-10-10 | V4.1 發布：at_home 範本優先讀 `person.*`；新增 packages：`manual_broadcast.yaml`、`stairs_hold.yaml`、`terncy_buttons.yaml`、`v41_supply.yaml`、`v41_scene_period.yaml`、`v41_day_type.yaml`、`v41_person.yaml`、`v41_emergency.yaml`、`v41_air_purifier.yaml`、`v41_env_alert.yaml`、`v41_auto_scene.yaml`、`v41_sleep_holiday.yaml`；`garage_light_cooldown_sec` 預設 120 秒。 |
 | V4.0.0 | 2026-10-08 | V4.0 發布：新增通知分級／氣氛燈／廣播／頂樓動線／LINE Bot 輪替／車庫回家／門鎖日耗電率等 helper；新增 packages：`topfloor.yaml`、`persons.yaml`、`doorlock_battery.yaml`、`announce_tts.yaml`（詳見 helper.yaml 檔頭與本檔「本次調整（V4.0）」）。 |
 | V4.0-beta 1 | 2026-10-04 | UI 重新設計：3D 平面圖 `picture-elements` + 單燈疊圖（`mix-blend-mode: lighten`，亮度/色相/飽和度同步），新增 iPad 橫向與 iPhone 直向首頁；由 `scripts/generate_floorplan_v4.py` 依 `spatial_scene_graph.json` 與 `render_manifest.yaml` 產生各樓層卡片（`floorplan_v4/`）。底圖暫用舊 3D SVG，待實際渲染圖。另新增 `entity_positions.yaml/json` 與 `ENTITY_POSITIONS.md` 位置實體表（含 5F 使用者校正後座標），供後續自動化使用。 |
@@ -103,6 +105,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.0 | 2026-10-11 | logger 降級事件觸發器「舊 device_id 已拆分」警告；recorder 排除 `ai_version_registry_dynamic`、`ai_version_snapshot_history`（屬性超過 16 KB）。需重啟 HA 生效。 |
 | V3.6 | 2026-10-08 | recorder 保留 45 天並排除高頻雜訊實體（`button.*_info`、網路使用率、耗電電流電壓）；新增自動化管理面板與整合儀表板 `lovelace-smart`；packages 新增與 `person` 設定。 |
 | V3.5 | 2026-08-16 | 依據 Home Assistant 2026.8 規範移除已棄用之 `http:` 區塊（由 HA 系統網路介面管理）；新增 logger 過濾規則屏蔽 Hisense TV 待機連線日誌與 HACS 自訂整合過渡期棄用警告。 |
 | V3.0 | 2026-03-01 | 基礎架構重組，導入 AI managed automations & scripts include，設定 recorder、logger 與 Google Translate TTS。 |
@@ -591,6 +594,17 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 ### AI 4.0 版號統一（2026-10-05）
 V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
+
+## 本次調整（V4.1.5 - 2026-10-11：頂樓電風扇手動調速防護罩誤判修正）
+
+- `22頂樓電風扇自動化AI` 修補版升級至 `V4.1.5`：風扇「關→開」時裝置自行回報的風量變動（0%→N%），以及開機後 10 秒內的風量回報，不再被判定為人為調速（原因：這類更新沒有使用者與上層動作，被 `manual_actor_detected` 誤判，導致 `ding_lou_fan_manual_speed_snooze` 自動開啟、自動調速停擺）。人為在風扇運轉中調速仍會啟用防護罩。
+- 同版追加：自動調速門檻由「差 5%」降為「差 2.5%」（與 2.5% 級距一致）；新增每 5 分鐘定時重算觸發（`time_pattern`），感測器長時間沒更新時風量也會跟上；定時觸發時略過「冷氣同步開機」（避免過冷關機後被每 5 分鐘反覆開起），並補強 `manual_actor_detected` 對沒有 `to_state` 觸發的防呆。
+- 新增 `05G緊急三擊維修暫停AI (V4.1.5)`＋helper `emergency_triple_press_pause`（開關＋2 小時計時）：維修時暫停「實體開關連點三下→緊急模式」（`05E緊急實體按鈕` 加了「暫停開關不是 on」條件：用範本判斷，開關失聯／不存在時仍可觸發緊急模式，不會因 helper 異常而讓緊急按鈕失效）。到期自動恢復並發 HA 通知；只暫停實體開關三擊，HomeKit／虛擬按鈕、地震預警、CO 自動觸發不受影響。開關已加入 HomeKit（HASS Bridge）與自動化管理面板。
+- 修正 `800-開關系列-12E／12F`（UI 自動化，`automations.yaml`）：觸發實體被刪除（`to_state` 為空）時不再誤判為雙擊上樓／長按下樓（2026-10-11 11:09 Terncy 網關重連、裝置被移除，誤觸發上樓情境）；事件觸發（`terncy_pressed`）行為不變。
+- 修正 `800-開關系列-12A／12B`（UI 自動化）：「四樓樓梯開關上2」（來源 `540f57fffe8239d3-02`）與「頂樓樓梯燈／四樓樓梯開關上1」（來源 `540f57fffe8239d3-01`）在 2026-10-11 被刪除並重新加入後，`terncy_pressed` 事件改帶新的 device_id（`058a0c17…`、`e259d035…`），原本只認舊 id（`ea7743a9…`、`ad6e414d…`）的單擊觸發失效；已補上新 id（保留舊 id）。05E／12E／12F 原本就已含新 id。
+- 修正 `08-5C頂樓樓梯燈解除深夜亮度AI`（V4.1.5）：兩盞樓梯燈同時被打開（如手動上樓情境）時，頂樓樓梯燈會因旗標被先跑完的那一輪清掉而被跳過，卡在深夜亮度（60%／3000K）；改為等 3 秒後依「燈是否仍亮著且仍是深夜亮度／色溫」決定是否調回平常亮度，不再依賴共用旗標。
+- 日誌整理（`configuration.yaml` V4.0，需重啟生效）：降級事件觸發器舊 device_id 警告、recorder 排除兩個超大屬性的版本感測器；`00-01` 週期重啟加 `continue_on_error`，檔內三支自動化統一升為 V4.0.0。
+- Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
 
 ## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
 

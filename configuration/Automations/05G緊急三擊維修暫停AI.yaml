@@ -1,0 +1,89 @@
+# ─────────────────────────────────────────────────────────────
+# 05G緊急三擊維修暫停AI (V4.1.5)
+# 相容版本：Helpers V4.1.5（packages/v41_emergency_pause.yaml，已確認）
+# 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：新增。維修暫停開關（input_boolean.emergency_triple_press_pause）開啟時啟動 2 小時計時，
+#   到期或手動關閉後恢復「實體開關三擊→緊急模式」（05E 檢查此開關）。HA 重啟後若開關仍開著但計時中斷，補啟動計時。
+#   只暫停實體開關的三擊；HomeKit／虛擬按鈕、地震預警、CO 自動觸發等其他緊急入口不受影響。
+# ─────────────────────────────────────────────────────────────
+- id: ai_05g_emergency_triple_press_pause
+  alias: 05G緊急三擊維修暫停AI (V4.1.5)
+  description: 維修暫停開關開啟時計時 2 小時，到期自動恢復三擊緊急按鈕；開關與恢復皆發 HA 資訊通知
+  mode: queued
+  max: 10
+  max_exceeded: silent
+  variables:
+    automation_version: "V4.1.5"
+    src: "05G緊急三擊維修暫停AI (V4.1.5)"
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.emergency_triple_press_pause
+      to: "on"
+      id: pause_on
+    - trigger: state
+      entity_id: input_boolean.emergency_triple_press_pause
+      to: "off"
+      from: "on"
+      id: pause_off
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.emergency_triple_press_pause
+      id: timer_done
+    - trigger: homeassistant
+      event: start
+      id: ha_start
+  actions:
+    - choose:
+        - conditions: "{{ trigger.id == 'pause_on' }}"
+          sequence:
+            - action: timer.start
+              target:
+                entity_id: timer.emergency_triple_press_pause
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: "{{ src }}"
+                version: "{{ automation_version }}"
+                title: 緊急三擊已暫停（維修模式）
+                message: "🔧 已暫停「連點三下」緊急按鈕，方便維修避免誤觸。2 小時後會自動恢復；維修完請手動關閉此開關。其他緊急入口（HomeKit、地震預警等）不受影響。"
+        - conditions: "{{ trigger.id == 'pause_off' }}"
+          sequence:
+            # 計時還在跑＝人為關閉（到期自動關閉時計時已結束，不重複通知）
+            - if: "{{ is_state('timer.emergency_triple_press_pause', 'active') }}"
+              then:
+                - action: timer.cancel
+                  target:
+                    entity_id: timer.emergency_triple_press_pause
+                - action: script.notify_dispatch
+                  data:
+                    level: info
+                    line: false
+                    source: "{{ src }}"
+                    version: "{{ automation_version }}"
+                    title: 緊急三擊已恢復
+                    message: "✅ 維修暫停已關閉，「連點三下」緊急按鈕恢復運作。"
+        - conditions: "{{ trigger.id == 'timer_done' }}"
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.emergency_triple_press_pause
+            - action: script.notify_dispatch
+              data:
+                level: general
+                line: false
+                source: "{{ src }}"
+                version: "{{ automation_version }}"
+                title: 緊急三擊已自動恢復
+                message: "⏱️ 維修暫停已滿 2 小時，已自動恢復「連點三下」緊急按鈕。若還需要維修，請再開啟一次。"
+        - conditions: "{{ trigger.id == 'ha_start' }}"
+          sequence:
+            - delay: "00:00:30"
+            - if: >-
+                {{ is_state('input_boolean.emergency_triple_press_pause', 'on')
+                   and is_state('timer.emergency_triple_press_pause', 'idle') }}
+              then:
+                - action: timer.start
+                  target:
+                    entity_id: timer.emergency_triple_press_pause
