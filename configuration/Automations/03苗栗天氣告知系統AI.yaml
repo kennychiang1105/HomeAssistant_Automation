@@ -14,7 +14,7 @@
 #     其餘（風力黃燈、黃色高溫、他處水務搶修、火災、消防檢查、全台大雷雨即時訊息…）：不通知。
 #     地震由「02地震災害系統」處理，這裡不通知（海嘯仍由這裡處理）。
 #   通知等級對照（呼叫 notify_dispatch／announce 時）：重要類→「一般」級；緊急類→「重要」級；info→「資訊」級。
-#   開關：packages/v41_disaster_notify.yaml 四個開關（LINE 重要類／緊急類、HA 重要類／緊急類），LINE 兩個公開給 HomeKit。關閉後該類不發對應通知；廣播不受影響。
+#   開關：packages/v41_disaster_notify.yaml 六個開關（LINE、HA、廣播 各分重要類／緊急類），LINE 兩個公開給 HomeKit；關閉後該類不發對應通知／不廣播。
 #   廣播：只有重要類（07:00–22:00）與緊急類（不限時段）會廣播。
 #   早晨補報：只補報夜間（22:00–07:00）收到、尚未廣播的重要類／緊急類訊息語音；不再要求「5 分鐘內更新」（原本的條件讓補報幾乎不可能成立）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -82,7 +82,7 @@
                 send_level: "{{ {'emergency': 'important', 'important': 'general', 'info': 'info'}[lv] }}"
                 ha_on: "{{ lv == 'info' or is_state('input_boolean.notify_ha_disaster_' ~ lv ~ '_enable', 'on') }}"
                 line_on: "{{ lv != 'info' and is_state('input_boolean.notify_line_disaster_' ~ lv ~ '_enable', 'on') }}"
-                speak: "{{ lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') }}"
+                speak: "{{ lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') and is_state('input_boolean.announce_disaster_' ~ lv ~ '_enable', 'on') }}"
             - if: "{{ ha_on or line_on }}"
               then:
                 - action: script.notify_dispatch
@@ -121,7 +121,8 @@
               value_template: >-
                 {{ (msg_level | trim) in ['important', 'emergency']
                    and message_ts > last_broadcast_ts
-                   and (now().timestamp() - message_ts) < 9 * 3600 }}
+                   and (now().timestamp() - message_ts) < 9 * 3600
+                   and is_state('input_boolean.announce_disaster_' ~ (msg_level | trim) ~ '_enable', 'on') }}
           sequence:
             - action: script.announce
               data:

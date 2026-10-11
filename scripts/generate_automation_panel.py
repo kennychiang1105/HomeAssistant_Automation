@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -99,6 +99,7 @@ SUBGROUPS = {
     "notify": [
         ("LINE 通知開關", r"notify_line_|notify_supply_extra_line|notify_tesla_charge_extra_line"),
         ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|garage_away_off_ha_notify|notify_tesla_charge_extra_system"),
+        ("災害訊息廣播開關", r"announce_disaster_"),
         ("手動廣播與手動通知", r"announce_manual|notify_manual"),
         ("廣播音量與情境廣播", r"announce_volume|scene_announce"),
         ("氣氛燈與機台氣氛燈", r"mood_alert|ambient_"),
@@ -615,3 +616,4 @@ if __name__ == "__main__":
     if "--deploy" in sys.argv:
         subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
+
