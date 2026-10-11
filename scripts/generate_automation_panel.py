@@ -24,6 +24,8 @@ out=[]
 GONE={"input_boolean.door_light_auto",
       # 2026-10-11 105門鎖自動判斷到家已併入 100A
       "automation.automation_26",
+      # 2026-10-11 在家判斷改只讀 person.*，移除追蹤裝置清單 input_text
+      "input_text.at_home_kenny_trackers","input_text.at_home_kenny_ipad_trackers","input_text.at_home_elay_trackers","input_text.at_home_jerry_trackers","input_text.at_home_iris_trackers",
       # 2026-10-11 已刪除的舊 07 系列與舊 100A（restore_state 還會保留一陣子）
       "automation.kong_qi_qing_jing_ji_zi_dong_qi_dong","automation.10kong_qi_yan_zhong_tong_zhi",
       "automation.11kong_qi_yan_zhong_tong_zhi_yan_zhong","automation.07kong_qi_qing_jing_ji_zi_dong_qi_dong",

@@ -17,7 +17,7 @@ person:
   - name: Jerry
     id: jerry
     device_trackers:
-      - device_tracker.iphone_16_jerry   # 主要手機；Redmi（redmi_note_11_pro_5g）不列入，與 100B 等「全員位置」判斷（at_home_jerry_trackers）一致
+      - device_tracker.iphone_16_jerry   # 主要手機；Redmi（redmi_note_11_pro_5g）不列入，與 100B 等「全員位置」判斷（at_home_jerry）一致
   - name: Elay
     id: elay
     device_trackers:
