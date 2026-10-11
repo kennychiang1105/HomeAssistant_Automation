@@ -2786,8 +2786,9 @@ class FloorplanV4Sidebar extends HTMLElement {
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
-        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; max-width:72px;
+        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; max-width:100%;
                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .narrow .top { flex-wrap:wrap; gap:2px 8px; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
                       color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
