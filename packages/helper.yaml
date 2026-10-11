@@ -989,17 +989,6 @@ input_text:
     name: LINE_Bot各月最後使用紀錄
     icon: mdi:history
     max: 255
-  # AtHome 在家系統專用（可替換追蹤裝置）
-  at_home_kenny_trackers:
-    name: AtHome Kenny 追蹤裝置清單
-  at_home_kenny_ipad_trackers:
-    name: AtHome Kenny iPad 追蹤裝置清單
-  at_home_elay_trackers:
-    name: AtHome Elay 追蹤裝置清單
-  at_home_jerry_trackers:
-    name: AtHome Jerry 追蹤裝置清單
-  at_home_iris_trackers:
-    name: AtHome Iris 追蹤裝置清單
 
   ai_00_01_last_event:
     name: 00-01 系統穩定最後事件
@@ -1546,36 +1535,31 @@ template:
           unique_id: at_home_kenny
           device_class: presence
           state: >-
-            {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
-            {% set pt = state_attr('person.kenny','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.kenny','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone_17_pro_max_kenny'] %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_kenny_ipad
           unique_id: at_home_kenny_ipad
           device_class: presence
           state: >-
-            {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
-            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
+            {% set ids = ['device_tracker.ipad_pro_2024_kenny'] %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_elay
           unique_id: at_home_elay
           device_class: presence
           state: >-
-            {% set raw = states('input_text.at_home_elay_trackers')|trim %}
-            {% set pt = state_attr('person.elay','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.elay','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.unifi_16_cc_a1_4d_4f_42_default'] %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_jerry
           unique_id: at_home_jerry
           device_class: presence
           state: >-
-            {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
-            {% set pt = state_attr('person.jerry','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.jerry','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone_16_jerry'] %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_iris
           unique_id: at_home_iris
           device_class: presence
           state: >-
-            {% set raw = states('input_text.at_home_iris_trackers')|trim %}
-            {% set pt = state_attr('person.iris','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone13promaxiris').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.iris','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone13promaxiris'] %}
             {{ expand(ids) | selectattr('state','eq','home') | list | count > 0 }}
         - name: at_home_anyone_home
           unique_id: at_home_anyone_home
@@ -1678,32 +1662,28 @@ template:
         - name: at_home_kenny_ap_mac
           unique_id: at_home_kenny_ap_mac
           state: >-
-            {% set raw = states('input_text.at_home_kenny_trackers')|trim %}
-            {% set pt = state_attr('person.kenny','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_17_pro_max_kenny').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.kenny','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone_17_pro_max_kenny'] %}
             {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_elay_ap_mac
           unique_id: at_home_elay_ap_mac
           state: >-
-            {% set raw = states('input_text.at_home_elay_trackers')|trim %}
-            {% set pt = state_attr('person.elay','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.unifi_16_cc_a1_4d_4f_42_default').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.elay','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.unifi_16_cc_a1_4d_4f_42_default'] %}
             {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_jerry_ap_mac
           unique_id: at_home_jerry_ap_mac
           state: >-
-            {% set raw = states('input_text.at_home_jerry_trackers')|trim %}
-            {% set pt = state_attr('person.jerry','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone_16_jerry').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.jerry','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone_16_jerry'] %}
             {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
         - name: at_home_iris_ap_mac
           unique_id: at_home_iris_ap_mac
           state: >-
-            {% set raw = states('input_text.at_home_iris_trackers')|trim %}
-            {% set pt = state_attr('person.iris','device_trackers') %}{% set ids = (pt | list) if pt else ((raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.iphone13promaxiris').split(',') | map('trim') | list) %}
+            {% set pt = state_attr('person.iris','device_trackers') %}{% set ids = (pt | list) if pt else ['device_tracker.iphone13promaxiris'] %}
             {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
@@ -1719,8 +1699,7 @@ template:
         - name: at_home_kenny_ipad_ap_mac
           unique_id: at_home_kenny_ipad_ap_mac
           state: >-
-            {% set raw = states('input_text.at_home_kenny_ipad_trackers')|trim %}
-            {% set ids = (raw if raw not in ['unknown','unavailable','none',''] else 'device_tracker.ipad_pro_2024_kenny').split(',') | map('trim') | list %}
+            {% set ids = ['device_tracker.ipad_pro_2024_kenny'] %}
             {% set homes = expand(ids) | selectattr('state','eq','home') | selectattr('attributes.ap_mac','defined') | list %}
             {% set e = homes[0] if homes else none %}
             {{ state_attr(e.entity_id, 'ap_mac') if e and state_attr(e.entity_id, 'ap_mac') is not none else '離家' }}
