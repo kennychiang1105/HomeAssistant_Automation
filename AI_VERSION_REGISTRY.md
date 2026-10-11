@@ -72,7 +72,7 @@
 | `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V4.0.0)` | `ai_105_front_door_doorbell_notify` | `V4.0.0` |
 | `configuration/Automations/106C_解除網關警報整合AI.yaml` | `106C_解除網關警報整合AI (V4.2.0)` | `ai_106c_gateway_alarm_disarm_integration` | `V4.2.0` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.1.5)` | `ai_gateway_anomaly_guard` | `V4.1.5` |
-| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.0.0)` | `ai_107_tesla_charger_status_notify` | `V4.0.0` |
+| `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.1.6)` | `ai_107_tesla_charger_status_notify` | `V4.1.6` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.1.5)` | `ai_living_room_fan_integrated_control` | `V4.1.5` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.1.5)` | `ai_topfloor_fan_automation` | `V4.1.5` |
@@ -597,8 +597,9 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 ### AI 4.0 版號統一（2026-10-05）
 V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
 
-## 本次調整（V4.1.6 - 2026-10-11：廚房／廁所手動開燈忘了關的保險關燈）
+## 本次調整（V4.1.6 - 2026-10-11：廚房／廁所保險關燈、充電完成後誤報未開始充電修正）
 
+- 修正 `107Tesla充電器狀態與通知AI`（V4.1.6）：充飽後 00:02 誤報「離峰時段已過仍未充電／仍未開始充電」。「這次連接後是否已充過電」原本比較 `tesla_charger_start_time`（只到秒）大於 `vehicle_connected.last_changed`（含毫秒），插槍同一秒就進入充電時 start_time 反而略小而判成沒充過；改成容許 10 秒誤差。2026-10-11 18:35:57 插槍即充電、22:12:57 充飽，00:02 誤報一次。
 - 新增 `08-8A 廚房燈無人保險關燈AI`（V3.4.0）與 `08-8B 廁所燈無人保險關燈AI`（V3.2.0）：燈亮著、感應器無人超過 10 分鐘就關燈（廚房需小米人體與毫米波兩顆都無人）。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。廚房「感應燈自動化」被長按關掉、廁所「手動關閉模式」啟用時不處理。
 
 ## 本次調整（V4.1.5 - 2026-10-11：夏季模式自動判斷、災害訊息分級、到家情境併入門鎖、風扇防抖、車庫誤報修正、緊急三擊維修暫停與清理）
