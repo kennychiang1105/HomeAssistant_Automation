@@ -2,6 +2,9 @@
 # 08-5C頂樓樓梯感應燈AI (V4.0.0)
 # 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：修補版（僅「解除深夜亮度AI」）；兩盞樓梯燈同時被打開時（例如手動上樓情境），兩輪排隊執行，先跑完的那一輪會把旗標清掉，
+#           第二盞（頂樓樓梯燈）等 3 秒後因旗標已關而被跳過，一直停在深夜亮度（60%／3000K），之後感應開燈沿用該亮度而偏暗。
+#           改為等 3 秒後不再看旗標，而是看那盞燈是否仍亮著且仍是深夜亮度／色溫（讀不到亮度視為仍是深夜）才調成平常亮度；感應或實體按鈕已先處理的燈（已不是深夜亮度）仍不會重複調整。
 # - V4.0.0：頂樓感應優化 P3 重寫。開燈：攝影機／PIR 右／arrive_up／down_start；深夜（頂樓熟睡手動鎖）樓梯燈 50% 2700K，其他時段不指定亮度；
 #           關燈改依 08-5J 動線事件（抵達目的地 15 秒後 4F→5F 漸進關、下樓 5F 先關、樓梯口清空、保底 2:30 有人則續），
 #           且只關「感應自己開的」燈（手動、9B、情境開的，或 5 分鐘手動保持、9A 常開都不關；手動保護期過後人走動感應會自動接管標記為 auto）；不再碰書房燈；坎燈深夜不動。
@@ -276,7 +279,7 @@
             - delay: "00:00:02"
             - action: script.topfloor_kandeng_off_if_auto
 
-- alias: 08-5C頂樓樓梯燈解除深夜亮度AI (V4.0.0)
+- alias: 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)
   id: ai_08_5c_stairs_leave_night_level
   description: >
     樓梯燈還是深夜亮度（旗標「上次為深夜亮度」開啟）時，只要熟睡鎖已解除：
@@ -306,13 +309,21 @@
       entity_id: input_boolean.sleep_silent_active
       state: "off"
   actions:
-    # 燈被打開：等 3 秒，讓感應（08-5C）或實體按鈕腳本先處理；它們處理完旗標會被清掉，這裡就不再動
+    # 燈被打開：等 3 秒，讓感應（08-5C）或實體按鈕腳本先處理；它們處理完燈就不再是深夜亮度，這裡就不再動。
+    # （V4.1.5）不再看旗標：兩盞燈同時被打開時，先跑完的那一輪會把旗標清掉，後面排隊的那盞會被誤跳過、卡在深夜亮度。
     - if: "{{ trigger.id == 'light_on' }}"
       then:
         - delay: "00:00:03"
-        - condition: state
-          entity_id: input_boolean.topfloor_stairs_night_used
-          state: "on"
+        - condition: template
+          value_template: >-
+            {% set e = trigger.entity_id %}
+            {% set b = state_attr(e, 'brightness') | int(0) %}
+            {% set kv = state_attr(e, 'color_temp_kelvin') | int(0) %}
+            {% set nb = (states('input_number.topfloor_stairs_night_brightness') | float(50)) * 255 / 100 %}
+            {% set nk = states('input_number.topfloor_stairs_night_kelvin') | float(3000) %}
+            {{ is_state(e, 'on')
+               and (b == 0 or (b - nb) | abs <= 12)
+               and (kv == 0 or (kv - nk) | abs <= 150) }}
         - action: script.topfloor_stairs_apply_day
           data:
             key: "{{ trigger.entity_id.split('_')[2] }}"

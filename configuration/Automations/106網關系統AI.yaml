@@ -1,8 +1,11 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 106網關系統AI (V4.0.0)
+# 106網關系統AI (V4.1.5)
 # 相容版本：Helpers V3.16（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：① 移除「自動化重載（automation_reloaded）」觸發：重載時情境開關沒有變，不需要重送警戒指令（原本每次重載都會對實體網關重送 arm_home／away／night，
+#           2026-10-11 一天內已送出 29 次）；HA 啟動與 5 個情境開關變成開仍會同步。② HA 啟動時若實體網關正在「警報中／倒數中」，不覆蓋它（略過這次同步）。
+#           實體網關 → 虛擬情境開關的回寫由 Apple 家庭負責（HA 限制），不在本自動化內。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.1：修補版。將 mode 由 single 改為 restart，避免 input_boolean 快速切換時被重復觸發時導致 "Already running" 警告，確保以最新觸發狀態為準。
 # - V3.3.0：功能版；新增網關 Debug 通知 Helper，將解除歸位、常規同步與無情境歸位等清理型永久通知改為 Debug 開啟時才發送；異常攔截 LINE 流程不變。
@@ -11,7 +14,7 @@
 # - V3.1：功能版；接管舊版 106 網關同步邏輯，將異常攔截、常規同步、解除歸位與無情境歸位合併至單一 choose 分流，避免 Race Condition。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 106網關系統AI (V4.0.0)
+- alias: 106網關系統AI (V4.1.5)
   id: ai_gateway_anomaly_guard
   description: 保全情境重置、網關同步與異常防禦
   mode: restart
@@ -27,11 +30,9 @@
       to: "on"
     - platform: homeassistant
       event: start
-    - platform: event
-      event_type: automation_reloaded
 
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.1.5"
     helpers_compat: "Helpers V3.16"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     notif_title_base: "【保全告警系統 {{ automation_version }}】"
@@ -49,6 +50,12 @@
 
   actions:
     - delay: "00:00:01"
+    # V4.1.5：HA 啟動時若實體網關正在警報中／倒數中，不覆蓋它
+    - if:
+        - condition: template
+          value_template: "{{ (is_ha_start | bool(false)) and states(alarm_entity) in ['triggered', 'pending'] }}"
+      then:
+        - stop: "實體網關警報中或倒數中，HA 啟動時略過情境同步"
     - variables:
         aqara_active_count: >-
           {{

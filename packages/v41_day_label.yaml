@@ -1,0 +1,52 @@
+# 今日日型標籤（V4.1.5，2026-10-11）：給 3D 智慧家庭儀表板日期列使用（紅色＝節日／週末，一般色＝工作日／補班日）。
+# 資料來源：sensor.tw_day_type_today（Workday 整合的政府放假日＋補班日，見 v41_day_type.yaml）＋ calendar.tai_wan（節日名稱，含補假與不放假的紀念日）。
+# sensor.tw_day_label：state＝顯示文字（例：週末／國慶日（補假）／工作日・教師節／補班日）；
+#   attributes：kind（holiday 平日放假｜weekend 週末｜makeup 週六日補班｜workday 工作日）、date（算出這個標籤的日期，前端用來判斷是否過期）、names（節日名稱清單）。
+# calendar.get_events 失敗（日曆暫時不可用）時仍會依日型顯示（平日放假顯示「國定假日」）。\n# 注意：calendar.get_events 會把「明天才開始」的全天事件也回傳（邊界含頭尾），所以這裡再用 start<=今天<end 過濾。
+template:
+  - triggers:
+      - trigger: time
+        at: "00:00:30"
+      - trigger: time_pattern
+        minutes: "/30"
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+      - trigger: state
+        entity_id:
+          - sensor.tw_day_type_today
+          - input_text.tw_makeup_workdays
+    actions:
+      - action: calendar.get_events
+        target:
+          entity_id: calendar.tai_wan
+        data:
+          start_date_time: "{{ today_at('00:00').isoformat() }}"
+          end_date_time: "{{ (today_at('00:00') + timedelta(days=1)).isoformat() }}"
+        response_variable: cal
+        continue_on_error: true
+    sensor:
+      - name: 今日日型標籤
+        unique_id: v415_tw_day_label
+        default_entity_id: sensor.tw_day_label
+        icon: mdi:calendar-star
+        state: >-
+          {% set evs = cal['calendar.tai_wan'].events | selectattr('start', 'le', now().date() | string) | selectattr('end', 'gt', now().date() | string) | list if (cal is defined and cal is mapping and 'calendar.tai_wan' in cal) else [] %}
+          {% set names = (evs | map(attribute='summary') | join(';')).split(';') | map('trim') | reject('eq', '') | unique | list %}
+          {% set dt = states('sensor.tw_day_type_today') %}
+          {% set wd = now().weekday() %}
+          {% set kind = ('weekend' if wd >= 5 else 'holiday') if dt == 'holiday' else ('makeup' if (wd >= 5 and dt == 'workday') else ('workday' if dt == 'workday' else ('weekend' if wd >= 5 else 'workday'))) %}
+          {% set nm = names | join('・') %}
+          {% if kind == 'holiday' %}{{ nm if nm else '國定假日' }}
+          {% elif kind == 'weekend' %}{{ (nm ~ '・') if nm else '' }}週末
+          {% elif kind == 'makeup' %}補班日{{ ('・' ~ nm) if nm else '' }}
+          {% else %}工作日{{ ('・' ~ nm) if nm else '' }}{% endif %}
+        attributes:
+          kind: >-
+            {% set dt = states('sensor.tw_day_type_today') %}{% set wd = now().weekday() %}
+            {{ ('weekend' if wd >= 5 else 'holiday') if dt == 'holiday' else ('makeup' if (wd >= 5 and dt == 'workday') else ('workday' if dt == 'workday' else ('weekend' if wd >= 5 else 'workday'))) }}
+          date: "{{ now().date() }}"
+          names: >-
+            {% set evs = cal['calendar.tai_wan'].events | selectattr('start', 'le', now().date() | string) | selectattr('end', 'gt', now().date() | string) | list if (cal is defined and cal is mapping and 'calendar.tai_wan' in cal) else [] %}
+            {{ (evs | map(attribute='summary') | join(';')).split(';') | map('trim') | reject('eq', '') | unique | list }}

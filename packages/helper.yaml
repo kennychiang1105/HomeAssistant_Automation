@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # Helpers（V4.1.0）
 # ──────────────────────────────────────────────
+# 變更 (V4.1.5，2026-10-11)：廚房「空氣品質危險」旗標（kitchenmqtt_pm25_homekit_alarm）條件由「PM2.5>35 或 CO2>1000」改為「PM2.5>35 或 CO2>1500 或 TVOC>600 ppb」（CO2 與 06 的重要門檻一致；新增 TVOC）。需 mqtt.reload 生效。
 # 變更 (V4.1.0)：at_home_* 範本（binary_sensor／ap_mac，Kenny／Elay／Jerry／Iris）改為優先讀 person.* 的 device_trackers，沒有才退回 input_text／預設；
 #   garage_light_cooldown_sec 預設改為 120 秒；V4.1 新增功能的 helper 一律放獨立的 packages/v41_*.yaml（不寫進本檔）。
 # 移除 (V4.1)：input_select.floorplan_active_floor（舊 3D 儀表板的樓層選擇器，儀表板已移除、無人使用）。
@@ -45,7 +46,7 @@
 #     將原本需實體開關按鍵校正之功能改由 HA 虛擬按鈕觸發。
 #
 # 修正 (V3.21.1):
-#   • 更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
+#   • （V4.1.5 已移除，由 v41_supply 取代）更新 supply_batt_lowest_23cd3dc 的 friendly_name 為「耗材電量最低値_廚房無線開關」。
 #
 # 新增 (V3.21.0):
 #   • 新增 input_number.garage_light_cooldown_sec：車庫燈手動關閉冷卻秒數（預設 30 秒，範圍 0～600 秒），
@@ -305,7 +306,7 @@ mqtt:
       state_topic: "JRHOME/env"
       device: *kitchen_device
       value_template: >
-        {% if (value_json.PM is defined and value_json.PM[1] | float(0) > 35) or (value_json.CO2 is defined and value_json.CO2 | float(0) > 1000) %}
+        {% if (value_json.PM is defined and value_json.PM[1] | float(0) > 35) or (value_json.CO2 is defined and value_json.CO2 | float(0) > 1500) or (value_json.TVOC is defined and value_json.TVOC | float(0) > 600) %}
           ON
         {% else %}
           OFF
@@ -712,66 +713,6 @@ input_number:
     initial: 120
     unit_of_measurement: s
     mode: box
-  supply_batt_lowest_garage:
-    name: 耗材電量最低值_車庫感測器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_doorlock:
-    name: 耗材電量最低值_客廳門鎖
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_study_switch:
-    name: 耗材電量最低值_書房感應開關
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_23cd3dc:
-    name: 耗材電量最低値_廚房無線開關
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_27d8a8e:
-    name: 耗材電量最低值_27d8a8e
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_08b95f06b466:
-    name: 耗材電量最低值_廚房小米人體傳感器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_28d1273d78cf:
-    name: 耗材電量最低值_廁所夜燈
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_toilet_motion:
-    name: 耗材電量最低值_二樓廁所人體感應器
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_living_room_cube_new:
-    name: 耗材電量最低值_客廳Aqara魔方
-    min: 0
-    max: 100
-    step: 1
-    mode: box
-  supply_batt_lowest_doorbell_2f:
-    name: 耗材電量最低值_二樓門口電鈴
-    min: 0
-    max: 100
-    step: 1
-    mode: box
   system_stability_restart_interval_days:
     name: 系統穩定自動重啟間隔天數
     min: 1
@@ -1137,9 +1078,6 @@ input_text:
     name: 5F 頂樓 AP MAC 清單（逗號分隔）
     icon: mdi:wifi
 #    initial: 70:a7:41:e4:5a:bf
-  iphone_tracker_entity_kenny:
-    name: Kenny iPhone Tracker Entity
-    icon: mdi:cellphone-nfc
   watch_tracker_entity_kenny:
     name: Kenny Watch Tracker Entity
     icon: mdi:watch-variant

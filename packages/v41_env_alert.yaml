@@ -4,6 +4,7 @@
 #   要真的接線，必須使用者在場並同意後才能關掉。
 # env_alert_mute：暫停一般／重要通知（緊急不受影響）。
 # 2026-10-10 使用者核准：CO 危險自動緊急模式乾跑預設改關（實際接線）。
+# 2026-10-11 使用者核准（V4.1.5）：CO2 一般門檻預設 1000 → 1500 ppm（與廚房「空氣品質危險」旗標 CO2>1500 一致），重要門檻 1500 → 2000 ppm（三級分開：1500／2000／2500）。
 input_boolean:
   env_alert_mute:
     name: 環境異常通知暫停（不含緊急）
@@ -19,7 +20,7 @@ input_number:
     min: 600
     max: 3000
     step: 50
-    initial: 1000
+    initial: 1500
     mode: box
     unit_of_measurement: ppm
   env_co2_l2:
@@ -27,7 +28,7 @@ input_number:
     min: 800
     max: 4000
     step: 50
-    initial: 1500
+    initial: 2000
     mode: box
     unit_of_measurement: ppm
   env_co2_l3:

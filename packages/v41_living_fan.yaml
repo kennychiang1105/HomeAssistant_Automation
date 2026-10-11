@@ -1,0 +1,28 @@
+# 客廳風扇自動調速防抖（V4.1.5，2026-10-11）
+# 由 21A_客廳電風扇整合控制AI 使用：感測器溫度在門檻上下 0.1°C 抖動時，風量會每 15～30 秒大小來回。
+# living_room_fan_hysteresis_c：遲滯（°C）。升到下一級要超過門檻 +遲滯，降回要低於門檻 -遲滯（預設 0.3，來回區間共 0.6°C）。
+# living_room_fan_min_interval_min：自動調速最短間隔（分鐘），兩次自動調速至少隔這麼久（預設 3）。
+input_number:
+  living_room_fan_hysteresis_c:
+    name: 客廳風扇_調速遲滯（°C）
+    min: 0
+    max: 1.5
+    step: 0.1
+    initial: 0.3
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:fan-clock
+  living_room_fan_min_interval_min:
+    name: 客廳風扇_自動調速最短間隔（分）
+    min: 0
+    max: 30
+    step: 1
+    initial: 3
+    mode: box
+    unit_of_measurement: 分
+    icon: mdi:timer-sand
+timer:
+  living_room_fan_speed_dwell:
+    name: 客廳風扇_自動調速間隔計時
+    duration: "00:03:00"
+    icon: mdi:timer-sand

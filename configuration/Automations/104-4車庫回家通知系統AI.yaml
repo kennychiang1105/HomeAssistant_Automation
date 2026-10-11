@@ -1,7 +1,10 @@
 # ────────────────────────────────────────────────────────
-# 104-4車庫回家通知系統AI (V4.0.0)
+# 104-4車庫回家通知系統AI (V4.1.5)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：人走進車庫再開鐵門被誤報成「有人即將到家」（17:56 實例：攝影機 17:56:14 偵測到人、Wi-Fi 17:56:23 才變有人、17:56:54 開門，兩者都不到 2 分鐘）。車庫攝影機現在只要偵測到人（不論多久）、或 60 秒內才剛變成沒人，就不通知；Wi-Fi 的「超過 2 分鐘才算」規則不變（開車回家時手機剛連上 Wi-Fi 仍會通知）。
+# - V4.1.5（2026-10-11）：修正「人在車庫用遙控器開門」被誤報成「有人即將到家」。車庫 Wi-Fi 在家判斷在手機換 AP（漫遊）時會短暫掉線約 30 秒，剛好在這段時間開門，
+#           加上攝影機剛看到人不到 2 分鐘（寬限期）就被放行。現在 Wi-Fi 判斷「剛掉線不到 2 分鐘」也視為車庫有人而不通知；真正到家時手機掉線已久（超過 2 分鐘）才會連上，仍會通知。
 # - 2026-10-10：「車庫沒人」條件改為只排除持續超過 2 分鐘的有人訊號（Wi-Fi 在家判斷、攝影機人員偵測）；剛到車庫門口 2 分鐘內才變成有人不再擋下通知（原本開車回家時攝影機先看到人，通知被誤擋）。
 # - V4.0.0：廣播改為同時播放：客廳 HomePod、車庫攝影機喇叭、頂樓 HomePod、頂樓攝影機喇叭（統一廣播 player 支援清單）。
 # - V4.0.0：新增。在家情境（網關在家模式，非離家／晚安）且頂樓熟睡手動鎖關閉時，車庫鐵門被「非實體按鈕」打開（遙控器、車用遙控、
@@ -14,13 +17,13 @@
 #           判斷方式：鐵門狀態由「關閉／關閉中」變為「開啟中／已開啟」，且該狀態變化的 context 沒有 parent_id（不是自動化發出的指令）。
 #           去重：同一次開門 60 秒內只通知一次。
 # ────────────────────────────────────────────────────────
-- alias: 104-4車庫回家通知系統AI (V4.0.0)
+- alias: 104-4車庫回家通知系統AI (V4.1.5)
   id: ai_104_4_garage_arrival_notice
   description: 在家情境、頂樓熟睡鎖關閉、車庫沒人時，非實體按鈕開啟車庫鐵門 → 重要級廣播＋氣氛燈＋HA 通知（不發 LINE）
   mode: single
   max_exceeded: silent
   variables:
-    automation_version: V4.0.0
+    automation_version: V4.1.5
   triggers:
     - trigger: state
       entity_id: cover.garage
@@ -48,14 +51,17 @@
     # 車庫沒人：專用實體（家人手機連到車庫 AP 的在家位置判斷）與車庫攝影機人員偵測，任一個判斷有人就視為有人、不通知
     # （攝影機感測器常為 unavailable，所以用「不是 on」判斷，避免因為離線而永遠不通知）
     # 只把「持續超過 2 分鐘」的有人訊號當成車庫有人；2 分鐘內才剛變成有人（例如開車回到家、人剛到車庫門口）不擋通知
+    # V4.1.5：Wi-Fi 在家判斷「在家且持續超過 2 分鐘」或「剛掉線不到 2 分鐘（手機換 AP 漫遊）」都算車庫有人
     - condition: template
       value_template: >-
         {% set e = states.binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan %}
-        {{ e is none or e.state != 'on' or (now() - e.last_changed).total_seconds() < 120 }}
+        {% set age = (now() - e.last_changed).total_seconds() if e is not none else 9999 %}
+        {{ e is none or not ((e.state == 'on' and age >= 120) or (e.state == 'off' and age < 120)) }}
+    # V4.1.5：攝影機偵測到人（不論多久），或剛在 60 秒內才變成沒人，都視為「人在車庫裡」→ 不通知（人走進車庫再開門的情況）
     - condition: template
       value_template: >-
         {% set e = states.binary_sensor.che_ku_she_ying_ji_person_detected %}
-        {{ e is none or e.state != 'on' or (now() - e.last_changed).total_seconds() < 120 }}
+        {{ e is none or not (e.state == 'on' or (e.state == 'off' and (now() - e.last_changed).total_seconds() < 60)) }}
     # 非自動化發出的開門（實體按鈕走 104鐵門開關V2 自動化，context 會帶 parent_id）
     - condition: template
       value_template: "{{ trigger.to_state.context.parent_id is none }}"
@@ -70,7 +76,7 @@
           data:
             level: important
             line: false
-            source: "104-4車庫回家通知系統AI (V4.0.0)"
+            source: "104-4車庫回家通知系統AI (V4.1.5)"
             version: "{{ automation_version }}"
             title: 車庫鐵門已打開
             message: |-

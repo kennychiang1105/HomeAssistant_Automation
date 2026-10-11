@@ -1,0 +1,15 @@
+# 緊急實體按鈕「三擊」維修暫停（V4.1.5，2026-10-11）
+# 用途：維修、接線或更換 Terncy 開關時，暫時讓「連點三下」不會啟動緊急模式（05E），避免誤觸。
+# emergency_triple_press_pause：維修暫停開關（on＝暫停三擊緊急按鈕；已加入 HomeKit 與自動化管理面板）。
+# timer.emergency_triple_press_pause：2 小時自動恢復，避免忘記關閉而讓緊急按鈕失效（由 05G 管理）。
+# 只暫停「實體開關三擊」；HomeKit 緊急按鈕、虛擬按鈕、地震預警、CO 自動觸發等其他緊急入口不受影響。
+input_boolean:
+  emergency_triple_press_pause:
+    name: 緊急三擊維修暫停
+    icon: mdi:alarm-light-off-outline
+timer:
+  emergency_triple_press_pause:
+    name: 緊急三擊維修暫停（2 小時自動恢復）
+    duration: "02:00:00"
+    icon: mdi:timer-sand
+    restore: true

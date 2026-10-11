@@ -1,19 +1,33 @@
-# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
-# ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V4.0.0)
+﻿# ─────────────────────────────────────────────────────────────
+# 03苗栗天氣告知系統AI (V4.1.5)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：災害訊息改成「依內容分級、不重要的不通知」。
+#   問題：原本只要內文有「苗栗」就用「一般」級通知＋廣播；實際 45 天 255 則訊息裡有 114 則提到苗栗，其中 84 則是風力黃燈、109 則是各地水務搶修，幾乎都不重要。
+#   分級（msg_level）：
+#     emergency（緊急類）：疏散撤離／土石流／堰塞湖／海嘯警報（內文有苗栗；解除或沒寫苗栗的降為 info）／國家級警報／空襲飛彈（不限地區）。
+#     important（重要類）：確定「竹南有影響」才算——
+#         · 內文直接寫竹南的淹水警戒、停水停電、水庫洩洪；
+#         · 縣市層級的警報且列有苗栗：颱風警報（含陸上）、豪雨／大豪雨特報、橙色／紅色燈號（竹南屬苗栗縣，視為有影響）。
+#     info（只發 HA 資訊通知，不發 LINE、不廣播）：含苗栗或竹苗的大雨預報、豪雨／大豪雨特報解除、竹南解除淹水警戒、
+#         竹南鄰近（頭份、後龍、三灣、造橋）的淹水警戒／洩洪／停水停電（竹南沒寫到）、內文有「演練」「演習」「模擬」的訊息。
+#     其餘（風力黃燈、黃色高溫、他處水務搶修、火災、消防檢查、全台大雷雨即時訊息…）：不通知。
+#     地震由「02地震災害系統」處理，這裡不通知（海嘯仍由這裡處理）。
+#   通知等級對照（呼叫 notify_dispatch／announce 時）：重要類→「一般」級；緊急類→「重要」級；info→「資訊」級。
+#   開關：packages/v41_disaster_notify.yaml 六個開關（LINE、HA、廣播 各分重要類／緊急類），LINE 兩個公開給 HomeKit；關閉後該類不發對應通知／不廣播。
+#   廣播：只有重要類（07:00–22:00）與緊急類（不限時段）會廣播。
+#   早晨補報：只補報夜間（22:00–07:00）收到、尚未廣播的重要類／緊急類訊息語音；不再要求「5 分鐘內更新」（原本的條件讓補報幾乎不可能成立）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 03苗栗天氣告知系統AI (V4.0.0)
+- alias: 03苗栗天氣告知系統AI (V4.1.5)
   id: ai_miaoli_weather_disaster_notify
-  description: 白天即時播報苗栗天氣災害訊息，並於早晨補報夜間未播的訊息
+  description: 依內容分級通知竹南有影響的災害與天氣訊息，不重要的不通知；重要類與緊急類才廣播
   mode: queued
   max: 10
   variables:
-    automation_version: "V4.0.0"
-    line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+    automation_version: "V4.1.5"
+    near_re: "頭份|後龍|三灣|造橋"
   triggers:
     - entity_id: sensor.disaster
       id: message_received
@@ -24,161 +38,99 @@
   actions:
     - variables:
         current_message: "{{ states('sensor.disaster') }}"
-        sensor_updated_recently: >-
-          {{ (now() - states.sensor.disaster.last_updated).total_seconds() < 300
-          }}
-        is_miaoli_message: "{{ '苗栗' in current_message }}"
+        msg_level: >-
+          {% set m = current_message %}
+          {% set zhunan = m | regex_search('竹南') %}
+          {% set near = m | regex_search(near_re) %}
+          {% set county = m | regex_search('苗栗') %}
+          {% set cancel = m | regex_search('解除|已無警戒|降至|已降至') %}
+          {% if m in ['unknown', 'unavailable', 'none', 'None', ''] %}drop
+          {% elif m | regex_search('演練|演習|模擬') %}info
+          {% elif m | regex_search('海嘯') %}{{ ('info' if cancel else 'emergency') if county else 'info' }}
+          {% elif m | regex_search('地震') %}drop
+          {% elif m | regex_search('國家級警報|空襲|飛彈') %}emergency
+          {% elif county and m | regex_search('疏散|撤離|土石流|堰塞') %}emergency
+          {% elif county and m | regex_search('颱風警報') and not cancel %}important
+          {% elif zhunan and m | regex_search('淹水|警戒') %}{{ 'info' if cancel else 'important' }}
+          {% elif zhunan and m | regex_search('洩洪|放水|溢流') %}important
+          {% elif zhunan and m | regex_search('停水|停電|暫停供水') %}important
+          {% elif near and m | regex_search('淹水|警戒|洩洪|放水|溢流|停水|停電|暫停供水') %}info
+          {% elif county and m | regex_search('大豪雨|超大豪雨|豪雨特報|大雨特報') and not cancel %}important
+          {% elif m | regex_search('苗栗縣[^燈]*(橙|紅)色燈號') %}important
+          {% elif cancel and m | regex_search('大豪雨|豪雨|大雨') %}info
+          {% elif (county or m | regex_search('竹苗')) and m | regex_search('局部大雨|局部豪雨|大雨或豪雨') %}info
+          {% else %}drop{% endif %}
         is_broadcast_time: "{{ 7 <= now().hour < 22 }}"
         last_broadcast_ts: "{{ as_timestamp(states('input_datetime.last_disaster_broadcast'), 0) }}"
-        last_broadcast_message: "{{ states('input_text.disaster_last_message') }}"
+        last_message: "{{ states('input_text.disaster_last_message') }}"
         message_ts: "{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}"
-        is_new_message: "{{ message_ts > last_broadcast_ts }}"
-        is_new_content: "{{ current_message != last_broadcast_message }}"
+        is_new_content: "{{ current_message[:250] != last_message }}"
+        level_title: >-
+          {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
+        voice_text: "{{ '天氣告知系統收到以下政府災害訊息 ' ~ (current_message | replace('\n', ' '))[:160] }}"
     - choose:
+        # ── 即時：依類別發 HA／LINE，重要類與緊急類再廣播 ──
+        - conditions:
+            - condition: trigger
+              id: message_received
+            - condition: template
+              value_template: "{{ (msg_level | trim) != 'drop' and is_new_content }}"
+          sequence:
+            - variables:
+                lv: "{{ msg_level | trim }}"
+                # 重要類→一般級；緊急類→重要級；info→資訊級
+                send_level: "{{ {'emergency': 'important', 'important': 'general', 'info': 'info'}[lv] }}"
+                ha_on: "{{ lv == 'info' or is_state('input_boolean.notify_ha_disaster_' ~ lv ~ '_enable', 'on') }}"
+                line_on: "{{ lv != 'info' and is_state('input_boolean.notify_line_disaster_' ~ lv ~ '_enable', 'on') }}"
+                speak: "{{ lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') and is_state('input_boolean.announce_disaster_' ~ lv ~ '_enable', 'on') }}"
+            - if: "{{ ha_on or line_on }}"
+              then:
+                - action: script.notify_dispatch
+                  data:
+                    level: "{{ send_level }}"
+                    to_ha: "{{ ha_on }}"
+                    line: "{{ line_on }}"
+                    source: "03苗栗天氣告知系統AI (V4.1.5)"
+                    version: "{{ automation_version }}"
+                    title: "{{ level_title }}"
+                    message: |-
+                      天氣告知系統收到以下政府災害訊息:
+
+                      {{ current_message }}
+            - if: "{{ speak }}"
+              then:
+                - action: script.announce
+                  data:
+                    level: "{{ send_level }}"
+                    message: "{{ voice_text }}"
+                - action: input_datetime.set_datetime
+                  target:
+                    entity_id: input_datetime.last_disaster_broadcast
+                  data:
+                    datetime: "{{ now().isoformat() }}"
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.disaster_last_message
+              data:
+                value: "{{ current_message[:250] }}"
+        # ── 早晨補報：只補夜間收到、還沒廣播過的重要類／緊急類訊息（語音） ──
         - conditions:
             - condition: trigger
               id: morning_catch_up
             - condition: template
               value_template: >-
-                {{ is_new_message and is_new_content and is_miaoli_message and
-                sensor_updated_recently }}
+                {{ (msg_level | trim) in ['important', 'emergency']
+                   and message_ts > last_broadcast_ts
+                   and (now().timestamp() - message_ts) < 9 * 3600
+                   and is_state('input_boolean.announce_disaster_' ~ (msg_level | trim) ~ '_enable', 'on') }}
           sequence:
-            - target:
-                entity_id: media_player.ke_ting_homepod
-              data:
-                volume_level: 0.5
-              action: media_player.volume_set
-            - data:
-                level: general
-                line: false
-                source: "03苗栗天氣告知系統AI (V4.0.0)"
-                version: "{{ automation_version | default('', true) }}"
-                title: 天氣告知系統 (早晨補報)
-                message: |-
-                  天氣告知系統收到以下政府災害訊息:
-
-                  {{ current_message }}
-              action: script.notify_dispatch
-            - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_general_enable
-                  state: "on"
-              then:
-                - data:
-                    source: "03苗栗天氣告知系統AI (V4.0.0)"
-                    user_id: "{{ line_bot_target_user_id }}"
-                    payload: >-
-                      {% set msg_raw = states('sensor.disaster') %}
-                      {% set invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
-                      {% set msg_safe = msg_raw if msg_raw not in invalids else '目前無災害訊息內容' %}
-                    
-                      {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #}
-                      {% set trigger_id = trigger.id if trigger is defined else 'manual' %}
-                      {% set is_morning = (trigger_id == 'morning_catch_up') %}
-                    
-                      {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍 災防報告 Disaster Prevention Report" %}
-                    
-                      {% set messages = [
-                        {
-                          "type": "text",
-                          "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
-                        },
-                        {
-                          "type": "text",
-                          "text": "收到以下政府災害訊息:"
-                        },
-                        {
-                          "type": "text",
-                          "text": msg_safe
-                        }
-                      ] %}
-                      {{ messages | tojson }}
-                  action: script.send_line_to_user
             - action: script.announce
               data:
-                level: general
-                message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
-            - target:
+                level: "{{ 'important' if (msg_level | trim) == 'emergency' else 'general' }}"
+                message: "{{ '早晨補報。' ~ voice_text }}"
+            - action: input_datetime.set_datetime
+              target:
                 entity_id: input_datetime.last_disaster_broadcast
               data:
                 datetime: "{{ now().isoformat() }}"
-              action: input_datetime.set_datetime
-            - target:
-                entity_id: input_text.disaster_last_message
-              data:
-                value: "{{ current_message }}"
-              action: input_text.set_value
-        - conditions:
-            - condition: trigger
-              id: message_received
-            - condition: template
-              value_template: >-
-                {{ is_broadcast_time and is_new_message and is_new_content and
-                is_miaoli_message and sensor_updated_recently }}
-          sequence:
-            - target:
-                entity_id: media_player.ke_ting_homepod
-              data:
-                volume_level: 0.5
-              action: media_player.volume_set
-            - data:
-                level: general
-                line: false
-                source: "03苗栗天氣告知系統AI (V4.0.0)"
-                version: "{{ automation_version | default('', true) }}"
-                title: 天氣告知系統 (即時)
-                message: |-
-                  天氣告知系統收到以下政府災害訊息:
 
-                  {{ current_message }}
-              action: script.notify_dispatch
-            - if:
-                - condition: state
-                  entity_id: input_boolean.notify_line_general_enable
-                  state: "on"
-              then:
-                - data:
-                    source: "03苗栗天氣告知系統AI (V4.0.0)"
-                    user_id: "{{ line_bot_target_user_id }}"
-                    payload: >-
-                      {% set msg_raw = states('sensor.disaster') %} {% set
-                      invalids = ['unknown', 'unavailable', 'none', 'None', ''] %}
-                      {% set msg_safe = msg_raw if msg_raw not in invalids else
-                      '目前無災害訊息內容' %}
-
-                      {# 加入預設值判斷：若 trigger 未定義，則預設為即時播報模式 #} {% set trigger_id =
-                      trigger.id if trigger is defined else 'manual' %} {% set
-                      is_morning = (trigger_id == 'morning_catch_up') %}
-
-                      {% set header_text = "🌍 災防報告 (早晨補報)" if is_morning else "🌍
-                      災防報告 Disaster Prevention Report" %}
-
-                      {% set messages = [
-                        {
-                          "type": "text",
-                          "text": "【災防系統通知】一般 General 🪧\n" ~ header_text
-                        },
-                        {
-                          "type": "text",
-                          "text": "收到以下政府災害訊息:"
-                        },
-                        {
-                          "type": "text",
-                          "text": msg_safe
-                        }
-                      ] %} {{ messages | tojson }}
-                  action: script.send_line_to_user
-            - action: script.announce
-              data:
-                level: general
-                message: "{{ \"天氣告知系統收到以下政府災害訊息 \" ~ current_message }}"
-            - target:
-                entity_id: input_datetime.last_disaster_broadcast
-              data:
-                datetime: "{{ now().isoformat() }}"
-              action: input_datetime.set_datetime
-            - target:
-                entity_id: input_text.disaster_last_message
-              data:
-                value: "{{ current_message }}"
-              action: input_text.set_value

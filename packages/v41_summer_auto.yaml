@@ -1,0 +1,45 @@
+﻿# 夏季模式自動判斷輔助項目（V4.1.5，2026-10-11）
+# 由 21B夏季模式自動判斷AI 使用。夏季模式（input_boolean.summer_mode）會影響 21A 客廳風扇與 22 頂樓風扇的風速曲線。
+#   summer_auto_enable：自動判斷總開關（關閉＝完全不動夏季模式）。
+#   summer_auto_on_feels_c／summer_auto_off_feels_c：「今日體感溫度分數」≥ 開啟門檻就開、< 關閉門檻才關（兩者之間維持現狀，避免來回跳）。
+#   summer_manual_date：最後一次「人工」切換夏季模式的日期；等於今天時，自動判斷當天不再調整，隔天恢復自動。
+#   summer_auto_today_flag：今天已觀察到的實測體感最高值（格式 日期|數值，內部使用）。
+#   summer_auto_last：最近一次自動判斷的結果與原因（內部使用）。
+input_boolean:
+  summer_auto_enable:
+    name: 夏季模式自動判斷
+    icon: mdi:weather-sunny-alert
+    initial: true
+input_number:
+  summer_auto_on_feels_c:
+    name: 夏季模式自動開啟｜體感門檻
+    min: 20
+    max: 40
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 28.5
+    icon: mdi:thermometer-high
+  summer_auto_off_feels_c:
+    name: 夏季模式自動關閉｜體感門檻
+    min: 15
+    max: 40
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 26
+    icon: mdi:thermometer-low
+input_datetime:
+  summer_manual_date:
+    name: 夏季模式最後人工切換日
+    has_date: true
+    has_time: false
+    icon: mdi:calendar-account
+input_text:
+  summer_auto_today_flag:
+    name: 夏季模式今日實測體感最高（內部）
+    max: 60
+  summer_auto_last:
+    name: 夏季模式最近自動判斷（內部）
+    max: 255
+

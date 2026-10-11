@@ -1,6 +1,14 @@
 # ──────────────────────────────────────────────
-# 100A自動啟動到家早安情境AI (V4.1.0)
+# 100A自動啟動到家早安情境AI (V4.1.5)
 # 更新紀錄：
+# - V4.1.5（2026-10-11）：併入「105門鎖自動判斷到家」：新增觸發 lock_home（門鎖 sensor.0x54ef4410007ac23c_lock_event 變成 Away-from-home mode is removed，也就是在門鎖解除離家模式）。
+#   與舊 105 一樣直接依時段啟動早安或到家；差別是現在受總開關、影子模式、3 分鐘防重複、保全不是在家模式限制，所以 Wi-Fi 先觸發過（arrive）或剛離家／晚安時，不會重複啟動。
+#   這個觸發不受「最早啟動時間」與「家裡有活動跡象」限制（人剛解鎖進門，還沒有活動）。舊 105（UI 自動化 id 1691155847932）已刪除。
+# - V4.1.5（2026-10-11）：「最早啟動時間」由平日 05:30／假日 07:00 改為日出時間（input_boolean.auto_scene_earliest_use_sunrise，預設 on；日出後偏移：工作日 input_number.auto_scene_earliest_sunrise_offset_min 預設 30 分、非工作日 input_number.auto_scene_earliest_sunrise_offset_holiday_min 預設 150 分＝2.5 小時）；
+#   關閉開關或讀不到日出時間時，退回原本的平日／假日固定時間。
+# - V4.1.5（2026-10-11）：新增「有人回到家」觸發（arrive）：家裡原本沒人、離家情境（aqara_li_jia）持續超過 10 分鐘，之後有人連上 Wi-Fi（binary_sensor.at_home_nobody_home 由 on 變 off，持續 30 秒）
+#   → 自動啟動早安（早安時段）或到家（其他時段）情境。這個觸發不受「最早啟動時間」與「家裡有活動跡象」限制（人剛到家還沒有任何活動），
+#   仍受總開關、影子模式、3 分鐘防重複、保全不是在家模式限制；Jerry 一律只用 iPhone 判斷（at_home_jerry）。
 # - V4.1.0（2026-10-10）：新增。取代舊 100A（device 條件＋七個匿名觸發）：具名觸發（Trigger-by）、實體條件；
 #   最早啟動時間依 sensor.tw_day_type_today 分平日（05:30）／假日（07:00），可由 helper 調整；
 #   早安／到家：scene_window_use_sun 為 on 時用 binary_sensor.scene_morning_window，否則維持舊的 05:00–17:00；
@@ -8,15 +16,20 @@
 #   影子模式（input_boolean.auto_scene_shadow，預設 on）：只寫 logbook「影子：會觸發 早安/到家（原因）」，不呼叫 101／103；舊 100A 維持啟用不動。
 # ──────────────────────────────────────────────
 - id: ai_100a_auto_arrive_morning_v41
-  alias: 100A自動啟動到家早安情境AI (V4.1.0)
+  alias: 100A自動啟動到家早安情境AI (V4.1.5)
   description: >
     家裡有活動跡象（燈、風扇、鐵門關閉）且保全不是在家模式時，自動啟動早安或到家情境。預設影子模式。
   mode: single
   variables:
     shadow: "{{ is_state('input_boolean.auto_scene_shadow', 'on') }}"
     day_type: "{{ states('sensor.tw_day_type_today') }}"
+    # V4.1.5：最早啟動時間改用日出時間（日出＋偏移）；開關關閉或讀不到日出時退回平日／假日固定時間
+    use_sunrise: "{{ is_state('input_boolean.auto_scene_earliest_use_sunrise', 'on') }}"
+    sunrise_hhmm: >-
+      {% set sr = state_attr('sensor.scene_morning_start', 'sunrise') %}
+      {% if sr in [none, '', 'None'] %}{% else %}{{ ((sr | as_datetime | as_local) + timedelta(minutes=(states('input_number.auto_scene_earliest_sunrise_offset_holiday_min' if day_type == 'holiday' else 'input_number.auto_scene_earliest_sunrise_offset_min') | float(30)))).strftime('%H:%M') }}{% endif %}
     earliest: >-
-      {{ states('input_datetime.auto_scene_earliest_holiday') if day_type == 'holiday' else states('input_datetime.auto_scene_earliest_workday') }}
+      {% if use_sunrise and sunrise_hhmm | string | length >= 4 %}{{ sunrise_hhmm }}{% else %}{{ states('input_datetime.auto_scene_earliest_holiday') if day_type == 'holiday' else states('input_datetime.auto_scene_earliest_workday') }}{% endif %}
     use_sun: "{{ is_state('input_boolean.scene_window_use_sun', 'on') }}"
     is_morning: >-
       {{ is_state('binary_sensor.scene_morning_window', 'on') if use_sun else (5 <= now().hour < 17) }}
@@ -29,7 +42,11 @@
       fan: 客廳電風扇開啟
       garage_long: 車庫鐵門關閉超過 8 分鐘
       garage_short: 車庫鐵門關閉超過 2 分鐘
-    reason: "{{ reasons.get(trigger.id, trigger.id) }}"
+    away_min: >-
+      {{ ((now() - trigger.from_state.last_changed).total_seconds() / 60) | round(0) | int if (trigger.id == 'arrive' and trigger.from_state is not none) else 0 }}
+    who: "{{ states('sensor.at_home_who_home') }}"
+    reason: >-
+      {% if trigger.id == 'lock_home' %}門鎖解除離家模式{% elif trigger.id == 'arrive' %}{{ who }} 回到家（家裡沒人 {{ away_min }} 分鐘後連上 Wi-Fi）{% else %}{{ reasons.get(trigger.id, trigger.id) }}{% endif %}
   triggers:
     - trigger: state
       id: lamp
@@ -64,6 +81,18 @@
       to: "closed"
       for: "00:08:00"
     - trigger: state
+      id: arrive
+      alias: "[全員離家後] 有人回到家（連上 Wi-Fi）30 秒"
+      entity_id: binary_sensor.at_home_nobody_home
+      from: "on"
+      to: "off"
+      for: "00:00:30"
+    - trigger: state
+      id: lock_home
+      alias: "[門鎖] 解除離家模式（原 105）"
+      entity_id: sensor.0x54ef4410007ac23c_lock_event
+      to: "Away-from-home mode is removed"
+    - trigger: state
       id: garage_short
       alias: "[車庫鐵門] 關閉 2 分鐘"
       entity_id: cover.garage
@@ -77,7 +106,7 @@
     - alias: "最早啟動時間（平日／假日不同）與 23:59 前"
       condition: template
       value_template: >-
-        {{ earliest[0:5] <= now().strftime('%H:%M') < '23:59' }}
+        {{ trigger.id in ['arrive', 'lock_home'] or (earliest[0:5] <= now().strftime('%H:%M') < '23:59') }}
     - alias: "3 分鐘內沒有離家／晚安剛觸發（防重複）"
       condition: template
       value_template: >-
@@ -90,9 +119,19 @@
         - armed_night
         - armed_away
         - disarmed
-    - alias: "家裡有活動跡象"
+    - alias: "到家觸發：離家情境與全員不在家都超過 10 分鐘"
+      condition: template
+      value_template: >-
+        {{ trigger.id != 'arrive' or (
+             is_state('input_boolean.aqara_li_jia', 'on')
+             and (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() > 600
+             and trigger.from_state is not none
+             and (now() - trigger.from_state.last_changed).total_seconds() > 600) }}
+    - alias: "家裡有活動跡象（有人回到家、門鎖解除離家模式的觸發不需要）"
       condition: or
       conditions:
+        - condition: template
+          value_template: "{{ trigger.id in ['arrive', 'lock_home'] }}"
         - condition: state
           entity_id: light.yeelink_color5_4181_light
           state: "on"
@@ -142,6 +181,6 @@
             level: info
             line: false
             source: 100A自動啟動到家早安情境AI
-            version: V4.1.0
+            version: V4.1.5
             title: "自動啟動{{ scene_name }}情境"
             message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"

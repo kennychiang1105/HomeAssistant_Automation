@@ -1,0 +1,6 @@
+# 車庫全員離家關燈通知開關（V4.1.5，2026-10-11）
+# garage_away_off_ha_notify：104-1C 全員離家自動關閉車庫燈後，是否發 HA 資訊通知（預設關閉，只關燈不通知）。
+input_boolean:
+  garage_away_off_ha_notify:
+    name: 104-1C全員離家關燈_HA通知
+    icon: mdi:garage-variant

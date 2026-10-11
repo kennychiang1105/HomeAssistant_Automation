@@ -2,6 +2,10 @@
 # 情境與狀況氣氛燈AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：重要級（橘色）每次閃爍亮 0.8 秒→1.5 秒、熄滅 0.4 秒→0.8 秒（燈泡反應有延遲，原本橘色太短幾乎看不到，只看到收尾還原時的白光）；緊急級（紅色）不變。
+# - V4.1.5（2026-10-11）：修補版（僅 mood_alert）。通知同時呼叫兩次（notify_dispatch 與 announce 各一次）時，第二次排隊到第一次跑完才開始，已超過 8 秒去重窗口，會再跑一輪；
+#           且第一輪收尾的 mood_alert_restore_off 還在暫時開燈（約 3 秒）時就拍快照，還原時把原本關著的客廳燈留成亮著（橘色）。
+#           修正：① 結束時再寫一次 mood_alert_last（以「結束時間」計算去重窗口，排隊的重複呼叫會被略過）；② 拍快照前等 mood_alert_restore_off 全部結束（最多 8 秒），避免拍到暫態。
 # - V4.0.0：新增 UniFi 機台 LED 與多功能網關 氣氛燈。ambient_scene：依情境（離家=紅、晚安=暖橘、早安=綠、到家=綠）替 3 台可換色機台（1F U6 Mesh、2F 多功能網關1、4F U6 Extender）換色，亮度不變；
 #           情境由網關（Aqara 保全模式 aqara_li_jia / wan_an / zai_jia 與警戒狀態）判斷，由 00-2J氣氛燈情境同步AI 觸發。
 #           mood_alert 加入機台 LED 與網關夜燈：RGB 機台/網關整段變色（重要 4 秒 / 緊急 6 秒）後還原；僅開關型機台（6 台）熄滅 1.5 秒再亮（緊急 2 次）。
@@ -257,7 +261,7 @@ ambient_scene:
       continue_on_error: true
 
 mood_alert:
-  alias: 情境與狀況氣氛燈AI (V4.0.0)
+  alias: 情境與狀況氣氛燈AI (V4.1.5)
   description: 重要/緊急通知或廣播時以燈光提醒並恢復原狀態
   mode: queued
   max: 10
@@ -272,7 +276,7 @@ mood_alert:
       description: 測試用，略過離家/夜間情境判斷
       required: false
   variables:
-    automation_version: 'V4.0.0'
+    automation_version: 'V4.1.5'
     rank: "{{ {'important': 1, 'emergency': 2}.get(level, 0) }}"
     src: "{{ source | default('', true) | string }}"
     is_test: "{{ test | default(false) in [true, 'true'] }}"
@@ -315,6 +319,10 @@ mood_alert:
         entity_id: input_text.mood_alert_last
       data:
         value: "{{ as_timestamp(now()) | int }}|{{ rank }}"
+    # V4.1.5：前一輪的 mood_alert_restore_off 還在暫時開燈時不能拍快照，先等它全部結束（最多 8 秒）
+    - wait_template: "{{ state_attr('script.mood_alert_restore_off', 'current') | int(0) == 0 }}"
+      timeout: "00:00:08"
+      continue_on_timeout: true
     - variables:
         rgb_all: ['light.yeelink_color5_4181_light', 'light.yeelink_color5_106d_light', 'light.yeelink_color5_8e3f_light', 'light.yeelink_color5_f618_light', 'light.yeelink_color5_0fb7_light', 'light.yeelink_color5_13b8_light']
         rgb_ok: "{{ rgb_all | reject('is_state', 'unavailable') | reject('is_state', 'unknown') | list }}"
@@ -328,8 +336,8 @@ mood_alert:
         sw_prev: "{{ states('switch.san_lou_lou_ti_deng') }}"
         color: "{{ [255, 140, 0] if level == 'important' else [255, 0, 0] }}"
         pulses: "{{ 2 if level == 'important' else 5 }}"
-        on_ms: "{{ 800 if level == 'important' else 500 }}"
-        off_ms: 400
+        on_ms: "{{ 1500 if level == 'important' else 500 }}"
+        off_ms: "{{ 800 if level == 'important' else 400 }}"
         ap_hold_ms: "{{ 4000 if level == 'important' else 6000 }}"
         ap_blinks: "{{ 1 if level == 'important' else 2 }}"
     - action: scene.create
@@ -443,3 +451,9 @@ mood_alert:
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.mood_alert_active
+    # V4.1.5：以「結束時間」重寫去重紀錄，排隊中的重複呼叫（8 秒內）會被略過
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.mood_alert_last
+      data:
+        value: "{{ as_timestamp(now()) | int }}|{{ rank }}"

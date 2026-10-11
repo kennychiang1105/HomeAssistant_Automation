@@ -1,22 +1,7 @@
 # 手機追蹤 person 化（V4.1.0，2026-10-10；A／項目 2）
 # sensor.kenny_phone_tracker：person.kenny 目前使用中的手機追蹤實體（person 的 source）。
-# sensor.kenny_phone_ap_mac：該手機所在 AP MAC（小寫；沒有則空字串）。供 08-5F／5G／5J 共用（尚未切換，等使用者說「切換」）。
-# binary_sensor.v41_phone_ap_match：新判斷（person）與舊判斷（input_text.iphone_tracker_entity_kenny）是否一致，供 00-4手機追蹤比對AI 驗證。
-input_number:
-  v41_phone_match_ok:
-    name: 手機追蹤比對一致次數
-    min: 0
-    max: 1000000
-    step: 1
-    initial: 0
-    mode: box
-  v41_phone_match_bad:
-    name: 手機追蹤比對不一致次數
-    min: 0
-    max: 1000000
-    step: 1
-    initial: 0
-    mode: box
+# sensor.kenny_phone_ap_mac：該手機所在 AP MAC（小寫；沒有則空字串）。供 08-5F／5G／5J 共用（08-5F／5G／5J 已改用）。
+# V4.1.5（2026-10-11）：切換完成，已移除舊判斷 input_text.iphone_tracker_entity_kenny、比對用 binary_sensor.v41_phone_ap_match 與 00-4手機追蹤比對AI。
 template:
   - sensor:
       - name: Kenny 手機追蹤實體
@@ -32,18 +17,3 @@ template:
           {% set src = state_attr('person.kenny', 'source') %}
           {% set ap = state_attr(src, 'ap_mac') if src else none %}
           {{ (ap | string | lower) if ap else '' }}
-  - binary_sensor:
-      - name: 手機追蹤新舊一致
-        unique_id: v41_phone_ap_match
-        default_entity_id: binary_sensor.v41_phone_ap_match
-        state: >-
-          {% set s = states('input_text.iphone_tracker_entity_kenny') %}
-          {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown', 'unavailable', ''] else s %}
-          {% set old = (state_attr(ent, 'ap_mac') | default('', true)) | string | lower %}
-          {{ old == states('sensor.kenny_phone_ap_mac') }}
-        attributes:
-          new: "{{ states('sensor.kenny_phone_ap_mac') }}"
-          old: >-
-            {% set s = states('input_text.iphone_tracker_entity_kenny') %}
-            {% set ent = 'device_tracker.iphone_17_pro_max_kenny' if s in ['unknown', 'unavailable', ''] else s %}
-            {{ (state_attr(ent, 'ap_mac') | default('', true)) | string | lower }}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -21,7 +21,13 @@ import json
 d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
-GONE={"input_boolean.door_light_auto"}
+GONE={"input_boolean.door_light_auto",
+      # 2026-10-11 105門鎖自動判斷到家已併入 100A
+      "automation.automation_26",
+      # 2026-10-11 已刪除的舊 07 系列與舊 100A（restore_state 還會保留一陣子）
+      "automation.kong_qi_qing_jing_ji_zi_dong_qi_dong","automation.10kong_qi_yan_zhong_tong_zhi",
+      "automation.11kong_qi_yan_zhong_tong_zhi_yan_zhong","automation.07kong_qi_qing_jing_ji_zi_dong_qi_dong",
+      "automation.07_4kong_qi_qing_jing_ji_zi_dong_guan_bi","automation.100zi_dong_qi_dong_dao_jia_zao_an_qing_jing"}
 # restore_state 會保留已刪除實體最多 7 天；現存實體的 last_seen 都是最近一次寫入時間，只收這一批
 from datetime import datetime
 ts=lambda x: datetime.fromisoformat(x["last_seen"].replace("Z","+00:00")).timestamp()
@@ -44,7 +50,7 @@ CATS = [
     ("lighting", "照明與感應燈", "mdi:lightbulb-on-outline", "樓梯燈、廚房／廁所感應燈、客廳／車庫燈、車庫鐵門感應燈。"),
     ("topfloor", "頂樓", "mdi:stairs-up", "五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。"),
     ("security", "保全與門鎖", "mdi:shield-home-outline", "離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。"),
-    ("emergency", "緊急與災防", "mdi:alert-octagon-outline", "緊急模式 05A~05E、地震／天氣／疏散警報。"),
+    ("emergency", "緊急與災防", "mdi:alert-octagon-outline", "緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。"),
     ("air_fan", "空氣與風扇", "mdi:fan", "空氣清淨機、客廳／頂樓風扇、空調溫度門檻、夏季模式。"),
     ("system", "系統維護", "mdi:cog-outline", "穩定重啟、看門狗、更新紀錄／版本、耗材電量、Tesla、測試與初始化、定位追蹤。"),
     ("internal", "內部狀態（勿動）", "mdi:lock-outline", "由自動化自動維護的旗標、紀錄、計時器與計數器，一般不用修改；手動改動可能讓自動化判斷錯誤。"),
@@ -55,7 +61,7 @@ CATS = [
 AUTO_RULES = [
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7A|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
     ("topfloor", r"^(08-5[A-K]|800-開關系列-(11|12)[A-D]?)"),
-    ("emergency", r"^(05[A-F]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
+    ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
     ("security", r"^(08-[236]|08鐵門|104|105大門|106B|106C|100C[123]|100C客廳|08-3)"),
@@ -72,8 +78,8 @@ HELPER_RULES = [
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
-    ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival"),
-    ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_mode|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
+    ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
+    ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
     ("system", r"v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
 ]
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
@@ -94,7 +100,8 @@ INTERNAL_RE = re.compile(
 SUBGROUPS = {
     "notify": [
         ("LINE 通知開關", r"notify_line_|notify_supply_extra_line|notify_tesla_charge_extra_line"),
-        ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|notify_tesla_charge_extra_system"),
+        ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|garage_away_off_ha_notify|notify_tesla_charge_extra_system"),
+        ("災害訊息廣播開關", r"announce_disaster_"),
         ("手動廣播與手動通知", r"announce_manual|notify_manual"),
         ("廣播音量與情境廣播", r"announce_volume|scene_announce"),
         ("氣氛燈與機台氣氛燈", r"mood_alert|ambient_"),
@@ -106,9 +113,12 @@ SUBGROUPS = {
         ("睡眠靜默與熟睡鎖", r"sleep_silent"),
     ],
     "air_fan": [
-        ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_mode"),
+        ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_"),
         ("客廳風扇", r"living_room_fan|ke_ting_dian_feng"),
         ("頂樓風扇", r"ding_lou_fan|top_floor_fan"),
+    ],
+    "emergency": [
+        ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
         ("車牌辨識（LPR）", r"lpr_|allowed_plates"),
@@ -608,3 +618,4 @@ if __name__ == "__main__":
     if "--deploy" in sys.argv:
         subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
+
