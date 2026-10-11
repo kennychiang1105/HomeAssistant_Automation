@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 08-8B廁所感應燈AI (V3.0.3)
+# 08-8B廁所感應燈AI (V3.2.0)
 # 相容版本：Helpers V3.18.0（已確認）
 # 更新紀錄（統一格式）：
+# - V3.2.0（2026-10-11）：新增「無人保險關燈」自動化：燈亮著、感應器無人超過 10 分鐘就關燈。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。手動關閉模式（長按）啟用時不處理。
 # - V3.1.1（2026-10-10）：無人關燈的等待由 1 分鐘縮短為 10 秒（感應器本身約 90 秒才回報無人，離開後約 100 秒關燈，原本約 150 秒）。
 # - V3.1.0（2026-10-10）：新增「重新偵測」自動化：手動關燈後再進廁所也會亮。感測器有人活動時約每 20 秒回報一次（狀態仍是 on、只更新 last_triggered），原本只看「狀態變 on」所以被忽略；新增依 last_triggered 屬性變化，燈關著超過 10 秒、且未啟用手動關閉模式時再開燈。
 # - V3.0.3：重構版；長按觸發升級為 Terncy 底層事件 (terncy_long_press)，符合 HA 2026.8+ 規範。
@@ -117,5 +118,29 @@
       value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.ce_suo_deng.last_changed, 0)) >= 10 }}"
   actions:
     - action: switch.turn_on
+      target:
+        entity_id: switch.ce_suo_deng
+
+- alias: 08-8B 廁所燈無人保險關燈AI (V3.2.0)
+  id: ai_08_8b_toilet_idle_off
+  description: >
+    燈亮著、感應器無人超過 10 分鐘就關燈（涵蓋手動開燈時感應器本來就無人的情況）；
+    手動關閉模式（長按）啟用時不處理。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: template
+      alias: "[保險] 廁所燈亮著且感應器無人"
+      value_template: >-
+        {{ is_state('switch.ce_suo_deng', 'on')
+           and is_state('binary_sensor.e406bf25caa1_motion', 'off') }}
+      for: "00:10:00"
+  conditions:
+    - alias: "未啟用手動關閉模式（長按）"
+      condition: state
+      entity_id: input_boolean.toilet_light_manual_override_mode
+      state: "off"
+  actions:
+    - action: switch.turn_off
       target:
         entity_id: switch.ce_suo_deng

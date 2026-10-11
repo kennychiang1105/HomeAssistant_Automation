@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
-# 08-8A廚房感應燈AI (V3.2)
+# 08-8A廚房感應燈AI (V3.4.0)
 # 更新紀錄：
+# - V3.4.0（2026-10-11）：新增「無人保險關燈」自動化：燈亮著、兩顆感應器（小米人體＋毫米波原感應器）都無人超過 10 分鐘就關燈。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。「廚房感應燈自動化」被長按關掉（手動模式）時不處理。
 # - V3.3.0（2026-10-10）：新增「重新偵測」自動化：手動關燈後再進廚房也會亮。小米人體感應器有人活動時約每 20 秒回報一次（狀態仍是 on、只更新 last_triggered），原本只看「狀態變 on」所以被忽略；新增依 last_triggered 屬性變化，燈關著超過 10 秒才再開燈。毫米波存在感應器容易誤判，不參與開燈。長按關閉廚房感應燈自動化（10B）時不動作。
 # - V3.2：修補版；移除手動按鍵後 60 秒的防誤觸冷卻判斷，感應燈偵測到動作時將直接開燈。
 # - V3.1：調整開燈偵測器為 binary_sensor.kitchen_motion。將手動按鍵後的防誤觸冷卻時間從 3 分鐘縮短為 1 分鐘 (60秒)。
@@ -81,5 +82,30 @@
       value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.chu_fang_deng.last_changed, 0)) >= 10 }}"
   actions:
     - action: switch.turn_on
+      target:
+        entity_id: switch.chu_fang_deng
+
+- alias: 08-8A 廚房燈無人保險關燈AI (V3.4.0)
+  id: ai_08_8a_kitchen_idle_off
+  description: >
+    燈亮著、兩顆感應器都無人超過 10 分鐘就關燈（涵蓋手動開燈時感應器本來就無人的情況）；
+    「廚房感應燈自動化」被長按關掉（手動模式）時不處理。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: template
+      alias: "[保險] 廚房燈亮著且兩顆感應器都無人"
+      value_template: >-
+        {{ is_state('switch.chu_fang_deng', 'on')
+           and is_state('binary_sensor.kitchen_motion', 'off')
+           and is_state('binary_sensor.unknown_zhan_kong', 'off') }}
+      for: "00:10:00"
+  conditions:
+    - alias: "廚房感應燈自動化沒有被長按關閉（手動模式）"
+      condition: state
+      entity_id: automation.ai_08_8a_kitchen_motion_light
+      state: "on"
+  actions:
+    - action: switch.turn_off
       target:
         entity_id: switch.chu_fang_deng

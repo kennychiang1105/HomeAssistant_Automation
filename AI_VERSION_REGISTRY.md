@@ -56,8 +56,8 @@
 | `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0) / 08-5K頂樓開機狀態自癒檢查AI (V4.0.0)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` / `ai_08_5k_topfloor_reconcile_on_start` | `V4.0.0` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V4.0.0)` | `ai_away_security_system` | `V4.0.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.4.0` |
-| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2) / 08-8A 廚房感應燈重新偵測AI (V3.3.0)` | `ai_08_8a_kitchen_motion_light` / `ai_08_8a_kitchen_motion_retrigger` | `V3.2` / `V3.3.0` |
-| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` | `V3.0.3` / `V3.1.0` |
+| `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2) / 08-8A 廚房感應燈重新偵測AI (V3.3.0) / 08-8A 廚房燈無人保險關燈AI (V3.4.0)` | `ai_08_8a_kitchen_motion_light` / `ai_08_8a_kitchen_motion_retrigger` / `ai_08_8a_kitchen_idle_off` | `V3.2` / `V3.3.0` / `V3.4.0` |
+| `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
 | `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.1.5)` | `ai_100a_auto_arrive_morning_v41` | `V4.1.5` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.0.0)` | `ai_auto_leave_system` | `V4.0.0` |
@@ -596,6 +596,10 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 ### AI 4.0 版號統一（2026-10-05）
 V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
+
+## 本次調整（V4.1.6 - 2026-10-11：廚房／廁所手動開燈忘了關的保險關燈）
+
+- 新增 `08-8A 廚房燈無人保險關燈AI`（V3.4.0）與 `08-8B 廁所燈無人保險關燈AI`（V3.2.0）：燈亮著、感應器無人超過 10 分鐘就關燈（廚房需小米人體與毫米波兩顆都無人）。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。廚房「感應燈自動化」被長按關掉、廁所「手動關閉模式」啟用時不處理。
 
 ## 本次調整（V4.1.5 - 2026-10-11：夏季模式自動判斷、災害訊息分級、到家情境併入門鎖、風扇防抖、車庫誤報修正、緊急三擊維修暫停與清理）
 
