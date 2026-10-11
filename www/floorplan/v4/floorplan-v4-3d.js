@@ -2782,7 +2782,12 @@ class FloorplanV4Sidebar extends HTMLElement {
         .compact .row2, .compact .cams button { flex-direction:column; justify-content:center; gap:3px; padding:8px 4px; text-align:center; min-height:54px; --mdc-icon-size:22px; border-radius:12px; }
         .compact .row2 .n { display:none; } .compact .row2 .v { font-size:11px; }
         .compact .row2 .led { flex:none; width:22px; }
-        .date { font:12px sans-serif; color:var(--secondary-text-color); margin:0 0 8px; }
+        .date { font:12px sans-serif; color:var(--secondary-text-color); margin:0 0 8px; display:flex; flex-wrap:wrap; align-items:center; gap:3px 0; }
+        .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
+                color:var(--primary-text-color); background:rgba(120,120,128,.14); }
+        .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
+        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; max-width:72px;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
                       color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
@@ -2813,7 +2818,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         .ppl .nm { font-size:13px; } .ppl .lc { font-size:11px; }
         ${PEOPLE_CSS}
       </style>
-      <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div></div><div class="date"></div>
+      <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div><span class="dtag ntag"></span></div><div class="date"></div>
         <div class="wx"></div>
         <div class="h hrow">保全狀態<span class="led"></span></div><div class="sec"></div>
         <div class="nav">${floors.map((f) => `<button data-f="${f}">${f === "全棟" ? "全棟" : f}</button>`).join("")}</div>
@@ -2827,6 +2832,7 @@ class FloorplanV4Sidebar extends HTMLElement {
   }
   set hass(h) {
     this._hass = h;
+    this._updFn?.();                                          // day label (sensor.tw_day_label) may have just changed
     const host = this.shadowRoot.querySelector(".ppl");
     if (host) host.innerHTML = peopleHtml(h, this._cfg.people || DEFAULT_PEOPLE);
     const root = this.shadowRoot;
@@ -2893,8 +2899,22 @@ class FloorplanV4Sidebar extends HTMLElement {
   _mark() {
     this.shadowRoot.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
   }
+  // today's day type for the date line: 節日／週末 in red, 工作日／補班日 in the normal text colour.
+  // Source = sensor.tw_day_label (V4.1.5 package v41_day_label: government holiday names from calendar.tai_wan + Workday day type);
+  // falls back to plain Sat/Sun when the sensor is missing or still showing yesterday.
+  _dayInfo(n) {
+    const ymd = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    const s = this._hass?.states?.[this._cfg?.day_label || "sensor.tw_day_label"];
+    if (s && s.attributes?.date === ymd && !["unavailable", "unknown", ""].includes(s.state)) {
+      const k = s.attributes.kind;
+      return { text: s.state, red: k === "holiday" || k === "weekend" };
+    }
+    const we = n.getDay() === 0 || n.getDay() === 6;
+    return { text: we ? "週末" : "工作日", red: we };
+  }
   _clock() {
-    const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date");
+    const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date"), nt = this.shadowRoot.querySelector(".ntag");
+    const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const upd = () => {
       if (document.hidden) return;
       const n = new Date();
@@ -2902,8 +2922,12 @@ class FloorplanV4Sidebar extends HTMLElement {
       const html = `${hm}<span class="s">:${String(n.getSeconds()).padStart(2, "0")}</span>`;
       if (t.innerHTML !== html) t.innerHTML = html;
       const ds = n.toLocaleDateString("zh-TW", { month: "long", day: "numeric", weekday: "long" });
-      if (d.textContent !== ds) d.textContent = ds;
+      const di = this._dayInfo(n);
+      const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}">${esc(di.text)}</span>`;
+      if (d.dataset.h !== dhtml) { d.innerHTML = dhtml; d.dataset.h = dhtml; }
+      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); }
     };
+    this._updFn = upd;
     upd();
     clearInterval(this._iv);
     clearTimeout(this._ivAlign);

@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # Helpers（V4.1.0）
 # ──────────────────────────────────────────────
+# 變更 (V4.1.5，2026-10-11)：廚房「空氣品質危險」旗標（kitchenmqtt_pm25_homekit_alarm）條件由「PM2.5>35 或 CO2>1000」改為「PM2.5>35 或 CO2>1500 或 TVOC>600 ppb」（CO2 與 06 的重要門檻一致；新增 TVOC）。需 mqtt.reload 生效。
 # 變更 (V4.1.0)：at_home_* 範本（binary_sensor／ap_mac，Kenny／Elay／Jerry／Iris）改為優先讀 person.* 的 device_trackers，沒有才退回 input_text／預設；
 #   garage_light_cooldown_sec 預設改為 120 秒；V4.1 新增功能的 helper 一律放獨立的 packages/v41_*.yaml（不寫進本檔）。
 # 移除 (V4.1)：input_select.floorplan_active_floor（舊 3D 儀表板的樓層選擇器，儀表板已移除、無人使用）。
@@ -305,7 +306,7 @@ mqtt:
       state_topic: "JRHOME/env"
       device: *kitchen_device
       value_template: >
-        {% if (value_json.PM is defined and value_json.PM[1] | float(0) > 35) or (value_json.CO2 is defined and value_json.CO2 | float(0) > 1000) %}
+        {% if (value_json.PM is defined and value_json.PM[1] | float(0) > 35) or (value_json.CO2 is defined and value_json.CO2 | float(0) > 1500) or (value_json.TVOC is defined and value_json.TVOC | float(0) > 600) %}
           ON
         {% else %}
           OFF

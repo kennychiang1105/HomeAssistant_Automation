@@ -1,7 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# 104-1車庫鐵門感應燈AI (V4.1.0)
+# 104-1車庫鐵門感應燈AI (V4.1.5)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.5（2026-10-11）：① 修正車庫主燈沒關：本自動化是 restart 模式，樓梯燈被別的自動化（例如 3 分鐘定時關燈）關掉時，「燈具關閉」觸發會重新啟動並中止鐵門關閉後的 5 分鐘關燈倒數，主燈就一直亮著。
+#           移除「燈具關閉」觸發，手動關燈冷卻改由新的 104-1B（parallel）處理，不再中斷倒數。② 新增 104-1C：所有人（Kenny／Elay／Jerry／Iris）都不在家（binary_sensor.at_home_nobody_home 持續 1 分鐘）自動關閉車庫主燈與樓梯燈；
+#           Jerry 一律只用 iPhone 16 判斷（person.jerry／at_home_jerry 皆只含 device_tracker.iphone_16_jerry，iPad／HomePod／Redmi／iPhone Xr 都不列入）。
+#           104-1C 的 HA 通知由 input_boolean.garage_away_off_ha_notify 控制（預設關閉，只關燈不通知）。
 # - V4.1.1（2026-10-10）：修正 5 秒內再開燈的等待秒數樣板（單一數值不能用 max 過濾器，改 [x, 0.5] | max）。
 # - V4.1.1（2026-10-10）：手動關燈冷卻預設改 120 秒；800-10 雙擊切換車庫燈（自動化發出）也視為手動，會啟動冷卻（標記支援逗號分隔的多個實體）。
 # - V3.4.3：功能優化版；
@@ -13,7 +17,7 @@
 # - V3.4.0：重構版；徹底解決車庫主燈與樓梯燈無法自動關閉的死結問題。
 # - V3.3：功能版；手動關閉冷卻時間改為讀取 input_number.garage_light_cooldown_sec（可自行調整），預設 30 秒。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-1車庫鐵門感應燈AI (V4.1.1)
+- alias: 104-1車庫鐵門感應燈AI (V4.1.5)
   id: ai_104_1_garage_gate_motion_light
   description: >
     整合鐵門、攝影機事件及手動開關狀態控制車庫主燈與樓梯燈：
@@ -54,16 +58,10 @@
         - switch.lou_ti_deng
       to: "on"
 
-    # 5. 燈具關閉 (包含實體按鈕與軟體關閉)
-    - id: light_turned_off
-      platform: state
-      entity_id:
-        - switch.che_ku_zhu_deng
-        - switch.lou_ti_deng
-      to: "off"
+    # 5. （V4.1.5 移除）燈具關閉觸發改由 104-1B 處理：此觸發會讓 restart 模式的本自動化重啟，中止關燈倒數，造成主燈沒關
 
   variables:
-    automation_version: "V4.1.1"
+    automation_version: "V4.1.5"
     cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
     is_cooling_down: "{{ not is_state('timer.garage_light_manual_off_cooldown', 'idle') }}"
     # 判斷是否為外部人工操作（實體按鈕或 App 均無 parent_id；自動化產生的動作會有 parent_id）
@@ -75,7 +73,7 @@
 
   actions:
     - choose:
-        # A. 燈具關閉事件處理
+        # A. （V4.1.5：已不會觸發，手動關燈冷卻改由 104-1B 處理）燈具關閉事件處理
         - conditions:
             - condition: trigger
               id: light_turned_off
@@ -179,3 +177,82 @@
             entity_id:
               - switch.che_ku_zhu_deng
               - switch.lou_ti_deng
+
+# ─────────────────────────────────────────────────────────────
+# 104-1B 手動關燈冷卻（V4.1.5 從 104-1 拆出，parallel 模式，不會中斷 104-1 的關燈倒數）
+# ─────────────────────────────────────────────────────────────
+- alias: 104-1B車庫燈手動關閉冷卻AI (V4.1.5)
+  id: ai_104_1b_garage_manual_off_cooldown
+  description: 車庫主燈或樓梯燈被人工關閉（實體按鈕／App／Terncy 單擊）時啟動冷卻，冷卻期間 104-1 不自動重新開燈
+  mode: parallel
+  max: 10
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      entity_id:
+        - switch.che_ku_zhu_deng
+        - switch.lou_ti_deng
+      to: "off"
+  variables:
+    automation_version: "V4.1.5"
+    cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
+    is_manual_action: >-
+      {% set m = states('input_text.terncy_btn_last').split('|') %}
+      {{ trigger.to_state.context.parent_id is none
+         or (m | length == 2 and trigger.entity_id in m[0].split(',') and (as_timestamp(now()) - (m[1] | float(0))) < 5) }}
+  conditions:
+    - condition: template
+      value_template: "{{ is_manual_action }}"
+  actions:
+    - action: timer.start
+      target:
+        entity_id: timer.garage_light_manual_off_cooldown
+      data:
+        duration: "{{ '%02d:%02d:%02d' | format(cooldown_sec // 3600, (cooldown_sec % 3600) // 60, cooldown_sec % 60) }}"
+
+# ─────────────────────────────────────────────────────────────
+# 104-1C 全員離家關閉車庫燈（V4.1.5 新增）
+# 判斷來源 binary_sensor.at_home_nobody_home：Kenny／Elay／Jerry／Iris 都不在家；Jerry 只看 iPhone 16。
+# ─────────────────────────────────────────────────────────────
+- alias: 104-1C全員離家關閉車庫燈AI (V4.1.5)
+  id: ai_104_1c_garage_all_away_off
+  description: 所有人都不在家（持續 1 分鐘，避免追蹤器抖動）時，自動關閉車庫主燈與車庫樓梯燈；Jerry 只用 iPhone 判斷
+  mode: single
+  variables:
+    automation_version: "V4.1.5"
+  triggers:
+    - trigger: state
+      id: all_away
+      entity_id: binary_sensor.at_home_nobody_home
+      to: "on"
+      for: "00:01:00"
+    - trigger: homeassistant
+      id: ha_start
+      event: start
+  conditions: []
+  actions:
+    - if: "{{ trigger.id == 'ha_start' }}"
+      then:
+        - delay: "00:02:00"
+    - condition: state
+      entity_id: binary_sensor.at_home_nobody_home
+      state: "on"
+    - if: "{{ is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on') }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id:
+              - switch.che_ku_zhu_deng
+              - switch.lou_ti_deng
+        # 通知預設關閉：要看到請在自動化管理面板打開「104-1C全員離家關燈_HA通知」
+        - if: "{{ is_state('input_boolean.garage_away_off_ha_notify', 'on') }}"
+          then:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: "104-1C全員離家關閉車庫燈AI (V4.1.5)"
+                version: "{{ automation_version }}"
+                title: 全員離家，已關閉車庫燈
+                message: "所有人都不在家，已自動關閉車庫主燈與車庫樓梯燈。"
+

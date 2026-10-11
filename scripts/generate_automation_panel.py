@@ -72,7 +72,7 @@ HELPER_RULES = [
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
-    ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival"),
+    ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_mode|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
     ("system", r"v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
 ]
@@ -94,7 +94,7 @@ INTERNAL_RE = re.compile(
 SUBGROUPS = {
     "notify": [
         ("LINE 通知開關", r"notify_line_|notify_supply_extra_line|notify_tesla_charge_extra_line"),
-        ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|notify_tesla_charge_extra_system"),
+        ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|garage_away_off_ha_notify|notify_tesla_charge_extra_system"),
         ("手動廣播與手動通知", r"announce_manual|notify_manual"),
         ("廣播音量與情境廣播", r"announce_volume|scene_announce"),
         ("氣氛燈與機台氣氛燈", r"mood_alert|ambient_"),
