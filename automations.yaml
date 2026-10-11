@@ -1,0 +1,3037 @@
+- id: '1644394919500'
+  alias: 01地震災害系統 (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id:
+    - sensor.earthquake
+    trigger: state
+  conditions:
+  - condition: template
+    value_template: '{{ ''地震'' in states(''sensor.earthquake'') }}'
+  - condition: template
+    value_template: '{{ (as_timestamp(now()) - as_timestamp(states(''sensor.earthquake_last_valid_update'')))
+      < 1800 }}'
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{(as_timestamp(now()) - as_timestamp(states.script.eq99.attributes.last_triggered))
+        < (3600) }}'
+    then:
+    - parallel:
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+            General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
+            \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+            states('sensor.earthquake') }}\"\n      }\n  ]\n"
+        enabled: true
+        action: script.send_line_to_user
+      - data:
+          level: emergency
+          line: false
+          source: 01地震災害系統
+          version: V4.0.0
+          title: 地震報告
+          message: "地震報告收到以下中央氣象局訊息: \n(同步發送至廣播與LINE)\n{{ states('sensor.earthquake')
+            }}"
+        action: script.notify_dispatch
+      - sequence:
+        - data:
+            volume_level: 0.5
+          action: media_player.volume_set
+          target:
+            entity_id:
+            - media_player.ke_ting_homepod
+          enabled: true
+        - action: script.announce
+          data:
+            level: emergency
+            message: '地震報告收到以下中央氣象局訊息: {{ states(''sensor.earthquake'') }}'
+    else:
+    - data:
+        level: info
+        line: false
+        source: 01地震災害系統
+        version: V4.0.0
+        title: 地震報告（未影響之小型地震）
+        message: '{{ states(''sensor.earthquake'') }}'
+      action: script.notify_dispatch
+  mode: single
+- id: '1644398312711'
+  alias: 05A緊急模式
+  description: 照明設備全開，電器全關，開啟上樓情境。
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+    to: 'on'
+  conditions: []
+  actions:
+  - alias: V4.1 緊急模式快照（先存狀態，供誤觸還原；失敗不影響下面的緊急動作）
+    action: script.emergency_snapshot_save
+    continue_on_error: true
+  - parallel:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+    - action: timer.start
+      target:
+        entity_id: timer.topfloor_lock_after_up
+      data:
+        duration: 90
+    - data: {}
+      target:
+        entity_id: cover.garage
+      action: cover.open_cover
+    - data: {}
+      target:
+        entity_id:
+        - light.can_ting_deng_zu_1_ha
+        - light.yeelink_color5_4181_light
+        - light.ke_ting_deng_zu_1_ha
+        - light.ke_ting_deng_zu_2
+        - light.ke_ting_deng_zu_3
+        - light.ding_lou_deng_zu_1
+        - light.ding_lou_deng_zu_2
+        - light.ding_lou_kan_deng
+        - light.yeelink_bslamp2_4329_light
+        - light.yeelink_lamp2_678c_light
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+      action: light.turn_on
+    - data: {}
+      target:
+        entity_id:
+        - fan.kong_qi_qing_jing_ji
+        - fan.ke_ting_dian_feng_shan
+        - fan.dmaker_p33_eabd_fan
+      action: fan.turn_off
+    - data: {}
+      target:
+        entity_id:
+        - switch.0x00158d0003923796_plug
+        - switch.cha_zuo_1
+        - switch.cha_zuo_3
+      action: switch.turn_off
+    - device_id: dcfa3452c09bf5a13b556d8954f72a43
+      domain: climate
+      entity_id: 0429a720357553bef49083e49bdf393b
+      type: set_hvac_mode
+      hvac_mode: 'off'
+    - data: {}
+      target:
+        entity_id:
+        - switch.shu_fang_deng
+        - switch.yang_tai_deng
+        - switch.bi_deng
+        - switch.sheng_dan_deng_cha_zuo
+        - switch.ding_lou_lou_ti_deng
+        - switch.chu_fang_deng
+        - switch.che_ku_zhu_deng
+        - switch.can_ting_bi_deng
+        - switch.ce_suo_deng
+        - switch.lou_ti_deng
+        - switch.can_ting_kan_deng
+        - switch.ke_ting_kan_deng
+        - switch.men_kou_deng
+        - switch.lu_deng
+        - switch.ke_ting_bi_deng
+        - switch.er_san_lou_lou_ti_deng
+        - switch.san_lou_lou_ti_deng
+        - switch.san_si_lou_lou_ti_deng
+      action: switch.turn_on
+    - data:
+        source: 05A緊急模式
+        user_id: C26ff4e9d30159ba5264a1676f46f8f86
+        payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】緊急\\nUrgent
+          ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F198\\n緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n
+          \     },\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【緊急
+          Urgent ‼️】\U0001F198 緊急模式\"\n      }\n  ]\n"
+      enabled: false
+      action: script.send_line_to_user
+    - repeat:
+        sequence:
+        - data: {}
+          target:
+            entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+          action: input_boolean.turn_on
+        count: 10
+    - type: turn_on
+      device_id: ace03a7c2c374894e6f67149137e1a5c
+      entity_id: cde9f96a2f72a9566319685b407d78bd
+      domain: switch
+    - sequence:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 3
+          milliseconds: 0
+      - if:
+        - condition: state
+          entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+          state: 'off'
+        - condition: state
+          entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto
+          state: 'off'
+        - condition: state
+          entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
+          state: 'off'
+        then:
+        - action: input_boolean.turn_on
+          metadata: {}
+          data: {}
+          target:
+            entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual
+  mode: single
+- id: '1645028071536'
+  alias: 04苗栗天氣告知系統 (按鈕) (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id: input_button.tian_qi_jing_xun_guang_bo
+    trigger: state
+  conditions: []
+  actions:
+  - data:
+      volume_level: 0.6
+    action: media_player.volume_set
+    target:
+      entity_id: media_player.ke_ting_homepod
+  - data:
+      level: general
+      line: false
+      source: 04苗栗天氣告知系統 (按鈕)
+      version: V4.0.0
+      title: 天氣告知系統
+      message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+    action: script.notify_dispatch
+  - data:
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
+        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n
+        \      {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.disaster') }}\"\n      }\n  ]\n"
+    enabled: true
+    action: script.send_line_to_user
+  - action: script.announce
+    data:
+      level: general
+      message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ states(''sensor.disaster'') }}'
+  mode: single
+- id: '1645028120962'
+  alias: 02地震災害系統 (按鈕) (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id: input_button.di_zhen_xi_tong_guang_bo
+    trigger: state
+  conditions: []
+  actions:
+  - data:
+      level: emergency
+      line: false
+      source: 02地震災害系統 (按鈕)
+      version: V4.0.0
+      title: 02地震災害系統 (按鈕)
+      message: "地震災害系統收到以下中央氣象局訊息: \n\n{{ states('sensor.earthquake') }}\n\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
+    action: script.notify_dispatch
+  - data:
+      source: 02地震災害系統 (按鈕)
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急
+        Urgent ‼️\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
+        \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+        \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
+    enabled: true
+    action: script.send_line_to_user
+  - action: script.announce
+    data:
+      level: emergency
+      chime: false
+      message: "{{ \"地震！地震！請就地避難掩護！地震災害系統收到以下中央氣象局訊息: \"\n   ~ states('sensor.earthquake')\n
+        \  ~ \" 發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\" }}"
+  mode: single
+- id: '1645805324997'
+  alias: 100晚安情境
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - parallel:
+    - device_id: e6965a0c6c6504ee7173a4d4176104f5
+      domain: alarm_control_panel
+      entity_id: 34f7cca00e310ff1972c3159a59b0ad7
+      type: arm_night
+    - action: script.stage_scene
+      data:
+        scene: goodnight
+    - sequence:
+      - action: input_boolean.turn_off
+        metadata: {}
+        target:
+          entity_id:
+          - input_boolean.aqara_zai_jia
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_chu_fa
+        data: {}
+      - action: input_boolean.turn_on
+        metadata: {}
+        target:
+          entity_id: input_boolean.aqara_wan_an
+        data: {}
+  - delay: 00:00:02
+  - action: script.scene_verify
+    data:
+      scene: goodnight
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.aqara_last_away_goodnight_triggered
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+  mode: single
+- id: '1645806189647'
+  alias: 102離家情境
+  description: ''
+  triggers:
+  - entity_id:
+    - sensor.0x54ef4410007ac23c_lock_event
+    to: Away-from-home mode is enabled
+    trigger: state
+  conditions: []
+  actions:
+  - parallel:
+    - device_id: e6965a0c6c6504ee7173a4d4176104f5
+      domain: alarm_control_panel
+      entity_id: 34f7cca00e310ff1972c3159a59b0ad7
+      type: arm_away
+    - action: script.stage_scene
+      data:
+        scene: leave
+    - sequence:
+      - action: input_boolean.turn_off
+        metadata: {}
+        target:
+          entity_id:
+          - input_boolean.aqara_zai_jia
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_chu_fa
+        data: {}
+      - action: input_boolean.turn_on
+        metadata: {}
+        target:
+          entity_id: input_boolean.aqara_li_jia
+        data: {}
+  - delay: 00:00:02
+  - action: script.scene_verify
+    data:
+      scene: leave
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.aqara_last_away_goodnight_triggered
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+  mode: single
+- id: '1645806312615'
+  alias: 101早安情境
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - parallel:
+    - device_id: e6965a0c6c6504ee7173a4d4176104f5
+      domain: alarm_control_panel
+      entity_id: 34f7cca00e310ff1972c3159a59b0ad7
+      type: arm_home
+    - action: script.stage_scene
+      data:
+        scene: morning
+    - sequence:
+      - action: input_boolean.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id:
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_chu_fa
+      - action: input_boolean.turn_on
+        metadata: {}
+        target:
+          entity_id: input_boolean.aqara_zai_jia
+        data: {}
+  - delay: 00:00:02
+  - action: script.scene_verify
+    data:
+      scene: morning
+  mode: single
+- id: '1645806405412'
+  alias: 103到家情境
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - parallel:
+    - device_id: e6965a0c6c6504ee7173a4d4176104f5
+      domain: alarm_control_panel
+      entity_id: 34f7cca00e310ff1972c3159a59b0ad7
+      type: arm_home
+    - action: script.stage_scene
+      data:
+        scene: arrive
+    - sequence:
+      - action: input_boolean.turn_off
+        metadata: {}
+        target:
+          entity_id:
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_chu_fa
+        data: {}
+      - action: input_boolean.turn_on
+        metadata: {}
+        target:
+          entity_id: input_boolean.aqara_zai_jia
+        data: {}
+  - delay: 00:00:02
+  - action: script.scene_verify
+    data:
+      scene: arrive
+  mode: single
+- id: '1689760873266'
+  alias: 14伺服器更新及維護通知 (V4.0.0)
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - data:
+      volume_level: 0.5
+    action: media_player.volume_set
+    target:
+      entity_id: media_player.ke_ting_homepod
+  - data:
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧家庭通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"伺服器及網路系統通知\\n\U0001F5A5️：\\n伺服器及網路系統將在五分鐘後進行維護更新⚠️，\\n接下來15至20分鐘，\\n將有連線不穩或斷線之情況\U0001F6DC。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F5A5️伺服器更新\U0001F6DC⚠️。\"\n\n
+        \      }\n  ]\n"
+    enabled: true
+    action: script.send_line_to_user
+  - data:
+      level: general
+      line: false
+      source: 14伺服器更新及維護通知
+      message: 伺服器及網路系統將在五分鐘後進行維護更新，接下來15至20分鐘將有連線不穩或斷線之情況。
+      title: 伺服器及網路系統通知
+    action: script.notify_dispatch
+  - action: script.announce
+    data:
+      level: general
+      message: 伺服器及網路系統通知： 伺服器及網路系統將在五分鐘後進行維護更新，接下來15至20分鐘將有連線不穩或斷線之情況。
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 20
+      milliseconds: 0
+  mode: single
+- id: '1691311960545'
+  alias: 104鐵門開關V2 (V4.0.0)
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - sequence:
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: cover.garage
+          state: closed
+        sequence:
+        - sequence:
+          - action: media_player.play_media
+            target:
+              entity_id: media_player.che_ku_she_ying_ji_speaker
+            data:
+              media:
+                media_content_id: media-source://media_source/local/airport.mp3
+                media_content_type: audio/mpeg
+                metadata:
+                  title: airport.mp3
+                  thumbnail:
+                  media_class: music
+                  children_media_class:
+                  navigateIds:
+                  - {}
+                  - media_content_type: app
+                    media_content_id: media-source://media_source
+            enabled: false
+          - action: script.turn_on
+            target:
+              entity_id: script.announce
+            data:
+              variables:
+                level: general
+                chime: false
+                message: 車庫鐵門即將開啟
+                player: media_player.che_ku_she_ying_ji_speaker
+                adjust_volume: false
+          - action: tts.speak
+            metadata: {}
+            data:
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
+              message: 車庫鐵門即將開啟
+            target:
+              entity_id: tts.edge_tts
+            enabled: false
+          - action: cover.open_cover
+            target:
+              entity_id:
+              - cover.garage
+            data: {}
+      - conditions:
+        - condition: state
+          entity_id: cover.garage
+          state: open
+        sequence:
+        - sequence:
+          - action: script.turn_on
+            target:
+              entity_id: script.announce
+            data:
+              variables:
+                level: general
+                chime: false
+                message: 車庫鐵門即將關閉，請注意安全。
+                player: media_player.che_ku_she_ying_ji_speaker
+                adjust_volume: false
+          - action: tts.speak
+            metadata: {}
+            data:
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
+              message: 車庫鐵門即將關閉，請注意安全。
+            target:
+              entity_id: tts.edge_tts
+            enabled: false
+          - action: media_player.play_media
+            target:
+              entity_id: media_player.che_ku_she_ying_ji_speaker
+            data:
+              media:
+                media_content_id: media-source://media_source/local/airport.mp3
+                media_content_type: audio/mpeg
+                metadata:
+                  title: airport.mp3
+                  thumbnail:
+                  media_class: music
+                  children_media_class:
+                  navigateIds:
+                  - {}
+                  - media_content_type: app
+                    media_content_id: media-source://media_source
+            enabled: false
+          - action: script.turn_on
+            target:
+              entity_id: script.announce
+            data:
+              variables:
+                level: general
+                chime: false
+                message: 車庫鐵門即將關閉，請注意安全。
+                player: media_player.che_ku_she_ying_ji_speaker
+                adjust_volume: false
+          - action: tts.speak
+            metadata: {}
+            data:
+              cache: true
+              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
+              message: 車庫鐵門即將關閉，請注意安全。
+            target:
+              entity_id: tts.edge_tts
+            enabled: false
+          - action: cover.close_cover
+            target:
+              entity_id: cover.garage
+            data: {}
+  mode: single
+- id: '1691657592326'
+  alias: 08-2二樓門鎖虛掩警告 (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id:
+    - sensor.0x54ef4410007ac23c_lock_event
+    to: Door is conceal
+    trigger: state
+  conditions: []
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ true }}'
+    then:
+    - parallel:
+      - data:
+          volume_level: 0.6
+        target:
+          entity_id:
+          - media_player.ke_ting_homepod
+        action: media_player.volume_set
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
+            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
+            Important ❗】\\n \U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
+        enabled: true
+        action: script.send_line_to_user
+      - data:
+          level: important
+          line: false
+          source: 08-2二樓門鎖虛掩警告
+          message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
+          title: 二樓門鎖虛掩警告
+        action: script.notify_dispatch
+    - action: script.announce
+      data:
+        level: important
+        message: 保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 20
+        milliseconds: 0
+    else:
+    - parallel:
+      - data:
+          volume_level: 0.6
+        action: media_player.volume_set
+        target:
+          entity_id:
+          - media_player.ke_ting_homepod
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】重要
+            Important ❗\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"二樓門鎖狀態警告，\\n請注意⚠️，\\n\U0001F6AA二樓大門沒有完全關閉，\\n目前為虛掩狀態。\"\n\n
+            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【重要
+            Important ❗】\\n\U0001F6AA二樓大門未完全關閉\"\n      }\n  ]\n"
+        enabled: true
+        action: script.send_line_to_user
+      - data:
+          level: important
+          line: false
+          source: 08-2二樓門鎖虛掩警告
+          message: 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
+          title: 二樓門鎖虛掩警告
+        action: script.notify_dispatch
+    - action: script.announce
+      data:
+        level: important
+        message: 保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 20
+        milliseconds: 0
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+  mode: parallel
+  max: 10
+- id: '1691820750233'
+  alias: 08-3鐵門狀態不穩通知 (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id:
+    - cover.garage
+    to: unavailable
+    for:
+      hours: 0
+      minutes: 4
+      seconds: 0
+    trigger: state
+  - entity_id:
+    - cover.garage
+    to: unknown
+    for:
+      hours: 0
+      minutes: 4
+      seconds: 0
+    trigger: state
+  conditions: []
+  actions:
+  - data:
+      user_id: C26ff4e9d30159ba5264a1676f46f8f86
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
+        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
+        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
+        \      }\n  ]\n"
+    enabled: true
+    action: script.send_line_to_user
+  - data:
+      level: general
+      line: false
+      source: 08-3鐵門狀態不穩通知
+      message: 鐵門連線狀態不穩，請注意。
+      title: 鐵門狀態警告
+    action: script.notify_dispatch
+  mode: parallel
+  max: 10
+- id: '1692271669059'
+  alias: 800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 29a8530c569abeeee2a16c7237a0ed8e
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 29a8530c569abeeee2a16c7237a0ed8e
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 262c6697a232d2f41dd879190fdaaa38
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 40e15319550792730cc46c7e0528c916
+      click_times: 2
+  max_exceeded: silent
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"29a8530c569abeeee2a16c7237a0ed8e\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.scene_origin_device
+    data:
+      value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - if:
+    - condition: or
+      conditions:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'on'
+        - condition: state
+          entity_id: binary_sensor.scene_morning_window
+          state: 'on'
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'off'
+        - condition: time
+          after: 06:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
+    then:
+    - service: automation.trigger
+      data:
+        skip_condition: true
+      target:
+        entity_id: automation.101zao_an_qing_jing
+    else:
+    - service: automation.trigger
+      data:
+        skip_condition: true
+      target:
+        entity_id: automation.103dao_jia_qing_jing
+  - delay: '00:00:00.5'
+- id: '1692271820467'
+  alias: 800-開關系列-1廚房開關3/車庫主開關1/客廳外開關下3-離家晚安
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 29a8530c569abeeee2a16c7237a0ed8e
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 40e15319550792730cc46c7e0528c916
+  conditions: []
+  actions:
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.scene_origin_device
+    data:
+      value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - if:
+    - condition: time
+      after: '21:00:00'
+      before: 03:00:00
+      weekday:
+      - sat
+      - fri
+      - thu
+      - wed
+      - tue
+      - mon
+      - sun
+    then:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.wan_an_qing_jing
+      action: automation.trigger
+    else:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.101li_jia_qing_jing
+      action: automation.trigger
+  mode: single
+  max_exceeded: silent
+- id: '1692281341535'
+  alias: 800-開關系列-2廚房開關2單擊/餐廳燈廁所開關3/餐廳主開關上3-餐廳燈
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: cca5b7ed73a48ddcd08d2b6fac6ab5d6
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 262c6697a232d2f41dd879190fdaaa38
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: da626557d958c8abedd9f594b1c78019
+      click_times: 1
+  max_exceeded: silent
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"cca5b7ed73a48ddcd08d2b6fac6ab5d6\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - service: light.toggle
+    target:
+      entity_id: light.can_ting_deng_zu_1_ha
+  - delay: '00:00:00.5'
+- id: '1692281816696'
+  alias: 800-開關系列-4廚房開關2長按
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: cca5b7ed73a48ddcd08d2b6fac6ab5d6
+  max_exceeded: silent
+  conditions: []
+  actions:
+  - service: fan.toggle
+    target:
+      entity_id: fan.kong_qi_qing_jing_ji
+- id: '1692451827229'
+  alias: 800-開關系列-5客廳主開關下2/客廳外開關下1-客廳燈全
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: d6e4551be6bf3fd520f5111e4f02a6cf
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ee6aa6ce640f7123b2469280a5c34a7f
+      click_times: 1
+  max_exceeded: silent
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"d6e4551be6bf3fd520f5111e4f02a6cf\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - service: light.toggle
+    target:
+      entity_id: light.ke_ting_deng_zu_quan
+  - delay: '00:00:00.5'
+- id: '1692451967876'
+  alias: 800-開關系列-6客廳主開關下2/客廳外開關下1-客廳燈部分開
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: d6e4551be6bf3fd520f5111e4f02a6cf
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ee6aa6ce640f7123b2469280a5c34a7f
+      click_times: 2
+  max_exceeded: silent
+  conditions: []
+  actions:
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.ke_ting_deng_zu_1_ha
+      - light.ke_ting_deng_zu_3
+      - light.yeelink_color5_4181_light
+  - service: light.turn_off
+    target:
+      entity_id: light.ke_ting_deng_zu_2
+- id: '1692452366469'
+  alias: 800-開關系列-8客廳主開關下2/客廳外開關下1-客廳風扇切換
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: d6e4551be6bf3fd520f5111e4f02a6cf
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: ee6aa6ce640f7123b2469280a5c34a7f
+  conditions: []
+  actions:
+  - sequence:
+    - choose:
+      - conditions:
+        - condition: fan.is_on
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          options:
+            behavior: any
+            for: 00:00:00
+        sequence:
+        - action: fan.turn_off
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+      - conditions:
+        - condition: fan.is_off
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+          options:
+            behavior: any
+            for: 00:00:00
+        sequence:
+        - action: fan.turn_on
+          target:
+            entity_id: fan.ke_ting_dian_feng_shan
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 3
+        milliseconds: 0
+  mode: single
+  max_exceeded: silent
+- id: '1692452863496'
+  alias: 800-開關系列-0B 客廳主開關下3-早安到家
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2b1b9cbffff070f62f05d5f073a16213
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2b1b9cbffff070f62f05d5f073a16213
+      click_times: 2
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"2b1b9cbffff070f62f05d5f073a16213\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.scene_origin_device
+    data:
+      value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - if:
+    - condition: or
+      conditions:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'on'
+        - condition: state
+          entity_id: binary_sensor.scene_morning_window
+          state: 'on'
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: input_boolean.scene_window_use_sun
+          state: 'off'
+        - condition: time
+          after: 06:00:00
+          before: '17:00:00'
+          weekday:
+          - sat
+          - fri
+          - thu
+          - wed
+          - tue
+          - mon
+          - sun
+    then:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.101zao_an_qing_jing
+      action: automation.trigger
+    - target:
+        entity_id:
+        - switch.er_san_lou_lou_ti_deng
+        - switch.san_lou_lou_ti_deng
+        - switch.san_si_lou_lou_ti_deng
+        - switch.ding_lou_lou_ti_deng
+      action: switch.turn_off
+    - action: light.turn_off
+      target:
+        entity_id:
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+    else:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.103dao_jia_qing_jing
+      action: automation.trigger
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1692453158473'
+  alias: 800-開關系列-1B客廳主開關下3-晚安離家
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 2b1b9cbffff070f62f05d5f073a16213
+  conditions: []
+  actions:
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.scene_origin_device
+    data:
+      value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - if:
+    - condition: time
+      after: '21:00:00'
+      before: 03:00:00
+      weekday:
+      - sat
+      - fri
+      - thu
+      - wed
+      - tue
+      - mon
+      - sun
+    then:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.wan_an_qing_jing
+      action: automation.trigger
+    - parallel:
+      - target:
+          entity_id:
+          - switch.ding_lou_lou_ti_deng
+          - switch.er_san_lou_lou_ti_deng
+          - switch.san_lou_lou_ti_deng
+          - switch.san_si_lou_lou_ti_deng
+        action: switch.turn_on
+      - action: light.turn_on
+        target:
+          entity_id:
+          - light.yeelink_color5_0fb7_light
+          - light.yeelink_color5_13b8_light
+    - delay:
+        hours: 0
+        minutes: 3
+        seconds: 0
+        milliseconds: 0
+    - parallel:
+      - target:
+          entity_id:
+          - switch.ding_lou_lou_ti_deng
+          - switch.er_san_lou_lou_ti_deng
+          - switch.san_lou_lou_ti_deng
+          - switch.san_si_lou_lou_ti_deng
+        action: switch.turn_off
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.yeelink_color5_0fb7_light
+          - light.yeelink_color5_13b8_light
+    else:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.101li_jia_qing_jing
+      action: automation.trigger
+  mode: single
+  max_exceeded: silent
+- id: '1692455803063'
+  alias: 800-開關系列-9B 樓梯間燈全開一段時間 (單擊)
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e35da29662b08cf4ced829f5eb40f179
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 7062d71d97dde92c2d03051744e5c81e
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 5499e1d5eb0e1e8435c471bafa837ec8
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 813b3dcce6997d06a893274a9dd365c6
+      click_times: 1
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"e35da29662b08cf4ced829f5eb40f179\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: script.stage_scene
+    data:
+      scene: stairs_on
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - delay:
+      hours: 0
+      minutes: 3
+      seconds: 0
+      milliseconds: 0
+  - action: script.stage_scene
+    data:
+      scene: stairs_off
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - delay: '00:00:00.5'
+  mode: restart
+  max_exceeded: silent
+- id: '1692457074428'
+  alias: 800-開關系列-9A 樓梯間燈全開 (雙擊常開)
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 7062d71d97dde92c2d03051744e5c81e
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 5499e1d5eb0e1e8435c471bafa837ec8
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 813b3dcce6997d06a893274a9dd365c6
+      click_times: 2
+  conditions: []
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.topfloor_stairs_keep_on
+  - action: script.stage_scene
+    data:
+      scene: stairs_on
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  mode: single
+  max_exceeded: silent
+- id: '1692457161312'
+  alias: 800-開關系列-9C樓梯間燈全關
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: e35da29662b08cf4ced829f5eb40f179
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 7062d71d97dde92c2d03051744e5c81e
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 5499e1d5eb0e1e8435c471bafa837ec8
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 813b3dcce6997d06a893274a9dd365c6
+  conditions: []
+  actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.topfloor_stairs_keep_on
+  - action: timer.cancel
+    target:
+      entity_id: timer.topfloor_stairs_manual_hold
+  - action: script.stage_scene
+    data:
+      scene: stairs_off
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  mode: single
+  max_exceeded: silent
+- id: '1692457693231'
+  alias: 800-開關系列-10A小米無線開關單擊-廚房燈
+  description: ''
+  triggers:
+  - device_id: 8a3a83db44f3e7851c3178495daa7b85
+    domain: xiaomi_gateway3
+    type: action
+    state: single
+    trigger: device
+  conditions: []
+  actions:
+  - type: toggle
+    device_id: de4044f4d156d13b885a1be8eb61c85b
+    entity_id: dccf102b1809104a2cc8f08dfbd6c669
+    domain: switch
+  mode: single
+- id: '1692463380057'
+  alias: 08-4客廳大門開啟自動開燈一段時間
+  description: >-
+    日落後到日出前（太陽在地平線下）客廳大門被打開 → 門口燈與路燈開啟（原本就開著也一樣計時）。
+    5 分鐘後檢查大門：已關上就關燈；還開著就再倒數 5 分鐘，直到大門關上才關燈。5 分鐘內再次開門會重新計時（restart）。
+    大門狀態用 binary_sensor.0x54ef4410007ac23c_door_state（on＝開、off＝關；沒有回報時視為已關上，避免燈一直不關）。
+  trigger:
+  - platform: state
+    entity_id:
+    - sensor.0x54ef4410007ac23c_lock_event
+    to: Door is open
+  condition:
+  - condition: state
+    entity_id: sun.sun
+    state: below_horizon
+  action:
+  - service: switch.turn_on
+    data: {}
+    target:
+      entity_id:
+      - switch.lu_deng
+      - switch.men_kou_deng
+  - repeat:
+      sequence:
+      - delay:
+          hours: 0
+          minutes: 5
+          seconds: 0
+          milliseconds: 0
+      until:
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: binary_sensor.0x54ef4410007ac23c_door_state
+          state: 'on'
+  - service: switch.turn_off
+    data: {}
+    target:
+      entity_id:
+      - switch.lu_deng
+      - switch.men_kou_deng
+  mode: restart
+- id: '1692505329840'
+  alias: 800-開關系列-10餐廳廁所開關1-車庫燈連動
+  description: ''
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 011d0fc36adf6381e82c6f7e0f130d49
+      click_times: 2
+  max_exceeded: silent
+  conditions: []
+  actions:
+  - alias: 車庫主燈剛關不到 5 秒就先等補滿 5 秒（避免燈具切到小燈模式；5 秒內連續雙擊視為同一次）
+    if:
+    - condition: state
+      entity_id: switch.che_ku_zhu_deng
+      state: 'off'
+    - condition: template
+      value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}"
+    then:
+    - delay:
+        seconds: "{{ [((5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil')), 0.5] | max }}"
+  - action: input_text.set_value
+    alias: 標記這次是按鈕手動切換（104-1 據此啟動手動關燈冷卻）
+    target:
+      entity_id: input_text.terncy_btn_last
+    data:
+      value: switch.che_ku_zhu_deng,switch.lou_ti_deng|{{ now().timestamp() | int }}
+  - service: switch.toggle
+    target:
+      entity_id:
+      - switch.che_ku_zhu_deng
+      - switch.lou_ti_deng
+- id: '1692505364886'
+  alias: 800-開關系列-10B餐廳廁所開關1車庫主燈-鐵門連動
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 011d0fc36adf6381e82c6f7e0f130d49
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6f569070d383724fefd1af44770b6f20
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6f569070d383724fefd1af44770b6f20
+      click_times: 1
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 6f569070d383724fefd1af44770b6f20
+  conditions:
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"011d0fc36adf6381e82c6f7e0f130d49\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: automation.trigger
+    data:
+      skip_condition: true
+    target:
+      entity_id: automation.tie_men_kai_guan
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1695260104831'
+  alias: 03E苗栗疏散警報 (V4.0.0)
+  description: ''
+  triggers:
+  - entity_id: sensor.disaster
+    attribute: updated
+    trigger: state
+  conditions:
+  - condition: time
+    after: 06:00:00
+    before: '22:00:00'
+    enabled: false
+  - condition: template
+    value_template: '{{ ''疏散'' in states.sensor.disaster.state }}'
+  - condition: template
+    value_template: '{{ ''苗栗'' in states.sensor.disaster.state }}'
+  - condition: template
+    value_template: '{{ (as_timestamp(now()) - as_timestamp(states(''sensor.disaster_last_valid_update'')))
+      < 300 }}'
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ true }}'
+    then:
+    - parallel:
+      - data:
+          skip_condition: true
+        target:
+          entity_id: automation.jin_ji_mo_shi
+        action: automation.trigger
+      - data:
+          volume_level: 0.65
+        target:
+          entity_id:
+          - media_player.ke_ting_homepod
+          - media_player.ding_lou_homepod
+        action: media_player.volume_set
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+        enabled: true
+        action: script.send_line_to_user
+      - data:
+          level: emergency
+          line: false
+          source: 03E苗栗疏散警報
+          version: V4.0.0
+          title: 03E苗栗疏散警報
+          message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
+        enabled: true
+        action: script.notify_dispatch
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 25
+        milliseconds: 0
+    - data:
+        volume_level: 0.4
+      action: media_player.volume_set
+      target:
+        entity_id:
+        - media_player.ding_lou_homepod
+        - media_player.ke_ting_homepod
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 25
+        milliseconds: 0
+    - data:
+        volume_level: 0.4
+      target:
+        entity_id:
+        - media_player.ding_lou_homepod
+        - media_player.ke_ting_homepod
+      action: media_player.volume_set
+    else:
+    - parallel:
+      - data:
+          skip_condition: true
+        target:
+          entity_id: automation.jin_ji_mo_shi
+        action: automation.trigger
+    - parallel:
+      - data:
+          volume_level: 0.65
+        action: media_player.volume_set
+        target:
+          entity_id:
+          - media_player.ding_lou_homepod
+          - media_player.ke_ting_homepod
+      - data:
+          user_id: C26ff4e9d30159ba5264a1676f46f8f86
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
+            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
+            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
+            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+        enabled: true
+        action: script.send_line_to_user
+      - data:
+          level: emergency
+          line: false
+          source: 03E苗栗疏散警報
+          version: V4.0.0
+          title: 03E苗栗疏散警報
+          message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
+        enabled: true
+        action: script.notify_dispatch
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 25
+        milliseconds: 0
+    - data:
+        volume_level: 0.4
+      target:
+        entity_id:
+        - media_player.ding_lou_homepod
+        - media_player.ke_ting_homepod
+      action: media_player.volume_set
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+    - action: script.announce
+      data:
+        level: emergency
+        message: 災防系統通知 政府發布緊急疏散避難警報 {{ states('sensor.disaster') }}
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 25
+        milliseconds: 0
+    - data:
+        volume_level: 0.4
+      target:
+        entity_id:
+        - media_player.ding_lou_homepod
+        - media_player.ke_ting_homepod
+      action: media_player.volume_set
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 30
+        milliseconds: 0
+      enabled: true
+  mode: queued
+  max: 10
+- id: '1705765755841'
+  alias: 106-2 五樓攝影機麥克風同步
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - input_boolean.wu_lou_she_ying_ji_kai_guan
+    from:
+    to:
+  condition: []
+  action:
+  - if:
+    - condition: state
+      entity_id: input_boolean.wu_lou_she_ying_ji_kai_guan
+      state: 'on'
+    then:
+    - device_id: 41e159f0016bdc22701bd5eee5c5a94f
+      domain: number
+      entity_id: 18d723965391b8ed6c2d115ef0956859
+      type: set_value
+      value: 75
+    else:
+    - device_id: 41e159f0016bdc22701bd5eee5c5a94f
+      domain: number
+      entity_id: 18d723965391b8ed6c2d115ef0956859
+      type: set_value
+      value: 0
+  mode: single
+- id: ai_hk_scene_buttons_auto_reset
+  alias: HomeKit情境輔助開關自動復位AI (V3.18.0)
+  description: HomeKit 輔助開關觸發晚安/早安/離家/到家情境後自動復位，讓按鈕可重複使用。
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_boolean.hk_scene_goodnight
+    - input_boolean.hk_scene_goodmorning
+    - input_boolean.hk_scene_away
+    - input_boolean.hk_scene_home
+    to: 'on'
+  conditions: []
+  actions:
+  - choose:
+    - conditions: '{{ trigger.entity_id == ''input_boolean.hk_scene_goodnight'' }}'
+      sequence:
+      - action: automation.trigger
+        target:
+          entity_id: automation.wan_an_qing_jing
+        data:
+          skip_condition: true
+    - conditions: '{{ trigger.entity_id == ''input_boolean.hk_scene_goodmorning''
+        }}'
+      sequence:
+      - action: automation.trigger
+        target:
+          entity_id: automation.101zao_an_qing_jing
+        data:
+          skip_condition: true
+    - conditions: '{{ trigger.entity_id == ''input_boolean.hk_scene_away'' }}'
+      sequence:
+      - action: automation.trigger
+        target:
+          entity_id: automation.101li_jia_qing_jing
+        data:
+          skip_condition: true
+    - conditions: '{{ trigger.entity_id == ''input_boolean.hk_scene_home'' }}'
+      sequence:
+      - action: automation.trigger
+        target:
+          entity_id: automation.103dao_jia_qing_jing
+        data:
+          skip_condition: true
+  - delay: 00:00:02
+  - action: input_boolean.turn_off
+    target:
+      entity_id: '{{ trigger.entity_id }}'
+  mode: queued
+- id: '1721462099482'
+  alias: 09B-Homepod Sensor sync
+  description: Processes temperature and humidity data from the HomePod Mini
+  triggers:
+  - minutes: /2
+    id: time
+    trigger: time_pattern
+  actions:
+  - data: {}
+    action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.collection_of_homepod_sensors
+  - delay: 00:00:05
+    enabled: false
+  - data: {}
+    target:
+      entity_id: input_boolean.collection_of_homekit_sensors
+    action: input_boolean.turn_off
+    enabled: false
+- id: '1721572094764'
+  alias: 08-5D頂樓坎燈自動化亮度修正V2
+  description: ''
+  triggers:
+  - entity_id:
+    - light.yeelink_lamp2_678c_light
+    attribute: brightness
+    trigger: state
+    enabled: false
+  - entity_id:
+    - light.yeelink_bslamp2_4329_light
+    attribute: brightness
+    trigger: state
+    enabled: false
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_shang_lou_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_ye_deng_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_yue_du_qing_jing
+    to: 'on'
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  conditions: []
+  actions:
+  - sequence:
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 8
+        milliseconds: 0
+      enabled: true
+    - choose:
+      - conditions:
+        - condition: and
+          conditions:
+          - condition: numeric_state
+            entity_id: light.yeelink_bslamp2_4329_light
+            attribute: light.brightness
+            above: 69
+            below: 71
+          - condition: numeric_state
+            entity_id: light.yeelink_lamp2_678c_light
+            attribute: light.brightness
+            above: 59
+            below: 61
+          - condition: state
+            entity_id: light.yeelink_lamp2_678c_light
+            state: 'on'
+          - condition: state
+            entity_id: light.yeelink_bslamp2_4329_light
+            state: 'on'
+        sequence:
+        - sequence:
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ding_lou_kan_deng
+            data: {}
+            enabled: false
+          - repeat:
+              count: 5
+              sequence:
+              - action: light.turn_off
+                target:
+                  entity_id:
+                  - light.ding_lou_kan_deng
+                data: {}
+                enabled: true
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 75
+            target:
+              entity_id: light.ding_lou_kan_deng
+            action: light.turn_on
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 75
+            target:
+              entity_id: light.ding_lou_kan_deng
+            action: light.turn_on
+            enabled: false
+        - sequence:
+          - type: turn_off
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 0
+              milliseconds: 5
+          - type: turn_on
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          enabled: false
+      - conditions:
+        - condition: and
+          conditions:
+          - condition: numeric_state
+            entity_id: light.yeelink_bslamp2_4329_light
+            attribute: light.brightness
+            above: 99
+            below: 101
+          - condition: numeric_state
+            entity_id: light.yeelink_lamp2_678c_light
+            attribute: light.brightness
+            above: 99
+            below: 101
+          - condition: state
+            entity_id: light.yeelink_lamp2_678c_light
+            state: 'on'
+          - condition: state
+            entity_id: light.yeelink_bslamp2_4329_light
+            state: 'on'
+        sequence:
+        - sequence:
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ding_lou_kan_deng
+            data: {}
+            enabled: false
+          - repeat:
+              count: 5
+              sequence:
+              - action: light.turn_off
+                target:
+                  entity_id:
+                  - light.ding_lou_kan_deng
+                data: {}
+                enabled: true
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 100
+            target:
+              entity_id: light.ding_lou_kan_deng
+            action: light.turn_on
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 100
+            target:
+              entity_id: light.ding_lou_kan_deng
+            action: light.turn_on
+            enabled: false
+        - sequence:
+          - type: turn_off
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 0
+              milliseconds: 5
+          - type: turn_on
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          enabled: false
+      - conditions:
+        - condition: and
+          conditions:
+          - condition: numeric_state
+            entity_id: light.yeelink_bslamp2_4329_light
+            attribute: light.brightness
+            above: 0
+            below: 4
+          - condition: state
+            entity_id: light.yeelink_bslamp2_4329_light
+            state: 'on'
+        sequence:
+        - sequence:
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - action: light.turn_off
+            data: {}
+            target:
+              entity_id: light.ding_lou_kan_deng
+            enabled: false
+          - repeat:
+              count: 5
+              sequence:
+              - action: light.turn_off
+                target:
+                  entity_id:
+                  - light.ding_lou_kan_deng
+                data: {}
+                enabled: true
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 1
+            action: light.turn_on
+            target:
+              entity_id: light.ding_lou_kan_deng
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+            enabled: false
+          - metadata: {}
+            data:
+              brightness_pct: 1
+            action: light.turn_on
+            target:
+              entity_id: light.ding_lou_kan_deng
+            enabled: false
+          enabled: true
+        - sequence:
+          - type: turn_off
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 0
+              milliseconds: 5
+          - type: turn_on
+            device_id: def9069ee6368a1881a4666c86ab6cab
+            entity_id: 894ef89b7b9e19f8e99d48dd9c4b3636
+            domain: light
+          enabled: false
+      enabled: true
+  mode: queued
+  max: 10
+- id: '1726383910381'
+  alias: 09A-HomePod自動開啟遙控
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - remote.ke_ting_homepod
+    from:
+    to: 'off'
+  - platform: state
+    entity_id:
+    - remote.ding_lou_homepod
+    from:
+    to: 'off'
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: remote.ding_lou_homepod
+        state: 'off'
+      sequence:
+      - action: remote.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: remote.ding_lou_homepod
+    - conditions:
+      - condition: state
+        entity_id: remote.ke_ting_homepod
+        state: 'off'
+      sequence:
+      - action: remote.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: remote.ke_ting_homepod
+  mode: single
+- id: '1744040282451'
+  alias: 05E緊急實體按鈕
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e35da29662b08cf4ced829f5eb40f179
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: d6e4551be6bf3fd520f5111e4f02a6cf
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2b1b9cbffff070f62f05d5f073a16213
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ee6aa6ce640f7123b2469280a5c34a7f
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 40e15319550792730cc46c7e0528c916
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: fa22b50d3158188987010beb3d0dc693
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: a8f64da0e429958983193590b3c01a2d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 3318d70ca06e01eb7b730e25c93aca6a
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 548873b5b2245e7647e9bd47c3748300
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: de4044f4d156d13b885a1be8eb61c85b
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: cca5b7ed73a48ddcd08d2b6fac6ab5d6
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 29a8530c569abeeee2a16c7237a0ed8e
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 9e8508d9a5b67b29b78e5e8f36a377da
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 85d9ac5dc4dda0eeeacc9f68d2d572a3
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6aa5f4fe1651ab6f47027aa5769a7cf1
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6f569070d383724fefd1af44770b6f20
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 262c6697a232d2f41dd879190fdaaa38
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: a9caa455edec9bd90f96dcb457a46dc6
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 011d0fc36adf6381e82c6f7e0f130d49
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: da626557d958c8abedd9f594b1c78019
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: c4893a7813c41837c7b74c44fae94a57
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 1e49db7f4ff7ecde4cc1f4bbb73ff200
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: f2dce5893d623be85872ab012d9e6ac7
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 7062d71d97dde92c2d03051744e5c81e
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: bb9467ee4c71078c408bd87228e2d11d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 79561269af063260fef17347172140ea
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 5499e1d5eb0e1e8435c471bafa837ec8
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 5229112240fdc5efba6ecb38ee59fbd8
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 813b3dcce6997d06a893274a9dd365c6
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 622c426e35e25607ba3347179af64b12
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e784cc0dd2d58c48f1fb69e51601d2b3
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 639198a381113044574beb1f3aff4450
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: cb46a8bbc8b73c8f84646d615e931f59
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2cd4a08c8687f653e4659d4dfee03c58
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e46ea708c9a09fdfb4c8e5a78e5dce9d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 23213e27cbbb873d03a577bb44ca9330
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad257501722db4a9188b3bb663665750
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 250978f23ba49e53c979a834ce7e50d7
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 6256612c9865ec25d6ae9c6285e9441f
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea3408d6ef04109c00c4afb7cbf3a33d
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 44c7656c22bb115f6b7bc0f5d3c296d3
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: b35f650c0170dd1d8c0595328a322e68
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 1e6510c64936ff439cceea396afad592
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 956ca79460bffbed56b7e4054d634e81
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 2821ac273d1c418615446028b4469d35
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 8c04929f859cd9095bbe203958b6995b
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 601d3693eed2fb67eadb00c79ae1fb8e
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 65af587102927fe6731553692d88c0e8
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+      click_times: 3
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: d46328058f0684808b29afc8a02057c3
+      click_times: 3
+  - device_id: 8a3a83db44f3e7851c3178495daa7b85
+    domain: xiaomi_gateway3
+    type: action
+    state: triple
+    trigger: device
+  conditions:
+  - condition: template
+    value_template: "{{ not is_state('input_boolean.emergency_triple_press_pause', 'on') }}"
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a05ejin_ji_shi_ti_an_niu'',
+      ''last_triggered'') | default(0))) > (2) }}'
+  actions:
+  - parallel:
+    - action: automation.trigger
+      target:
+        entity_id: automation.jin_ji_mo_shi
+      data:
+        skip_condition: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
+  mode: single
+  max_exceeded: silent
+- id: '1747237162262'
+  alias: 800-開關系列-11A 書房燈感應開關單擊
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 9e8508d9a5b67b29b78e5e8f36a377da
+      click_times: 1
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_11a_single'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"9e8508d9a5b67b29b78e5e8f36a377da\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: switch.toggle
+    target:
+      entity_id: switch.shu_fang_deng
+    enabled: true
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1747319755900'
+  alias: 08-5D頂樓夜燈自動化亮度修正V2
+  description: 夜燈情境開啟時，把床頭燈確實關閉後再單純開啟（不指定亮度／顏色）。這顆燈關再開一律是最暗狀態；任何指定亮度或顏色的指令都會讓它變亮，所以此處不能補送。V4.0.0：關燈重複送到狀態確實為
+    off（最多 20 次），等 2 秒再開燈。
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_boolean.ding_lou_ye_deng_qing_jing
+    to: 'on'
+  conditions: []
+  actions:
+  - repeat:
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id: light.yeelink_bslamp2_4329_light
+        data: {}
+      - delay:
+          milliseconds: 700
+      until:
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: light.yeelink_bslamp2_4329_light
+          state: 'off'
+        - condition: template
+          value_template: '{{ repeat.index >= 20 }}'
+  - delay:
+      seconds: 2
+  - action: light.turn_on
+    target:
+      entity_id: light.yeelink_bslamp2_4329_light
+    data: {}
+  mode: restart
+- id: '1747324079989'
+  alias: 800-開關系列-11B 書房燈感應開關長按
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 9e8508d9a5b67b29b78e5e8f36a377da
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_11b'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  actions:
+  - if:
+    - condition: state
+      entity_id: input_boolean.topfloor_motion_pause
+      state: 'off'
+    then:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.topfloor_motion_pause
+    - action: timer.start
+      target:
+        entity_id: timer.topfloor_pause
+    - repeat:
+        count: 2
+        sequence:
+        - action: switch.toggle
+          target:
+            entity_id: switch.shu_fang_deng
+        - delay:
+            milliseconds: 500
+    - action: script.notify_dispatch
+      data:
+        level: info
+        line: false
+        source: 800-開關系列-11B 書房燈感應開關長按
+        version: V4.0.0
+        title: 頂樓感應已暫停
+        message: 頂樓感應燈與書房燈 2 小時內不會自動動作，時間到會自動恢復；再長按一次可提前恢復。
+    else:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.topfloor_motion_pause
+    - action: timer.cancel
+      target:
+        entity_id: timer.topfloor_pause
+    - repeat:
+        count: 4
+        sequence:
+        - action: switch.toggle
+          target:
+            entity_id: switch.shu_fang_deng
+        - delay:
+            milliseconds: 500
+    - action: script.notify_dispatch
+      data:
+        level: info
+        line: false
+        source: 800-開關系列-11B 書房燈感應開關長按
+        version: V4.0.0
+        title: 頂樓感應已恢復
+        message: 頂樓感應燈與書房燈恢復自動控制。
+  mode: single
+  max_exceeded: silent
+- id: '1747548375786'
+  alias: 800-開關系列-10B小米無線開關與廚房燈開關長按-廚房燈自動化開關
+  description: ''
+  triggers:
+  - device_id: 8a3a83db44f3e7851c3178495daa7b85
+    domain: xiaomi_gateway3
+    type: action
+    state: hold
+    trigger: device
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: de4044f4d156d13b885a1be8eb61c85b
+  conditions: []
+  actions:
+  - sequence:
+    - parallel:
+      - action: automation.toggle
+        target:
+          entity_id:
+          - automation.ai_08_8a_kitchen_motion_light
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 1
+        milliseconds: 0
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: automation.ai_08_8a_kitchen_motion_light
+          state: 'on'
+        sequence:
+        - repeat:
+            count: 4
+            sequence:
+            - action: switch.toggle
+              target:
+                entity_id: switch.chu_fang_deng
+            - delay:
+                milliseconds: 500
+          enabled: true
+      - conditions:
+        - condition: state
+          entity_id: automation.ai_08_8a_kitchen_motion_light
+          state: 'off'
+        sequence:
+        - repeat:
+            count: 2
+            sequence:
+            - action: switch.toggle
+              target:
+                entity_id: switch.chu_fang_deng
+            - delay:
+                milliseconds: 500
+          enabled: true
+  mode: single
+  max_exceeded: silent
+- id: '1747916726853'
+  alias: 800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+      click_times: 1
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+      click_times: 1
+  - event_type: terncy_pressed
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+      click_times: 1
+    trigger: event
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12a_ding_lou_lou_ti_deng_dan_ji'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"ea7743a9b14b9ce736fb645578dc59db\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - parallel:
+    - action: script.topfloor_stairs_button_toggle
+      data:
+        key: 13b8
+    - action: script.topfloor_stairs_button_toggle
+      data:
+        key: 0fb7
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1747917853811'
+  alias: 800-開關系列-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+      click_times: 1
+  - event_type: terncy_pressed
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+      click_times: 1
+    trigger: event
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12b'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"ad6e414dc8c87f8bb9deb125b792af19\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - action: script.topfloor_stairs_button_toggle
+    data:
+      key: 13b8
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1747918142087'
+  alias: 800-開關系列-12C 頂樓四樓樓梯燈校正 (虛擬實體)
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id: input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12c'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  actions:
+  - sequence:
+    - action: light.turn_on
+      target:
+        entity_id:
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 0
+        milliseconds: 500
+    - action: light.toggle
+      target:
+        entity_id:
+        - light.yeelink_color5_13b8_light
+        - light.yeelink_color5_0fb7_light
+  mode: single
+  max_exceeded: silent
+- id: '1747919150435'
+  alias: 800-開關系列-12D 四樓開關下1-單擊 四樓樓梯燈
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e784cc0dd2d58c48f1fb69e51601d2b3
+      click_times: 1
+  conditions:
+  - condition: template
+    value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a107_12d'',
+      ''last_triggered'') | default(0))) > (1) }}'
+  - condition: template
+    value_template: "{% set dev_id = trigger.event.data.device_id if (trigger is defined
+      and trigger.event is defined and trigger.event.data is defined and trigger.event.data.device_id
+      is defined) else \"e784cc0dd2d58c48f1fb69e51601d2b3\" %}\n{% set btn_events
+      = device_entities(dev_id) | select(\"match\", \"^event\\.\") | list %}\n{% if
+      btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
+      'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
+      > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  actions:
+  - parallel:
+    - action: script.topfloor_stairs_button_toggle
+      data:
+        key: 0fb7
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1758897392331'
+  alias: 08-5I頂樓空調關閉確認
+  description: Kenny 與 iPad 均離家時自動關閉頂樓空調；已移除 Apple Watch 依賴並改用中文 Location Helper。
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.wu_lou_she_ying_ji_person_detected
+    to: 'on'
+  - trigger: state
+    entity_id:
+    - cover.garage
+    to: closed
+  - trigger: state
+    entity_id:
+    - sensor.at_home_kenny_location
+    to: 離家
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+  - trigger: state
+    entity_id:
+    - sensor.at_home_kenny_ipad_location
+    to: 離家
+  conditions:
+  - condition: and
+    conditions:
+    - condition: state
+      entity_id: sensor.at_home_kenny_location
+      state:
+      - 離家
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+    - condition: state
+      entity_id: sensor.at_home_kenny_ipad_location
+      state: 離家
+  actions:
+  - device_id: dcfa3452c09bf5a13b556d8954f72a43
+    domain: climate
+    entity_id: 0429a720357553bef49083e49bdf393b
+    type: set_hvac_mode
+    hvac_mode: 'off'
+  mode: single
+- id: '1781414206841'
+  alias: 800-開關系列-13 Aqara魔方-客餐廳多工開關
+  description: 使用 Aqara 魔方（Aqara 網關狀態版）控制客餐廳燈光、風扇與情境切換
+  triggers:
+  - entity_id: binary_sensor.0x158d00027d8a8e_action
+    trigger: state
+  conditions:
+  - condition: template
+    value_template: '{% set raw = trigger.to_state.state if trigger.to_state is not
+      none else '''' %} {% set attr_action = trigger.to_state.attributes.action if
+      trigger.to_state is not none and trigger.to_state.attributes.action is defined
+      else '''' %} {% set attr_action_type = trigger.to_state.attributes.action_type
+      if trigger.to_state is not none and trigger.to_state.attributes.action_type
+      is defined else '''' %} {{ [raw, attr_action, attr_action_type] | reject(''in'',
+      ['''', ''off'', ''unknown'', ''unavailable'', none]) | list | count > 0 }}'
+  actions:
+  - variables:
+      cube_action: "{% set raw = trigger.to_state.state if trigger.to_state is not
+        none else '' %} {% set attr_action = trigger.to_state.attributes.action if
+        trigger.to_state is not none and trigger.to_state.attributes.action is defined
+        else '' %} {% set attr_action_type = trigger.to_state.attributes.action_type
+        if trigger.to_state is not none and trigger.to_state.attributes.action_type
+        is defined else '' %} {% if raw not in ['', 'off', 'on', 'unknown', 'unavailable']
+        %}\n  {{ raw }}\n{% elif attr_action not in ['', 'off', 'on', 'unknown', 'unavailable']
+        %}\n  {{ attr_action }}\n{% else %}\n  {{ attr_action_type }}\n{% endif %}"
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ cube_action in [''rotate'', ''rotate_left'', ''rotate_right'']
+          }}'
+      sequence:
+      - choose:
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 4 }}'
+          sequence:
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 3 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 2 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 1 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id:
+              - light.yeelink_color5_4181_light
+              - light.ke_ting_deng_zu_1_ha
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+        - conditions:
+          - condition: template
+            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
+              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
+              | select(''eq'', ''on'') | list | count == 0 }}'
+          sequence:
+          - action: light.turn_on
+            target:
+              entity_id: light.yeelink_color5_4181_light
+          - action: light.turn_off
+            target:
+              entity_id:
+              - light.ke_ting_deng_zu_1_ha
+              - light.ke_ting_deng_zu_2
+              - light.ke_ting_deng_zu_3
+    - conditions:
+      - condition: template
+        value_template: '{{ cube_action == ''move'' }}'
+      sequence:
+      - action: light.toggle
+        target:
+          entity_id: light.can_ting_deng_zu_1_ha
+    - conditions:
+      - condition: template
+        value_template: '{{ cube_action in [''shake'', ''shake_air'', ''shock'', ''vibration'']
+          }}'
+      sequence:
+      - if:
+        - condition: or
+          conditions:
+          - condition: and
+            conditions:
+            - condition: state
+              entity_id: input_boolean.scene_window_use_sun
+              state: 'on'
+            - condition: state
+              entity_id: binary_sensor.scene_morning_window
+              state: 'on'
+          - condition: and
+            conditions:
+            - condition: state
+              entity_id: input_boolean.scene_window_use_sun
+              state: 'off'
+            - condition: time
+              after: 05:00:00
+              before: '17:00:00'
+              weekday:
+              - sat
+              - fri
+              - thu
+              - wed
+              - tue
+              - mon
+              - sun
+        then:
+        - data:
+            skip_condition: true
+          target:
+            entity_id: automation.101zao_an_qing_jing
+          action: automation.trigger
+        else:
+        - data:
+            skip_condition: true
+          target:
+            entity_id: automation.103dao_jia_qing_jing
+          action: automation.trigger
+    - conditions:
+      - condition: template
+        value_template: '{{ cube_action == ''flip90'' }}'
+      sequence:
+      - action: fan.turn_on
+        target:
+          entity_id: fan.ke_ting_dian_feng_shan
+    - conditions:
+      - condition: template
+        value_template: '{{ cube_action == ''flip180'' }}'
+      sequence:
+      - action: fan.turn_off
+        target:
+          entity_id: fan.ke_ting_dian_feng_shan
+  mode: restart
+- id: '1786674957324'
+  alias: 800-開關系列-1B-餐廳廁所開關3-離家晚安與樓梯燈
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 262c6697a232d2f41dd879190fdaaa38
+  conditions: []
+  actions:
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.scene_origin_device
+    data:
+      value: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined) else '''' }}'
+  - if:
+    - condition: time
+      after: '21:00:00'
+      before: 03:00:00
+      weekday:
+      - sat
+      - fri
+      - thu
+      - wed
+      - tue
+      - mon
+      - sun
+    then:
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.wan_an_qing_jing
+      action: automation.trigger
+    else:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.lou_ti_deng
+    - data:
+        skip_condition: true
+      target:
+        entity_id: automation.101li_jia_qing_jing
+      action: automation.trigger
+  mode: single
+  max_exceeded: silent
+- id: '1747918900001'
+  alias: 800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境
+  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，點亮頂樓樓梯燈，重設鎖定
+  triggers:
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+      click_times: 2
+  - trigger: event
+    event_type: terncy_pressed
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+      click_times: 2
+  - trigger: state
+    entity_id:
+    - event.wu_lou_kai_guan_xia_2_double_press
+    - event.si_lou_lou_ti_kai_guan_shang_2_double_press
+    - event.ding_lou_lou_ti_deng_double_press
+  conditions:
+  - condition: template
+    value_template: >-
+      {% if trigger.to_state is defined %}
+        {{ trigger.to_state is not none
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+      {% else %}
+        true
+      {% endif %}
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+  - action: timer.start
+    target:
+      entity_id: timer.topfloor_lock_after_up
+    data:
+      duration: 90
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.topfloor_debug_last_decision
+    data:
+      value: 手動上樓情境（按鍵雙擊）
+  - action: homeassistant.turn_on
+    target:
+      entity_id:
+      - switch.ding_lou_lou_ti_deng
+      - light.yeelink_color5_0fb7_light
+      - light.yeelink_color5_13b8_light
+    continue_on_error: true
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent
+- id: '1747918900002'
+  alias: 800-開關系列-12F 頂樓與四樓開關-長按下樓情境
+  description: 頂樓開關下2與四樓上開關長按觸發下樓情境，清除熟睡鎖，關閉樓梯間燈
+  triggers:
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: ea7743a9b14b9ce736fb645578dc59db
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 3c94e11e544a5b02ecadf20a60b07ceb
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 277ae0fd30a39c811624da70e6a4398f
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: 058a0c17de0b49cf3795dd7f0c00aeb5
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: ad6e414dc8c87f8bb9deb125b792af19
+  - trigger: event
+    event_type: terncy_long_press
+    event_data:
+      device_id: e259d03573cd842bf05dde178ae907bf
+  - trigger: state
+    entity_id:
+    - event.wu_lou_kai_guan_xia_2_long_press
+    - event.si_lou_lou_ti_kai_guan_shang_2_long_press
+    - event.ding_lou_lou_ti_deng_long_press
+  conditions:
+  - condition: template
+    value_template: >-
+      {% if trigger.to_state is defined %}
+        {{ trigger.to_state is not none
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
+      {% else %}
+        true
+      {% endif %}
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+  - action: input_boolean.turn_off
+    target:
+      entity_id:
+      - input_boolean.ding_lou_shang_lou_qing_jing
+      - input_boolean.sleep_silent_active
+  - action: timer.start
+    target:
+      entity_id: timer.topfloor_lock_after_down
+    data:
+      duration: 90
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.topfloor_debug_last_decision
+    data:
+      value: 手動下樓情境（按鍵長按）
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.topfloor_stairs_keep_on
+    continue_on_error: true
+  - action: timer.cancel
+    target:
+      entity_id: timer.topfloor_stairs_manual_hold
+    continue_on_error: true
+  - action: script.stage_scene
+    data:
+      scene: stairs_off
+      device: '{{ trigger.event.data.device_id if (trigger is defined and trigger.event
+        is defined and trigger.event.data is defined) else "" }}'
+    continue_on_error: true
+  - delay: '00:00:00.5'
+  mode: single
+  max_exceeded: silent

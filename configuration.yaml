@@ -1,0 +1,596 @@
+# ──────────────────────────────────────────────
+# AI Configuration（V4.0）
+# ──────────────────────────────────────────────
+# 更新紀錄（統一格式）：
+# - V4.0（2026-10-11，隨 V4.1.5）：
+#   • logger：`homeassistant.components.homeassistant.triggers.event` 降為 error，隱藏「事件觸發器指向舊 device_id（已拆分）」警告（舊 ID 實際仍會觸發，見 SOP-18；每次載入約 200 筆）。
+#   • recorder：排除 `sensor.ai_version_registry_dynamic`、`sensor.ai_version_snapshot_history`（屬性超過 16 KB 被資料庫丟棄；00-2A 只讀目前狀態，不需歷史）。
+#
+# - V4.1（2026-10-09）：
+#   • 啟用空間感知拓撲整合（spatial_context），深度對接 Home Assistant 2026.10 官方 MCP Server。
+#   • 將 spatial_scene_graph.json 與 spatial_context.md 轉換為 MCP 原生空間推理提示詞與專屬工具（spatial_context__query_entity、spatial_context__get_floor_layout、spatial_context__get_sensor_geometry）。
+#
+# - V3.6（2026-10-08）：
+#   • recorder 保留期由 180 天改為 45 天，並排除高頻雜訊實體（button.*_info、網路使用率、耗電電流電壓、tesla 電網相關）與 automation／script 網域。
+#   • 新增自動化管理側邊欄面板（lovelace-automation）與整合儀表板「智慧家庭」（lovelace-smart，取代原橫向／直向兩個儀表板）。
+#   • packages 新增 topfloor／persons／doorlock_battery／announce_tts（person 以 YAML 設定）。
+#   • 移除舊的獨立儀表板 3d-home（3D 智慧家庭）；3D 立體圖已整合在 lovelace-smart，3d-floorplan.yaml 檔案保留。
+#
+# - V3.5（2026-08-16）：
+#   • 依據 Home Assistant 2026.8 規範移除已棄用之 http: 區塊（改由 HA 系統網路介面管理），消除 2027.2.0 失效警告。
+#   • logger 區塊新增海信電視（Hisense TV）待機/ADB 連線重試日誌過濾規則。
+#   • logger 區塊新增 HACS 第三方自訂整合過渡期棄用警告過濾規則（CONCENTRATION 常數、版本號型別、實體 domain 格式等）。
+#
+# - V3.0（2026-03-01）：
+#   • 基礎架構重組，導入 AI managed automations & scripts include 宣告。
+#   • 設定 recorder（180天保留期）、logger 過濾與 Google Translate TTS 整合。
+# ──────────────────────────────────────────────
+
+homeassistant:
+  packages: !include_dir_named packages
+  
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+# 空間感知拓撲 (AI 4.0 Model Context Protocol)
+spatial_context:
+# Text to speech
+tts:
+  - platform: google_translate
+    language: 'zh-tw'
+#  - platform: edge_tts
+#    language: zh-TW # Default language or voice (Optional)
+group: !include groups.yaml
+automation: !include automations.yaml
+automation ai_managed: !include_dir_merge_list Automations
+script: !include scripts.yaml
+script ai_managed: !include_dir_merge_named Scripts
+scene: !include scenes.yaml
+sensor: !include sensors.yaml
+frontend:
+  themes: !include_dir_merge_named themes
+
+recorder: 
+  commit_interval: 10
+  purge_keep_days: 45
+  exclude:
+    domains:
+      - automation
+      - script
+    entity_globs:
+      - sensor.udmse_*_utilization*
+      - sensor.u6_*_utilization*
+      - sensor.*_current_consumption
+      - sensor.*_current
+      - sensor.ai_version_registry_dynamic
+      - sensor.ai_version_snapshot_history
+      - sensor.*_voltage
+      - sensor.tesla_wall_connector_grid_*
+      - button.*_info
+
+logger:
+  default: info
+  logs:
+    # --- 之前設定的過濾 ---
+    homeassistant.components.rest: error
+    homeassistant.components.rest.data: error
+    custom_components.xiaomi_miot: error
+    "card-mod.4.2.1": critical
+    # --- 新增的過濾設定 ---
+
+    # 1. 隱藏 Lovelace 儀表板的警告 (設為 error 隱藏 warning)
+    homeassistant.components.lovelace: error
+
+    # 1b. 隱藏「事件觸發器指向的舊 device_id 已拆分、不存在」警告（V3.7；舊 ID 仍會觸發，見 SOP-18）
+    homeassistant.components.homeassistant.triggers.event: error
+
+    # 2. 隱藏小米空氣清淨機不支援型號的警告 (設為 error 隱藏 warning)
+    miio.device: error
+
+    # 3. 隱藏找不到 Entity 的警告 (設為 error 隱藏 warning)
+    homeassistant.helpers.entity_component: error
+
+    # 4. 隱藏 Google Assistant 同步 404 錯誤 (設為 critical 隱藏 error)
+    homeassistant.components.google_assistant.http: critical
+
+    # 5. 屏蔽第三方 Custom Integrations 未經官方測試的警告
+    homeassistant.loader: error
+
+    # 6. 屏蔽 opencwb / urllib3 未驗證 HTTPS 請求的 SSL 警告
+    py.warnings: error
+    urllib3.connectionpool: error
+
+    # 7. 屏蔽海信電視待機/ADB 連線重試日誌 (設為 critical 隱藏 error)
+    custom_components.hisense_tv: critical
+    custom_components.hisense_tv.media_player: critical
+
+    # 8. 屏蔽 HACS 第三方自訂整合棄用警告 (HA 2026.12~2027.8 官方過渡期提示)
+    homeassistant.const: error
+    homeassistant.helpers.frame: error
+    homeassistant.helpers.deprecation: error
+    homeassistant.components.device_tracker.entity: error
+    homeassistant.components.device_tracker.config_entry: error
+    custom_components.aqara_gateway: error
+    custom_components.xiaomi_gateway3: error
+    custom_components.jcihitachi_tw: error
+
+  filters:
+    homeassistant:
+      # 隱藏這個 Tapo 崩潰時產生的特定錯誤開頭
+      - "Error doing job: Task exception was never retrieved"
+
+#####google home
+google_assistant:
+  project_id: fluid-etching-332006
+  service_account: !include google_assistant.json
+  report_state: true
+  expose_by_default: false
+  entity_config:
+    # ====== 【環境與感測器】 ======
+    sensor.kong_qi_qing_jing_ji_temperature:
+      name: "空氣清淨機溫度"
+      room: "客廳"
+      expose: true
+    sensor.kong_qi_qing_jing_ji_humidity:
+      name: "空氣清淨機濕度"
+      room: "客廳"
+      expose: true
+    sensor.livingroom_homepodmini_temperature:
+      name: "溫度感測器"
+      room: "客廳"
+      expose: true
+    sensor.livingroom_homepodmini_humidity:
+      name: "濕度感測器"
+      room: "客廳"
+      expose: true
+    sensor.ke_ting_you_xiao_ti_gan_wen_du_homekitqiao_jie:
+      name: "客廳體感溫度"
+      room: "客廳"
+      expose: true
+    fan.ke_ting_dian_feng_shan:
+      name: "客廳電風扇"
+      room: "客廳"
+      expose: true
+    fan.kong_qi_qing_jing_ji:
+      name: "空氣清淨機"
+      room: "客廳"
+      expose: true
+    # ====== 【揚聲器與電視】 ======
+    media_player.ke_ting_homepod:
+      name: "客廳 Homepod"
+      room: "客廳"
+      expose: true
+    media_player.ke_ting_dian_shi:
+      name: "電視"
+      room: "客廳"
+      expose: true
+
+    # ====== 【電燈與開關】 ======
+    light.yeelink_color5_4181_light:
+      name: "客廳小燈"
+      room: "客廳"
+      expose: true
+    light.ke_ting_deng_zu_1_ha:
+      name: "客廳燈組一"
+      room: "客廳"
+      expose: true
+    light.ke_ting_deng_zu_2:
+      name: "客廳燈組二"
+      room: "客廳"
+      expose: true
+    light.ke_ting_deng_zu_3:
+      name: "客廳燈組三"
+      room: "客廳"
+      expose: true
+    switch.lu_deng:
+      name: "路燈"
+      room: "客廳"
+      expose: true
+    switch.men_kou_deng:
+      name: "門口燈"
+      room: "客廳"
+      expose: true
+    switch.ke_ting_bi_deng:
+      name: "客廳環繞燈"
+      room: "客廳"
+      expose: true
+    switch.ke_ting_kan_deng:
+      name: "客廳崁燈"
+      room: "客廳"
+      expose: true
+    switch.ke_ting_huan_rao_deng:
+      name: "客廳壁燈"
+      room: "客廳"
+      expose: true
+    # ====== 【餐廳 (包含廚房與周邊設備)】 ======
+    # 電燈與開關
+    light.can_ting_deng_zu_1_ha:
+      name: "餐廳燈"
+      room: "餐廳"
+      expose: true
+    switch.chu_fang_deng:
+      name: "廚房燈"
+      room: "餐廳"
+      expose: true
+    switch.ce_suo_deng:
+      name: "廁所燈"
+      room: "餐廳"
+      expose: true
+    switch.lou_ti_deng:
+      name: "車庫樓梯燈"
+      room: "餐廳"
+      expose: true
+    switch.can_ting_kan_deng:
+      name: "崁燈"
+      room: "餐廳"
+      expose: true
+    switch.can_ting_bi_deng:
+      name: "壁燈"
+      room: "餐廳"
+      expose: true
+    switch.0x00158d0003923796_plug:
+      name: "廚房插座"
+      room: "餐廳"
+      expose: true
+
+    # 環境感測器
+    sensor.kitchenm_wen_du:
+      name: "廚房溫度"
+      room: "餐廳"
+      expose: true
+    sensor.kitchenm_shi_du:
+      name: "廚房濕度"
+      room: "餐廳"
+      expose: true
+    sensor.kitchen_illuminance:
+      name: "廚房小米人體傳感器 Illuminance"
+      room: "餐廳"
+      expose: true
+    sensor.kitchenm_zhao_du:
+      name: "廚房燈光感測"
+      room: "餐廳"
+      expose: true
+    # ====== 【樓梯間】 ======
+    switch.er_san_lou_lou_ti_deng:
+      name: "二三樓樓梯燈"
+      room: "樓梯間"
+      expose: true
+    switch.san_si_lou_lou_ti_deng:
+      name: "三四樓樓梯燈"
+      room: "樓梯間"
+      expose: true
+    switch.san_lou_lou_ti_deng:
+      name: "三樓樓梯燈"
+      room: "樓梯間"
+      expose: true
+    light.yeelink_color5_0fb7_light:
+      name: "四樓樓梯燈"
+      room: "樓梯間"
+      expose: true
+    switch.shu_fang_deng:
+      name: "書房燈"
+      room: "樓梯間"
+      expose: true
+
+    # ====== 【車庫】 ======
+    camera.g6_instant_high_resolution_channel:
+      name: "車庫攝影機"
+      room: "車庫"
+      expose: true
+    switch.che_ku_zhu_deng:
+      name: "車庫主燈"
+      room: "車庫"
+      expose: true
+    # --- 頂樓 (5F) 環境與溫控 ---
+    camera.wu_lou_she_ying_ji_high:
+      name: "頂樓攝影機"
+      room: "頂樓"
+      expose: true
+    climate.ding_lou_kong_diao:
+      name: "頂樓空調"
+      room: "頂樓"
+      expose: true
+    switch.xiang_fen_ji_cha_zuo:
+      name: "香氛機"
+      room: "頂樓"
+      expose: true
+    fan.dmaker_p33_eabd_fan:
+      name: "頂樓電風扇"
+      room: "頂樓"
+      expose: true
+    switch.dmaker_p33_eabd_horizontal_swing:
+      name: "風扇擺頭"
+      room: "頂樓"
+      expose: true
+
+    # --- 頂樓 (5F) 電燈系列 ---
+    light.yeelink_lamp2_678c_light:
+      name: "檯燈"
+      room: "頂樓"
+      expose: true
+    light.yeelink_bslamp2_4329_light:
+      name: "床頭燈"
+      room: "頂樓"
+      expose: true
+    light.ding_lou_deng_zu_1:
+      name: "頂樓燈組1"
+      room: "頂樓"
+      expose: true
+    light.ding_lou_deng_zu_2:
+      name: "頂樓燈組2"
+      room: "頂樓"
+      expose: true
+    light.ding_lou_kan_deng:
+      name: "崁燈"
+      room: "頂樓"
+      expose: true
+    switch.bi_deng:
+      name: "壁燈"
+      room: "頂樓"
+      expose: true
+    light.yeelink_color5_13b8_light:
+      name: "頂樓樓梯燈"
+      room: "頂樓"
+      expose: true
+    switch.yang_tai_deng:
+      name: "陽台燈"
+      room: "頂樓"
+      expose: true
+    switch.sheng_dan_deng_cha_zuo:
+      name: "捕蚊燈"
+      room: "頂樓"
+      expose: true
+
+    # --- 頂樓 (5F) 感測器與多媒體 ---
+    media_player.ding_lou_homepod:
+      name: "頂樓 HomePod"
+      room: "頂樓"
+      expose: true
+    sensor.5f_homepodmini_temperature:
+      name: "頂樓溫度感測器"
+      room: "頂樓"
+      expose: true
+    sensor.5f_homepodmini_humidity:
+      name: "頂樓濕度感測器"
+      room: "頂樓"
+      expose: true
+    sensor.ding_lou_you_xiao_ti_gan_wen_du_homekitqiao_jie:
+      name: "頂樓體感溫度"
+      room: "頂樓"
+      expose: true
+
+    # --- 頂樓 (5F) 其他控制 (保全與麥克風同步) ---
+    automation.106_2_mai_ke_feng:
+      name: "五樓攝影機麥克風"
+      room: "頂樓"
+      expose: true
+    automation.08_5_wu_lou_bao_quan_xi_tong:
+      name: "五樓保全系統開關"
+      room: "頂樓"
+      expose: true
+    # --- 自動化系統開關 ---
+    input_boolean.living_room_fan_auto_speed_mode:
+      name: "客廳風扇 自動風速模式"
+      room: "自動化系統"
+      expose: true
+    input_boolean.top_floor_fan_auto_mode:
+      name: "頂樓電風扇 自動模式"
+      room: "自動化系統"
+      expose: true
+    input_boolean.summer_mode:
+      name: "夏季模式"
+      room: "自動化系統"
+      expose: true
+    input_boolean.notify_line_general_enable:
+      name: "LINE 通知啟用 一般"
+      room: "自動化系統"
+      expose: true
+    input_boolean.notify_line_important_enable:
+      name: "LINE 通知啟用 重要"
+      room: "自動化系統"
+      expose: true
+    input_boolean.notify_line_emergency_enable:
+      name: "LINE 通知啟用 緊急"
+      room: "自動化系統"
+      expose: true
+    automation.ai_08_5c_topfloor_stairs_motion_light:
+      name: "08-5C 頂樓樓梯感應燈"
+      room: "自動化系統"
+      expose: true
+    automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2:
+      name: "08-5D 頂樓坎燈自動化"
+      room: "自動化系統"
+      expose: true
+
+    # --- 伺服器設備控制 ---
+    switch.asusworkstationcha_zuo:
+      name: "AsusWorkstation 插座"
+      room: "伺服器"
+      expose: true
+    switch.unifi_network_asusworkstation_remote:
+      name: "AsusWorkstation 喚醒"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_tbcwang_lu_he:
+      name: "TBC主機-2F"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_udmse:
+      name: "UDMSE-2F"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_outlet_3:
+      name: "MSI Server-2F"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_asussi_fu_qi:
+      name: "ASUS伺服器-2F"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_outlet_6:
+      name: "小燕網關插座-2F"
+      room: "伺服器"
+      expose: true
+    switch.smartpower_strip_2f_usb_outlets:
+      name: "USBC Outlets-2F"
+      room: "伺服器"
+      expose: true
+    switch.xiao_yan_wang_guan_cha_zuo:
+      name: "頂樓小燕網關"
+      room: "伺服器"
+      expose: true
+    switch.cha_zuo_1:
+      name: "五樓印表機"
+      room: "伺服器"
+      expose: true
+    switch.can_ting_homepodcha_zuo:
+      name: "餐廳 HomePod 插座"
+      room: "伺服器"
+      expose: true
+    switch.ding_lou_homepodcha_zuo:
+      name: "頂樓 HomePod 插座"
+      room: "伺服器"
+      expose: true
+    switch.54ef44cf58f9_alarm_trigger:
+      name: "網關警報觸發開關"
+      room: "伺服器"
+      expose: false
+    input_boolean.jie_chu_wang_guan_jing_bao:
+      name: "解除網關警報"
+      room: "伺服器"
+      expose: true
+    input_boolean.wu_lou_she_ying_ji_kai_guan:
+      name: "五樓攝影機麥克風開關"
+      room: "伺服器"
+      expose: true
+    input_boolean.wu_lou_bao_quan_xi_tong_kai_guan:
+      name: "五樓保全系統開關"
+      room: "伺服器"
+      expose: true
+    # --- 情境按鈕 ---
+    input_boolean.ding_lou_shang_lou_qing_jing:
+      name: "上樓情境"
+      room: "情境"
+      expose: true
+    input_boolean.ding_lou_xia_lou_qing_jing:
+      name: "下樓情境"
+      room: "情境"
+      expose: true
+    input_boolean.ding_lou_ye_deng_qing_jing:
+      name: "夜燈情境"
+      room: "情境"
+      expose: true
+    input_boolean.ding_lou_yue_du_qing_jing:
+      name: "閱讀情境"
+      room: "情境"
+      expose: true
+    input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit:
+      name: "緊急模式"
+      room: "情境"
+      expose: true
+    input_boolean.google_scene_zao_an_trigger:
+      name: "早安"
+      room: "情境"
+      expose: true
+    input_boolean.google_scene_wan_an_trigger:
+      name: "晚安"
+      room: "情境"
+      expose: true
+    input_boolean.google_scene_dao_jia_trigger:
+      name: "到家"
+      room: "情境"
+      expose: true
+    input_boolean.google_scene_chu_men_trigger:
+      name: "出門"
+      room: "情境"
+      expose: true
+
+    
+
+#homekit:
+#  - name: HA Family 3
+#    port: 21105
+#    ip_address: 192.168.68.73
+#    advertise_ip: 192.168.68.73
+#    filter:
+#      include_domains:
+#        - light
+#recorder:
+#	purge_interval: 
+#	purge_keep_days: 365
+#homeassistant:
+#  external_url: https://jnas916p.synology.me:8124
+#  internal_url: http://192.168.68.73:8123
+#http:
+#  ssl_certificate: /config/ssl/cert.pem
+#  ssl_key: /config/ssl/privkey.pem
+#  base_url: https://jnas916p.synology.me
+#  cors_allowed_origins:
+#    - https://jnas916p.synology.me
+ #   - http://192.168.68.73
+#  ssl_chain: /config/ssl/chain.pem
+fan:
+  - platform: xiaomi_miio_fan
+    name: 客廳電風扇      #名稱
+    host: 192.168.68.60    #IP
+    token: !secret xiaomi_fan_token  #自己的token（在 secrets.yaml：xiaomi_fan_token）
+    preset_modes_override: []     #讓homekit的按鍵顯示正常
+    model: zhimi.fan.sa1 #自己的電風扇model
+
+
+notify:                      #若已有設定其他notify組件則不須輸入此行
+  - name: line_notification_group  #可修改成你要的名稱 ＃不建議使用中文
+    platform: notify_line
+    access_token: !secret line_notify_access_token  #將前面步驟取得的權杖輸入於此
+  - name: line_bot_chiangfamilygroup
+    platform: line_bot
+    client_id: !secret line_bot_client_id
+    access_token: !secret line_bot_access_token
+  
+  
+lovelace:
+  mode: storage #use ui-lovelace.yaml
+  resources: #hacs
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js
+      type: module
+    - url: /hacsfiles/lovelace-layout-card/layout-card.js
+      type: module
+    - url: /hacsfiles/swipe-card/swipe-card.js
+      type: module
+    - url: /hacsfiles/Homekit-panel-card/homekit-panel-card.js
+      type: module
+    - url: /browser_mod.js
+      type: module
+    - url: /hacsfiles/light-popup-card/light-popup-card.js
+      type: module
+    - url: /community_plugin/thermostat-popup-card/thermostat-popup-card.js
+      type: module
+    - url: /community_plugin/media_player-popup-card/media_player-popup-card.js
+      type: module
+    - url: /hacsfiles/sidebar-card/sidebar-card.js
+      type: module  
+    - url: /local/mini-graph-card-bundle.js?v=0.11.0
+      type: module
+    - url: /community_plugin/cover-popup-card/cover-popup-card.js
+      type: module
+    - url: /community_plugin/switch-popup-card/switch-popup-card.js
+      type: module  
+    - url: /local/floorplan/3d/card-3d-floorplan.js
+      type: module
+  dashboards:
+    lovelace-smart:
+      mode: yaml
+      title: 智慧家庭
+      icon: mdi:home-automation
+      show_in_sidebar: true
+      require_admin: false
+      filename: smart-home.yaml
+    lovelace-automation:
+      mode: yaml
+      title: 自動化管理
+      icon: mdi:robot-outline
+      show_in_sidebar: true
+      require_admin: false
+      filename: automation-panel.yaml

@@ -631,9 +631,9 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
 
 ### Known Bugs／待實體驗證（V4.1.5）
-- `03苗栗天氣告知系統AI` 目前為關閉狀態（2026-08-26 起）；分級只以歷史 255 則與模擬訊息驗證，尚無真實災害訊息實測。
+- `03苗栗天氣告知系統AI` 已由使用者開啟（2026-10-11）；分級只以歷史 255 則與模擬訊息驗證，尚無真實災害訊息實測。
 - 尚未實體驗證：`05G` 三擊維修暫停（開／關）、`100A` 的 `arrive`（離家超過 10 分鐘後連上 Wi-Fi）與 `lock_home`（門鎖解除離家模式）觸發、`104-4` 車庫攝影機偵測、`21B` 手動切換偵測與隔天恢復。
-- 根目錄 `automations.yaml`（UI 自動化）與 `configuration.yaml` 不在 git 內；本版 12A／12B／12E／12F／05E 修補與 105 刪除只存在主機與本機備份（`V4.1.5/automations.yaml`）。
+- 根目錄 `automations.yaml`（UI 自動化，實際載入的那份）與 `configuration.yaml`（2026-10-11 起納入 git；`configuration.yaml` 內的小米風扇 token 與 LINE 權杖已改成 `!secret`，值在 `secrets.yaml`）。`configuration/automations.yaml`、`configuration/configuration.yaml` 是沒載入的舊副本。
 
 ### Next Version（V4.2 候選）
 - `104-2車牌辨識AI優化`；智慧家庭 Home UI 4.0 優化（UI 4.0-beta 8）。
