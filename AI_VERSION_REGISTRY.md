@@ -16,7 +16,7 @@
   - 候選版：`Vx.y.z (RCn)`
 
 ## 依賴版本
-- Helper 套件版本（`packages/helper.yaml`）：`V4.1.0`（V4.1.5 新增 `packages/v41_emergency_pause.yaml`）
+- Helper 套件版本（`packages/helper.yaml`）：`V4.1.0`（V4.1.5 新增 `packages/v41_emergency_pause.yaml`、`v41_day_label.yaml`、`v41_living_fan.yaml`、`v41_garage_away.yaml`、`v41_disaster_notify.yaml`、`v41_summer_auto.yaml`）
 - configuration 主設定檔版本（`configuration.yaml`）：`V4.0`
 - 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
@@ -597,7 +597,7 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 ### AI 4.0 版號統一（2026-10-05）
 V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
 
-## 本次調整（V4.1.5 - 2026-10-11：頂樓電風扇手動調速防護罩誤判修正）
+## 本次調整（V4.1.5 - 2026-10-11：夏季模式自動判斷、災害訊息分級、到家情境併入門鎖、風扇防抖、車庫誤報修正、緊急三擊維修暫停與清理）
 
 - `22頂樓電風扇自動化AI` 修補版升級至 `V4.1.5`：風扇「關→開」時裝置自行回報的風量變動（0%→N%），以及開機後 10 秒內的風量回報，不再被判定為人為調速（原因：這類更新沒有使用者與上層動作，被 `manual_actor_detected` 誤判，導致 `ding_lou_fan_manual_speed_snooze` 自動開啟、自動調速停擺）。人為在風扇運轉中調速仍會啟用防護罩。
 - 同版追加：自動調速門檻由「差 5%」降為「差 2.5%」（與 2.5% 級距一致）；新增每 5 分鐘定時重算觸發（`time_pattern`），感測器長時間沒更新時風量也會跟上；定時觸發時略過「冷氣同步開機」（避免過冷關機後被每 5 分鐘反覆開起），並補強 `manual_actor_detected` 對沒有 `to_state` 觸發的防呆。
@@ -629,6 +629,15 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - `100A自動啟動到家早安情境AI`（V4.1.5）：併入「105門鎖自動判斷到家」（新增觸發 `lock_home`：門鎖解除離家模式 → 依時段啟動早安／到家，不受最早時間與活動跡象限制，但受總開關、3 分鐘防重複、保全模式限制）；舊 105（UI 自動化 id 1691155847932）已刪除。
 - 新增 `21B夏季模式自動判斷AI`（V4.1.5）：依今日預報體感最高（weather 每小時預報 feels_like_temperature）與今日實測體感最高（戶外體感感測器）自動開關 `input_boolean.summer_mode`；分數 ≥ 28.5°C 開、< 26°C 關、之間維持現狀，06:30–18:00 每 30 分鐘判斷。人工切換（context 無 parent_id）會記 `input_datetime.summer_manual_date`，當天不再自動調整，隔天恢復。新增 `packages/v41_summer_auto.yaml`：`summer_auto_enable`（總開關）、`summer_auto_on_feels_c`／`summer_auto_off_feels_c`（門檻）、`summer_manual_date`、`summer_auto_today_flag`／`summer_auto_last`（內部）。
 - Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
+
+### Known Bugs／待實體驗證（V4.1.5）
+- `03苗栗天氣告知系統AI` 目前為關閉狀態（2026-08-26 起）；分級只以歷史 255 則與模擬訊息驗證，尚無真實災害訊息實測。
+- 尚未實體驗證：`05G` 三擊維修暫停（開／關）、`100A` 的 `arrive`（離家超過 10 分鐘後連上 Wi-Fi）與 `lock_home`（門鎖解除離家模式）觸發、`104-4` 車庫攝影機偵測、`21B` 手動切換偵測與隔天恢復。
+- 根目錄 `automations.yaml`（UI 自動化）與 `configuration.yaml` 不在 git 內；本版 12A／12B／12E／12F／05E 修補與 105 刪除只存在主機與本機備份（`V4.1.5/automations.yaml`）。
+
+### Next Version（V4.2 候選）
+- `104-2車牌辨識AI優化`；智慧家庭 Home UI 4.0 優化（UI 4.0-beta 8）。
+- `input_text.at_home_*_trackers` 仍用於在家判斷，評估改讀 `person.*` 後再清除；22 個未載入的整合保留。
 
 ## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
 
