@@ -1078,9 +1078,6 @@ input_text:
     name: 5F 頂樓 AP MAC 清單（逗號分隔）
     icon: mdi:wifi
 #    initial: 70:a7:41:e4:5a:bf
-  iphone_tracker_entity_kenny:
-    name: Kenny iPhone Tracker Entity
-    icon: mdi:cellphone-nfc
   watch_tracker_entity_kenny:
     name: Kenny Watch Tracker Entity
     icon: mdi:watch-variant
