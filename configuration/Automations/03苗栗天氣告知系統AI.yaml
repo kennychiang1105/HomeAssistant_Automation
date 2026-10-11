@@ -5,24 +5,29 @@
 # - V4.1.5（2026-10-11）：災害訊息改成「依內容分級、不重要的不通知」。
 #   問題：原本只要內文有「苗栗」就用「一般」級通知＋廣播；實際 45 天 255 則訊息裡有 114 則提到苗栗，其中 84 則是風力黃燈、109 則是各地水務搶修，幾乎都不重要。
 #   分級（msg_level）：
-#     emergency：地震／海嘯／國家級警報／疏散撤離／土石流／堰塞湖，以及含苗栗的陸上颱風警報。
-#     important：竹南周邊（竹南、頭份、後龍、三灣、造橋）的淹水警戒、停水停電、水庫洩洪；颱風警報；含苗栗的豪雨／大豪雨特報；苗栗橙色／紅色高溫燈號。
-#     general  ：竹南周邊淹水警戒解除。
-#     info     ：含苗栗或竹苗的大雨預報、豪雨／大豪雨特報解除（只發 HA 資訊通知，不發 LINE、不廣播）。
+#     emergency（緊急類）：疏散撤離／土石流／堰塞湖／國家級警報／空襲飛彈（內文有苗栗，國家級警報不限）。
+#     important（重要類）：確定「竹南有影響」才算——
+#         · 內文直接寫竹南的淹水警戒、停水停電、水庫洩洪；
+#         · 縣市層級的警報且列有苗栗：颱風警報（含陸上）、豪雨／大豪雨特報、橙色／紅色燈號（竹南屬苗栗縣，視為有影響）。
+#     info（只發 HA 資訊通知，不發 LINE、不廣播）：含苗栗或竹苗的大雨預報、豪雨／大豪雨特報解除、竹南解除淹水警戒、
+#         竹南鄰近（頭份、後龍、三灣、造橋）的淹水警戒／洩洪／停水停電（竹南沒寫到）、內文有「演練」「演習」「模擬」的訊息。
 #     其餘（風力黃燈、黃色高溫、他處水務搶修、火災、消防檢查、全台大雷雨即時訊息…）：不通知。
-#   發送：統一用 script.notify_dispatch 依等級發（HA／LINE 開關由 dispatch 處理）；只有 important／emergency 才廣播（important 只在 07:00–22:00，emergency 不限時段）。
-#   早晨補報：只補報夜間（22:00–07:00）收到、尚未廣播的 important／emergency 訊息的語音；不再要求「5 分鐘內更新」（原本的條件讓補報幾乎不可能成立）。夜間的 HA／LINE 通知照常即時發出。
+#     地震、海嘯由「02地震災害系統」處理，這裡一律不通知。
+#   通知等級對照（呼叫 notify_dispatch／announce 時）：重要類→「一般」級；緊急類→「重要」級；info→「資訊」級。
+#   開關：packages/v41_disaster_notify.yaml 四個開關（LINE 重要類／緊急類、HA 重要類／緊急類），LINE 兩個公開給 HomeKit。關閉後該類不發對應通知；廣播不受影響。
+#   廣播：只有重要類（07:00–22:00）與緊急類（不限時段）會廣播。
+#   早晨補報：只補報夜間（22:00–07:00）收到、尚未廣播的重要類／緊急類訊息語音；不再要求「5 分鐘內更新」（原本的條件讓補報幾乎不可能成立）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
 - alias: 03苗栗天氣告知系統AI (V4.1.5)
   id: ai_miaoli_weather_disaster_notify
-  description: 依內容分級通知苗栗（竹南周邊）的災害與天氣訊息，不重要的不通知；重要以上才廣播
+  description: 依內容分級通知竹南有影響的災害與天氣訊息，不重要的不通知；重要類與緊急類才廣播
   mode: queued
   max: 10
   variables:
     automation_version: "V4.1.5"
-    local_re: "竹南|頭份|後龍|三灣|造橋"
+    near_re: "頭份|後龍|三灣|造橋"
   triggers:
     - entity_id: sensor.disaster
       id: message_received
@@ -35,16 +40,20 @@
         current_message: "{{ states('sensor.disaster') }}"
         msg_level: >-
           {% set m = current_message %}
-          {% set local = m | regex_search(local_re) %}
+          {% set zhunan = m | regex_search('竹南') %}
+          {% set near = m | regex_search(near_re) %}
           {% set county = m | regex_search('苗栗') %}
           {% set cancel = m | regex_search('解除|已無警戒|降至|已降至') %}
           {% if m in ['unknown', 'unavailable', 'none', 'None', ''] %}drop
-          {% elif m | regex_search('地震|海嘯|國家級警報|空襲|飛彈|疏散|撤離|土石流|堰塞') %}emergency
-          {% elif m | regex_search('陸上.{0,6}颱風警報') and county and not cancel %}emergency
-          {% elif m | regex_search('颱風警報') and not cancel %}important
-          {% elif local and m | regex_search('淹水|警戒') %}{{ 'general' if cancel else 'important' }}
-          {% elif local and m | regex_search('洩洪|放水|溢流') %}important
-          {% elif local and m | regex_search('停水|停電|暫停供水') %}important
+          {% elif m | regex_search('地震|海嘯') %}drop
+          {% elif m | regex_search('演練|演習|模擬') %}info
+          {% elif m | regex_search('國家級警報|空襲|飛彈') %}emergency
+          {% elif county and m | regex_search('疏散|撤離|土石流|堰塞') %}emergency
+          {% elif county and m | regex_search('颱風警報') and not cancel %}important
+          {% elif zhunan and m | regex_search('淹水|警戒') %}{{ 'info' if cancel else 'important' }}
+          {% elif zhunan and m | regex_search('洩洪|放水|溢流') %}important
+          {% elif zhunan and m | regex_search('停水|停電|暫停供水') %}important
+          {% elif near and m | regex_search('淹水|警戒|洩洪|放水|溢流|停水|停電|暫停供水') %}info
           {% elif county and m | regex_search('大豪雨|超大豪雨|豪雨特報|大雨特報') and not cancel %}important
           {% elif m | regex_search('苗栗縣[^燈]*(橙|紅)色燈號') %}important
           {% elif cancel and m | regex_search('大豪雨|豪雨|大雨') %}info
@@ -56,10 +65,10 @@
         message_ts: "{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}"
         is_new_content: "{{ current_message[:250] != last_message }}"
         level_title: >-
-          {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'general': '本地災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
+          {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
         voice_text: "{{ '天氣告知系統收到以下政府災害訊息 ' ~ (current_message | replace('\n', ' '))[:160] }}"
     - choose:
-        # ── 即時：依等級發 HA／LINE，重要以上再廣播 ──
+        # ── 即時：依類別發 HA／LINE，重要類與緊急類再廣播 ──
         - conditions:
             - condition: trigger
               id: message_received
@@ -68,23 +77,30 @@
           sequence:
             - variables:
                 lv: "{{ msg_level | trim }}"
+                # 重要類→一般級；緊急類→重要級；info→資訊級
+                send_level: "{{ {'emergency': 'important', 'important': 'general', 'info': 'info'}[lv] }}"
+                ha_on: "{{ lv == 'info' or is_state('input_boolean.notify_ha_disaster_' ~ lv ~ '_enable', 'on') }}"
+                line_on: "{{ lv != 'info' and is_state('input_boolean.notify_line_disaster_' ~ lv ~ '_enable', 'on') }}"
                 speak: "{{ lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') }}"
-            - action: script.notify_dispatch
-              data:
-                level: "{{ lv }}"
-                line: "{{ lv != 'info' }}"
-                source: "03苗栗天氣告知系統AI (V4.1.5)"
-                version: "{{ automation_version }}"
-                title: "{{ level_title }}"
-                message: |-
-                  天氣告知系統收到以下政府災害訊息:
+            - if: "{{ ha_on or line_on }}"
+              then:
+                - action: script.notify_dispatch
+                  data:
+                    level: "{{ send_level }}"
+                    to_ha: "{{ ha_on }}"
+                    line: "{{ line_on }}"
+                    source: "03苗栗天氣告知系統AI (V4.1.5)"
+                    version: "{{ automation_version }}"
+                    title: "{{ level_title }}"
+                    message: |-
+                      天氣告知系統收到以下政府災害訊息:
 
-                  {{ current_message }}
+                      {{ current_message }}
             - if: "{{ speak }}"
               then:
                 - action: script.announce
                   data:
-                    level: "{{ lv }}"
+                    level: "{{ send_level }}"
                     message: "{{ voice_text }}"
                 - action: input_datetime.set_datetime
                   target:
@@ -96,7 +112,7 @@
                 entity_id: input_text.disaster_last_message
               data:
                 value: "{{ current_message[:250] }}"
-        # ── 早晨補報：只補夜間收到、還沒廣播過的重要／緊急訊息（語音） ──
+        # ── 早晨補報：只補夜間收到、還沒廣播過的重要類／緊急類訊息（語音） ──
         - conditions:
             - condition: trigger
               id: morning_catch_up
@@ -108,7 +124,7 @@
           sequence:
             - action: script.announce
               data:
-                level: "{{ msg_level | trim }}"
+                level: "{{ 'important' if (msg_level | trim) == 'emergency' else 'general' }}"
                 message: "{{ '早晨補報。' ~ voice_text }}"
             - action: input_datetime.set_datetime
               target:

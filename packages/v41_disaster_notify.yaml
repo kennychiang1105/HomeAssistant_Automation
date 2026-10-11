@@ -1,0 +1,24 @@
+﻿# 災害訊息通知開關（V4.1.5，2026-10-11）
+# 由 03苗栗天氣告知系統AI 使用。災害訊息分兩類：
+#   重要類（竹南有影響的淹水／停水／颱風／豪雨…）：LINE 與 HA 通知用「一般」級發送。
+#   緊急類（疏散、土石流、國家級警報）：LINE 與 HA 通知用「重要」級發送。
+# 下面四個開關各自控制「這一類」的 LINE／HA 通知（關閉後該類不發 LINE／不發 HA 通知；廣播不受影響）。
+# LINE 兩個開關公開給 HomeKit（HASS Bridge）；HA 兩個只在 HA／面板操作。
+input_boolean:
+  notify_line_disaster_important_enable:
+    name: 災害訊息 LINE 通知｜重要類
+    icon: mdi:message-alert-outline
+    initial: true
+  notify_line_disaster_emergency_enable:
+    name: 災害訊息 LINE 通知｜緊急類
+    icon: mdi:message-alert
+    initial: true
+  notify_ha_disaster_important_enable:
+    name: 災害訊息 HA 通知｜重要類
+    icon: mdi:bell-alert-outline
+    initial: true
+  notify_ha_disaster_emergency_enable:
+    name: 災害訊息 HA 通知｜緊急類
+    icon: mdi:bell-alert
+    initial: true
+
