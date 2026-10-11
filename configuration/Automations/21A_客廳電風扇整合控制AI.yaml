@@ -1,7 +1,10 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.1.5（2026-10-11）：自動調速防抖。原本 t_eff 在 28.3／28.4 等門檻上下 0.1°C 抖動就會讓風量每 15～30 秒大小來回（30 小時 67 次變化、86 次快速反轉）。
+#   ① 遲滯：升級要超過門檻 +遲滯（預設 0.3°C）、降級要低於門檻 -遲滯；② 自動調速最短間隔 3 分鐘（timer.living_room_fan_speed_dwell）；
+#   ③ 濕度加成改連續線性（>50% 起每 1% +0.05°C，上限 1.5），不再在 50／60／75% 一次跳 0.5°C；④ 曲線下限 20%（風扇最低檔），不再送 10% 指令。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 導入路徑：configuration/Automations/21A_客廳電風扇整合控制AI.yaml
-- alias: 21A_客廳電風扇整合控制AI (V4.0.0)
+- alias: 21A_客廳電風扇整合控制AI (V4.1.5)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -33,7 +36,7 @@
       id: location_change
 
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.1.5"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
@@ -67,12 +70,9 @@
     active_humidity: "{{ primary_humidity if primary_valid else fallback_humidity }}"
     active_sensor_name: "{{ '空氣清淨機' if primary_valid else ('廚房' if fallback_valid else '無') }}"
     humidity_bonus_c: >-
-      {% if active_humidity is not none %}
-        {% if active_humidity > 75 %} 1.5
-        {% elif active_humidity > 60 %} 1.0
-        {% elif active_humidity > 50 %} 0.5
-        {% else %} 0 {% endif %}
-      {% else %} 0 {% endif %}
+      {% if active_humidity is none or active_humidity <= 50 %}0
+      {% elif active_humidity <= 80 %}{{ ((active_humidity - 50) * 0.05) | round(2) }}
+      {% else %}1.5{% endif %}
     t_eff: >-
       {% if active_temp is not none %}
         {{ active_temp + humidity_bonus_c }}
@@ -81,31 +81,29 @@
       {% endif %}
     # t_eff 在沒有溫度時會是文字「none」（不是 None），所以改看 active_temp（原本會把「none」丟進 float() 造成每次變數渲染錯誤）
     t_eff_valid: "{{ active_temp is not none }}"
+    hyst_c: "{{ states('input_number.living_room_fan_hysteresis_c') | float(0.3) }}"
+    # V4.1.5：曲線加遲滯。up＝t_eff 往下偏 hyst 後的目標（要超過門檻 +hyst 才會比它高），down＝往上偏 hyst 後的目標；
+    # 目前風量在兩者之間就維持不動；低於 up 才升、高於 down 才降。下限 20%（風扇最低檔）。
     desired_pct_curve: >-
-      {% if not t_eff_valid %} {{ fan_pct_now }}
+      {% macro curve(t) -%}
+        {%- set p = 20 -%}
+        {%- if t > 31.3 -%}{%- set p = 100 -%}
+        {%- elif t > 30.8 -%}{%- set p = 90 -%}
+        {%- elif t > 30.3 -%}{%- set p = 80 -%}
+        {%- elif t > 29.8 -%}{%- set p = 70 -%}
+        {%- elif t > 29.3 -%}{%- set p = 60 -%}
+        {%- elif t > 28.8 -%}{%- set p = 50 -%}
+        {%- elif t > 28.3 -%}{%- set p = 40 -%}
+        {%- elif t > 27.8 -%}{%- set p = 30 -%}
+        {%- endif -%}
+        {%- if (not summer_mode) and p != 100 -%}{{ [p - 10, 20] | max }}{%- else -%}{{ p }}{%- endif -%}
+      {%- endmacro %}
+      {% if not t_eff_valid %}{{ fan_pct_now }}
       {% else %}
-        {% set t = t_eff | float %}
-        {% set summer_pct = 0 %}
-        {% if t > 31.3 %}      {% set summer_pct = 100 %}
-        {% elif t > 30.8 %}    {% set summer_pct = 90 %}
-        {% elif t > 30.3 %}    {% set summer_pct = 80 %}
-        {% elif t > 29.8 %}    {% set summer_pct = 70 %}
-        {% elif t > 29.3 %}    {% set summer_pct = 60 %}
-        {% elif t > 28.8 %}    {% set summer_pct = 50 %}
-        {% elif t > 28.3 %}    {% set summer_pct = 40 %}
-        {% elif t > 27.8 %}    {% set summer_pct = 30 %}
-        {% else %}              {% set summer_pct = 20 %}
-        {% endif %}
-
-        {% if summer_mode %}
-          {{ summer_pct }}
-        {% else %}
-          {% if summer_pct == 100 %}
-            {{ 100 }}
-          {% else %}
-            {{ summer_pct - 10 }}
-          {% endif %}
-        {% endif %}
+        {% set t = t_eff | float(0) %}
+        {% set up = curve(t - hyst_c) | int(20) %}
+        {% set down = curve(t + hyst_c) | int(20) %}
+        {% if fan_pct_now < up %}{{ up }}{% elif fan_pct_now > down %}{{ down }}{% else %}{{ fan_pct_now }}{% endif %}
       {% endif %}
 
   action:
@@ -157,7 +155,7 @@
                   data:
                     level: info
                     line: false
-                    source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                    source: "21A_客廳電風扇整合控制AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "客廳風扇 (Debug)"
                     message: "偵測到人為手動調速，AI 自動調速將暫停至下次開機。"
@@ -190,7 +188,7 @@
                           data:
                             level: info
                             line: false
-                            source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                            source: "21A_客廳電風扇整合控制AI (V4.1.5)"
                             version: "{{ automation_version | default('', true) }}"
                             title: "客廳風扇 (Debug)"
                             message: "風扇被手動關閉，已啟動燈光連動暫停 1 小時。"
@@ -237,6 +235,7 @@
                 - "{{ auto_speed_mode }}"
                 - "{{ is_state('fan.ke_ting_dian_feng_shan', 'on') }}"
                 - "{{ not speed_snooze_active }}"
+                - "{{ is_state('timer.living_room_fan_speed_dwell', 'idle') }}"
               then:
                 - variables:
                     desired_pct: "{{ desired_pct_curve | int }}"
@@ -249,6 +248,11 @@
                         entity_id: fan.ke_ting_dian_feng_shan
                       data:
                         percentage: "{{ desired_pct }}"
+                    - service: timer.start
+                      target:
+                        entity_id: timer.living_room_fan_speed_dwell
+                      data:
+                        duration: "{{ ((states('input_number.living_room_fan_min_interval_min') | float(3)) * 60) | int }}"
                     - if:
                         - "{{ debug_notify }}"
                       then:
@@ -256,7 +260,7 @@
                           data:
                             level: info
                             line: false
-                            source: "21A_客廳電風扇整合控制AI (V4.0.0)"
+                            source: "21A_客廳電風扇整合控制AI (V4.1.5)"
                             version: "{{ automation_version | default('', true) }}"
                             title: "客廳風扇風速調整 (Debug)"
                             message: >

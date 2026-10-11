@@ -73,7 +73,7 @@
 | `configuration/Automations/106C_解除網關警報整合AI.yaml` | `106C_解除網關警報整合AI (V4.2.0)` | `ai_106c_gateway_alarm_disarm_integration` | `V4.2.0` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.1.5)` | `ai_gateway_anomaly_guard` | `V4.1.5` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.0.0)` | `ai_107_tesla_charger_status_notify` | `V4.0.0` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.0.0)` | `ai_living_room_fan_integrated_control` | `V4.0.0` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.1.5)` | `ai_living_room_fan_integrated_control` | `V4.1.5` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.1.5)` | `ai_topfloor_fan_automation` | `V4.1.5` |
 | `configuration/Automations/800-14樓梯燈單擊定時關燈AI.yaml` | `800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2) / 800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.3)` | `ai_800_13_san_lou_xia_3_timed_off` / `ai_800_14b_san_lou_stairs_timed_off` / `ai_800_14c_san_si_lou_stairs_timed_off` / `ai_800_14d_si_lou_stairs_timed_off` | `V4.1.2` / `V4.1.3` |
@@ -619,6 +619,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - `100A自動啟動到家早安情境AI`（V4.1.5）：「最早啟動時間」由平日 05:30／假日 07:00 改為日出時間，新增 `input_boolean.auto_scene_earliest_use_sunrise`（預設 on，關閉退回固定時間）與日出後偏移 `input_number.auto_scene_earliest_sunrise_offset_min`（工作日，預設 30 分）、`input_number.auto_scene_earliest_sunrise_offset_holiday_min`（非工作日，預設 150 分＝2.5 小時），`packages/v41_auto_scene.yaml`。
 - 刪除已被取代且停用的舊自動化（`automations.yaml`，2026-10-11 使用者確認新版運作正常）：`07空氣清淨機-自動啟動`、`07-1空氣清淨機自動通知`、`07-2空氣嚴重通知`、`07-3空氣嚴重通知 (嚴重)`、`07-4空氣清淨機-自動關閉`（由 `07空氣清淨機整合AI` 取代）、`100A自動啟動到家早安情境`（由 `100A自動啟動到家早安情境AI` 取代）；`configuration.yaml` 同步移除 07-2／07-3 的 Google 助理曝光設定（需重啟生效）。
 - `106網關系統AI`（V4.1.5）：移除「自動化重載」觸發（避免每次重載都對實體網關重送警戒指令，2026-10-11 一天內已送出 29 次）；HA 啟動時若實體網關正在警報中／倒數中，不覆蓋它。實體網關 → 虛擬情境開關的回寫維持由 Apple 家庭處理。
+- `21A_客廳電風扇整合控制AI`（V4.1.5）自動調速防抖：t_eff 在門檻上下 0.1°C 抖動會讓風量每 15～30 秒大小來回（30 小時 67 次變化）。改為遲滯（`input_number.living_room_fan_hysteresis_c`，預設 0.3°C）、自動調速最短間隔（`input_number.living_room_fan_min_interval_min`，預設 3 分；`timer.living_room_fan_speed_dwell`）、濕度加成改連續線性、曲線下限 20%。新增 `packages/v41_living_fan.yaml`。
 - Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
 
 ## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
