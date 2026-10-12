@@ -354,15 +354,21 @@
 
       # V4.1.6：前兩個條件都沒成立（鐵門狀態不明／等不到停下來、網關不是離家情境…）時也要有離家通知，不能整個靜默。
       default:
-        - service: script.notify_dispatch
-          data:
-            level: general
-            line: true
-            source: "100B自動離家AI (V4.1.6)"
-            version: "{{ automation_version | default('', true) }}"
-            title: "{{ notif_title_general|default(notif_title_base, true) }}"
-            message: |-
-              [離家] 系統偵測所有人已離家。
-              • 目前情境：{{ aqara_scene_label_safe }}
-              • 車庫鐵門：{{ states('cover.garage') }}、二樓門鎖同步開關：{{ states('input_boolean.er_lou_men_suo_tong_bu_kai_guan') }}
-              {{ batt_line_text_line }}
+        # 網關沒切成離家時，前面已經發過緊急通知，不重複發
+        - if:
+            - condition: state
+              entity_id: input_boolean.aqara_li_jia
+              state: "on"
+          then:
+            - service: script.notify_dispatch
+              data:
+                level: general
+                line: true
+                source: "100B自動離家AI (V4.1.6)"
+                version: "{{ automation_version | default('', true) }}"
+                title: "{{ notif_title_general|default(notif_title_base, true) }}"
+                message: |-
+                  [離家] 系統偵測所有人已離家。
+                  • 目前情境：{{ aqara_scene_label_safe }}
+                  • 車庫鐵門：{{ states('cover.garage') }}、二樓門鎖同步開關：{{ states('input_boolean.er_lou_men_suo_tong_bu_kai_guan') }}
+                  {{ batt_line_text_line }}
