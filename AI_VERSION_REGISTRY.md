@@ -60,7 +60,7 @@
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
 | `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.1.6)` | `ai_100a_auto_arrive_morning_v41` | `V4.1.6` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.0.0)` | `ai_auto_leave_system` | `V4.0.0` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.1.6)` | `ai_auto_leave_system` | `V4.1.6` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_cycle_calibration` | `V4.0.0` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
@@ -600,6 +600,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 ## 本次調整（V4.1.6 - 2026-10-12：廚房／廁所保險關燈、充電完成後誤報修正、實體檢查誤報修正、100A 通知開關）
 
 - 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」；窄版標籤改為不縮小（`flex:none`）、放不下時換到時間下一行（`.narrow .top { flex-wrap:wrap }`）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。
+- 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。
 - `00-2M實體引用檢查AI`（V4.1.6）：不再把服務（action）名稱（`fan.set_preset_mode`、`weather.get_forecasts`…）與「只是前綴」的字串（`sensor.chu_fang_…_chu_fang`，後面用 `~ '_co2'` 組合）當成「可能不存在的實體」誤報（2026-10-12 03:40 的 3 則都是誤報）；修改 `scripts/check_entities.py`，修正後檢查結果為 OK。
 - `100A自動啟動到家早安情境AI`（V4.1.6）：新增通知開關 `input_boolean.auto_scene_notify_enable`（預設開，自動化管理面板可關）；關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知，情境照常啟動、logbook 與 `input_text.auto_scene_last` 照常記錄。
 - 修正 `107Tesla充電器狀態與通知AI`（V4.1.6）：充飽後 00:02 誤報「離峰時段已過仍未充電／仍未開始充電」。「這次連接後是否已充過電」原本比較 `tesla_charger_start_time`（只到秒）大於 `vehicle_connected.last_changed`（含毫秒），插槍同一秒就進入充電時 start_time 反而略小而判成沒充過；改成容許 10 秒誤差。2026-10-11 18:35:57 插槍即充電、22:12:57 充飽，00:02 誤報一次。
