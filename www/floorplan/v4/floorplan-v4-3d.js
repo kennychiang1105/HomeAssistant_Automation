@@ -2786,9 +2786,13 @@ class FloorplanV4Sidebar extends HTMLElement {
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
-        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; max-width:100%;
-                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .narrow .top { flex-wrap:wrap; gap:2px 8px; }
+        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; white-space:nowrap; }
+        /* narrow sidebar (e.g. iPad mini landscape): day tag stays to the right of the clock, seconds a little smaller; if it still does not fit
+           _fit() steps the clock / tag down (fit1, fit2) until everything is visible on one line */
+        .narrow .top { flex-wrap:nowrap; gap:6px; } .narrow .time { white-space:nowrap; } .narrow .time .s { font-size:.74em; }
+        .narrow.fit1 .time { font-size:23px; } .narrow.fit1 .ntag { font-size:10px; padding:1px 5px; }
+        .narrow.fit2 .time { font-size:20px; } .narrow.fit2 .time .s { font-size:.66em; } .narrow.fit2 .ntag { font-size:9px; padding:1px 4px; }
+        .narrow.fit3 .time { font-size:17px; letter-spacing:0; } .narrow.fit3 .top { gap:4px; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
                       color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
@@ -2913,6 +2917,15 @@ class FloorplanV4Sidebar extends HTMLElement {
     const we = n.getDay() === 0 || n.getDay() === 6;
     return { text: we ? "週末" : "工作日", red: we };
   }
+  // narrow layout: make the clock + day tag fit on one line (try normal, then fit1, then fit2)
+  _fit() {
+    const box = this.shadowRoot.querySelector(".box"), top = this.shadowRoot.querySelector(".top");
+    if (!box || !top) return;
+    box.classList.remove("fit1", "fit2", "fit3");
+    if (!box.classList.contains("narrow")) return;
+    const over = () => top.scrollWidth > top.clientWidth + 1;
+    for (const c of ["fit1", "fit2", "fit3"]) { if (!over()) break; box.classList.add(c); }
+  }
   _clock() {
     const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date"), nt = this.shadowRoot.querySelector(".ntag");
     const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -2926,7 +2939,8 @@ class FloorplanV4Sidebar extends HTMLElement {
       const di = this._dayInfo(n);
       const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}">${esc(di.text)}</span>`;
       if (d.dataset.h !== dhtml) { d.innerHTML = dhtml; d.dataset.h = dhtml; }
-      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); }
+      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); this._fit(); }
+      if (n.getSeconds() === 0) this._fit();                                // re-check once a minute (digit widths change)
     };
     this._updFn = upd;
     upd();
@@ -2941,7 +2955,7 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (this.shadowRoot.querySelector(".time")) this._clock();          // HA detaches cards on view switch: restart the clock
     this._vis = () => { if (!document.hidden) this._clock(); };
     document.addEventListener("visibilitychange", this._vis);
-    this._ro = new ResizeObserver(() => this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250));
+    this._ro = new ResizeObserver(() => { this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250); this._fit(); });
     this._ro.observe(this);
   }
   disconnectedCallback() {
