@@ -1,5 +1,5 @@
 # ────────────────────────────────────────────────────────
-# 統一通知與廣播AI (V4.0.0)
+# 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
@@ -18,6 +18,7 @@
 # - V4.0.0：announce 音量改依原本設定（原預設，已被上一行取代，可由 input_number.announce_volume_* 調整）；TTS 沒開始播放時自動重送一次。
 # - V4.0.0：未指定 icon 時，依標題/來源/內文關鍵字自動配主題圖示（門鈴、鐵門、門鎖、電量、保全、天氣、地震、風扇、空氣、網路、更新、Bot…）。
 # - V4.0.0：新增 link2_note（第二個按鈕下方備註）。
+# - V4.1.6（2026-10-12）：notify_dispatch 新增選填欄位 image2（第二張圖，顯示在標題下方；入侵偵測同時附車庫與頂樓攝影機截圖用）。
 # - V4.1.1：新增 to_ha／force_send 欄位（手動通知用：可只發 LINE、可忽略等級開關）；其餘行為不變。
 # - V4.0.0：HomePod 音量「個別調整與還原」：只對這次實際播放的 HomePod（依播放群組/單一喇叭判斷）設定播報音量，並各自還原到播放前；沒播放的那台不動。
 # - V4.0.0：新增 link2_url / link2_label：第二個按鈕（如開啟「家庭」App）。
@@ -66,6 +67,9 @@ notify_dispatch:
       required: false
     icon:
       description: 卡片標題色塊左側的圖示（https 圖片網址，PNG）
+      required: false
+    image2:
+      description: 第二張圖（卡片內文標題下方，例如第二台攝影機截圖；https 圖片網址，選填）
       required: false
     image:
       description: 卡片上方的大圖（https 圖片網址，例如攝影機截圖）
@@ -166,7 +170,7 @@ notify_dispatch:
                     "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
                     "contents": ([
                       {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}
-                    ] + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
+                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
                     "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}

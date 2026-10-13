@@ -1,0 +1,67 @@
+# ──────────────────────────────────────────────
+# 08-7C入侵偵測訊號收集AI (V4.1.6)  ※ 由 scripts/intrusion_stats.py 自動產生，請勿手改（下次統計會覆蓋）
+# 更新紀錄：
+# - V4.1.6（2026-10-12）：新增。把所有「候選」感應器（室內動作、客廳門鎖、車庫鐵門、二樓門鎖）的觸發統一轉成 intrusion_signal 事件，
+#   給 08-7離家入侵偵測AI 判斷；是否監控由 sensor.intrusion_sensor_lists／手動覆寫決定（不穩的在那邊被排除）。
+# 產生時間：2026-10-13 09:27
+# ──────────────────────────────────────────────
+- id: ai_08_7c_intrusion_signal_collector
+  alias: 08-7C入侵偵測訊號收集AI (V4.1.6)
+  description: 把候選感應器的觸發轉成 intrusion_signal 事件（自動產生）。
+  mode: queued
+  max: 30
+  max_exceeded: silent
+  variables:
+    roles: {"cover.garage": "garage", "binary_sensor.28d1273dc0c0_motion": "interior", "binary_sensor.28d1273d78cf_motion": "interior", "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "er_lou", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_left": "interior", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_right": "interior", "binary_sensor.unknown_zhan_kong": "interior", "binary_sensor.g6_instant_motion": "interior", "binary_sensor.che_ku_she_ying_ji_person_detected": "interior", "binary_sensor.wu_lou_she_ying_ji_motion": "interior", "binary_sensor.wu_lou_she_ying_ji_person_detected": "interior", "binary_sensor.0x54ef4410007ac23c_door_state": "lock", "binary_sensor.0x54ef4410007ac23c_latch_state": "lock", "binary_sensor.0x54ef4410007ac23c_lock_by_handle": "lock", "binary_sensor.kitchen_motion": "interior", "binary_sensor.e406bf25caa1_motion": "interior", "binary_sensor.ding_lou_ding_lou_she_ying_ji_motion": "interior", "binary_sensor.che_ku_che_ku_she_ying_ji_motion": "interior"}
+  triggers:
+    - trigger: state
+      id: interior
+      entity_id:
+        - binary_sensor.28d1273d78cf_motion
+        - binary_sensor.28d1273dc0c0_motion
+        - binary_sensor.che_ku_che_ku_she_ying_ji_motion
+        - binary_sensor.che_ku_she_ying_ji_person_detected
+        - binary_sensor.ding_lou_ding_lou_she_ying_ji_motion
+        - binary_sensor.e406bf25caa1_motion
+        - binary_sensor.g6_instant_motion
+        - binary_sensor.kitchen_motion
+        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+        - binary_sensor.unknown_zhan_kong
+        - binary_sensor.wu_lou_she_ying_ji_motion
+        - binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
+    - trigger: state
+      id: lock
+      entity_id:
+        - binary_sensor.0x54ef4410007ac23c_door_state
+        - binary_sensor.0x54ef4410007ac23c_latch_state
+        - binary_sensor.0x54ef4410007ac23c_lock_by_handle
+    - trigger: state
+      id: garage
+      entity_id: cover.garage
+      from:
+        - closed
+        - closing
+      to:
+        - open
+        - opening
+    - trigger: state
+      id: er_lou
+      entity_id: input_boolean.er_lou_men_suo_tong_bu_kai_guan
+      to: "on"
+  conditions:
+    - alias: "客廳門鎖：只算真的有變化（不算離線／重新連線）"
+      condition: template
+      value_template: >-
+        {{ trigger.id != 'lock' or (trigger.from_state is not none and trigger.to_state is not none
+           and trigger.from_state.state not in ['unavailable', 'unknown']
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and trigger.from_state.state != trigger.to_state.state) }}
+  actions:
+    - event: intrusion_signal
+      event_data:
+        entity_id: "{{ trigger.entity_id }}"
+        role: "{{ roles.get(trigger.entity_id, trigger.id) }}"
+        state: "{{ trigger.to_state.state }}"
+        via_ha: "{{ trigger.to_state.context.user_id is not none or trigger.to_state.context.parent_id is not none }}"
