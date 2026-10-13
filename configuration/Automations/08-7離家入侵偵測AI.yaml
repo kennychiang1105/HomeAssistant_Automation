@@ -8,8 +8,9 @@
 #   入口訊號有緩衝：車庫鐵門 intrusion_garage_buffer_min（預設 5）分鐘、門鎖／二樓門鎖 intrusion_lock_buffer_sec（預設 90）秒，等家人回來（手機連上 Wi-Fi、100A 切到在家）；
 #   緩衝後條件仍成立才算數。用 HA／HomeKit／其他自動化開鐵門、二樓門鎖不算。
 #   判定：intrusion_window_min（預設 5）分鐘內，來自「不同裝置」的 2 個以上訊號 → script.intrusion_alert（影子模式只寫 logbook）。
-#   input_button.intrusion_watch_test：只發測試通知（含兩張攝影機截圖與按鈕），不廣播、不響警報。
+#   input_button.intrusion_watch_test：要先打開 input_boolean.intrusion_watch_test_mode（LINE 測試模式，預設關，送出一次後自動關閉）才會真的發測試通知（含兩張攝影機截圖與按鈕，不廣播、不響警報）；沒開只發一則 HA 說明通知。
 #   乾跑測試：發送事件 intrusion_signal，event_data 加 test: dry，會略過監控條件與緩衝、只寫 logbook。
+#   按鈕觸發加 not_from（unavailable／unknown）：重新載入 helper 時按鈕實體會重新出現，不能被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
 # ──────────────────────────────────────────────
 - id: ai_08_7_intrusion_watch
   alias: 08-7離家入侵偵測AI (V4.1.6)
@@ -24,6 +25,9 @@
     - trigger: state
       id: test
       entity_id: input_button.intrusion_watch_test
+      not_from:
+        - unavailable
+        - unknown
   variables:
     automation_version: "V4.1.6"
     ev: "{{ trigger.event.data if trigger.id == 'signal' else {} }}"
@@ -34,11 +38,28 @@
   actions:
     - if: "{{ trigger.id == 'test' }}"
       then:
-        - action: script.intrusion_alert
-          data:
-            names: 手動測試按鈕
-            mode: test
-        - stop: "測試通知"
+        - if: "{{ is_state('input_boolean.intrusion_watch_test_mode', 'on') }}"
+          then:
+            # 測試模式只用一次：先關掉，再發測試通知（含兩張攝影機截圖，不廣播、不響警報）
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.intrusion_watch_test_mode
+            - action: script.intrusion_alert
+              data:
+                names: 手動測試按鈕
+                mode: test
+          else:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: "08-7離家入侵偵測AI (V4.1.6)"
+                version: "{{ automation_version }}"
+                title: 入侵偵測測試未發送
+                message: |-
+                  「入侵偵測 LINE 測試模式」沒有開，所以沒有發送測試通知。
+                  要測試的話，先在自動化管理面板打開「LINE 測試模式」，再按「測試通知」按鈕（送出一次後會自動關閉）。
+        - stop: "測試按鈕"
     - alias: "總開關"
       condition: state
       entity_id: input_boolean.intrusion_watch_enable
@@ -99,6 +120,9 @@
     - trigger: state
       id: manual
       entity_id: input_button.intrusion_stats_run
+      not_from:
+        - unavailable
+        - unknown
   conditions:
     - condition: template
       value_template: "{{ trigger.id == 'manual' or now().weekday() == 6 }}"

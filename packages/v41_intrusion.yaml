@@ -11,6 +11,10 @@ input_boolean:
     name: 入侵偵測影子模式（只寫紀錄，不通知不響警報）
     icon: mdi:ghost-outline
     initial: true
+  intrusion_watch_test_mode:
+    name: 入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）
+    icon: mdi:test-tube
+    initial: false
   intrusion_watch_alarm_enable:
     name: 入侵偵測觸發網關警報
     icon: mdi:alarm-light-outline
@@ -99,7 +103,7 @@ input_datetime:
     icon: mdi:history
 input_button:
   intrusion_watch_test:
-    name: 入侵偵測測試通知（只發通知，不廣播不響警報）
+    name: 入侵偵測測試通知（要先開「LINE 測試模式」才會發送；不廣播不響警報）
     icon: mdi:bell-check-outline
   intrusion_stats_run:
     name: 入侵偵測立即重新統計感應器
