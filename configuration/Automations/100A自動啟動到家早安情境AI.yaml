@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # 100A自動啟動到家早安情境AI (V4.1.6)
 # 更新紀錄：
+# - V4.1.6（2026-10-12）：燈光／設備／鐵門觸發（客廳小燈、餐廳燈、廁所燈、廚房燈、客廳電風扇、車庫鐵門關閉）新增條件：至少一位家人（binary_sensor.at_home_anyone_home，由 person 追蹤裝置判斷）在家才啟動，避免家裡沒人時有非家人進屋、碰到燈或設備就讓網關自動變成在家模式。「有人回到家」「門鎖解除離家模式」「有人在客廳」三種觸發不受影響（前兩種本來就是家人回家的訊號，客廳那種本身就是家人位置）。
 # - V4.1.6（2026-10-12）：新增觸發 living_room：任何一位家人（person 位置 sensor.at_home_*_location）在客廳停留 2 分鐘，且網關不在在家模式（aqara_zai_jia 為 off），就依時段自動啟動早安或到家情境。停留期間位置跳到別處或離家會重新計時（等於「沒跳回或跳到其他地方」才算數）；仍受「最早啟動時間」限制（所以半夜在客廳不會啟動）、總開關、影子模式、3 分鐘防重複與保全模式限制；不需要「家裡有活動跡象」。
 # - V4.1.6（2026-10-11）：新增通知開關 input_boolean.auto_scene_notify_enable（預設 on，自動化管理面板可關）：關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知；情境照常啟動，logbook 與 input_text.auto_scene_last 照常記錄。
 # - V4.1.5（2026-10-11）：併入「105門鎖自動判斷到家」：新增觸發 lock_home（門鎖 sensor.0x54ef4410007ac23c_lock_event 變成 Away-from-home mode is removed，也就是在門鎖解除離家模式）。
@@ -139,6 +140,11 @@
              and (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() > 600
              and trigger.from_state is not none
              and (now() - trigger.from_state.last_changed).total_seconds() > 600) }}
+    - alias: "燈光／設備／鐵門觸發：至少一位家人在家（避免非家人進屋讓網關自動變在家模式）"
+      condition: template
+      value_template: >-
+        {{ trigger.id not in ['lamp', 'dining', 'toilet', 'kitchen', 'fan', 'garage_long', 'garage_short']
+           or is_state('binary_sensor.at_home_anyone_home', 'on') }}
     - alias: "客廳觸發：網關目前不在在家模式（已在家模式就不重複啟動）"
       condition: template
       value_template: "{{ trigger.id != 'living_room' or is_state('input_boolean.aqara_zai_jia', 'off') }}"
