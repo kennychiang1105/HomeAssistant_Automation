@@ -3,7 +3,7 @@
 # 100B自動離家AI (V4.1.6)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
-# - V4.1.6（2026-10-13）：離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間；只有二樓門鎖同步開關顯示未上鎖、且超過 2 小時沒更新（可能是過期狀態，例如 2026-10-12 15:42 後一直停在 on）時降為「重要」級並提醒直接確認門鎖，不再當成緊急。
+# - V4.1.6（2026-10-13）：離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。（2026-10-13 誤報原因：二樓門鎖同步開關的 on／off 設定相反，已由使用者修正。）
 # - V4.1.6（2026-10-12）：修正離家通知整個漏掉：鐵門正在關（closing）時觸發，原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發（2026-10-12 08:09:57 觸發、08:10:05 鐵門才關好）。現在先等鐵門停下來（最多 90 秒）再判斷，並新增預設分支：兩個條件都不成立時仍發一般級離家通知。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.4.1：修補版。替換 3 處 4-byte Emoji（U+1FAA7、U+1F3E0 兩處）為 ASCII 文字符號，
@@ -134,14 +134,13 @@
     # V4.1.6：離家時「門鎖／鐵門有未上鎖或未關」通知要說清楚是哪一個、狀態多久沒更新（二樓門鎖同步開關可能停在舊狀態）
     lock_sync_on: "{{ is_state('input_boolean.er_lou_men_suo_tong_bu_kai_guan', 'on') }}"
     lock_age_h: "{{ ((now() - states.input_boolean.er_lou_men_suo_tong_bu_kai_guan.last_changed).total_seconds() / 3600) | round(1) }}"
-    lock_stale: "{{ lock_age_h | float(0) > 2 }}"
     garage_is_open: "{{ is_state('cover.garage', 'open') }}"
     unsafe_detail: >-
       {% set p = [] %}
       {% if garage_is_open %}{% set p = p + ['車庫鐵門：開著'] %}{% endif %}
-      {% if lock_sync_on %}{% set p = p + ['二樓門鎖同步開關：顯示未上鎖（' ~ lock_age_h ~ ' 小時前更新' ~ ('，狀態可能過期，請直接確認門鎖' if lock_stale else '') ~ '）'] %}{% endif %}
+      {% if lock_sync_on %}{% set p = p + ['二樓門鎖同步開關：顯示未上鎖（' ~ lock_age_h ~ ' 小時前更新）'] %}{% endif %}
       {{ p | join('；') if p else '請確認鐵門與二樓門鎖狀況！' }}
-    unsafe_level: "{{ 'important' if ((not garage_is_open) and lock_stale) else 'emergency' }}"
+    unsafe_level: emergency
 
     doorlock_batt: "{{ states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(-1) }}"
     batt_valid: "{{ doorlock_batt >= 0 }}"
