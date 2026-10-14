@@ -259,6 +259,9 @@ class FloorplanV43D extends HTMLElement {
         .sm .ic { width:26px; height:26px; --mdc-icon-size:16px; } .sm .nm { font-size:11px; } .sm .ty { font-size:9.5px; }
         .sm .tag { gap:5px; padding:2px 7px 2px 2px; } .sm .seg button { padding:7px 8px; font-size:11.5px; }
         .sm .tools button, .sm .zones button { padding:6px 8px; font-size:11px; } .sm .scn button { padding:8px 4px; font-size:12px; }
+        .phone .ic { width:26px; height:26px; --mdc-icon-size:16px; } .phone .nm { font-size:11px; } .phone .ty { font-size:9.5px; }
+        .phone .tag { gap:5px; padding:2px 7px 2px 2px; }
+        .phone .pin.floorbadge .nm { font-size:13px; } .phone .pin.floorbadge .tag { padding:3px 9px 3px 3px; }
         .nolabels .tx, .pin.compact .tx { display:none; }
         .pin.compact .tag { padding:3px; }
         .scn button, .zones button, .tools button, .seg button, .chips button {
@@ -1731,6 +1734,12 @@ class FloorplanV43D extends HTMLElement {
     if (!this._ready) return;
     const T = this._T;
     const all = this._floor === "全棟";
+    // V4.1.6: the whole-house view shows the names (phone too) unless the user explicitly toggled the names button
+    try {
+      if (sessionStorage.getItem("floorplan_v4_labels") === null) {
+        this._labels = all || (this.shadowRoot.querySelector(".wrap")?.clientWidth || window.innerWidth) >= 768;
+      }
+    } catch (_) {}
     const names = Object.keys(this._cfg.floors).filter((n) => this._groups[n]);
     names.forEach((n, i) => {
       const g = this._groups[n].group;
@@ -1743,7 +1752,9 @@ class FloorplanV43D extends HTMLElement {
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
     this._zone = null;
     const whole = this._floor === "全棟";
-    for (const q of [".filter", ".zones", ".scn", ".tools"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    // V4.1.6: the tools row (restore default view / names) stays available in the whole-house view; only the per-floor bars are hidden
+    for (const q of [".filter", ".zones", ".scn"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    { const e = this.shadowRoot.querySelector(".tools"); if (e) e.style.visibility = ""; }
     this._renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, whole ? 1.2 : 1.65));
     this._renderScenes();
     this._expanded = null;
@@ -2404,7 +2415,14 @@ class FloorplanV43D extends HTMLElement {
     const wrap = this.shadowRoot.querySelector(".wrap");
     const w = wrap.clientWidth, h = wrap.clientHeight;
     if (!w || !h) return;
-    wrap.classList.toggle("phone", w < 600);                 // phone: icon-only filter buttons
+    const isPhone = w < 600;
+    wrap.classList.toggle("phone", isPhone);                 // phone: icon-only filter buttons, smaller tags
+    if (isPhone !== this._phone) {                           // tag size changes -> forget the cached widths
+      this._phone = isPhone;
+      for (const sp of this._spots || []) { sp.tw = 0; sp.fullW = 0; }
+      for (const pr of this._persons || []) { pr.tw = 0; pr.fullW = 0; }
+      this._barDirty = true;
+    }
     const small = w < 900;                                   // e.g. iPad mini landscape: smaller labels and buttons
     if (small !== this._small) {
       this._small = small;
@@ -2415,7 +2433,7 @@ class FloorplanV43D extends HTMLElement {
     }
     try {
       if (sessionStorage.getItem("floorplan_v4_labels") === null) {
-        const wantLabels = w >= 768;
+        const wantLabels = w >= 768 || this._floor === "全棟";
         if (this._labels !== wantLabels) {
           this._labels = wantLabels;
           this._syncTools?.();
@@ -2514,7 +2532,11 @@ class FloorplanV43D extends HTMLElement {
           if (this._labels) { const ow = sp.tag.offsetWidth; if (ow >= 60) { sp.tw = ow; sp.th = sp.tag.offsetHeight || sp.th || 36; } }
           const compact = !this._labels;
           if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
-          return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
+          // never let a tag be wider than its half of the card (long names get cut with an ellipsis instead of running off the edge)
+          const maxTw = Math.max(80, w / 2 - 16);
+          if (!compact && sp.tw > maxTw) { sp.tag.style.maxWidth = `${maxTw}px`; sp.tag.style.overflow = "hidden"; sp.tag.style.textOverflow = "ellipsis"; }
+          else if (sp.tag.style.maxWidth) { sp.tag.style.maxWidth = ""; sp.tag.style.overflow = ""; sp.tag.style.textOverflow = ""; }
+          return { it, tw: compact ? 36 : Math.min(sp.tw, maxTw), th: compact ? 36 : sp.th };
         });
         let y = topLimit;
         for (const b of boxes) { b.y = Math.max(y, b.it.y - b.th / 2); y = b.y + b.th + 6; }
