@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 106C_解除網關警報整合AI (V4.2.0)
+# 106C_解除網關警報整合AI (V4.2.1)
 # 相容版本：Helpers V4.0.0
 # 更新紀錄：
+# - V4.2.1（2026-10-14）：重置流程開始時寫入 input_datetime.scene_verify_skip_alarm_until（現在＋60 秒），情境檢查 60 秒內略過保全模式檢查（離家情境後馬上解除網關，不該被當成「離家情境補救後仍未到位」）。
 # - V4.2.0（2026-10-10）：新增「緊急模式還原路徑」：開關 emergency_restore_route（預設 off）on、且快照可還原（2 小時內、來源是 HomeKit／手動／實體按鈕，不含自動觸發）、
 #   且有人在家時，不跑離家與早安／到家，改為解除網關→Aqara 回在家→script.emergency_restore→廣播「已還原緊急模式前的狀態」；其餘維持原流程。
 #   早安／到家時間窗：開關 scene_window_use_sun 為 on 時改用 binary_sensor.scene_morning_window，off 維持 06:00~17:00。
@@ -13,7 +14,7 @@
 #   4. 依當前時段（06:00~17:00 早安，其餘到家）自動執行對應之早安情境或到家情境。
 #   5. 虛擬按鈕自動復位，供 HomeKit 點擊重複使用。
 # ─────────────────────────────────────────────────────────────
-- alias: 106C_解除網關警報整合AI (V4.2.0)
+- alias: 106C_解除網關警報整合AI (V4.2.1)
   id: ai_106c_gateway_alarm_disarm_integration
   description: 整合伺服器網關與Aqara警報解除、離家/到家情境重置與安全歸位，並提供HomeKit虛擬按鈕一鍵觸發。
   mode: restart
@@ -24,7 +25,7 @@
       to: "on"
 
   variables:
-    automation_version: "V4.2.0"
+    automation_version: "V4.2.1"
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     anyone_home: "{{ expand('person.kenny', 'person.iris', 'person.jerry', 'person.elay') | selectattr('state', 'eq', 'home') | list | count > 0 }}"
     restore_route: >-
@@ -39,6 +40,13 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.jie_chu_wang_guan_jing_bao
+
+    # 步驟 0B：接下來會先跑離家情境、隨後立刻解除網關，60 秒內情境檢查不要求保全模式必須是離家警戒
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.scene_verify_skip_alarm_until
+      data:
+        datetime: "{{ (now() + timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S') }}"
 
     # 步驟 1：同步在解除時執行離家情境（先行重置/關閉家電燈光）
     - if:

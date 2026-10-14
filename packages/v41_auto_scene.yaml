@@ -58,3 +58,11 @@ input_text:
     name: 上次自動啟動情境（情境、時間、原因）
     max: 255
     icon: mdi:history
+# 2026-10-14（V4.1.6）：scene_verify_skip_alarm_until：106C 解除網關警報重置流程會先跑離家情境，隨後立刻解除網關，
+# 這段時間情境檢查不該要求保全模式必須是離家警戒；106C 開始時寫入「現在＋60 秒」，到期前 scene_verify 略過保全模式檢查。
+input_datetime:
+  scene_verify_skip_alarm_until:
+    name: 情境檢查略過保全模式檢查到（內部）
+    has_date: true
+    has_time: true
+    icon: mdi:shield-off-outline

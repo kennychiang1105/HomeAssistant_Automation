@@ -70,7 +70,7 @@
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V4.0.0)` | `ai_104_3_garage_gate_open_guard_and_autoclose` | `V4.0.0` |
 | `configuration/Automations/104-4車庫回家通知系統AI.yaml` | `104-4車庫回家通知系統AI (V4.1.5)` | `ai_104_4_garage_arrival_notice` | `V4.1.5` |
 | `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V4.0.0)` | `ai_105_front_door_doorbell_notify` | `V4.0.0` |
-| `configuration/Automations/106C_解除網關警報整合AI.yaml` | `106C_解除網關警報整合AI (V4.2.0)` | `ai_106c_gateway_alarm_disarm_integration` | `V4.2.0` |
+| `configuration/Automations/106C_解除網關警報整合AI.yaml` | `106C_解除網關警報整合AI (V4.2.1)` | `ai_106c_gateway_alarm_disarm_integration` | `V4.2.1` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.1.5)` | `ai_gateway_anomaly_guard` | `V4.1.5` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.1.6)` | `ai_107_tesla_charger_status_notify` | `V4.1.6` |
 | `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.1.5)` | `ai_living_room_fan_integrated_control` | `V4.1.5` |
@@ -254,7 +254,7 @@
 | File | Alias | id | automation_version |
 |---|---|---|---|
 | `configuration/Scripts/地震預警系統遠端AI.yaml` | `地震預警系統(遠端)AI (V4.0.0)` | `eq99` | `V4.0.0` |
-| `configuration/Scripts/情境檢查AI.yaml` | `情境檢查AI (V4.0.0) / 情境執行廣播AI (V4.0.0) / 離家樓梯燈延遲關閉 (V4.0.0)` | `scene_verify` / `scene_announce` / `stairs_delayed_off` | `V4.0.0` |
+| `configuration/Scripts/情境檢查AI.yaml` | `情境檢查AI (V4.1.6) / 情境執行廣播AI (V4.1.6) / 離家樓梯燈延遲關閉 (V4.1.6)` | `scene_verify` / `scene_announce` / `stairs_delayed_off` | `V4.1.6` |
 | `configuration/Scripts/手動廣播AI.yaml` | `手動廣播AI (V4.1.0)` | `announce_manual` | `V4.1.0` |
 | `configuration/Scripts/手動通知AI.yaml` | `手動通知AI (V4.1.0)` | `notify_manual` | `V4.1.0` |
 | `configuration/Scripts/氣氛燈AI.yaml` | `氣氛燈單區閃爍 (V4.0.0) / 氣氛燈關閉燈具顏色還原 (V4.0.0) / 氣氛燈機台整段變色 (V4.0.0) / 氣氛燈機台熄滅閃爍 (V4.0.0) / 情境氣氛燈AI-機台情境色 (V4.0.0) / 情境與狀況氣氛燈AI (V4.1.5)` | `mood_alert_pulse` / `mood_alert_restore_off` / `mood_alert_ap_hold` / `mood_alert_ap_blink` / `ambient_scene` / `mood_alert` | `V4.0.0` / `V4.1.5` |
@@ -612,6 +612,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
   · 限制：家裡沒有獨立的門窗磁簧感應器，窗戶只能靠室內動作偵測；客廳門鎖是事件型感應器。
 - `入侵偵測測試通知`（V4.1.6）：新增 `input_boolean.intrusion_watch_test_mode`（LINE 測試模式，預設關）；沒開時按測試按鈕只發一則 HA 說明通知，開了才會真的發 LINE 測試卡（送出一次後自動關閉）。按鈕觸發（測試與統計）加 `not_from: unavailable／unknown`，避免重新載入 helper 時被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
 - `100B自動離家AI`（V4.1.6）離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。2026-10-13 的誤報原因：`input_boolean.er_lou_men_suo_tong_bu_kai_guan` 的 on／off 設定相反，已由使用者修正。
+- `情境檢查AI`（V4.1.6）：保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，原本固定 5 秒；2026-10-14 11:31 的「離家情境補救後仍未到位（保全模式）」誤報原因）；`106C_解除網關警報整合AI`（V4.2.1）重置流程開始時寫入 `input_datetime.scene_verify_skip_alarm_until`（現在＋60 秒），期間情境檢查略過保全模式檢查（離家情境後馬上解除網關）。
 - 新增 `106D網關切換同步Aqara開關AI`（V4.1.6）：在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，補上對應的 Aqara 虛擬情境開關（在家警戒→`aqara_zai_jia`、夜間警戒→`aqara_wan_an`、離家警戒→`aqara_li_jia`；先關其他四個再打開目標，避免 106 看到 2 個以上開關同時為 on 而走異常分流）。切換後先等 6 秒讓 Apple 家庭同步，沒對應才由 HA 補上；只處理人為／實體切換（context 無 parent_id），不處理 106／情境／100B 等自動化改的模式，所以不會迴圈。不處理解除與警報觸發（106 的解除情境會先解除再回到在家警戒）。（2026-10-14 紀錄：直接切網關時 Apple 家庭的同步有延遲 1 秒～數分鐘，甚至沒有同步。）
 - 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。
 - `00-2M實體引用檢查AI`（V4.1.6）：不再把服務（action）名稱（`fan.set_preset_mode`、`weather.get_forecasts`…）與「只是前綴」的字串（`sensor.chu_fang_…_chu_fang`，後面用 `~ '_co2'` 組合）當成「可能不存在的實體」誤報（2026-10-12 03:40 的 3 則都是誤報）；修改 `scripts/check_entities.py`，修正後檢查結果為 OK。
