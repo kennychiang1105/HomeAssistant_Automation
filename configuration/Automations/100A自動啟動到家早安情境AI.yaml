@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # 100A自動啟動到家早安情境AI (V4.1.6)
 # 更新紀錄：
+# - V4.1.6（2026-10-14）：「有人在客廳」觸發的停留時間由 2 分鐘縮短為 1 分鐘（2026-10-14 10:12 下樓後廁所燈亮 45 秒的燈光觸發比客廳 2 分鐘早到，改短後位置觸發比燈光慢不到 15 秒內）。
 # - V4.1.6（2026-10-12）：燈光／設備／鐵門觸發（客廳小燈、餐廳燈、廁所燈、廚房燈、客廳電風扇、車庫鐵門關閉）新增條件：至少一位家人（binary_sensor.at_home_anyone_home，由 person 追蹤裝置判斷）在家才啟動，避免家裡沒人時有非家人進屋、碰到燈或設備就讓網關自動變成在家模式。「有人回到家」「門鎖解除離家模式」「有人在客廳」三種觸發不受影響（前兩種本來就是家人回家的訊號，客廳那種本身就是家人位置）。
 # - V4.1.6（2026-10-12）：新增觸發 living_room：任何一位家人（person 位置 sensor.at_home_*_location）在客廳停留 2 分鐘，且網關不在在家模式（aqara_zai_jia 為 off），就依時段自動啟動早安或到家情境。停留期間位置跳到別處或離家會重新計時（等於「沒跳回或跳到其他地方」才算數）；仍受「最早啟動時間」限制（所以半夜在客廳不會啟動）、總開關、影子模式、3 分鐘防重複與保全模式限制；不需要「家裡有活動跡象」。
 # - V4.1.6（2026-10-11）：新增通知開關 input_boolean.auto_scene_notify_enable（預設 on，自動化管理面板可關）：關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知；情境照常啟動，logbook 與 input_text.auto_scene_last 照常記錄。
@@ -49,7 +50,7 @@
       {{ ((now() - trigger.from_state.last_changed).total_seconds() / 60) | round(0) | int if (trigger.id == 'arrive' and trigger.from_state is not none) else 0 }}
     who: "{{ states('sensor.at_home_who_home') }}"
     reason: >-
-      {% if trigger.id == 'living_room' %}{{ {'sensor.at_home_kenny_location': 'Kenny', 'sensor.at_home_iris_location': 'Iris', 'sensor.at_home_jerry_location': 'Jerry', 'sensor.at_home_elay_location': 'Elay'}.get(trigger.entity_id, '有人') }} 在客廳停留超過 2 分鐘（網關不在在家模式）{% elif trigger.id == 'lock_home' %}門鎖解除離家模式{% elif trigger.id == 'arrive' %}{{ who }} 回到家（家裡沒人 {{ away_min }} 分鐘後連上 Wi-Fi）{% else %}{{ reasons.get(trigger.id, trigger.id) }}{% endif %}
+      {% if trigger.id == 'living_room' %}{{ {'sensor.at_home_kenny_location': 'Kenny', 'sensor.at_home_iris_location': 'Iris', 'sensor.at_home_jerry_location': 'Jerry', 'sensor.at_home_elay_location': 'Elay'}.get(trigger.entity_id, '有人') }} 在客廳停留超過 1 分鐘（網關不在在家模式）{% elif trigger.id == 'lock_home' %}門鎖解除離家模式{% elif trigger.id == 'arrive' %}{{ who }} 回到家（家裡沒人 {{ away_min }} 分鐘後連上 Wi-Fi）{% else %}{{ reasons.get(trigger.id, trigger.id) }}{% endif %}
   triggers:
     - trigger: state
       id: lamp
@@ -97,14 +98,14 @@
       to: "Away-from-home mode is removed"
     - trigger: state
       id: living_room
-      alias: "[位置] 有人（person）在客廳停留 2 分鐘（中途跳走或離開會重新計時）"
+      alias: "[位置] 有人（person）在客廳停留 1 分鐘（中途跳走或離開會重新計時）"
       entity_id:
         - sensor.at_home_kenny_location
         - sensor.at_home_iris_location
         - sensor.at_home_jerry_location
         - sensor.at_home_elay_location
       to: "客廳"
-      for: "00:02:00"
+      for: "00:01:00"
     - trigger: state
       id: garage_short
       alias: "[車庫鐵門] 關閉 2 分鐘"
