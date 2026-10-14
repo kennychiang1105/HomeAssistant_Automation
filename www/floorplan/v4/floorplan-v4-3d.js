@@ -2509,6 +2509,9 @@ class FloorplanV43D extends HTMLElement {
         const boxes = col.map((it) => {
           const sp = it.sp;
           if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
+          // V4.1.6: the cached width can be stale/too small (measured while hidden, or the 90px fallback) -> the right-hand tags (stair lights) stuck out past
+          // the card edge. Re-measure every pass while the tag is visible, and never place a tag where it would be clipped.
+          if (this._labels) { const ow = sp.tag.offsetWidth; if (ow >= 60) { sp.tw = ow; sp.th = sp.tag.offsetHeight || sp.th || 36; } }
           const compact = !this._labels;
           if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
           return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
@@ -2519,7 +2522,7 @@ class FloorplanV43D extends HTMLElement {
         if (over > 0) for (const b of boxes) b.y = Math.max(topLimit, b.y - over);
         for (const b of boxes) {
           const { it, tw, th } = b, sp = it.sp;
-          const lx = side === "L" ? 8 : w - tw - 8;
+          const lx = side === "L" ? 8 : Math.max(8, w - tw - 12);
           placed.push({ x: lx - 3, y: b.y - 3, w: tw + 6, h: th + 6 });
           sp.el.style.left = `${it.x}px`; sp.el.style.top = `${it.y}px`;
           sp.tag.style.transform = `translate(${lx - it.x}px, ${b.y - it.y}px)`;
