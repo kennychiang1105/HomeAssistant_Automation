@@ -1,12 +1,13 @@
 ﻿# ──────────────────────────────────────────────
 # 106D網關切換同步Aqara開關AI (V4.1.6)
 # 更新紀錄：
-# - V4.1.6（2026-10-14）：新增。在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，把對應的 Aqara 虛擬情境開關打開（其餘由 106 一併關掉）：
+# - V4.1.6（2026-10-14）：新增。在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，先關掉其他四個 Aqara 虛擬情境開關、再打開對應的開關（順序同情境自動化，避免 106 看到兩個同時開而當成異常）：
 #     在家警戒（armed_home）→ aqara_zai_jia、夜間警戒（armed_night）→ aqara_wan_an、離家警戒（armed_away）→ aqara_li_jia。
 #   原本「網關 → 虛擬開關」只靠 Apple 家庭的自動化同步（可能延遲 1 秒～數分鐘，甚至沒有同步，還可能和 106 來回震盪）。這支在網關切換後等 6 秒讓 Apple 家庭先同步，
 #   還沒對應的話才由 HA 補上；已經對應就不動，避免重複。
 #   只處理「人為／實體」切換（context 沒有 parent_id）；106、情境、100B 等自動化改的模式不處理（它們自己會設定開關），所以不會形成迴圈。
 #   不處理解除（disarmed）與警報觸發（triggered）：106 的「解除」情境會先解除再自動回到在家警戒，直接對應會把你手動的解除改回在家。
+# - V4.1.6（2026-10-14，檢查程式碼後修正）：原本只打開對應開關、其餘留給 106 關閉，但 106 在「同時 2 個以上開關為 on」時會走異常分流（緊急通知＋重置回在家警戒），所以改成先關其他四個再打開目標。
 # ──────────────────────────────────────────────
 - id: ai_106d_gateway_to_aqara_switch
   alias: 106D網關切換同步Aqara開關AI (V4.1.6)
@@ -49,11 +50,18 @@
         - condition: template
           value_template: "{{ is_state(alarm_entity, trigger.to_state.state) and not is_state(target_switch, 'on') }}"
       then:
+        # 先關掉其他四個再打開目標（和 100／101／102／103 情境同樣順序）：
+        # 106 只在「剛好一個開關是 on」時才同步；同時有 2 個以上 on 會被當成異常（緊急通知，並重置回在家警戒）。
+        - action: input_boolean.turn_off
+          target:
+            entity_id: >-
+              {{ ['input_boolean.aqara_zai_jia', 'input_boolean.aqara_wan_an', 'input_boolean.aqara_li_jia',
+                  'input_boolean.aqara_guan_bi', 'input_boolean.aqara_chu_fa'] | reject('eq', target_switch) | list }}
         - action: input_boolean.turn_on
           target:
             entity_id: "{{ target_switch }}"
         - action: logbook.log
           data:
             name: 網關切換同步
-            message: "網關切換為{{ label }}警戒，Apple 家庭沒有同步，已由 HA 打開對應的 Aqara 開關（其餘由 106 關閉）。"
+            message: "網關切換為{{ label }}警戒，Apple 家庭沒有同步，已由 HA 關閉其他情境開關並打開對應的 Aqara 開關。"
 
