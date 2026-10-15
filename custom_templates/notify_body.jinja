@@ -116,11 +116,14 @@
 {% macro noemoji(t) -%}
 {{- (t | trim) | regex_replace('[🌀-🫿☀-➿⬀-⯿️‼❗❓]\uFE0F?', '') | regex_replace('^[，,、\s]+', '') | regex_replace('[，,、]+(?=。|$)', '') | regex_replace('\s{2,}', ' ') | trim -}}
 {%- endmacro %}
+{% macro untag(t) -%}
+{{- (t | trim) | regex_replace('^[\[【][^\]】]{1,8}[\]】]\s*(?=\S)', '') -}}
+{%- endmacro %}
 {% macro clean(t) -%}
-{{- noemoji((t | trim) | regex_replace('^[\s•·\-\*]+', '')) -}}
+{{- noemoji(untag((t | trim) | regex_replace('^[\s•·\-\*]+', ''))) -}}
 {%- endmacro %}
 {% macro bullet(t) -%}
-{{- noemoji((t | trim) | regex_replace('^[•·\-\*]+\s*', '')) -}}
+{{- noemoji(untag((t | trim) | regex_replace('^[•·\-\*]+\s*', ''))) -}}
 {%- endmacro %}
 
 {# 前處理：①每句（以「。」結尾）自成一行；②版本行拆成「名稱」＋「@@V@@舊@@新」兩行；網址行不拆 #}
@@ -186,7 +189,7 @@
     {%- set sub = ns.insec and not is_sec and not warn -%}
     {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
-    {%- set lim = (20 if sub else (15 if icon else 17)) - (2 if ec[1] else 0) -%}
+    {%- set lim = (20 if sub else 15) - (2 if ec[1] else 0) -%}
     {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
@@ -208,9 +211,9 @@
     {%- else -%}
       {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
     {%- endif -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'sec' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "8px", "color": "#2F80ED"}] -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
@@ -223,16 +226,17 @@
       {%- set txt = {"type": "text", "text": it.tb, "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
     {%- endif -%}
     {%- set mg = 'xl' if it.gap else ('sm' if it.sub else 'md') -%}
-    {%- set pad = '34px' if it.sub else '8px' -%}
+    {%- set pad = '48px' if it.sub else '28px' -%}
+    {%- set ipad = '28px' if it.sub else '2px' -%}
     {%- if it.icon -%}
       {%- set iimg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": ('14px' if it.sub else '20px'), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
-      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "margin": mg, "paddingStart": pad, "contents": [iimg, txt]}] -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "6px", "alignItems": "flex-start", "margin": mg, "paddingStart": ipad, "contents": [iimg, txt]}] -%}
     {%- else -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": mg, "paddingStart": pad, "contents": [txt]}] -%}
     {%- endif -%}
   {%- else -%}
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "36px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "48px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
   {%- endif -%}
 {%- endfor -%}
 {{- ns.out | tojson -}}
