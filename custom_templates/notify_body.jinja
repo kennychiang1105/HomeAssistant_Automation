@@ -181,7 +181,10 @@
     {%- set c = clean(t) | trim -%}
     {%- set body = c if c else t -%}
     {%- set warn = is_warn(t) | trim == '1' -%}
-    {%- set lv = (body | regex_findall('^([^：:。，,\s]{1,12})[：:]\s*(.+)$')) if not (body | regex_search('https?://')) else [] -%}
+    {#- V4.1.6：沒有冒號但是「名稱 數值」的舊式行（例如「開始時間 2026-10-15 23:59」「目前狀態 charging」）也當成名稱／數值行 -#}
+    {%- set lv1 = (body | regex_findall('^([^：:。，,\s]{1,12})[：:]\s*(.+)$')) if not (body | regex_search('https?://')) else [] -%}
+    {%- set lv2 = (body | regex_findall('^([^\s：:。，,]{0,6}(?:時間|溫度|狀態|車輛|用時|用電量|電量|天數|數量|名稱|型號|款式|位置|模式|情境|金額|次數|版本|狀況|濕度|濃度|數值|剩餘|容量|功率|電壓|電流))\s+([^。，,]{1,40})$')) if (lv1 | length == 0 and not (body | regex_search('https?://'))) else [] -%}
+    {%- set lv = lv1 if lv1 | length > 0 else lv2 -%}
     {%- set is_sec = body | regex_search('^[^。]{1,16}[：:]$') -%}
     {#- V4.1.6：圖示只給「小標題行（以冒號結尾）」「名稱：數值」與「警告」行；一般句子不放圖示；顏色依重要度 -#}
     {%- set cat = pick(body) | trim -%}
