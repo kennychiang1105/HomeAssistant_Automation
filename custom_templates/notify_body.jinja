@@ -164,7 +164,7 @@
     {%- set hcat = pick(hb) | trim -%}
     {%- set hbal = balance(hb, 15 - (2 if hc[1] else 0)) -%}
     {%- set hn = (hbal.split('\n') | map('length') | max) + (2 if hc[1] else 0) -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': hbal, 'ca': hc[1], 'pre': '', 'cain': false, 'icon': (hcat if hcat else 'announce'), 'tone': tone(hb) | trim, 'hsz': ([16, (254 / ([hn, 1] | max)) | int] | min)}] -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': hbal, 'ca': hc[1], 'pre': '', 'cain': false, 'icon': (hcat if hcat else 'announce'), 'tone': tone(hb) | trim, 'hsz': ([16, (246 / ([hn, 1] | max)) | int] | min)}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
@@ -202,7 +202,7 @@
 {%- for it in items -%}
   {%- set caimg = {"type": "image", "url": b2 ~ "alarm_o.png?v=1", "size": ("14px" if it.sub else "16px"), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
   {%- if it.k == 'hdr' -%}
-    {%- set himg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "20px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
+    {%- set himg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "24px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
     {%- if it.ca -%}
       {%- set htxt = {"type": "text", "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827", "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A"}]} -%}
     {%- else -%}
@@ -210,7 +210,7 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'sec' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "8px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
@@ -223,7 +223,7 @@
       {%- set txt = {"type": "text", "text": it.tb, "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
     {%- endif -%}
     {%- set mg = 'xl' if it.gap else ('sm' if it.sub else 'md') -%}
-    {%- set pad = '26px' if it.sub else '0px' -%}
+    {%- set pad = '34px' if it.sub else '8px' -%}
     {%- if it.icon -%}
       {%- set iimg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": ('14px' if it.sub else '20px'), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "margin": mg, "paddingStart": pad, "contents": [iimg, txt]}] -%}
@@ -232,7 +232,7 @@
     {%- endif -%}
   {%- else -%}
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "28px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "36px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
   {%- endif -%}
 {%- endfor -%}
 {{- ns.out | tojson -}}
