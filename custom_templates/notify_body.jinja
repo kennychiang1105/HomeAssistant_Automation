@@ -16,6 +16,8 @@
 {%- elif t | regex_search('解鎖|開鎖|已開鎖') -%}unlock
 {%- elif t | regex_search('指紋|密碼|鑰匙|卡片') -%}key
 {%- elif t | regex_search('門鎖|上鎖|已鎖|未鎖') -%}lock
+{%- elif t | regex_search('鐵門|車庫') and t | regex_search('開啟|打開|未關|沒關|開著') -%}gateopen
+{%- elif t | regex_search('鐵門|車庫') -%}gate
 {%- elif t | regex_search('天數|日期|星期|今天|明天|本週|週報') -%}calendar
 {%- elif t | regex_search('預估|倒數|分鐘|等待|秒後|逾時|剩餘') -%}hourglass
 {%- elif t | regex_search('\d{1,2}:\d{2}|時間|時刻') -%}clock
@@ -25,8 +27,6 @@
 {%- elif t | regex_search('降雨|豪雨|下雨|水位|洩洪|漏水') -%}drop
 {%- elif t | regex_search('PM2|PM1|空氣|清淨機|CO2|二氧化碳|一氧化碳') -%}air
 {%- elif t | regex_search('風扇|風速') -%}fan
-{%- elif t | regex_search('鐵門|車庫') and t | regex_search('開啟|打開|未關|沒關|開著') -%}gateopen
-{%- elif t | regex_search('鐵門|車庫') -%}gate
 {%- elif t | regex_search('Tesla|充電|充電樁') -%}ev
 {%- elif t | regex_search('電壓|電流|功率|用電|耗電|插座') -%}plug
 {%- elif t | regex_search('車牌|車輛|汽車|車子') -%}car
