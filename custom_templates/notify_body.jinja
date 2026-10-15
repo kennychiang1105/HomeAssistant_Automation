@@ -156,7 +156,7 @@
 {# 行模型：JSON 清單，每個元素 {k: hdr|sec|ent|ver, t, icon, old, new, gap} #}
 {% macro model(lines0) -%}
 {%- set lines = prep(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false, base='n') -%}
+{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false, base='n', hi=0) -%}
 {%- for l in lines -%}
   {%- set t = (l | string) | trim -%}
   {%- if t == '' -%}
@@ -191,7 +191,12 @@
     {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
     {%- set lim = (20 if sub else 15) - (2 if ec[1] else 0) -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': (tone(body) | trim if (tone(body) | trim) in ['r', 'o'] else ns.base), 'ttone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
+    {#- V4.1.6：同一則圖示顏色以標題為主；挑最多 2 個重點「名稱：數值」行（用電量、電量、預估、用時、狀態…）換成對比色 -#}
+    {%- set own = tone(body) | trim -%}
+    {%- set hl = (lv | length > 0) and (own not in ['r', 'o']) and ns.hi < 2 and (lv[0][0] | regex_search('用電量|電量|預估|剩餘|用時|已開啟|狀態|情境|模式|金額|次數')) -%}
+    {%- if hl -%}{%- set ns.hi = ns.hi + 1 -%}{%- endif -%}
+    {%- set etone = own if own in ['r', 'o'] else ({'n': 'p', 'g': 'n', 'o': 'n', 'r': 'n', 'p': 'n'}[ns.base] if hl else ns.base) -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': etone, 'ttone': own, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
