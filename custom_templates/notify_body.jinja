@@ -1,6 +1,8 @@
 {# ──────────────────────────────────────────────────────
-   通知內文排版 (V4.1.0)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
-   - 每一個項目行都有圖示（先依關鍵字挑；沒有關鍵字時，「本次更新／版本」段落用 update，其餘用 info），不再「有的有、有的沒有」。
+   通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
+   - V4.1.6：圖示只留給「需要注意」的行（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
+             「名稱：數值」拆成灰色小字名稱＋粗體數值（例如 客廳門鎖電量　76%）；一般句子用正常粗細。
+   - V4.1.0（已被上一行取代）：每一個項目行都有圖示。
    - 「名稱：舊版 → 新版」與「名稱：V1.2.3」一律拆成兩行：名稱一行、版本獨立一行（舊版灰色、新版綠色粗體）。
    - 每個項目之間空一行（margin）；【小標題】獨立成行、藍色粗體；第一行是通知重點（粗體、較大）。
    用法：{% from 'notify_body.jinja' import flex_rows, md_lines %}
@@ -32,12 +34,20 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# V4.1.6：需要注意的行才放圖示 #}
+{% macro is_warn(t) -%}
+{%- if t | regex_search('注意|警告|異常|失敗|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠|‼|❗|入侵|闖入|緊急') -%}1{%- endif -%}
+{%- endmacro %}
+
 {# 去掉行首的項目符號與 emoji（圖示取代它們） #}
+{% macro noemoji(t) -%}
+{{- (t | trim) | regex_replace('[🌀-🫿☀-➿⬀-⯿️‼❗❓]\uFE0F?', '') | regex_replace('^[，,、\s]+', '') | regex_replace('[，,、]+(?=。|$)', '') | regex_replace('\s{2,}', ' ') | trim -}}
+{%- endmacro %}
 {% macro clean(t) -%}
-{{- (t | trim) | regex_replace('^[\s•·\-\*]*([🌀-🫿☀-➿⬀-⯿️]\s*)*', '') | trim -}}
+{{- noemoji((t | trim) | regex_replace('^[\s•·\-\*]+', '')) -}}
 {%- endmacro %}
 {% macro bullet(t) -%}
-{{- (t | trim) | regex_replace('^[•·\-\*]+\s*', '') | trim -}}
+{{- noemoji((t | trim) | regex_replace('^[•·\-\*]+\s*', '')) -}}
 {%- endmacro %}
 
 {# 前處理：①每句（以「。」結尾）自成一行；②版本行拆成「名稱」＋「@@V@@舊@@新」兩行；網址行不拆 #}
@@ -86,10 +96,11 @@
     {%- set ns.out = ns.out + [{'k': 'sec', 't': t}] -%}
     {%- set ns.gap = false -%}
   {%- else -%}
-    {%- set n = pick(t) | trim -%}
-    {%- set ic = n if n else ('update' if ns.sect | regex_search('更新|版本') else 'info') -%}
     {%- set c = clean(t) | trim -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': c if c else t, 'icon': ic, 'gap': ns.gap}] -%}
+    {%- set body = c if c else t -%}
+    {%- set warn = is_warn(t) | trim == '1' -%}
+    {%- set lv = (body | regex_findall('^([^：:。，,\s]{1,12})[：:]\s*(.+)$')) if not (body | regex_search('https?://')) else [] -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'icon': ('alarm' if warn else ''), 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
@@ -106,7 +117,16 @@
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "margin": ('xxl' if it.gap else 'lg'), "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "20px", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#1F2937"}]}] -%}
+    {%- if it.lab -%}
+      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "　", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "color": ("#B45309" if it.icon else "#111827")}]} -%}
+    {%- else -%}
+      {%- set txt = {"type": "text", "text": it.t, "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": ("#B45309" if it.icon else "#374151"), "weight": ("bold" if it.icon else "regular")} -%}
+    {%- endif -%}
+    {%- if it.icon -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "margin": ('xl' if it.gap else 'md'), "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "20px", "flex": 0, "aspectMode": "fit"}, txt]}] -%}
+    {%- else -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'md'), "contents": [txt]}] -%}
+    {%- endif -%}
   {%- else -%}
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "28px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
@@ -127,7 +147,12 @@
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['- <img src="' ~ base ~ it.icon ~ '.png" width="18" height="18"> ' ~ body] -%}
+    {%- set pre = ('<img src="' ~ base ~ it.icon ~ '.png" width="18" height="18"> ') if it.icon else '' -%}
+    {%- if it.lab and not url -%}
+      {%- set ns.md = ns.md + ['- ' ~ pre ~ it.lab ~ '　**' ~ it.val ~ '**'] -%}
+    {%- else -%}
+      {%- set ns.md = ns.md + ['- ' ~ pre ~ body] -%}
+    {%- endif -%}
   {%- else -%}
     {%- set v = ('<code>' ~ it.old ~ '</code> → <b><code>' ~ it.new ~ '</code></b>') if it.old else ('<code>' ~ it.new ~ '</code>') -%}
     {%- if ns.md | length > 0 -%}
