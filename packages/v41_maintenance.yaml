@@ -1,0 +1,66 @@
+# ────────────────────────────────────────────────────────
+# 維護模式（V4.1.6，2026-10-15）
+# 更新路由器、AP、HA 或附加元件時，連線中斷／設備離線屬於預期內，不該跳「失敗／異常」通知。
+# - binary_sensor.maintenance_active：符合任一條件即為 on
+#     ① 手動維護（script.maintenance_start 設定 input_datetime.maintenance_until，預設 2 小時，script.maintenance_stop 可提前結束）
+#     ② UniFi 設備（AP／交換器／路由器）20 分鐘內剛重開機，或狀態不是「已連線」
+#     ③ 任何更新項目（update.*）正在安裝中
+# - 維護期間 script.notify_dispatch / script.send_line_to_user 會略過「一般／重要」級、且內容屬於連線／離線／失敗／異常類的通知
+#   （含保全、入侵、警報、火災、地震、門鎖、未關／未上鎖字樣的一律照常發送；緊急級不受影響）。略過時會寫一筆日誌。
+# ────────────────────────────────────────────────────────
+input_datetime:
+  maintenance_until:
+    name: 維護模式持續到
+    has_date: true
+    has_time: true
+    icon: mdi:wrench-clock
+
+template:
+  - binary_sensor:
+      - name: maintenance_active
+        unique_id: maintenance_active_v416
+        icon: mdi:wrench
+        state: >-
+          {% set ns = namespace(on=false) %}
+          {% set until = as_datetime(states('input_datetime.maintenance_until'), none) %}
+          {% if until is not none and now() < as_local(until) %}{% set ns.on = true %}{% endif %}
+          {% for s in states.sensor if s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_uptime$') %}
+            {% set b = as_datetime(s.state, none) %}
+            {% if b is not none and (now() - b).total_seconds() < 1200 %}{% set ns.on = true %}{% endif %}
+          {% endfor %}
+          {% for s in states.sensor if s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_state$') %}
+            {% if s.state not in ['connected', 'unknown'] %}{% set ns.on = true %}{% endif %}
+          {% endfor %}
+          {% if states.update | selectattr('attributes.in_progress', 'eq', true) | list | count > 0 %}{% set ns.on = true %}{% endif %}
+          {{ ns.on }}
+        attributes:
+          reason: >-
+            {% set r = [] %}
+            {% set until = as_datetime(states('input_datetime.maintenance_until'), none) %}
+            {% if until is not none and now() < as_local(until) %}{% set r = r + ['手動維護中（到 ' ~ as_local(until).strftime('%H:%M') ~ '）'] %}{% endif %}
+            {% if states.sensor | selectattr('entity_id', 'match', 'sensor[.](u6_|udmse|switch_lite|smartpower).*_uptime$') | selectattr('state', 'ne', 'unknown') | map(attribute='state') | map('as_datetime', none) | select('ne', none) | select('gt', now() - timedelta(minutes=20)) | list | count > 0 %}{% set r = r + ['網路設備剛重開機'] %}{% endif %}
+            {% if states.update | selectattr('attributes.in_progress', 'eq', true) | list | count > 0 %}{% set r = r + ['更新安裝中'] %}{% endif %}
+            {{ r | join('、') }}
+
+script:
+  maintenance_start:
+    alias: 維護模式開始
+    description: 更新路由器／系統前執行：期間內略過連線／離線／失敗類的一般與重要通知
+    fields:
+      hours:
+        description: 維護小時數（預設 2）
+        required: false
+    sequence:
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.maintenance_until
+        data:
+          datetime: "{{ (now() + timedelta(hours=(hours | default(2, true) | float(2)))).strftime('%Y-%m-%d %H:%M:%S') }}"
+  maintenance_stop:
+    alias: 維護模式結束
+    sequence:
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.maintenance_until
+        data:
+          datetime: "{{ (now() - timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S') }}"

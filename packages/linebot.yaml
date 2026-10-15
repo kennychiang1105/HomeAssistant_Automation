@@ -369,6 +369,14 @@ script:
           has_text: "{{ message is defined }}"
           has_json: "{{ payload is defined }}"
           valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
+          # V4.1.6：維護模式（更新路由器／系統期間）略過一般／重要級、屬連線／離線／失敗／異常類的舊格式 LINE（保全類、緊急級照常）
+          maint_text: >-
+            {% set raw = (payload | from_json([])) if (has_json and payload is string) else (payload if has_json else []) %}
+            {% if raw is sequence and raw is not string %}{{ raw | selectattr('type', 'eq', 'text') | map(attribute='text') | map('string') | join(' ') }}{% else %}{{ message | default('', true) }}{% endif %}
+          maint_skip: >-
+            {{ is_state('binary_sensor.maintenance_active', 'on')
+               and (maint_text | regex_search('離線|斷線|連線|不穩|失敗|異常|無法|逾時|未回應|不可用|unavailable|網路|網關|Wi-?Fi'))
+               and not (maint_text | regex_search('入侵|闖入|保全|警報|火災|地震|門鎖|未關|未上鎖|緊急|Urgent|Emergency')) }}
 
           # 舊格式（標題+等級+內文多泡泡）偵測到的等級，供氣氛燈提醒使用（新格式 Flex 由 notify_dispatch 負責）
           alert_level: >-
@@ -546,6 +554,14 @@ script:
               "messages": {{ flat_msgs }}
             }
             {% endif %}
+      - if: "{{ maint_skip }}"
+        then:
+          - action: logbook.log
+            data:
+              name: LINE（維護模式）
+              message: "維護期間略過舊格式 LINE：{{ maint_text[:40] }}"
+              entity_id: binary_sensor.maintenance_active
+          - stop: "maintenance mode"
       # ───── 防呆 ─────
       - choose:
           - conditions: "{{ not valid_input }}"
