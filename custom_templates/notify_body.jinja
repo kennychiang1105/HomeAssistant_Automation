@@ -115,7 +115,7 @@
 {%- set ns = namespace(out=[]) -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "alignItems": "center", "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "24px", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center", "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "22px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"}]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
@@ -125,7 +125,7 @@
       {%- set txt = {"type": "text", "text": it.t, "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": ("#B45309" if it.icon else "#374151"), "weight": ("bold" if it.icon else "regular")} -%}
     {%- endif -%}
     {%- if it.icon -%}
-      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "margin": ('xl' if it.gap else 'md'), "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "20px", "flex": 0, "aspectMode": "fit"}, txt]}] -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center", "margin": ('xl' if it.gap else 'md'), "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "18px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"}, txt]}] -%}
     {%- else -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'md'), "contents": [txt]}] -%}
     {%- endif -%}
@@ -144,12 +144,12 @@
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['<img src="' ~ base ~ it.icon ~ '.png" width="22" height="22"> **' ~ body ~ '**'] -%}
+    {%- set ns.md = ns.md + ['<img src="' ~ base ~ it.icon ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ body ~ '**'] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set pre = ('<img src="' ~ base ~ it.icon ~ '.png" width="18" height="18"> ') if it.icon else '' -%}
+    {%- set pre = ('<img src="' ~ base ~ it.icon ~ '.png" width="16" height="16" style="vertical-align:middle"> ') if it.icon else '' -%}
     {%- if it.lab and not url -%}
       {%- set ns.md = ns.md + ['- ' ~ pre ~ it.lab ~ '　**' ~ it.val ~ '**'] -%}
     {%- else -%}
