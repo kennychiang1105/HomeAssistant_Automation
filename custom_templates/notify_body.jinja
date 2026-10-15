@@ -1,6 +1,6 @@
 {# ──────────────────────────────────────────────────────
    通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
-   - V4.1.6：圖示只留給「需要注意」的行（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
+   - V4.1.6：圖示只放在「標題行」和「需要注意」的行（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
              「名稱：數值」拆成灰色小字名稱＋粗體數值（例如 客廳門鎖電量　76%）；一般句子用正常粗細。
    - V4.1.0（已被上一行取代）：每一個項目行都有圖示。
    - 「名稱：舊版 → 新版」與「名稱：V1.2.3」一律拆成兩行：名稱一行、版本獨立一行（舊版灰色、新版綠色粗體）。
@@ -86,7 +86,9 @@
   {%- if t == '' -%}
     {%- set ns.gap = true -%}
   {%- elif ns.first -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': bullet(t)}] -%}
+    {%- set hb = bullet(t) -%}
+    {%- set hn = pick(hb) | trim -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'icon': (hn if hn else 'info')}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
@@ -113,7 +115,7 @@
 {%- set ns = namespace(out=[]) -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827"}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "alignItems": "center", "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "24px", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"}]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
@@ -142,7 +144,7 @@
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['**' ~ body ~ '**'] -%}
+    {%- set ns.md = ns.md + ['<img src="' ~ base ~ it.icon ~ '.png" width="22" height="22"> **' ~ body ~ '**'] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}
