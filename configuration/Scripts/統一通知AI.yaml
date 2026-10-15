@@ -110,7 +110,7 @@ notify_dispatch:
     # 注意：HA 樣板有內建函式 version()，沒傳 version 時 `version` 會變成函式（顯示成 <function VersionExtension.version ...>），所以要用 is string 判斷
     ver_in: "{{ version if (version is defined and version is string) else '' }}"
     ver: "{{ ver_in if (ver_in | trim) != '' else (title_raw | regex_findall('V[0-9][0-9.]*') | first | default('', true)) }}"
-    title_c: "{{ title_raw | replace('【', '') | replace('】', '') | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[（(] *[)）]', '') | trim }}"
+    title_c: "{{ title_raw | replace('【', '') | replace('】', '') | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[（(] *[)）]', '') | regex_replace('[🌀-🫿☀-➿⬀-⯿‼❗❓\\ufe0f\\ufe0e]+', '') | regex_replace('\\s{2,}', ' ') | trim }}"
     src: "{{ (source | default('智慧家庭', true) | string) | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | trim }}"
     stamp: "{{ now().strftime('%m/%d %H:%M') }}"
     full_title: "{{ meta.mark }} {{ meta.name }} ｜ {{ title_c }}{{ ' ' ~ ver if ver else '' }}"

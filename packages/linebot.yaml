@@ -493,7 +493,7 @@ script:
                 {% set has_title = (texts | length >= 2) and ((first | trim | length) <= 60) %}
                 {% set title_raw = (first if has_title else (src_txt if src_txt else '智慧家庭')) | string %}
                 {% set ver = (title_raw ~ ' ' ~ src_txt) | regex_findall('V[0-9][0-9.]*') | first | default('', true) %}
-                {% set title_c = title_raw | replace('【', '') | replace('】', '') | regex_replace('(緊急|重要|一般) ?(Urgent|Emergency|Important|General)', '') | regex_replace(' ?\\(V[0-9][0-9.]*[^)]*\\)', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[‼⚠❗🚨🪧\\ufe0f]+', '') | trim %}
+                {% set title_c = title_raw | replace('【', '') | replace('】', '') | regex_replace('(緊急|重要|一般) ?(Urgent|Emergency|Important|General)', '') | regex_replace(' ?\\(V[0-9][0-9.]*[^)]*\\)', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[🌀-🫿☀-➿⬀-⯿‼❗❓\\ufe0f\\ufe0e]+', '') | regex_replace('\\s{2,}', ' ') | trim %}
                 {% set title_c = title_c if title_c else (src_txt if src_txt else '智慧家庭') %}
                 {# 4) 內文：略過標題與等級泡泡 #}
                 {% set bd = namespace(items=[]) %}
