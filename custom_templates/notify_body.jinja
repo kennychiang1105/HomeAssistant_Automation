@@ -182,7 +182,7 @@
     {%- set sub = ns.insec and not is_sec and not warn -%}
     {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
-    {%- set lim = (20 if sub else (14 if icon else 17)) - (2 if ec[1] else 0) -%}
+    {%- set lim = (20 if sub else (15 if icon else 17)) - (2 if ec[1] else 0) -%}
     {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
