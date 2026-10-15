@@ -87,13 +87,16 @@
 {%- if (t | length) <= lim or '，' not in t -%}{{ t }}
 {%- else -%}
   {%- set parts = t.split('，') -%}
-  {%- set ns = namespace(best=1, bd=999, acc=0) -%}
-  {%- for p in parts[:-1] -%}
-    {%- set ns.acc = ns.acc + (p | length) + 1 -%}
-    {%- set d = (ns.acc - (t | length) / 2) | abs -%}
-    {%- if d < ns.bd -%}{%- set ns.bd = d -%}{%- set ns.best = loop.index -%}{%- endif -%}
+  {%- set ns = namespace(lines=[], cur='') -%}
+  {%- for p in parts -%}
+    {%- set piece = p ~ ('，' if not loop.last else '') -%}
+    {%- if ns.cur != '' and ((ns.cur | length) + (piece | length)) > lim -%}
+      {%- set ns.lines = ns.lines + [ns.cur] -%}{%- set ns.cur = piece -%}
+    {%- else -%}
+      {%- set ns.cur = ns.cur ~ piece -%}
+    {%- endif -%}
   {%- endfor -%}
-  {{- parts[:ns.best] | join('，') ~ '，' ~ '\n' ~ parts[ns.best:] | join('，') -}}
+  {{- (ns.lines + [ns.cur]) | join('\n') -}}
 {%- endif -%}
 {%- endmacro %}
 
@@ -157,7 +160,7 @@
   {%- elif ns.first -%}
     {%- set hb = bullet(t) -%}
     {%- set hc = ca_split(hb) | from_json(['', '']) -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': balance(hb, 15), 'ca': hc[1], 'pre': balance(hc[0], 15), 'cain': (hc[1] != '' and (hb | length) <= 15)}] -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': balance(hb, 15 - (2 if hc[1] else 0)), 'ca': hc[1], 'pre': '', 'cain': false}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
@@ -178,8 +181,8 @@
     {%- if ns.gap and not is_sec -%}{%- set ns.insec = false -%}{%- endif -%}
     {%- set sub = ns.insec and not is_sec and not warn -%}
     {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
-    {%- set lim = 20 if sub else (16 if icon else 18) -%}
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
+    {%- set lim = (20 if sub else (14 if icon else 17)) - (2 if ec[1] else 0) -%}
     {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
@@ -217,7 +220,7 @@
     {%- set pad = '26px' if it.sub else '0px' -%}
     {%- if it.icon -%}
       {%- set iimg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": ('14px' if it.sub else '20px'), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
-      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center", "margin": mg, "paddingStart": pad, "contents": [iimg, txt]}] -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "margin": mg, "paddingStart": pad, "contents": [iimg, txt]}] -%}
     {%- else -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": mg, "paddingStart": pad, "contents": [txt]}] -%}
     {%- endif -%}
