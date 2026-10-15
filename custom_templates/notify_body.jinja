@@ -82,6 +82,21 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# V4.1.6：過長的句子在「，」靠近中間處斷行（LINE 自動換行會留下孤字，例如「請注／意。」）#}
+{% macro balance(t, lim) -%}
+{%- if (t | length) <= lim or '，' not in t -%}{{ t }}
+{%- else -%}
+  {%- set parts = t.split('，') -%}
+  {%- set ns = namespace(best=1, bd=999, acc=0) -%}
+  {%- for p in parts[:-1] -%}
+    {%- set ns.acc = ns.acc + (p | length) + 1 -%}
+    {%- set d = (ns.acc - (t | length) / 2) | abs -%}
+    {%- if d < ns.bd -%}{%- set ns.bd = d -%}{%- set ns.best = loop.index -%}{%- endif -%}
+  {%- endfor -%}
+  {{- parts[:ns.best] | join('，') ~ '，' ~ '\n' ~ parts[ns.best:] | join('，') -}}
+{%- endif -%}
+{%- endmacro %}
+
 {# V4.1.6：需要注意的行才放圖示 #}
 {% macro is_warn(t) -%}
 {%- if t | regex_search('注意|警告|異常|失敗|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠|‼|❗|入侵|闖入|緊急') -%}1{%- endif -%}
@@ -128,13 +143,13 @@
 {# 行模型：JSON 清單，每個元素 {k: hdr|sec|ent|ver, t, icon, old, new, gap} #}
 {% macro model(lines0) -%}
 {%- set lines = prep(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[], first=true, sect='', gap=false) -%}
+{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false) -%}
 {%- for l in lines -%}
   {%- set t = (l | string) | trim -%}
   {%- if t == '' -%}
     {%- set ns.gap = true -%}
   {%- elif ns.first -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': bullet(t)}] -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': bullet(t), 'tb': balance(bullet(t), 15)}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
@@ -152,7 +167,10 @@
     {#- V4.1.6：圖示只給「小標題行（以冒號結尾）」「名稱：數值」與「警告」行；一般句子不放圖示；顏色依重要度 -#}
     {%- set cat = pick(body) | trim -%}
     {%- set icon = (cat if cat else 'alarm') if warn else ((cat if cat else 'list') if is_sec else ((cat if cat else 'tag') if lv | length > 0 else '')) -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
+    {%- if ns.gap and not is_sec -%}{%- set ns.insec = false -%}{%- endif -%}
+    {%- set sub = ns.insec and not is_sec and not warn -%}
+    {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0 or sub) else balance(body, 16 if icon else 18)), 'sub': sub, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
@@ -165,17 +183,17 @@
 {%- set ns = namespace(out=[]) -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827"}] -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.tb, "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827"}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
     {%- if it.lab -%}
-      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "　", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "color": ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else "#111827")}]} -%}
+      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "　", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": ("xs" if it.sub else "sm"), "color": ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else "#111827")}]} -%}
     {%- else -%}
-      {%- set txt = {"type": "text", "text": it.t, "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else ("#111827" if it.sec else "#374151")), "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
+      {%- set txt = {"type": "text", "text": it.tb, "size": ("xs" if it.sub else "sm"), "wrap": true, "flex": 1, "lineSpacing": "4px", "color": ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else ("#111827" if it.sec else "#374151")), "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
     {%- endif -%}
     {%- if it.icon -%}
-      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center", "margin": ('xl' if it.gap else 'md'), "contents": [{"type": "image", "url": (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "20px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"}, txt]}] -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center", "margin": ('xl' if it.gap else ('sm' if it.sub else 'md')), "paddingStart": ('26px' if it.sub else '0px'), "contents": [{"type": "image", "url": (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": ('14px' if it.sub else '20px'), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"}, txt]}] -%}
     {%- else -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'md'), "contents": [txt]}] -%}
     {%- endif -%}
