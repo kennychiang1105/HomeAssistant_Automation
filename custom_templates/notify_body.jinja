@@ -209,7 +209,6 @@
 {%- set ns = namespace(out=[]) -%}
 {%- set b2 = base | replace('/icons/b/', '/icons/b2/') -%}
 {%- for it in items -%}
-  {%- set caimg = {"type": "image", "url": b2 ~ "alarm_o.png?v=1", "size": ("14px" if it.sub else "16px"), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
   {%- if it.k == 'hdr' -%}
     {%- set himg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "24px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
     {%- if it.ca -%}
