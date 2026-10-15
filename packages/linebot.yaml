@@ -614,15 +614,15 @@ script:
                         data:
                           token: "{{ bot0_token }}"
                           payload: >-
+                              {% from 'notify_body.jinja' import flex_rows %}{% set q_lines = ['LINE Bot 即將切換', '目前使用 Bot' ~ current_bot ~ '，剩餘約 ' ~ remain_count ~ ' 個額度可用。', '剩餘額度低於 5 即自動切換為 Bot' ~ next_bot ~ ('（緊急 Bot）' if next_bot == 0 else '') ~ '。', '群組訊息一次可能耗約 5 個額度。'] %}
                               {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '重要｜LINE Bot 即將切換',
                               'contents': {'type': 'bubble', 'size': 'kilo',
-                              'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#F2994A', 'paddingAll': '10px',
-                              'contents': [{'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
-                              {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                              'header': {'type': 'box', 'layout': 'horizontal', 'alignItems': 'center', 'backgroundColor': '#F2994A', 'paddingAll': '10px',
+                              'contents': [{'type': 'image', 'url': 'https://family.kteam.tw:8126/local/icons/chat.png?v=2', 'size': '22px', 'aspectMode': 'fit', 'flex': 0},
+                              {'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
+                              {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                               'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                              'contents': [{'type': 'text', 'text': 'LINE Bot 即將切換', 'weight': 'bold', 'size': 'md', 'wrap': true},
-                              {'type': 'text', 'text': '目前使用 Bot' ~ current_bot ~ '，剩餘約 ' ~ remain_count ~ ' 個額度可用', 'size': 'sm', 'wrap': true},
-                              {'type': 'text', 'text': '剩餘額度低於 5 即自動切換為 Bot' ~ next_bot ~ ('（緊急 Bot）' if next_bot == 0 else '') ~ '；群組訊息一次可能耗約 5 個額度。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                              'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
                               'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                               'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                       - service: input_text.set_value
@@ -642,15 +642,15 @@ script:
                     data:
                       token: "{{ bot0_token }}"
                       payload: >-
+                        {% from 'notify_body.jinja' import flex_rows %}{% set q_lines = ['LINE Bot 額度已用盡', '所有 Bot 額度已滿（低於 5 則）或不可用。', '本則訊息未送出。', '請儘速處理（更換 Token 或等下月重置）。'] %}
                         {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '緊急｜LINE Bot 額度已用盡',
                         'contents': {'type': 'bubble', 'size': 'kilo',
-                        'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#EB5757', 'paddingAll': '10px',
-                        'contents': [{'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
-                        {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                        'header': {'type': 'box', 'layout': 'horizontal', 'alignItems': 'center', 'backgroundColor': '#EB5757', 'paddingAll': '10px',
+                        'contents': [{'type': 'image', 'url': 'https://family.kteam.tw:8126/local/icons/chat.png?v=2', 'size': '22px', 'aspectMode': 'fit', 'flex': 0},
+                        {'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
+                        {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                         'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                        'contents': [{'type': 'text', 'text': 'LINE Bot 額度已用盡', 'weight': 'bold', 'size': 'md', 'wrap': true},
-                        {'type': 'text', 'text': '所有 Bot 額度已滿（低於 5 則）或不可用', 'size': 'sm', 'wrap': true},
-                        {'type': 'text', 'text': '本則訊息未送出，請儘速處理（更換 Token 或等下月重置）。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                        'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
                         'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                         'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                   - service: input_boolean.turn_on
