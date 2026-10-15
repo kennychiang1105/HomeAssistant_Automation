@@ -77,8 +77,8 @@
 {# 重要度配色：r 紅（緊急）／o 橘（警告）／g 綠（正常完成）／n 藍（一般資訊） #}
 {% macro tone(t) -%}
 {%- if t | regex_search('緊急|入侵|闖入|警報|地震|火災|一氧化碳|嚴重') -%}r
-{%- elif t | regex_search('注意|警告|異常|失敗|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠') -%}o
-{%- elif t | regex_search('已完成|成功|正常|已關閉|已上鎖|皆已|已恢復|已啟動|已執行|已開啟|已提前|已關') -%}g
+{%- elif t | regex_search('注意|警告|異常|失敗|未完成|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠') -%}o
+{%- elif t | regex_search('已完成|完成|完畢|成功|正常|已關閉|已上鎖|皆已|已恢復|已啟動|已執行|已開啟|已提前|已關') -%}g
 {%- else -%}n
 {%- endif -%}
 {%- endmacro %}
@@ -156,13 +156,14 @@
 {# 行模型：JSON 清單，每個元素 {k: hdr|sec|ent|ver, t, icon, old, new, gap} #}
 {% macro model(lines0) -%}
 {%- set lines = prep(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false) -%}
+{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false, base='n') -%}
 {%- for l in lines -%}
   {%- set t = (l | string) | trim -%}
   {%- if t == '' -%}
     {%- set ns.gap = true -%}
   {%- elif ns.first -%}
     {%- set hb = bullet(t) -%}
+    {%- set ns.base = tone(hb) | trim -%}
     {%- set hc = ca_split(hb) | from_json(['', '']) -%}
     {%- set hcat = pick(hb) | trim -%}
     {%- set hbal = balance(hb, 15 - (2 if hc[1] else 0)) -%}
@@ -190,7 +191,7 @@
     {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
     {%- set lim = (20 if sub else 15) - (2 if ec[1] else 0) -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': (tone(body) | trim if (tone(body) | trim) in ['r', 'o'] else ns.base), 'ttone': tone(body) | trim, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
@@ -215,10 +216,10 @@
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
-    {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
+    {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
     {%- if it.lab -%}
-      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#B91C1C", "o": "#B45309"}[it.tone] if it.tone in ["r", "o"] else "#111827")}]} -%}
+      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827")}]} -%}
     {%- elif it.ca -%}
       {#- 句尾「請注意」：注意符號（無圓圈）接在同一段文字最後，換行時跟著文字走 -#}
       {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if it.icon else "regular"), "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A", "weight": "bold"}]} -%}
