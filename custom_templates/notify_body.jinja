@@ -64,6 +64,7 @@
 {%- elif t | regex_search('更新') -%}update
 {%- elif t | regex_search('重置|重啟|重新|重試') -%}refresh
 {%- elif t | regex_search('關機|開機|電源') -%}power
+{%- elif t | regex_search('公告|提醒|宣告') -%}announce
 {%- elif t | regex_search('通知|訊息|LINE') -%}mail
 {%- elif t | regex_search('Bot|對話') -%}chat
 {%- elif t | regex_search('維修|維護|保養') -%}tool
@@ -160,7 +161,10 @@
   {%- elif ns.first -%}
     {%- set hb = bullet(t) -%}
     {%- set hc = ca_split(hb) | from_json(['', '']) -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': balance(hb, 15 - (2 if hc[1] else 0)), 'ca': hc[1], 'pre': '', 'cain': false}] -%}
+    {%- set hcat = pick(hb) | trim -%}
+    {%- set hbal = balance(hb, 15 - (2 if hc[1] else 0)) -%}
+    {%- set hn = (hbal.split('\n') | map('length') | max) + (2 if hc[1] else 0) -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': hbal, 'ca': hc[1], 'pre': '', 'cain': false, 'icon': (hcat if hcat else 'announce'), 'tone': tone(hb) | trim, 'hsz': ([16, (254 / ([hn, 1] | max)) | int] | min)}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
@@ -198,11 +202,13 @@
 {%- for it in items -%}
   {%- set caimg = {"type": "image", "url": b2 ~ "alarm_o.png?v=1", "size": ("14px" if it.sub else "16px"), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
   {%- if it.k == 'hdr' -%}
+    {%- set himg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "20px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
     {%- if it.ca -%}
-      {%- set ns.out = ns.out + [{"type": "text", "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827", "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A"}]}] -%}
+      {%- set htxt = {"type": "text", "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827", "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A"}]} -%}
     {%- else -%}
-      {%- set ns.out = ns.out + [{"type": "text", "text": it.tb, "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827"}] -%}
+      {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
     {%- endif -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
@@ -239,7 +245,7 @@
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['**' ~ body ~ '**' ~ ('<span style="color:#F2994A">⚠︎</span>' if it.ca else '')] -%}
+    {%- set ns.md = ns.md + ['<img src="' ~ (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ '_' ~ it.tone ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ body ~ '**' ~ ('<span style="color:#F2994A">⚠︎</span>' if it.ca else '')] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}

@@ -3,6 +3,7 @@
 # 107Tesla充電器狀態與通知AI (V4.1.6)
 # 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-15）：LINE 內文的「名稱 值」改成「名稱：值」，套用新卡片的名稱／數值排版。
 # - V4.1.6（2026-10-11）：修正充飽後 00:02 誤報「仍未開始充電」：「這次連接後是否已充過電」的判斷是 start_time（只到秒）大於 vehicle_connected.last_changed（含毫秒），插槍同一秒就開始充電時 start_time 反而略小，被判成沒充過電；改成容許 10 秒誤差。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.0：功能版。修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時「無開始通知」與「充電用時計算錯誤」問題。
@@ -319,8 +320,8 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🪫 開始充電通知⚡\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ now_time},
-                              {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
+                              {'type':'text','text': '🪫 開始充電通知⚡\n充電車輛：' ~ vehicle_name ~ '\n開始時間：' ~ now_time},
+                              {'type':'text','text': '其他資訊：\n手把溫度：' ~ handle_temp ~ '°C\nMCU溫度：' ~ mcu_temp ~ '°C\nPCB溫度：' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
@@ -383,8 +384,8 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🔋 充電完成通知 ✅\n充電車輛 ' ~ vehicle_name ~ '\n開始時間 ' ~ start_time ~ '\n結束時間 ' ~ now_time ~ '\n充電用時 ' ~ charge_duration_text ~ '\n用電量 ' ~ session_energy ~ ' kWh（度）'},
-                              {'type':'text','text': '其他資訊：\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
+                              {'type':'text','text': '🔋 充電完成通知 ✅\n充電車輛：' ~ vehicle_name ~ '\n開始時間：' ~ start_time ~ '\n結束時間：' ~ now_time ~ '\n充電用時：' ~ charge_duration_text ~ '\n用電量：' ~ session_energy ~ ' kWh（度）'},
+                              {'type':'text','text': '其他資訊：\n手把溫度：' ~ handle_temp ~ '°C\nMCU溫度：' ~ mcu_temp ~ '°C\nPCB溫度：' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
@@ -444,7 +445,7 @@
                           {{ [
                               {'type':'text','text':line_title_important},
                               {'type':'text','text':'目前仍未開始充電，請檢查車輛狀況。'},
-                              {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
+                              {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
@@ -488,7 +489,7 @@
                           {{ [
                               {'type':'text','text':line_title_important},
                               {'type':'text','text':'Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。'},
-                              {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
+                              {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
@@ -542,7 +543,7 @@
                           {{ [
                               {'type':'text','text':line_title_important},
                               {'type':'text','text':'已連接超過 6 小時仍未開始充電，請檢查車輛狀況。'},
-                              {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
+                              {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
@@ -599,7 +600,7 @@
                           {{ [
                               {'type':'text','text':line_title_important},
                               {'type':'text','text':'車輛已插槍但沒有在充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限）。'},
-                              {'type':'text','text':'補充資訊：\n目前狀態 ' ~ charger_status ~ '\n通知時間 ' ~ now_time}
+                              {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
 
         - conditions:
@@ -635,8 +636,8 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🧪 充電通知測試訊息\n充電車輛 ' ~ vehicle_name ~ '\n測試時間 ' ~ now_time},
-                              {'type':'text','text': '其他資訊：\n目前狀態 ' ~ charger_status ~ '\n手把溫度 ' ~ handle_temp ~ '°C\nMCU溫度 ' ~ mcu_temp ~ '°C\nPCB溫度 ' ~ pcb_temp ~ '°C'}
+                              {'type':'text','text': '🧪 充電通知測試訊息\n充電車輛：' ~ vehicle_name ~ '\n測試時間：' ~ now_time},
+                              {'type':'text','text': '其他資訊：\n目前狀態：' ~ charger_status ~ '\n手把溫度：' ~ handle_temp ~ '°C\nMCU溫度：' ~ mcu_temp ~ '°C\nPCB溫度：' ~ pcb_temp ~ '°C'}
                             ] | tojson }}
               default:
                 - service: script.notify_dispatch
