@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -84,12 +84,12 @@ HELPER_RULES = [
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
     ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
-    ("system", r"v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
+    ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
 ]
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
-    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time)"
+    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until)"
     r"|^input_boolean\.(emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
@@ -137,6 +137,8 @@ SUBGROUPS = {
         ("版本與更新紀錄", r"version|ai_manual|ai_version|ai_leave"),
         ("家人定位追蹤", r"at_home|tracker"),
         ("Tesla 充電", r"tesla"),
+        ("電視待機保持連線", r"tv_ir_power|tv_keepalive"),
+        ("維護模式（更新期間略過通知）", r"maintenance_until"),
     ],
 }
 
@@ -623,4 +625,3 @@ if __name__ == "__main__":
     if "--deploy" in sys.argv:
         subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
-
