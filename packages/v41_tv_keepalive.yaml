@@ -1,0 +1,15 @@
+# ────────────────────────────────────────────────────────
+# 電視待機保持連線（V4.1.6，2026-10-16）
+# 客廳電視用遙控器（紅外線）關機會進入深度待機、網路斷線，HA 連不到。
+# 做法：電視連不上 2 分鐘 → 開啟虛擬開關 input_boolean.tv_ir_power（自動復位）→ Apple 家庭自動化觸發 Aqara 紅外線「電視開關」情境
+#       → 電視開機、重新連上網路 → HA 用網路指令關機（待機但保持連線）。
+# input_boolean.tv_ir_power 需自行加入 HomeKit 橋接清單，並在 Apple 家庭建立「開啟時執行 Aqara 電視情境」的自動化。
+# ────────────────────────────────────────────────────────
+input_boolean:
+  tv_ir_power:
+    name: 電視紅外線開關（按下自動復位）
+    icon: mdi:television-classic
+  tv_keepalive_enable:
+    name: 電視待機保持連線（自動喚醒）
+    icon: mdi:television-shimmer
+    initial: true
