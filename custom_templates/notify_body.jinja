@@ -25,7 +25,7 @@
 {%- elif t | regex_search('冷氣|空調|暖氣') -%}ac
 {%- elif t | regex_search('濕度') -%}humid
 {%- elif t | regex_search('降雨|豪雨|下雨|水位|洩洪|漏水') -%}drop
-{%- elif t | regex_search('PM2|PM1|空氣|清淨機|CO2|二氧化碳|一氧化碳') -%}air
+{%- elif t | regex_search('PM2|PM1|空氣|清淨機|CO2|二氧化碳|一氧化碳|揮發|VOC|甲醛|懸浮微粒') -%}air
 {%- elif t | regex_search('風扇|風速') -%}fan
 {%- elif t | regex_search('Tesla|充電|充電樁') -%}ev
 {%- elif t | regex_search('電壓|電流|功率|用電|耗電|插座') -%}plug
@@ -98,6 +98,19 @@
     {%- endif -%}
   {%- endfor -%}
   {{- (ns.lines + [ns.cur]) | join('\n') -}}
+{%- endif -%}
+{%- endmacro %}
+
+{# V4.1.6：空氣品質讀數的燈號（綠 g／黃 o／紅 r），回傳 ⟦g⟧ 這種行尾標記；標記會被排版吃掉、並把該行數值與圖示染成對應顏色 #}
+{% macro env_tag(kind, v) -%}
+{%- set x = v | float(0) -%}
+{%- if kind == 'co2' -%}{{ '⟦g⟧' if x < 1000 else ('⟦o⟧' if x < 2000 else '⟦r⟧') }}
+{%- elif kind == 'pm' -%}{{ '⟦g⟧' if x <= 15 else ('⟦o⟧' if x <= 35 else '⟦r⟧') }}
+{%- elif kind == 'tvoc' -%}{{ '⟦g⟧' if x <= 220 else ('⟦o⟧' if x <= 600 else '⟦r⟧') }}
+{%- elif kind == 'co' -%}{{ '⟦g⟧' if x < 9 else ('⟦o⟧' if x < 35 else '⟦r⟧') }}
+{%- elif kind == 'ch2o' -%}{{ '⟦g⟧' if x <= 0.05 else ('⟦o⟧' if x <= 0.08 else '⟦r⟧') }}
+{%- elif kind == 'temp' -%}{{ '⟦g⟧' if (15 <= x <= 30) else ('⟦o⟧' if (10 <= x < 15 or 30 < x < 40) else '⟦r⟧') }}
+{%- elif kind == 'hum' -%}{{ '⟦g⟧' if (40 <= x <= 60) else ('⟦o⟧' if (30 <= x < 40 or 60 < x <= 70) else '⟦r⟧') }}
 {%- endif -%}
 {%- endmacro %}
 
@@ -178,7 +191,9 @@
     {%- set ns.out = ns.out + [{'k': 'sec', 't': t}] -%}
     {%- set ns.gap = false -%}
   {%- else -%}
-    {%- set c = clean(t) | trim -%}
+    {%- set tgm = t | regex_findall('⟦([rog])⟧\\s*$') -%}
+    {%- set tg = tgm[0] if tgm | length > 0 else '' -%}
+    {%- set c = clean(t) | regex_replace('\\s*⟦[rog]⟧\\s*$', '') | trim -%}
     {%- set body = c if c else t -%}
     {%- set warn = is_warn(t) | trim == '1' -%}
     {#- V4.1.6：沒有冒號但是「名稱 數值」的舊式行（例如「開始時間 2026-10-15 23:59」「目前狀態 charging」）也當成名稱／數值行 -#}
@@ -195,12 +210,12 @@
     {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
     {%- set lim = (20 if sub else 15) - (2 if ec[1] else 0) -%}
     {#- V4.1.6：同一則圖示顏色以標題為主；挑最多 2 個重點「名稱：數值」行（用電量、電量、預估、用時、狀態…）換成對比色 -#}
-    {%- set own = tone(body) | trim -%}
-    {%- set hl = (lv | length > 0) and (own not in ['r', 'o']) and ns.hi < 3 and (lv[0][0] | regex_search('開始時間|結束時間|用電量|電量|預估|剩餘|用時|已開啟|狀態|情境|模式|金額|次數')) -%}
+    {%- set own = tg if tg else (tone(body) | trim) -%}
+    {%- set hl = (lv | length > 0) and tg == '' and (own not in ['r', 'o']) and ns.hi < 3 and (lv[0][0] | regex_search('開始時間|結束時間|用電量|電量|預估|剩餘|用時|已開啟|狀態|情境|模式|金額|次數')) -%}
     {%- if hl -%}{%- set ns.hi = ns.hi + 1 -%}{%- endif -%}
     {%- set acc = {'n': ['g', 'p', 'g'], 'g': ['n', 'p', 'n'], 'o': ['n', 'p', 'n'], 'r': ['n', 'p', 'n']}[ns.base if ns.base in ['n', 'g', 'o', 'r'] else 'n'] -%}
-    {%- set etone = own if own in ['r', 'o'] else (acc[ns.hi - 1] if hl else ns.base) -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': etone, 'ttone': own, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
+    {%- set etone = tg if tg else own if own in ['r', 'o'] else (acc[ns.hi - 1] if hl else ns.base) -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': etone, 'ttone': own, 'vt': tg, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
@@ -227,7 +242,7 @@
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
     {%- if it.lab -%}
-      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827")}]} -%}
+      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#DC2626", "o": "#D97706", "g": "#16A34A"}[it.vt] if it.vt else ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827"))}]} -%}
     {%- elif it.ca -%}
       {#- 句尾「請注意」：注意符號（無圓圈）接在同一段文字最後，換行時跟著文字走 -#}
       {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if it.icon else "regular"), "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A", "weight": "bold"}]} -%}
@@ -267,7 +282,8 @@
     {%- set ind = '  ' if it.sub else '' -%}
     {%- set caimg = '<span style="color:#F2994A">⚠︎</span>' if it.ca else '' -%}
     {%- if it.lab and not url -%}
-      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ it.lab ~ '&nbsp;&nbsp;**' ~ it.val ~ '**'] -%}
+      {%- set vcol = {'r': '#DC2626', 'o': '#D97706', 'g': '#16A34A'}[it.vt] if it.vt else '' -%}
+      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ it.lab ~ '&nbsp;&nbsp;' ~ (('<span style="color:' ~ vcol ~ '">**' ~ it.val ~ '**</span>') if vcol else ('**' ~ it.val ~ '**'))] -%}
     {%- else -%}
       {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ body ~ caimg] -%}
     {%- endif -%}

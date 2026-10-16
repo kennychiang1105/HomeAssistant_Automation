@@ -45,7 +45,7 @@
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
 | `configuration/Automations/05F緊急模式快照到期AI.yaml` | `05F緊急模式快照到期AI (V4.1.0)` | `ai_05f_emergency_snapshot_expire_v41` | `V4.1.0` |
 | `configuration/Automations/05G緊急三擊維修暫停AI.yaml` | `05G緊急三擊維修暫停AI (V4.1.5)` | `ai_05g_emergency_triple_press_pause` | `V4.1.5` |
-| `configuration/Automations/06環境異常通知AI.yaml` | `06環境異常通知AI (V4.1.5)` | `ai_06_env_alert_v41` | `V4.1.5` |
+| `configuration/Automations/06環境異常通知AI.yaml` | `06環境異常通知AI (V4.1.6)` | `ai_06_env_alert_v41` | `V4.1.6` |
 | `configuration/Automations/07空氣清淨機整合AI.yaml` | `07空氣清淨機整合AI (V4.1.0)` | `ai_07_air_purifier_v41` | `V4.1.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)` | `ai_08_5a_5f_security_webhook_guard` | `V4.0.0` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` / `V4.1.5` |
@@ -625,6 +625,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - 新增 `09C電視待機喚醒AI`（V4.1.6）：客廳電視（Android TV 遙控與 Chromecast）都連不上 2 分鐘 → 開啟 `input_boolean.tv_ir_power`（自動復位，由 Apple 家庭自動化觸發 Aqara 紅外線電視情境）→ 等電視重新連上 → 用網路指令關機，讓電視停在待機且保持連線；連不上發通知不重送。總開關 `input_boolean.tv_keepalive_enable`，維護模式期間不動作。需自行把 `input_boolean.tv_ir_power` 加入 HomeKit 橋接並建立 Apple 家庭自動化。
 - Xiaomi Gateway 3（HACS）更新 v4.2.4 → v4.3.0（2026-10-16）：官方只動 `core/devices.py` 以外的轉換器與新裝置支援，你自己改過的 `core/devices.py` 五處（藍牙溫濕度計 19457/19458/18435、Motion Sensor 2s 19552、旋鈕電量 1.p.1、濕度浮點 18440、Linptech 23308）以三方合併保留；本機修改存成補丁 `scripts/xg3_devices_local.patch`（相對官方 v4.2.4），備份在 `backup_20261016_xiaomi_gateway3_v424/`。**之後 HACS 再更新這個整合會把 `devices.py` 蓋回官方版，需要重新套回你的五處修改**。
 - 3D 儀表板感測器名稱（`floorplan-v4-3d.js`）：廚房／廁所人體感應固定顯示「廚房人體感應」「廁所人體感應」；廚房兩組溫濕度改名「廚房溫濕計」、空品儀佔用改「廚房空品儀 佔用」；單層畫面不再把「廚房／客廳／餐廳」前綴去掉（同一層有多個房間，只會去掉樓層字樣如頂樓、五樓、車庫）。
+- `06環境異常通知AI`（V4.1.6）：空氣品質等通知的讀數改成條列（超標項目、目前讀數各一組，每項一行並縮排），數值與圖示依等級標綠／黃／紅（`notify_body.jinja` 新增行尾標記 `⟦g⟧⟦o⟧⟦r⟧` 與 `env_tag()` 燈號巨集；門檻：CO2 1000／2000、PM2.5 15／35、TVOC 220／600、CO 9／35、甲醛 0.05／0.08、溫度 15–30／10–40、濕度 40–60／30–70），TVOC 改「總揮發性有機物」，「超過門檻」另起一行，內文不再重複標題。其他通知也可在行尾加 `⟦g⟧⟦o⟧⟦r⟧` 標示數值等級。
 - 新增維護模式（`packages/v41_maintenance.yaml`）：`binary_sensor.maintenance_active`（手動 `script.maintenance_start` / `maintenance_stop`、UniFi 設備 20 分鐘內重開機或非已連線、更新安裝中，任一成立即啟動）；維護期間 `notify_dispatch` 與舊格式 `send_line_to_user` 略過一般／重要級且屬連線／離線／失敗／異常類的通知（保全、入侵、門鎖、未關、緊急級照常發送），並寫日誌。
 - 新增 `106D網關切換同步Aqara開關AI`（V4.1.6）：在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，補上對應的 Aqara 虛擬情境開關（在家警戒→`aqara_zai_jia`、夜間警戒→`aqara_wan_an`、離家警戒→`aqara_li_jia`；先關其他四個再打開目標，避免 106 看到 2 個以上開關同時為 on 而走異常分流）。切換後先等 6 秒讓 Apple 家庭同步，沒對應才由 HA 補上；只處理人為／實體切換（context 無 parent_id），不處理 106／情境／100B 等自動化改的模式，所以不會迴圈。不處理解除與警報觸發（106 的解除情境會先解除再回到在家警戒）。（2026-10-14 紀錄：直接切網關時 Apple 家庭的同步有延遲 1 秒～數分鐘，甚至沒有同步。）
 - 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。
