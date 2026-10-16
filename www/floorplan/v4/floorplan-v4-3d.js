@@ -92,6 +92,12 @@ const tempColor = (t) => (t < 16 ? "#4f8fff" : t < 20 ? "#4fc3f7" : t < 24 ? "#4
   : t < 30 ? "#ffd54f" : t < 32 ? "#ffa726" : t < 35 ? "#ff7043" : "#e53935");
 const humColor = (h) => (h < 40 ? "#ffb74d" : h < 60 ? "#66bb6a" : h < 70 ? "#4fc3f7" : h < 80 ? "#5c8dff" : "#7e57c2");
 const NAME_OVERRIDE = {
+  // V4.1.6: kitchen / toilet sensors must always say which room they are in
+  "binary_sensor.kitchen_motion": "廚房人體感應",
+  "binary_sensor.e406bf25caa1_motion": "廁所人體感應",
+  "sensor.kitchenm_wen_du": "廚房溫濕計",
+  "sensor.kitchenm_shi_du": "廚房溫濕計",
+  "binary_sensor.unknown_zhan_kong": "廚房空品儀 佔用",
   "sensor.tesla_charger_homekit_status": "Tesla充電樁",
   "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "二樓門鎖",
   "cover.garage": "車庫鐵門",
@@ -120,9 +126,11 @@ const cleanName = (s, d) => {
   n = n.replace(/^(\S+)\s+\1/, "$1").replace(/\s+/g, " ").trim();
   return n || (s?.attributes?.friendly_name || d.entity);
 };
-// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique
+// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique.
+// V4.1.6: room names (廚房 / 客廳 / 餐廳 …) are NOT stripped – one floor view shows several rooms, and "人體 動作" alone
+// could be the kitchen or the toilet sensor.
 const stripFloor = (n) => {
-  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫|廚房|客廳|餐廳)\s*(?=\S{2,})/, "");
+  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫)\s*(?=\S{2,})/, "");
   return m.length >= 2 ? m : n;
 };
 const clip = (n, max = 8) => ([...n].length > max ? [...n].slice(0, max).join("") + "…" : n);
