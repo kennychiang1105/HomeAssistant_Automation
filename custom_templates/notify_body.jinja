@@ -56,7 +56,7 @@
 {%- elif t | regex_search('臥室|房間') -%}bed
 {%- elif t | regex_search('廁所|浴室') -%}toilet
 {%- elif t | regex_search('廚房') -%}kitchen
-{%- elif t | regex_search('大門|房門|門') -%}door
+{%- elif t | regex_search('大門|房門|門(?!檻)') -%}door
 {%- elif t | regex_search('手機|平板|iPhone|iPad') -%}phone
 {%- elif t | regex_search('位置|地點|座標') -%}pin
 {%- elif t | regex_search('次數|數量|統計|計數') -%}counter
