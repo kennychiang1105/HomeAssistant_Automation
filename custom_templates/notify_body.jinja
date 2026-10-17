@@ -203,7 +203,8 @@
     {%- set p = t[5:].split('@@') -%}
     {%- set ns.out = ns.out + [{'k': 'ver', 'old': p[0], 'new': p[1] if p | length > 1 else ''}] -%}
   {%- elif t.startswith('※') -%}
-    {%- set ns.out = ns.out + [{'k': 'note', 't': t[1:] | trim, 'sub': ns.insec, 'gap': ns.gap}] -%}
+    {%- set flat = t.startswith('※※') -%}
+    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if flat else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- elif t | regex_search('^[【\[].+[】\]]$') -%}
     {%- set ns.sect = t -%}
@@ -256,7 +257,7 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'note' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('48px' if it.sub else '28px'), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('48px' if it.sub else '28px')), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
@@ -298,7 +299,7 @@
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
     {%- set ns.md = ns.md + ['<img src="' ~ (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ '_' ~ it.tone ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ body ~ '**' ~ ('<span style="color:#F2994A">⚠︎</span>' if it.ca else '')] -%}
   {%- elif it.k == 'note' -%}
-    {%- set ns.md = ns.md + [('  ' if it.sub else '') ~ '<sub style="color:#9CA3AF">' ~ mhtml(it.t) ~ '</sub>'] -%}
+    {%- set ns.md = ns.md + [('  ' if (it.sub and not it.flat) else '') ~ '<sub style="color:#9CA3AF">' ~ mhtml(it.t) ~ '</sub>'] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}

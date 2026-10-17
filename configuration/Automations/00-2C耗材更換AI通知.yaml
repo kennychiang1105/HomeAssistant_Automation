@@ -153,7 +153,7 @@
         {% set fl = filter_life | round(0) | int %}
         {% set ns.o = ns.o + ['清淨機濾芯：⟦' ~ ('r' if fl <= 10 else ('o' if fl <= 30 else 'g')) ~ ':' ~ fl ~ '%⟧', '※ 已使用 ' ~ filter_use ~ ' 小時' ~ ('，⟦r:請更換⟧' if fl <= 10 else '')] %}
       {% endif %}
-      {% set ns.o = ns.o + ['', '※ 電量顏色：', '※ ⟦g:綠色⟧ 健康　⟦o:黃色⟧ 偏低　⟦r:紅色⟧ 請更換'] %}
+      {% set ns.o = ns.o + ['', '※※ 電量顏色：', '※※ ⟦g:綠色⟧ 健康　⟦o:黃色⟧ 偏低　⟦r:紅色⟧ 請更換'] %}
       {{ ns.o | join('\n') }}
   actions:
     # ── 1. 濾網：只通知一次 ──
