@@ -876,7 +876,7 @@
   actions:
   - service: light.toggle
     target:
-      entity_id: light.can_ting_deng_zu_1_ha
+      entity_id: light.can_ting_deng_zu_dong_hua
   - delay: '00:00:00.5'
 - id: '1692281816696'
   alias: 800-開關系列-4廚房開關2長按
@@ -921,7 +921,7 @@
   actions:
   - service: light.toggle
     target:
-      entity_id: light.ke_ting_deng_zu_quan
+      entity_id: light.ke_ting_deng_zu_quan_dong_hua
   - delay: '00:00:00.5'
 - id: '1692451967876'
   alias: 800-開關系列-6客廳主開關下2/客廳外開關下1-客廳燈部分開
@@ -941,12 +941,12 @@
   max_exceeded: silent
   conditions: []
   actions:
-  - service: light.turn_on
+  - service: script.turn_on
     target:
-      entity_id:
-      - light.ke_ting_deng_zu_1_ha
-      - light.ke_ting_deng_zu_3
-      - light.yeelink_color5_4181_light
+      entity_id: script.light_group_on
+    data:
+      variables:
+        group: living_partial
   - service: light.turn_off
     target:
       entity_id: light.ke_ting_deng_zu_2

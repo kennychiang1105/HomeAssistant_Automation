@@ -30,7 +30,7 @@
 | `configuration/Automations/00-2C耗材更換AI通知.yaml` | `00-2C耗材更換AI通知 (V4.1.6)` | `ai_00_2c_supply_battery_notify` | `V4.1.6` |
 | `configuration/Automations/00-2D通知開關初始化AI.yaml` | `00-2D通知開關初始化AI (V4.0.0)（共 6 支）` | `ai_00_2d_notify_ha_switch_init` / `ai_00_2d_mood_alert_switch_init` / `ai_00_2d_scene_announce_init` / `ai_00_2d_announce_volume_init` / `ai_00_2d_announce_volume_unify` / `ai_00_2d_announce_volume_test` | `V4.0.0` |
 | `configuration/Automations/00-2E通知測試AI.yaml` | `00-2E通知測試AI (V4.0.0)` | `ai_00_2e_notify_test` | `V4.0.0` |
-| `configuration/Automations/00-2H燈況記憶AI.yaml` | `00-2H燈況記憶AI (V4.0.0)` | `ai_00_2h_light_memory` | `V4.0.0` |
+| `configuration/Automations/00-2H燈況記憶AI.yaml` | `00-2H燈況記憶AI (V4.1.6)` | `ai_00_2h_light_memory` | `V4.1.6` |
 | `configuration/Automations/00-2I快照清理AI.yaml` | `00-2I快照清理AI (V4.0.0)` | `ai_00_2i_snapshot_cleanup` | `V4.0.0` |
 | `configuration/Automations/00-2J氣氛燈情境同步AI.yaml` | `00-2J氣氛燈情境同步AI (V4.1.6)` | `ai_00_2j_ambient_scene_sync` | `V4.1.6` |
 | `configuration/Automations/00-2K頂樓參數初始化AI.yaml` | `00-2K頂樓參數初始化AI (V4.0.0)` | `ai_00_2k_topfloor_param_init` | `V4.0.0` |
@@ -258,7 +258,7 @@
 | `configuration/Scripts/手動廣播AI.yaml` | `手動廣播AI (V4.1.0)` | `announce_manual` | `V4.1.0` |
 | `configuration/Scripts/手動通知AI.yaml` | `手動通知AI (V4.1.0)` | `notify_manual` | `V4.1.0` |
 | `configuration/Scripts/氣氛燈AI.yaml` | `氣氛燈單區閃爍 (V4.0.0) / 氣氛燈關閉燈具顏色還原 (V4.0.0) / 氣氛燈機台整段變色 (V4.0.0) / 氣氛燈機台熄滅閃爍 (V4.0.0) / 情境氣氛燈AI-機台情境色 (V4.0.0) / 情境與狀況氣氛燈AI (V4.1.5)` | `mood_alert_pulse` / `mood_alert_restore_off` / `mood_alert_ap_hold` / `mood_alert_ap_blink` / `ambient_scene` / `mood_alert` | `V4.0.0` / `V4.1.5` |
-| `configuration/Scripts/漸進情境AI.yaml` | `漸進情境AI (V4.0.1)` | `stage_scene` | `V4.0.1` |
+| `configuration/Scripts/漸進情境AI.yaml` | `漸進情境AI (V4.1.6)` | `stage_scene` | `V4.1.6` |
 | `configuration/Scripts/統一通知AI.yaml` | `統一通知AI (V4.0.0) / 統一廣播AI (V4.0.0) / 廣播音量保險 (V4.0.0)` | `notify_dispatch` / `announce` / `announce_volume_guard` | `V4.0.0` |
 | `configuration/Scripts/緊急模式快照還原AI.yaml` | `緊急模式快照 (V4.1.0) / 緊急模式還原 (V4.1.0)` | `emergency_snapshot_save` / `emergency_restore` | `V4.1.0` |
 | `configuration/Scripts/車庫即時影像AI.yaml` | `車庫即時影像AI (V4.0.0)` | `garage_live` | `V4.0.0` |
@@ -629,6 +629,7 @@ V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、0
 - `08-5F頂樓自動上下樓情境AI`（V4.1.6）：上樓不再被「剛下樓的保護鎖」卡住——保護期間只要 iPhone 90 秒內連上頂樓 AP 且攝影機 30 秒內看到人（確定回來），就直接成立上樓情境並解除下樓鎖；下樓鎖 90 秒縮為 45 秒（含 `08-5F頂樓下樓補判AI`）。起因：2026-10-17 21:36 下樓補判成立後 20 秒就回頂樓，上樓情境晚了 1 分 40 秒（21:38:04 才成立）。
 - 新增統一電池電量預估（`scripts/battery_forecast.py`、`packages/v41_battery_forecast.yaml`、`00-2Q電池預估更新AI`）：讀 HA 長期統計（1 年以上），每日中位數＋5 天移動中位數去掉突波與來回跳動，偵測換電池分段，日耗電率＝本輪平均（含最後一次下降後一直沒掉的時間＋半格）、最近 60 天較快時往快修正、有上一輪完整電池或門鎖上一輪日耗電率時混合；目前電量依耗電率從最後一次下降往下推（不低於最後讀數減一格），所以裝置久久才回報時剩餘天數仍會每天遞減。結果在 `sensor.battery_forecast`（屬性 items），每天 03:50 與 HA 啟動後更新。客廳門鎖 `sensor.doorlock_batt_days_left_last_model` 改為優先使用這個預估（舊公式 291 天 → 新 393 天）。
 - `00-2C耗材更換AI通知`（V4.1.6）：定期摘要電量以顏色標在百分比上（綠健康／黃偏低／紅請更換），下一行縮排淡色顯示預估還能用多久（半年以上綠、1～6 個月黃、1 個月內紅），已排除與資料天數改為備註，名稱縮短避免換行，最後附顏色說明；分階段提醒附預估天數。通知範本新增 `※` 開頭的備註行（小字淡色、縮排）與行內顏色標記 `⟦g:文字⟧⟦o:…⟧⟦r:…⟧⟦n:…⟧`。
+- 新增客廳／餐廳開燈動畫（`Scripts/燈組動畫AI.yaml` → `script.light_group_on`、`packages/v41_light_anim.yaml`）：打開客廳小燈、燈組一／二／三／全、餐廳燈組、全部時，燈依序（`input_select.light_anim_style`＝依序）或以暖橘→粉色光帶掃過再回到記憶色溫亮度（氣氛）亮起；只對關著的燈做動畫；緊急模式、氣氛燈提醒、熟睡鎖、總開關 `light_anim_enable` 關閉或風格選「關閉動畫」時瞬間開；關燈一律瞬間。入口＝7 個「（動畫）」template light（`light.ke_ting_xiao_deng_dong_hua`、`…_deng_zu_yi/er/san_dong_hua`、`…_deng_zu_quan_dong_hua`、`light.can_ting_deng_zu_dong_hua`、`light.ke_ting_can_ting_quan_bu_dong_hua`）；800-2／800-5／800-6 實體按鈕、`漸進情境AI`（到家／早安開燈）、3D 面板（`floorplan-v4-3d.js` 的 `switchLights`）、Google 暴露清單（`configuration.yaml`）都改走動畫；Apple 家庭請自行把動畫燈加進 HomeKit 橋接。`00-2H燈況記憶AI`（V4.1.6）記憶範圍擴大到客廳 7 顆＋餐廳 3 顆＋四樓／頂樓樓梯燈，改用燈泡自己的 `light.mode`／`light.color_temperature`／`light.brightness` 判斷（HA 的 color_mode 對這些燈常誤報 rgb）。
 - 新增維護模式（`packages/v41_maintenance.yaml`）：`binary_sensor.maintenance_active`（手動 `script.maintenance_start` / `maintenance_stop`、UniFi 設備 20 分鐘內重開機或非已連線、更新安裝中，任一成立即啟動）；維護期間 `notify_dispatch` 與舊格式 `send_line_to_user` 略過一般／重要級且屬連線／離線／失敗／異常類的通知（保全、入侵、門鎖、未關、緊急級照常發送），並寫日誌。
 - 新增 `106D網關切換同步Aqara開關AI`（V4.1.6）：在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，補上對應的 Aqara 虛擬情境開關（在家警戒→`aqara_zai_jia`、夜間警戒→`aqara_wan_an`、離家警戒→`aqara_li_jia`；先關其他四個再打開目標，避免 106 看到 2 個以上開關同時為 on 而走異常分流）。切換後先等 6 秒讓 Apple 家庭同步，沒對應才由 HA 補上；只處理人為／實體切換（context 無 parent_id），不處理 106／情境／100B 等自動化改的模式，所以不會迴圈。不處理解除與警報觸發（106 的解除情境會先解除再回到在家警戒）。（2026-10-14 紀錄：直接切網關時 Apple 家庭的同步有延遲 1 秒～數分鐘，甚至沒有同步。）
 - 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。

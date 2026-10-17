@@ -91,6 +91,14 @@ const TOGGLE_KINDS = ["light", "switch", "plug", "fan", "cover"];
 const tempColor = (t) => (t < 16 ? "#4f8fff" : t < 20 ? "#4fc3f7" : t < 24 ? "#4dd0b4" : t < 28 ? "#66bb6a"
   : t < 30 ? "#ffd54f" : t < 32 ? "#ffa726" : t < 35 ? "#ff7043" : "#e53935");
 const humColor = (h) => (h < 40 ? "#ffb74d" : h < 60 ? "#66bb6a" : h < 70 ? "#4fc3f7" : h < 80 ? "#5c8dff" : "#7e57c2");
+// V4.1.6: living / dining lights get the opening animation (script.light_group_on) when switched ON from the panel
+const ANIM_RE = /^light\.(ke_ting_deng_zu_(quan|1_ha|2|3)|can_ting_deng_zu_1_ha|yeelink_color5_(4181|106d|fab7|8e3f|5007|2024|f21d|53ed|f618|c8d3)_light)$/;
+const switchLights = (hass, ids, wantOn) => {
+  const anim = wantOn ? ids.filter((e) => ANIM_RE.test(e)) : [];
+  const rest = ids.filter((e) => !anim.includes(e));
+  if (anim.length) hass.callService("script", "light_group_on", { entities: anim });
+  if (rest.length) hass.callService("homeassistant", wantOn ? "turn_on" : "turn_off", { entity_id: rest });
+};
 const NAME_OVERRIDE = {
   // V4.1.6: kitchen / toilet sensors must always say which room they are in
   "binary_sensor.kitchen_motion": "廚房人體感應",
@@ -1969,7 +1977,7 @@ class FloorplanV43D extends HTMLElement {
           timer = setTimeout(() => {                         // long press: all on / all off
             held = true;
             const anyOn = c.items.some((d) => this._hass?.states[d.entity]?.state === "on");
-            this._hass?.callService("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: c.items.map((d) => d.entity) });
+            if (this._hass) switchLights(this._hass, c.items.map((d) => d.entity), !anyOn);
             this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "medium" }));
             try { navigator.vibrate?.(40); } catch (_) {}
           }, 400);
@@ -2176,7 +2184,8 @@ class FloorplanV43D extends HTMLElement {
         sp
       });
 
-      this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
+      if (ANIM_RE.test(d.entity) && this._hass.states[d.entity]?.state !== "on") this._hass.callService("script", "light_group_on", { entities: [d.entity] });
+      else this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
     } else {
       this._moreInfo(d.entity);
     }
