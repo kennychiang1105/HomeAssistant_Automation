@@ -101,6 +101,22 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# V4.1.6：行內顏色標記 ⟦g:文字⟧（綠）⟦o:…⟧（黃）⟦r:…⟧（紅）⟦n:…⟧（灰）→ LINE span 清單（JSON） #}
+{% macro mspans(txt, dflt='#111827') -%}
+{%- set cmap = {'g': '#16A34A', 'o': '#D97706', 'r': '#DC2626', 'n': '#9CA3AF'} -%}
+{%- set ns = namespace(o=[]) -%}
+{%- for c, t1, t2 in (txt | regex_findall('⟦([rogn]):([^⟧]*)⟧|([^⟦]+)')) -%}
+  {%- if c and t1 -%}{%- set ns.o = ns.o + [{"type": "span", "text": t1, "color": cmap[c], "weight": "bold"}] -%}
+  {%- elif t2 -%}{%- set ns.o = ns.o + [{"type": "span", "text": t2, "color": dflt}] -%}{%- endif -%}
+{%- endfor -%}
+{{- ns.o | tojson -}}
+{%- endmacro %}
+{# 同一套標記 → HA 通知（HTML） #}
+{% macro mhtml(txt) -%}
+{{- txt | regex_replace('⟦g:([^⟧]*)⟧', '<span style="color:#16A34A"><b>\\1</b></span>') | regex_replace('⟦o:([^⟧]*)⟧', '<span style="color:#D97706"><b>\\1</b></span>')
+       | regex_replace('⟦r:([^⟧]*)⟧', '<span style="color:#DC2626"><b>\\1</b></span>') | regex_replace('⟦n:([^⟧]*)⟧', '<span style="color:#9CA3AF">\\1</span>') -}}
+{%- endmacro %}
+
 {# V4.1.6：空氣品質讀數的燈號（綠 g／黃 o／紅 r），回傳 ⟦g⟧ 這種行尾標記；標記會被排版吃掉、並把該行數值與圖示染成對應顏色 #}
 {% macro env_tag(kind, v) -%}
 {%- set x = v | float(0) -%}
@@ -186,6 +202,9 @@
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
     {%- set ns.out = ns.out + [{'k': 'ver', 'old': p[0], 'new': p[1] if p | length > 1 else ''}] -%}
+  {%- elif t.startswith('※') -%}
+    {%- set ns.out = ns.out + [{'k': 'note', 't': t[1:] | trim, 'sub': ns.insec, 'gap': ns.gap}] -%}
+    {%- set ns.gap = false -%}
   {%- elif t | regex_search('^[【\[].+[】\]]$') -%}
     {%- set ns.sect = t -%}
     {%- set ns.out = ns.out + [{'k': 'sec', 't': t}] -%}
@@ -236,12 +255,16 @@
       {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
+  {%- elif it.k == 'note' -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('48px' if it.sub else '28px'), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
-    {%- if it.lab -%}
+    {%- if it.lab and '⟦' in it.val -%}
+      {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}] + (mspans(it.val, '#111827') | from_json([]))} -%}
+    {%- elif it.lab -%}
       {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#DC2626", "o": "#D97706", "g": "#16A34A"}[it.vt] if it.vt else ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827"))}]} -%}
     {%- elif it.ca -%}
       {#- 句尾「請注意」：注意符號（無圓圈）接在同一段文字最後，換行時跟著文字走 -#}
@@ -274,6 +297,8 @@
   {%- if it.k == 'hdr' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
     {%- set ns.md = ns.md + ['<img src="' ~ (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ '_' ~ it.tone ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ body ~ '**' ~ ('<span style="color:#F2994A">⚠︎</span>' if it.ca else '')] -%}
+  {%- elif it.k == 'note' -%}
+    {%- set ns.md = ns.md + [('  ' if it.sub else '') ~ '<sub style="color:#9CA3AF">' ~ mhtml(it.t) ~ '</sub>'] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}
@@ -283,7 +308,7 @@
     {%- set caimg = '<span style="color:#F2994A">⚠︎</span>' if it.ca else '' -%}
     {%- if it.lab and not url -%}
       {%- set vcol = {'r': '#DC2626', 'o': '#D97706', 'g': '#16A34A'}[it.vt] if it.vt else '' -%}
-      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ it.lab ~ '&nbsp;&nbsp;' ~ (('<span style="color:' ~ vcol ~ '">**' ~ it.val ~ '**</span>') if vcol else ('**' ~ it.val ~ '**'))] -%}
+      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ it.lab ~ '&nbsp;&nbsp;' ~ (mhtml(it.val) if '⟦' in it.val else (('<span style="color:' ~ vcol ~ '">**' ~ it.val ~ '**</span>') if vcol else ('**' ~ it.val ~ '**')))] -%}
     {%- else -%}
       {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ body ~ caimg] -%}
     {%- endif -%}

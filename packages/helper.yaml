@@ -1348,6 +1348,9 @@ template:
           icon: mdi:calendar-clock
           unit_of_measurement: "d"
           state: >-
+            {# V4.1.6：優先用統一電量預估（sensor.battery_forecast，長期統計＋穩健回歸，沒回報時也每天遞減）；沒有結果才用舊公式 #}
+            {% set fc = (state_attr('sensor.battery_forecast', 'items') or {}).get('door', {}) %}
+            {% if fc.get('status') == 'ok' and fc.get('days') is number %}{{ fc.days | round(1) }}{% else %}
             {% set batt = states('sensor.ke_ting_men_suo_dian_liang_guo_lu')|float(none) %}
             {% set drop = states('input_number.doorlock_batt_drop_last_cycle')|float(none) %}
             {% set model_now = states('input_text.doorlock_batt_model_current')|trim %}
@@ -1370,6 +1373,7 @@ template:
               {{ est_days|round(1) }}
             {% else %}
               unknown
+            {% endif %}
             {% endif %}
           attributes:
             battery_percent: >-

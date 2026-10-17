@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V4.1.0)
+# 00-2C耗材更換AI通知 (V4.1.6)
 # 相容版本：Helpers V4.1.0（packages/v41_supply.yaml）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-17）：定期摘要改版：電量以顏色標在百分比上、下一行縮排淡色顯示預估還能用多久（sensor.battery_forecast，依長短綠黃紅）、已排除改為備註、名稱縮短、最後附顏色說明；分階段提醒附預估天數。
 # - V4.1.0（2026-10-10）：整合與修復。
 #           1. 濾網：只通知一次（壽命 ≤10% 且尚未通知 → 發一次並記在 input_boolean.supply_filter_notified；壽命 >50% 視為已換濾網才清旗標）。
 #              （原本只在「跨過 10／5／1」時觸發，已經錯過就再也不提醒。）
@@ -13,7 +14,7 @@
 #           5. 15 天定期摘要與一鍵測試改為真正的報告內容（原本定期摘要只寫「已執行」）。
 # - V4.0.0：AI 4.0 版號統一；通知改用 script.notify_dispatch、廣播改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2C耗材更換AI通知 (V4.1.0)
+- alias: 00-2C耗材更換AI通知 (V4.1.6)
   id: ai_00_2c_supply_battery_notify
   description: >
     電池（9 顆感測器）與空氣清淨機濾網的耗材通知：階段式提醒、7 天內有效讀數、失聯排除；濾網只通知一次。
@@ -53,20 +54,20 @@
       trigger: state
       entity_id: input_button.battery_system_test_trigger
   variables:
-    automation_version: "V4.1.0"
+    automation_version: "V4.1.6"
     src_name: "00-2C耗材更換AI通知"
     extra_line: "{{ is_state('input_boolean.notify_supply_extra_line_enable', 'on') }}"
     # 單一對照表：k＝記錄用短代碼、e＝電量感測器、n＝顯示名稱
     devices: >-
       {{ [
-        {'k':'gar',     'e':'sensor.garage_battery',                     'n':'車庫鐵門控制器'},
+        {'k':'gar',     'e':'sensor.garage_battery',                     'n':'鐵門控制器'},
         {'k':'door',    'e':'sensor.ke_ting_men_suo_dian_liang_guo_lu',  'n':'客廳門鎖'},
         {'k':'study',   'e':'sensor.shu_fang_gan_ying_kai_guan_battery', 'n':'書房感應開關'},
-        {'k':'cube',    'e':'sensor.0x158d00027d8a8e_battery',           'n':'客廳 Aqara 魔方'},
-        {'k':'toiletm', 'e':'sensor.e406bf25caa1_battery',               'n':'二樓廁所人體感應器'},
-        {'k':'kitchenm','e':'sensor.08b95f06b466_battery',               'n':'廚房小米人體傳感器'},
+        {'k':'cube',    'e':'sensor.0x158d00027d8a8e_battery',           'n':'客廳魔方'},
+        {'k':'toiletm', 'e':'sensor.e406bf25caa1_battery',               'n':'廁所人體感應'},
+        {'k':'kitchenm','e':'sensor.08b95f06b466_battery',               'n':'廚房人體感應'},
         {'k':'nightl',  'e':'sensor.28d1273d78cf_battery',               'n':'廁所夜燈'},
-        {'k':'bell',    'e':'sensor.0x00158d0002419b84_battery',         'n':'二樓門口電鈴'},
+        {'k':'bell',    'e':'sensor.0x00158d0002419b84_battery',         'n':'門口電鈴'},
         {'k':'kswitch', 'e':'sensor.0x00158d00023cd3dc_battery',         'n':'廚房無線開關'}
       ] }}
     # 逐裝置判斷：回傳清單（只含字串與數字）。
@@ -121,20 +122,38 @@
     ev: "{{ eval_json if eval_json is mapping else (eval_json | from_json) }}"
     filter_life: "{{ states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') | float(-1) }}"
     filter_use: "{{ states('sensor.kong_qi_qing_jing_ji_filter_use') | int(0) }}"
+    # V4.1.6：電量以顏色標在百分比上（綠健康／黃偏低／紅請更換）；下一行縮排淡色顯示預估還能用多久（依長短綠黃紅）；
+    #         已排除、資料天數改成縮排淡色備註；名稱縮短避免換行；最後附顏色說明。
     report_text: >-
+      {% set fcs = state_attr('sensor.battery_forecast', 'items') %}
+      {% set fcs = fcs if fcs is mapping else {} %}
       {% set ns = namespace(o=[]) %}
       {% for x in ev.r %}
+        {% set fc = fcs.get(x.k, {}) %}
         {% if x.src == 'none' %}
-          {% set ns.o = ns.o + ['-' ~ x.n ~ '：已排除（7 天內沒有有效讀數）'] %}
+          {% set ns.o = ns.o + [x.n ~ '：⟦n:已排除⟧', '※ 7 天內沒有有效讀數'] %}
         {% else %}
-          {% set adv = '請更換電池（緊急）' if x.s == 3 else ('請更換電池' if x.s == 2 else ('電量偏低，請準備備品' if x.s == 1 else '健康')) %}
-          {% set note = '（資料 ' ~ x.age ~ ' 天前）' if x.src == 'last' else '' %}
-          {% set ns.o = ns.o + ['-' ~ x.n ~ '：' ~ x.v ~ '%' ~ note ~ ('（健康）' if x.s == 0 else '\n  （' ~ adv ~ '）')] %}
+          {% set c = 'g' if x.s == 0 else ('o' if x.s == 1 else 'r') %}
+          {% set ns.o = ns.o + [x.n ~ '：⟦' ~ c ~ ':' ~ x.v ~ '%⟧'] %}
+          {% set d = fc.get('days') %}
+          {% set age_note = ('，資料 ' ~ x.age ~ ' 天前') if x.src == 'last' else '' %}
+          {% if fc.get('status') == 'ok' and d is number %}
+            {% set dt = '3 年以上' if d >= 1095 else (('約 ' ~ ((d / 365) | round(1)) ~ ' 年') if d >= 365 else (('約 ' ~ ((d / 30.4) | round(0) | int) ~ ' 個月') if d >= 60 else ('約 ' ~ (d | round(0) | int) ~ ' 天'))) %}
+            {% set dc = 'g' if d >= 180 else ('o' if d >= 30 else 'r') %}
+            {% set ns.o = ns.o + ['※ 預估還能用 ⟦' ~ dc ~ ':' ~ dt ~ '⟧' ~ ('（資料少，僅供參考）' if fc.get('conf') == 'low' else '') ~ age_note] %}
+          {% elif fc.get('status') in ['stable', 'learning'] %}
+            {% set ns.o = ns.o + ['※ 電量還沒下降，暫時無法預估' ~ age_note] %}
+          {% elif age_note %}
+            {% set ns.o = ns.o + ['※ 資料 ' ~ x.age ~ ' 天前'] %}
+          {% endif %}
+          {% if x.s >= 2 %}{% set ns.o = ns.o + ['※ ⟦r:請更換電池⟧'] %}{% elif x.s == 1 %}{% set ns.o = ns.o + ['※ ⟦o:請準備備品⟧'] %}{% endif %}
         {% endif %}
       {% endfor %}
       {% if filter_life >= 0 %}
-        {% set ns.o = ns.o + ['-空氣清淨機濾芯：' ~ (filter_life | round(0) | int) ~ '%（已使用 ' ~ filter_use ~ ' 小時）' ~ ('（請更換）' if filter_life <= 10 else '（健康）')] %}
+        {% set fl = filter_life | round(0) | int %}
+        {% set ns.o = ns.o + ['清淨機濾芯：⟦' ~ ('r' if fl <= 10 else ('o' if fl <= 30 else 'g')) ~ ':' ~ fl ~ '%⟧', '※ 已使用 ' ~ filter_use ~ ' 小時' ~ ('，⟦r:請更換⟧' if fl <= 10 else '')] %}
       {% endif %}
+      {% set ns.o = ns.o + ['', '※ 電量 ⟦g:綠 健康⟧ ⟦o:黃 偏低⟧ ⟦r:紅 請更換⟧', '※ 剩餘 ⟦g:綠 半年以上⟧ ⟦o:黃 1～6 個月⟧ ⟦r:紅 1 個月內⟧'] %}
       {{ ns.o | join('\n') }}
   actions:
     # ── 1. 濾網：只通知一次 ──
@@ -188,7 +207,9 @@
                       version: "{{ automation_version }}"
                       title: "{{ '裝置電量緊急' if repeat.item.s == 3 else ('請更換電池' if repeat.item.s == 2 else '準備電池備品') }}"
                       message: |-
-                        {{ repeat.item.n }} 電量 {{ repeat.item.v }}%。
+                        {% set fc = (state_attr('sensor.battery_forecast', 'items') or {}).get(repeat.item.k, {}) %}{{ repeat.item.n }} 電量 {{ repeat.item.v }}%。
+                        {% if fc.get('status') == 'ok' and fc.get('days') is number %}預估還能用：約 {{ fc.days | round(0) | int }} 天
+                        {% endif %}
                         {{ '請盡快更換電池。' if repeat.item.s == 3 else ('請更換電池。' if repeat.item.s == 2 else '電量偏低，請準備備品。') }}{{ '（資料 ' ~ repeat.item.age ~ ' 天前）' if repeat.item.src == 'last' else '' }}
               - alias: "剛被排除（7 天內沒有有效讀數）→ 只通知一次"
                 conditions: "{{ repeat.item.act == 'exclude' }}"
