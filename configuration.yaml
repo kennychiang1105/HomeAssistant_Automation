@@ -166,20 +166,28 @@ google_assistant:
       expose: true
 
     # ====== 【電燈與開關】 ======
-    light.yeelink_color5_4181_light:
+    light.ke_ting_xiao_deng_dong_hua:        # V4.1.6：改暴露「（動畫）」版（開燈有動畫、關燈瞬間）
       name: "客廳小燈"
       room: "客廳"
       expose: true
-    light.ke_ting_deng_zu_1_ha:
+    light.ke_ting_deng_zu_yi_dong_hua:
       name: "客廳燈組一"
       room: "客廳"
       expose: true
-    light.ke_ting_deng_zu_2:
+    light.ke_ting_deng_zu_er_dong_hua:
       name: "客廳燈組二"
       room: "客廳"
       expose: true
-    light.ke_ting_deng_zu_3:
+    light.ke_ting_deng_zu_san_dong_hua:
       name: "客廳燈組三"
+      room: "客廳"
+      expose: true
+    light.ke_ting_deng_zu_quan_dong_hua:
+      name: "客廳燈組全"
+      room: "客廳"
+      expose: true
+    light.ke_ting_can_ting_quan_bu_dong_hua:
+      name: "客廳餐廳全部燈"
       room: "客廳"
       expose: true
     switch.lu_deng:
@@ -204,7 +212,7 @@ google_assistant:
       expose: true
     # ====== 【餐廳 (包含廚房與周邊設備)】 ======
     # 電燈與開關
-    light.can_ting_deng_zu_1_ha:
+    light.can_ting_deng_zu_dong_hua:
       name: "餐廳燈"
       room: "餐廳"
       expose: true

@@ -1,0 +1,179 @@
+# ────────────────────────────────────────────────────────
+# 燈組動畫AI (V4.1.6)
+# 相容版本：Helpers V4.1.6（packages/v41_light_anim.yaml）
+# 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-18）：新增。客廳／餐廳燈組開燈動畫：
+#     氣氛＝每顆先以暖橘→粉色淡色依序亮起（光帶掃過），再依序漸變回「上次狀態」（色溫＋亮度記憶 input_text.mood_mem_*，沒有記錄用 4000K／100%）；
+#     依序＝每顆先以 35% 亮度依序亮起，再依序拉到記憶亮度。
+#   只對「目前關著」的燈做動畫；緊急模式、氣氛燈提醒進行中、熟睡鎖、總開關關閉、風格選「關閉動畫」時直接瞬間開。
+#   結束後確認每顆燈回到色溫模式（light.mode = 2），沒有就補送最多 2 次（沿用 mood_alert_restore_off 的做法）。
+# 用法：script.light_group_on  group: living_small / living_1 / living_2 / living_3 / living_all / dining / all / living_partial
+#                          或 entities: [light.… 燈或燈組清單]（情境用）；style（省略讀 input_select.light_anim_style）；origin（all 時 dining／kitchen 由餐廳側先亮）
+# ────────────────────────────────────────────────────────
+light_group_on:
+  alias: 燈組動畫AI (V4.1.6)
+  description: 客廳／餐廳燈組開燈動畫（氣氛／依序），結束回到上次狀態
+  mode: parallel
+  max: 6
+  fields:
+    group:
+      description: living_small / living_1 / living_2 / living_3 / living_all / dining / all / living_partial
+      required: false
+    entities:
+      description: 要開的燈（燈或燈組 entity_id 清單，依序）
+      required: false
+    style:
+      description: 氣氛 / 依序 / 關閉動畫（省略讀 input_select.light_anim_style）
+      required: false
+    origin:
+      description: 起點區 living / dining / kitchen / garage（只影響 all 的先後）
+      required: false
+  variables:
+    automation_version: "V4.1.6"
+    palette: [[255, 150, 40], [255, 120, 90], [255, 100, 150]]
+    living: [yeelink_color5_4181, yeelink_color5_106d, yeelink_color5_fab7, yeelink_color5_8e3f, yeelink_color5_5007, yeelink_color5_2024, yeelink_color5_f21d]
+    dining: [yeelink_color5_53ed, yeelink_color5_f618, yeelink_color5_c8d3]
+  sequence:
+    - variables:
+        # 燈組 → 成員燈（依序）；單顆燈 → 自己
+        gmap: >-
+          {{ {'light.ke_ting_deng_zu_quan': living, 'light.ke_ting_deng_zu_1_ha': ['yeelink_color5_106d', 'yeelink_color5_8e3f'],
+              'light.ke_ting_deng_zu_2': ['yeelink_color5_fab7', 'yeelink_color5_5007'], 'light.ke_ting_deng_zu_3': ['yeelink_color5_2024', 'yeelink_color5_f21d'],
+              'light.can_ting_deng_zu_1_ha': dining} }}
+        named: >-
+          {{ {'living_small': ['yeelink_color5_4181'], 'living_1': ['yeelink_color5_106d', 'yeelink_color5_8e3f'], 'living_2': ['yeelink_color5_fab7', 'yeelink_color5_5007'],
+              'living_3': ['yeelink_color5_2024', 'yeelink_color5_f21d'], 'living_all': living, 'dining': dining,
+              'living_partial': ['yeelink_color5_4181', 'yeelink_color5_106d', 'yeelink_color5_8e3f', 'yeelink_color5_2024', 'yeelink_color5_f21d'],
+              'all': (dining + living[::-1]) if (origin | default('', true)) in ['dining', 'kitchen'] else (living + dining)} }}
+        want_ids: >-
+          {% set ns = namespace(o=[]) %}
+          {% if entities is defined and entities %}
+            {% set src = entities if entities is not string else entities.split(',') %}
+            {% for e in src %}
+              {% set e = e | trim %}
+              {% if e in gmap %}{% set ns.o = ns.o + gmap[e] %}
+              {% elif e.startswith('light.yeelink_color5_') %}{% set ns.o = ns.o + [e[6:-6]] %}{% endif %}
+            {% endfor %}
+          {% elif group is defined and group in named %}{% set ns.o = named[group] %}
+          {% endif %}
+          {{ ns.o | unique | list }}
+        style_eff: "{{ style if (style is defined and style) else states('input_select.light_anim_style') }}"
+        busy_em: >-
+          {% set ns = namespace(b=false) %}
+          {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
+            {% set lt = a.attributes.get('last_triggered') %}
+            {% if (a.attributes.get('current', 0) | int(0)) > 0 or (lt is not none and (now() - lt).total_seconds() < 60) %}{% set ns.b = true %}{% endif %}
+          {% endfor %}
+          {{ ns.b }}
+        instant: >-
+          {{ is_state('input_boolean.light_anim_enable', 'off') or style_eff == '關閉動畫' or busy_em
+             or is_state('input_boolean.mood_alert_active', 'on') or is_state('input_boolean.sleep_silent_active', 'on') }}
+        todo: >-
+          {% set ns = namespace(o=[]) %}
+          {% for i in want_ids %}{% if not is_state('light.' ~ i ~ '_light', 'on') %}{% set ns.o = ns.o + [i] %}{% endif %}{% endfor %}
+          {{ ns.o }}
+        todo_ents: >-
+          {% set ns = namespace(o=[]) %}
+          {% for i in todo %}{% set ns.o = ns.o + ['light.' ~ i ~ '_light'] %}{% endfor %}
+          {{ ns.o }}
+        mem: >-
+          {% set ns = namespace(d={}) %}
+          {% for i in todo %}
+            {% set raw = states('input_text.mood_mem_' ~ i.split('_')[-1]) %}
+            {% set m = (raw | from_json({})) if (raw is string and raw.startswith('{')) else {} %}
+            {% set ns.d = dict(ns.d, **{i: {'k': (m.get('k') | int(4000)) if m.get('k') else 4000, 'b': (m.get('b') | int(255)) if m.get('b') else 255}}) %}
+          {% endfor %}
+          {{ ns.d }}
+    - if: "{{ todo | count == 0 }}"
+      then:
+        - stop: "要開的燈都已經亮著"
+    # ── 不動畫：直接瞬間開 ──
+    - if: "{{ instant }}"
+      then:
+        - action: light.turn_on
+          target:
+            entity_id: "{{ todo_ents }}"
+        - stop: "瞬間開燈（動畫略過）"
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.light_anim_active
+    # ── 第 1 波 ──
+    - repeat:
+        for_each: "{{ todo }}"
+        sequence:
+          - if: "{{ style_eff == '氣氛' }}"
+            then:
+              - action: light.turn_on
+                target:
+                  entity_id: "light.{{ repeat.item }}_light"
+                data:
+                  rgb_color: "{{ palette[(repeat.index - 1) % (palette | count)] }}"
+                  brightness: 90
+                continue_on_error: true
+              - delay:
+                  milliseconds: 220
+            else:
+              - action: light.turn_on
+                target:
+                  entity_id: "light.{{ repeat.item }}_light"
+                data:
+                  color_temp_kelvin: "{{ mem[repeat.item].k }}"
+                  brightness: "{{ [(mem[repeat.item].b * 0.35) | int, 12] | max }}"
+                continue_on_error: true
+              - delay:
+                  milliseconds: 200
+    - delay:
+        milliseconds: 300
+    # ── 第 2 波：回到上次狀態 ──
+    - repeat:
+        for_each: "{{ todo }}"
+        sequence:
+          - action: light.turn_on
+            target:
+              entity_id: "light.{{ repeat.item }}_light"
+            data:
+              color_temp_kelvin: "{{ mem[repeat.item].k }}"
+              brightness: "{{ mem[repeat.item].b }}"
+            continue_on_error: true
+          - delay:
+              milliseconds: 130
+    # ── 確認回到色溫模式：1.5 秒後檢查，有沒回到的補送一次；再 2 秒檢查，還是沒有就再補一次 ──
+    - delay:
+        milliseconds: 1500
+    - variables:
+        bad1: >-
+          {% set ns = namespace(o=[]) %}
+          {% for i in todo %}{% if not (is_state('light.' ~ i ~ '_light', 'on') and state_attr('light.' ~ i ~ '_light', 'light.mode') | int(0) == 2) %}{% set ns.o = ns.o + [i] %}{% endif %}{% endfor %}
+          {{ ns.o }}
+    - if: "{{ bad1 | count > 0 }}"
+      then:
+        - repeat:
+            for_each: "{{ bad1 }}"
+            sequence:
+              - action: light.turn_on
+                target:
+                  entity_id: "light.{{ repeat.item }}_light"
+                data:
+                  color_temp_kelvin: "{{ mem[repeat.item].k }}"
+                  brightness: "{{ mem[repeat.item].b }}"
+                continue_on_error: true
+        - delay:
+            milliseconds: 2000
+        - variables:
+            bad2: >-
+              {% set ns = namespace(o=[]) %}
+              {% for i in bad1 %}{% if not (is_state('light.' ~ i ~ '_light', 'on') and state_attr('light.' ~ i ~ '_light', 'light.mode') | int(0) == 2) %}{% set ns.o = ns.o + [i] %}{% endif %}{% endfor %}
+              {{ ns.o }}
+        - repeat:
+            for_each: "{{ bad2 }}"
+            sequence:
+              - action: light.turn_on
+                target:
+                  entity_id: "light.{{ repeat.item }}_light"
+                data:
+                  color_temp_kelvin: "{{ mem[repeat.item].k }}"
+                  brightness: "{{ mem[repeat.item].b }}"
+                continue_on_error: true
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.light_anim_active

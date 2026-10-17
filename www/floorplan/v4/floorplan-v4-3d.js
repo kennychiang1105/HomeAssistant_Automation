@@ -91,7 +91,21 @@ const TOGGLE_KINDS = ["light", "switch", "plug", "fan", "cover"];
 const tempColor = (t) => (t < 16 ? "#4f8fff" : t < 20 ? "#4fc3f7" : t < 24 ? "#4dd0b4" : t < 28 ? "#66bb6a"
   : t < 30 ? "#ffd54f" : t < 32 ? "#ffa726" : t < 35 ? "#ff7043" : "#e53935");
 const humColor = (h) => (h < 40 ? "#ffb74d" : h < 60 ? "#66bb6a" : h < 70 ? "#4fc3f7" : h < 80 ? "#5c8dff" : "#7e57c2");
+// V4.1.6: living / dining lights get the opening animation (script.light_group_on) when switched ON from the panel
+const ANIM_RE = /^light\.(ke_ting_deng_zu_(quan|1_ha|2|3)|can_ting_deng_zu_1_ha|yeelink_color5_(4181|106d|fab7|8e3f|5007|2024|f21d|53ed|f618|c8d3)_light)$/;
+const switchLights = (hass, ids, wantOn) => {
+  const anim = wantOn ? ids.filter((e) => ANIM_RE.test(e)) : [];
+  const rest = ids.filter((e) => !anim.includes(e));
+  if (anim.length) hass.callService("script", "light_group_on", { entities: anim });
+  if (rest.length) hass.callService("homeassistant", wantOn ? "turn_on" : "turn_off", { entity_id: rest });
+};
 const NAME_OVERRIDE = {
+  // V4.1.6: kitchen / toilet sensors must always say which room they are in
+  "binary_sensor.kitchen_motion": "廚房人體感應",
+  "binary_sensor.e406bf25caa1_motion": "廁所人體感應",
+  "sensor.kitchenm_wen_du": "廚房溫濕計",
+  "sensor.kitchenm_shi_du": "廚房溫濕計",
+  "binary_sensor.unknown_zhan_kong": "廚房空品儀 佔用",
   "sensor.tesla_charger_homekit_status": "Tesla充電樁",
   "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "二樓門鎖",
   "cover.garage": "車庫鐵門",
@@ -120,9 +134,11 @@ const cleanName = (s, d) => {
   n = n.replace(/^(\S+)\s+\1/, "$1").replace(/\s+/g, " ").trim();
   return n || (s?.attributes?.friendly_name || d.entity);
 };
-// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique
+// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique.
+// V4.1.6: room names (廚房 / 客廳 / 餐廳 …) are NOT stripped – one floor view shows several rooms, and "人體 動作" alone
+// could be the kitchen or the toilet sensor.
 const stripFloor = (n) => {
-  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫|廚房|客廳|餐廳)\s*(?=\S{2,})/, "");
+  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫)\s*(?=\S{2,})/, "");
   return m.length >= 2 ? m : n;
 };
 const clip = (n, max = 8) => ([...n].length > max ? [...n].slice(0, max).join("") + "…" : n);
@@ -259,6 +275,9 @@ class FloorplanV43D extends HTMLElement {
         .sm .ic { width:26px; height:26px; --mdc-icon-size:16px; } .sm .nm { font-size:11px; } .sm .ty { font-size:9.5px; }
         .sm .tag { gap:5px; padding:2px 7px 2px 2px; } .sm .seg button { padding:7px 8px; font-size:11.5px; }
         .sm .tools button, .sm .zones button { padding:6px 8px; font-size:11px; } .sm .scn button { padding:8px 4px; font-size:12px; }
+        .phone .ic { width:26px; height:26px; --mdc-icon-size:16px; } .phone .nm { font-size:11px; } .phone .ty { font-size:9.5px; }
+        .phone .tag { gap:5px; padding:2px 7px 2px 2px; }
+        .phone .pin.floorbadge .nm { font-size:13px; } .phone .pin.floorbadge .tag { padding:3px 9px 3px 3px; }
         .nolabels .tx, .pin.compact .tx { display:none; }
         .pin.compact .tag { padding:3px; }
         .scn button, .zones button, .tools button, .seg button, .chips button {
@@ -1731,6 +1750,12 @@ class FloorplanV43D extends HTMLElement {
     if (!this._ready) return;
     const T = this._T;
     const all = this._floor === "全棟";
+    // V4.1.6: the whole-house view shows the names (phone too) unless the user explicitly toggled the names button
+    try {
+      if (sessionStorage.getItem("floorplan_v4_labels") === null) {
+        this._labels = all || (this.shadowRoot.querySelector(".wrap")?.clientWidth || window.innerWidth) >= 768;
+      }
+    } catch (_) {}
     const names = Object.keys(this._cfg.floors).filter((n) => this._groups[n]);
     names.forEach((n, i) => {
       const g = this._groups[n].group;
@@ -1743,7 +1768,9 @@ class FloorplanV43D extends HTMLElement {
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
     this._zone = null;
     const whole = this._floor === "全棟";
-    for (const q of [".filter", ".zones", ".scn", ".tools"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    // V4.1.6: the tools row (restore default view / names) stays available in the whole-house view; only the per-floor bars are hidden
+    for (const q of [".filter", ".zones", ".scn"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    { const e = this.shadowRoot.querySelector(".tools"); if (e) e.style.visibility = ""; }
     this._renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, whole ? 1.2 : 1.65));
     this._renderScenes();
     this._expanded = null;
@@ -1950,7 +1977,7 @@ class FloorplanV43D extends HTMLElement {
           timer = setTimeout(() => {                         // long press: all on / all off
             held = true;
             const anyOn = c.items.some((d) => this._hass?.states[d.entity]?.state === "on");
-            this._hass?.callService("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: c.items.map((d) => d.entity) });
+            if (this._hass) switchLights(this._hass, c.items.map((d) => d.entity), !anyOn);
             this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "medium" }));
             try { navigator.vibrate?.(40); } catch (_) {}
           }, 400);
@@ -2157,7 +2184,8 @@ class FloorplanV43D extends HTMLElement {
         sp
       });
 
-      this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
+      if (ANIM_RE.test(d.entity) && this._hass.states[d.entity]?.state !== "on") this._hass.callService("script", "light_group_on", { entities: [d.entity] });
+      else this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
     } else {
       this._moreInfo(d.entity);
     }
@@ -2404,7 +2432,14 @@ class FloorplanV43D extends HTMLElement {
     const wrap = this.shadowRoot.querySelector(".wrap");
     const w = wrap.clientWidth, h = wrap.clientHeight;
     if (!w || !h) return;
-    wrap.classList.toggle("phone", w < 600);                 // phone: icon-only filter buttons
+    const isPhone = w < 600;
+    wrap.classList.toggle("phone", isPhone);                 // phone: icon-only filter buttons, smaller tags
+    if (isPhone !== this._phone) {                           // tag size changes -> forget the cached widths
+      this._phone = isPhone;
+      for (const sp of this._spots || []) { sp.tw = 0; sp.fullW = 0; }
+      for (const pr of this._persons || []) { pr.tw = 0; pr.fullW = 0; }
+      this._barDirty = true;
+    }
     const small = w < 900;                                   // e.g. iPad mini landscape: smaller labels and buttons
     if (small !== this._small) {
       this._small = small;
@@ -2415,7 +2450,7 @@ class FloorplanV43D extends HTMLElement {
     }
     try {
       if (sessionStorage.getItem("floorplan_v4_labels") === null) {
-        const wantLabels = w >= 768;
+        const wantLabels = w >= 768 || this._floor === "全棟";
         if (this._labels !== wantLabels) {
           this._labels = wantLabels;
           this._syncTools?.();
@@ -2509,9 +2544,16 @@ class FloorplanV43D extends HTMLElement {
         const boxes = col.map((it) => {
           const sp = it.sp;
           if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
+          // V4.1.6: the cached width can be stale/too small (measured while hidden, or the 90px fallback) -> the right-hand tags (stair lights) stuck out past
+          // the card edge. Re-measure every pass while the tag is visible, and never place a tag where it would be clipped.
+          if (this._labels) { const ow = sp.tag.offsetWidth; if (ow >= 60) { sp.tw = ow; sp.th = sp.tag.offsetHeight || sp.th || 36; } }
           const compact = !this._labels;
           if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
-          return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
+          // never let a tag be wider than its half of the card (long names get cut with an ellipsis instead of running off the edge)
+          const maxTw = Math.max(80, w / 2 - 16);
+          if (!compact && sp.tw > maxTw) { sp.tag.style.maxWidth = `${maxTw}px`; sp.tag.style.overflow = "hidden"; sp.tag.style.textOverflow = "ellipsis"; }
+          else if (sp.tag.style.maxWidth) { sp.tag.style.maxWidth = ""; sp.tag.style.overflow = ""; sp.tag.style.textOverflow = ""; }
+          return { it, tw: compact ? 36 : Math.min(sp.tw, maxTw), th: compact ? 36 : sp.th };
         });
         let y = topLimit;
         for (const b of boxes) { b.y = Math.max(y, b.it.y - b.th / 2); y = b.y + b.th + 6; }
@@ -2519,7 +2561,7 @@ class FloorplanV43D extends HTMLElement {
         if (over > 0) for (const b of boxes) b.y = Math.max(topLimit, b.y - over);
         for (const b of boxes) {
           const { it, tw, th } = b, sp = it.sp;
-          const lx = side === "L" ? 8 : w - tw - 8;
+          const lx = side === "L" ? 8 : Math.max(8, w - tw - 12);
           placed.push({ x: lx - 3, y: b.y - 3, w: tw + 6, h: th + 6 });
           sp.el.style.left = `${it.x}px`; sp.el.style.top = `${it.y}px`;
           sp.tag.style.transform = `translate(${lx - it.x}px, ${b.y - it.y}px)`;
@@ -2786,8 +2828,13 @@ class FloorplanV4Sidebar extends HTMLElement {
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
-        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; max-width:72px;
-                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; white-space:nowrap; }
+        /* narrow sidebar (e.g. iPad mini landscape): day tag stays to the right of the clock, seconds a little smaller; if it still does not fit
+           _fit() steps the clock / tag down (fit1, fit2) until everything is visible on one line */
+        .narrow .top { flex-wrap:nowrap; gap:6px; } .narrow .time { white-space:nowrap; } .narrow .time .s { font-size:.74em; }
+        .narrow.fit1 .time { font-size:23px; } .narrow.fit1 .ntag { font-size:10px; padding:1px 5px; }
+        .narrow.fit2 .time { font-size:20px; } .narrow.fit2 .time .s { font-size:.66em; } .narrow.fit2 .ntag { font-size:9px; padding:1px 4px; }
+        .narrow.fit3 .time { font-size:17px; letter-spacing:0; } .narrow.fit3 .top { gap:4px; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
                       color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
@@ -2912,6 +2959,15 @@ class FloorplanV4Sidebar extends HTMLElement {
     const we = n.getDay() === 0 || n.getDay() === 6;
     return { text: we ? "週末" : "工作日", red: we };
   }
+  // narrow layout: make the clock + day tag fit on one line (try normal, then fit1, then fit2)
+  _fit() {
+    const box = this.shadowRoot.querySelector(".box"), top = this.shadowRoot.querySelector(".top");
+    if (!box || !top) return;
+    box.classList.remove("fit1", "fit2", "fit3");
+    if (!box.classList.contains("narrow")) return;
+    const over = () => top.scrollWidth > top.clientWidth + 1;
+    for (const c of ["fit1", "fit2", "fit3"]) { if (!over()) break; box.classList.add(c); }
+  }
   _clock() {
     const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date"), nt = this.shadowRoot.querySelector(".ntag");
     const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -2925,7 +2981,8 @@ class FloorplanV4Sidebar extends HTMLElement {
       const di = this._dayInfo(n);
       const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}">${esc(di.text)}</span>`;
       if (d.dataset.h !== dhtml) { d.innerHTML = dhtml; d.dataset.h = dhtml; }
-      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); }
+      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); this._fit(); }
+      if (n.getSeconds() === 0) this._fit();                                // re-check once a minute (digit widths change)
     };
     this._updFn = upd;
     upd();
@@ -2940,7 +2997,7 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (this.shadowRoot.querySelector(".time")) this._clock();          // HA detaches cards on view switch: restart the clock
     this._vis = () => { if (!document.hidden) this._clock(); };
     document.addEventListener("visibilitychange", this._vis);
-    this._ro = new ResizeObserver(() => this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250));
+    this._ro = new ResizeObserver(() => { this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250); this._fit(); });
     this._ro.observe(this);
   }
   disconnectedCallback() {

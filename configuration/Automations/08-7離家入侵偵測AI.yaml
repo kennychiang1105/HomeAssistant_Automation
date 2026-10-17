@@ -1,0 +1,167 @@
+﻿# ──────────────────────────────────────────────
+# 08-7離家入侵偵測AI (V4.1.6)  ／  08-7D入侵偵測感應器統計AI (V4.1.6)
+# 更新紀錄：
+# - V4.1.6（2026-10-12）：新增。離家入侵偵測。
+#   監控條件：總開關開、四位家人都離家滿 intrusion_arm_nobody_min（預設 10）分鐘、網關離家情境滿 intrusion_arm_away_min（預設 20）分鐘，且網關不在在家模式。
+#   訊號：由 08-7C 自動產生的收集自動化送出 intrusion_signal 事件（室內動作、客廳門鎖、車庫鐵門、二樓門鎖），只算「目前生效清單」內的感應器：
+#     sensor.intrusion_effective_summary ＝ 每週統計穩定的感應器 ＋ 手動強制納入 － 自動排除的 － 手動強制排除的。
+#   入口訊號有緩衝：車庫鐵門 intrusion_garage_buffer_min（預設 5）分鐘、門鎖／二樓門鎖 intrusion_lock_buffer_sec（預設 90）秒，等家人回來（手機連上 Wi-Fi、100A 切到在家）；
+#   緩衝後條件仍成立才算數。用 HA／HomeKit／其他自動化開鐵門、二樓門鎖不算。
+#   判定：intrusion_window_min（預設 5）分鐘內，來自「不同裝置」的 2 個以上訊號 → script.intrusion_alert（影子模式只寫 logbook）。
+#   input_button.intrusion_watch_test：要先打開 input_boolean.intrusion_watch_test_mode（LINE 測試模式，預設關，送出一次後自動關閉）才會真的發測試通知（含兩張攝影機截圖與按鈕，不廣播、不響警報）；沒開只發一則 HA 說明通知。
+#   乾跑測試：發送事件 intrusion_signal，event_data 加 test: dry，會略過監控條件與緩衝、只寫 logbook。
+#   按鈕觸發加 not_from（unavailable／unknown）：重新載入 helper 時按鈕實體會重新出現，不能被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
+# ──────────────────────────────────────────────
+- id: ai_08_7_intrusion_watch
+  alias: 08-7離家入侵偵測AI (V4.1.6)
+  description: 離家且沒人在家時，2 個以上不同裝置的訊號 → 緊急通知、廣播，倒數後觸發網關警報（影子模式先只寫紀錄）。
+  mode: parallel
+  max: 30
+  max_exceeded: silent
+  triggers:
+    - trigger: event
+      id: signal
+      event_type: intrusion_signal
+    - trigger: state
+      id: test
+      entity_id: input_button.intrusion_watch_test
+      not_from:
+        - unavailable
+        - unknown
+  variables:
+    automation_version: "V4.1.6"
+    ev: "{{ trigger.event.data if trigger.id == 'signal' else {} }}"
+    dry: "{{ ev.get('test', '') == 'dry' }}"
+    ent: "{{ ev.get('entity_id', '') }}"
+    role: "{{ ev.get('role', '') }}"
+    via_ha: "{{ ev.get('via_ha', false) | bool(false) }}"
+  actions:
+    - if: "{{ trigger.id == 'test' }}"
+      then:
+        - if: "{{ is_state('input_boolean.intrusion_watch_test_mode', 'on') }}"
+          then:
+            # 測試模式只用一次：先關掉，再發測試通知（含兩張攝影機截圖，不廣播、不響警報）
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.intrusion_watch_test_mode
+            - action: script.intrusion_alert
+              data:
+                names: 手動測試按鈕
+                mode: test
+          else:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: "08-7離家入侵偵測AI (V4.1.6)"
+                version: "{{ automation_version }}"
+                title: 入侵偵測測試未發送
+                message: |-
+                  「入侵偵測 LINE 測試模式」沒有開，所以沒有發送測試通知。
+                  要測試的話，先在自動化管理面板打開「LINE 測試模式」，再按「測試通知」按鈕（送出一次後會自動關閉）。
+        - stop: "測試按鈕"
+    - alias: "總開關"
+      condition: state
+      entity_id: input_boolean.intrusion_watch_enable
+      state: "on"
+    - alias: "監控條件：全員離家滿 N 分鐘、網關離家滿 M 分鐘、不在在家模式（乾跑略過）"
+      condition: template
+      value_template: >-
+        {{ dry or (
+             is_state('binary_sensor.at_home_nobody_home', 'on')
+             and (now() - states.binary_sensor.at_home_nobody_home.last_changed).total_seconds() >= (states('input_number.intrusion_arm_nobody_min') | float(10)) * 60
+             and is_state('input_boolean.aqara_li_jia', 'on')
+             and (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() >= (states('input_number.intrusion_arm_away_min') | float(20)) * 60
+             and is_state('input_boolean.aqara_zai_jia', 'off') ) }}
+    - alias: "只算「目前生效清單」內的感應器"
+      condition: template
+      value_template: "{{ ent in (state_attr('sensor.intrusion_effective_summary', 'monitored') or []) }}"
+    - alias: "車庫鐵門、二樓門鎖：從 HA／HomeKit／自動化開的不算"
+      condition: template
+      value_template: "{{ role not in ['garage', 'er_lou'] or not via_ha }}"
+    - alias: "入口訊號緩衝（等家人回來）"
+      if: "{{ not dry and role in ['garage', 'lock', 'er_lou'] }}"
+      then:
+        - delay:
+            seconds: >-
+              {{ ((states('input_number.intrusion_garage_buffer_min') | float(5)) * 60) if role == 'garage'
+                 else (states('input_number.intrusion_lock_buffer_sec') | float(90)) }}
+    - alias: "緩衝後再檢查一次監控條件"
+      condition: template
+      value_template: >-
+        {{ dry or (
+             is_state('binary_sensor.at_home_nobody_home', 'on')
+             and (now() - states.binary_sensor.at_home_nobody_home.last_changed).total_seconds() >= (states('input_number.intrusion_arm_nobody_min') | float(10)) * 60
+             and is_state('input_boolean.aqara_li_jia', 'on')
+             and (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() >= (states('input_number.intrusion_arm_away_min') | float(20)) * 60
+             and is_state('input_boolean.aqara_zai_jia', 'off') ) }}
+    - action: script.intrusion_record_signal
+      data:
+        entity_id: "{{ ent }}"
+      response_variable: rec
+    - alias: "視窗內有 2 個以上不同裝置的訊號"
+      if: "{{ rec is mapping and (rec.count | int(0)) >= 2 }}"
+      then:
+        - action: script.intrusion_alert
+          data:
+            names: >-
+              {% for e in rec.entities %}{{ state_attr(e, 'friendly_name') or e }}{% if not loop.last %}、{% endif %}{% endfor %}
+            mode: >-
+              {{ 'dry' if dry else ('shadow' if is_state('input_boolean.intrusion_watch_shadow', 'on') else 'real') }}
+
+- id: ai_08_7d_intrusion_stats
+  alias: 08-7D入侵偵測感應器統計AI (V4.1.6)
+  description: 每週日 03:50（或按統計按鈕）用離家期間的紀錄統計感應器穩定度：不穩的排除、穩定的納入，並更新訊號收集自動化。
+  mode: single
+  triggers:
+    - trigger: time
+      id: weekly
+      at: "03:50:00"
+    - trigger: state
+      id: manual
+      entity_id: input_button.intrusion_stats_run
+      not_from:
+        - unavailable
+        - unknown
+  conditions:
+    - condition: template
+      value_template: "{{ trigger.id == 'manual' or now().weekday() == 6 }}"
+  actions:
+    - action: shell_command.intrusion_stats
+      response_variable: st
+      continue_on_error: true
+    - variables:
+        out: "{{ (st.stdout if st is mapping else '') | trim }}"
+        ok: "{{ st is mapping and st.returncode == 0 and not out.startswith('ERROR') and out != '' }}"
+        changed: "{{ out.split('\n')[0] == 'CHANGED' }}"
+        need_reload: "{{ 'RELOAD' in out }}"
+    - if: "{{ ok }}"
+      then:
+        - action: homeassistant.update_entity
+          target:
+            entity_id: sensor.intrusion_sensor_lists
+          continue_on_error: true
+        - if: "{{ changed or trigger.id == 'manual' }}"
+          then:
+            - action: script.notify_dispatch
+              data:
+                level: info
+                line: false
+                source: "08-7D入侵偵測感應器統計AI (V4.1.6)"
+                version: V4.1.6
+                title: 入侵偵測感應器統計
+                message: "{{ out.replace('RELOAD', '') | trim }}"
+        - if: "{{ need_reload }}"
+          then:
+            - delay: "00:00:02"
+            - action: automation.reload
+      else:
+        - action: script.notify_dispatch
+          data:
+            level: info
+            line: false
+            source: "08-7D入侵偵測感應器統計AI (V4.1.6)"
+            version: V4.1.6
+            title: 入侵偵測感應器統計失敗
+            message: "{{ out[:200] if out else '沒有輸出' }}"
+

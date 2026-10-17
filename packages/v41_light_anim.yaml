@@ -1,0 +1,211 @@
+# ────────────────────────────────────────────────────────
+# 客廳／餐廳燈組開燈動畫（V4.1.6，2026-10-18）
+# 打開客廳小燈、客廳燈組一／二／三／全、餐廳燈組、全部時，燈依序（或以氣氛色彩）亮起，最後回到「上次狀態」（色溫＋亮度記憶）；關燈維持瞬間。
+# 做法：原燈組 helper 不動（當成實際成員與狀態來源），新增下列「（動畫）」template light，開燈時改跑 script.light_group_on；
+#       按鈕、HA App／3D 面板、Apple 家庭／語音、情境都改用這些實體（Apple 家庭／Google 需自行加入橋接／暴露清單）。
+# 風格由 input_select.light_anim_style 選（氣氛／依序／關閉動畫），總開關 input_boolean.light_anim_enable。
+# ────────────────────────────────────────────────────────
+input_select:
+  light_anim_style:
+    name: 開燈動畫風格
+    icon: mdi:movie-open-play-outline
+    options:
+      - 氣氛
+      - 依序
+      - 關閉動畫
+
+input_boolean:
+  light_anim_enable:
+    name: 開燈動畫（總開關）
+    icon: mdi:animation-play-outline
+    initial: true
+  light_anim_active:
+    name: 開燈動畫進行中（內部）
+    icon: mdi:progress-clock
+
+input_text:
+  mood_mem_fab7:
+    name: 氣氛燈燈況記憶_客廳燈2
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_5007:
+    name: 氣氛燈燈況記憶_客廳燈4
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_2024:
+    name: 氣氛燈燈況記憶_客廳燈5
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_f21d:
+    name: 氣氛燈燈況記憶_客廳燈6
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_53ed:
+    name: 氣氛燈燈況記憶_餐廳燈1
+    icon: mdi:palette-outline
+    max: 120
+  mood_mem_c8d3:
+    name: 氣氛燈燈況記憶_餐廳燈3
+    icon: mdi:palette-outline
+    max: 120
+
+template:
+  - light:
+      - name: 客廳小燈（動畫）
+        unique_id: light_anim_living_small
+        icon: mdi:lightbulb-on-outline
+        state: "{{ is_state('light.yeelink_color5_4181_light', 'on') }}"
+        level: "{{ state_attr('light.yeelink_color5_4181_light', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: living_small
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.yeelink_color5_4181_light
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.yeelink_color5_4181_light
+            data:
+              brightness: "{{ brightness }}"
+      - name: 客廳燈組一（動畫）
+        unique_id: light_anim_living_1
+        icon: mdi:lightbulb-group-outline
+        state: "{{ is_state('light.ke_ting_deng_zu_1_ha', 'on') }}"
+        level: "{{ state_attr('light.ke_ting_deng_zu_1_ha', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: living_1
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_1_ha
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.ke_ting_deng_zu_1_ha
+            data:
+              brightness: "{{ brightness }}"
+      - name: 客廳燈組二（動畫）
+        unique_id: light_anim_living_2
+        icon: mdi:lightbulb-group-outline
+        state: "{{ is_state('light.ke_ting_deng_zu_2', 'on') }}"
+        level: "{{ state_attr('light.ke_ting_deng_zu_2', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: living_2
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_2
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.ke_ting_deng_zu_2
+            data:
+              brightness: "{{ brightness }}"
+      - name: 客廳燈組三（動畫）
+        unique_id: light_anim_living_3
+        icon: mdi:lightbulb-group-outline
+        state: "{{ is_state('light.ke_ting_deng_zu_3', 'on') }}"
+        level: "{{ state_attr('light.ke_ting_deng_zu_3', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: living_3
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_3
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.ke_ting_deng_zu_3
+            data:
+              brightness: "{{ brightness }}"
+      - name: 客廳燈組全（動畫）
+        unique_id: light_anim_living_all
+        icon: mdi:lightbulb-group
+        state: "{{ is_state('light.ke_ting_deng_zu_quan', 'on') }}"
+        level: "{{ state_attr('light.ke_ting_deng_zu_quan', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: living_all
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.ke_ting_deng_zu_quan
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.ke_ting_deng_zu_quan
+            data:
+              brightness: "{{ brightness }}"
+      - name: 餐廳燈組（動畫）
+        unique_id: light_anim_dining
+        icon: mdi:lightbulb-group
+        state: "{{ is_state('light.can_ting_deng_zu_1_ha', 'on') }}"
+        level: "{{ state_attr('light.can_ting_deng_zu_1_ha', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: dining
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id: light.can_ting_deng_zu_1_ha
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id: light.can_ting_deng_zu_1_ha
+            data:
+              brightness: "{{ brightness }}"
+      - name: 客廳餐廳全部（動畫）
+        unique_id: light_anim_all
+        icon: mdi:lightbulb-group
+        state: "{{ is_state('light.ke_ting_deng_zu_quan', 'on') or is_state('light.can_ting_deng_zu_1_ha', 'on') }}"
+        level: "{{ state_attr('light.ke_ting_deng_zu_quan', 'brightness') | int(255) if is_state('light.ke_ting_deng_zu_quan', 'on') else state_attr('light.can_ting_deng_zu_1_ha', 'brightness') | int(255) }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.light_group_on
+            data:
+              variables:
+                group: all
+        turn_off:
+          - action: light.turn_off
+            target:
+              entity_id:
+                - light.ke_ting_deng_zu_quan
+                - light.can_ting_deng_zu_1_ha
+        set_level:
+          - action: light.turn_on
+            target:
+              entity_id:
+                - light.ke_ting_deng_zu_quan
+                - light.can_ting_deng_zu_1_ha
+            data:
+              brightness: "{{ brightness }}"

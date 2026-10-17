@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -24,6 +24,8 @@ out=[]
 GONE={"input_boolean.door_light_auto",
       # 2026-10-11 105門鎖自動判斷到家已併入 100A
       "automation.automation_26",
+      # 2026-10-12 入侵偵測的收集／統計自動化改名（08-7A→08-7C、08-7S→08-7D）
+      "automation.08_7aru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6","automation.08_7sru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6",
       # 2026-10-11 在家判斷改只讀 person.*，移除追蹤裝置清單 input_text
       "input_text.at_home_kenny_trackers","input_text.at_home_kenny_ipad_trackers","input_text.at_home_elay_trackers","input_text.at_home_jerry_trackers","input_text.at_home_iris_trackers",
       # 2026-10-11 已刪除的舊 07 系列與舊 100A（restore_state 還會保留一陣子）
@@ -66,7 +68,7 @@ AUTO_RULES = [
     ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
-    ("security", r"^(08-[236]|08鐵門|104|105大門|106B|106C|100C[123]|100C客廳|08-3)"),
+    ("security", r"^(08-[236]|08-7離家入侵|08-7[CD]|08鐵門|104|105大門|106B|106C|100C[123]|100C客廳|08-3)"),
     ("switch", r"^(800-|08-9|Terncy)"),
     ("notify", r"^(00-2[AB]|00-2[CDEFGHIJK]通知|00-2D(通知|氣氛燈|情境廣播|廣播音量)|LINE通知標題|00-2D)"),
     ("system", r"^(00-|09|106|107|14|版本快照)"),
@@ -76,23 +78,23 @@ AUTO_RULES = [
 HELPER_RULES = [
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual"),
-    ("security", r"wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
+    ("security", r"intrusion_|wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
     ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
-    ("system", r"v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
+    ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
 ]
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
-    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time)"
+    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until)"
     r"|^input_boolean\.(emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
-    r"|^input_text\.(emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
+    r"|^input_text\.(intrusion_recent|emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate)"
@@ -123,6 +125,7 @@ SUBGROUPS = {
         ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
+        ("離家入侵偵測", r"intrusion_"),
         ("車牌辨識（LPR）", r"lpr_|allowed_plates"),
         ("門鎖與電池", r"doorlock|er_lou_men_suo"),
         ("五樓保全", r"wu_lou_bao_quan"),
@@ -134,6 +137,8 @@ SUBGROUPS = {
         ("版本與更新紀錄", r"version|ai_manual|ai_version|ai_leave"),
         ("家人定位追蹤", r"at_home|tracker"),
         ("Tesla 充電", r"tesla"),
+        ("電視待機保持連線", r"tv_ir_power|tv_keepalive"),
+        ("維護模式（更新期間略過通知）", r"maintenance_until"),
     ],
 }
 
@@ -620,4 +625,3 @@ if __name__ == "__main__":
     if "--deploy" in sys.argv:
         subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
-
