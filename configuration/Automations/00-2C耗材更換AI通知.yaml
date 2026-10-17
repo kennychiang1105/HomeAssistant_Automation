@@ -60,7 +60,7 @@
     # 單一對照表：k＝記錄用短代碼、e＝電量感測器、n＝顯示名稱
     devices: >-
       {{ [
-        {'k':'gar',     'e':'sensor.garage_battery',                     'n':'鐵門控制器'},
+        {'k':'gar',     'e':'sensor.garage_battery',                     'n':'鐵門感應器'},
         {'k':'door',    'e':'sensor.ke_ting_men_suo_dian_liang_guo_lu',  'n':'客廳門鎖'},
         {'k':'study',   'e':'sensor.shu_fang_gan_ying_kai_guan_battery', 'n':'書房感應開關'},
         {'k':'cube',    'e':'sensor.0x158d00027d8a8e_battery',           'n':'客廳魔方'},
@@ -153,7 +153,7 @@
         {% set fl = filter_life | round(0) | int %}
         {% set ns.o = ns.o + ['清淨機濾芯：⟦' ~ ('r' if fl <= 10 else ('o' if fl <= 30 else 'g')) ~ ':' ~ fl ~ '%⟧', '※ 已使用 ' ~ filter_use ~ ' 小時' ~ ('，⟦r:請更換⟧' if fl <= 10 else '')] %}
       {% endif %}
-      {% set ns.o = ns.o + ['', '※ 電量 ⟦g:綠 健康⟧ ⟦o:黃 偏低⟧ ⟦r:紅 請更換⟧', '※ 剩餘 ⟦g:綠 半年以上⟧ ⟦o:黃 1～6 個月⟧ ⟦r:紅 1 個月內⟧'] %}
+      {% set ns.o = ns.o + ['', '※ 電量顏色：', '※ ⟦g:綠色⟧ 健康　⟦o:黃色⟧ 偏低　⟦r:紅色⟧ 請更換'] %}
       {{ ns.o | join('\n') }}
   actions:
     # ── 1. 濾網：只通知一次 ──
@@ -255,7 +255,7 @@
                 source: "{{ src_name }} ({{ automation_version }})"
                 version: "{{ automation_version }}"
                 title: 耗材電量系統一鍵測試
-                message: "{{ report_text }}"
+                message: "目前各裝置電量與預估：\n{{ report_text }}"
         - alias: "定期摘要（距上次已滿設定天數才發）"
           conditions:
             - condition: template
