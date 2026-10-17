@@ -77,7 +77,7 @@ AUTO_RULES = [
 # helper 分類規則：依 entity_id（含 friendly_name），由上而下第一個符合者
 HELPER_RULES = [
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
-    ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual"),
+    ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
     ("security", r"intrusion_|wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
@@ -90,7 +90,7 @@ HELPER_RULES = [
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
     r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until)"
-    r"|^input_boolean\.(emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
+    r"|^input_boolean\.(emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
