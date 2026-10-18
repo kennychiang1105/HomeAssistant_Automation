@@ -258,6 +258,7 @@ views:
               - width: 100%
               - min-width: 0
               - text-align: left
+              - white-space: normal
         custom_fields:
           body: |
             [[[
@@ -273,28 +274,31 @@ views:
               const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
               const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
             
-              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, statusDesc;
+              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
               if (st === 'safe') {
                 statusColor = '#30D158';
                 statusBg = 'rgba(48,209,88,.12)';
                 statusBorder = 'rgba(48,209,88,.25)';
                 statusLabel = '額度安全充裕';
                 statusIcon = 'mdi:check-circle';
-                statusDesc = `預估本月一般 Bot 額度充裕（可用至 ${normalDate}），無需動用緊急 Bot。`;
+                desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
+                desc2 = '運作平穩，本月無需動用緊急 Bot。';
               } else if (st === 'need_emergency') {
                 statusColor = '#FF9F0A';
                 statusBg = 'rgba(255,159,10,.14)';
                 statusBorder = 'rgba(255,159,10,.3)';
                 statusLabel = '預備動用緊急 Bot';
                 statusIcon = 'mdi:alert-circle';
-                statusDesc = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot（智慧家庭A）；動用後可順利撐至月底重置。`;
+                desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
+                desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
               } else {
                 statusColor = '#FF453A';
                 statusBg = 'rgba(255,69,58,.14)';
                 statusBorder = 'rgba(255,69,58,.3)';
                 statusLabel = '額度告急';
                 statusIcon = 'mdi:alert-octagon';
-                statusDesc = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot，並於 ${totalDate} 前耗盡所有額度！`;
+                desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
+                desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
               }
             
               return `
@@ -311,20 +315,21 @@ views:
                     </div>
                   </div>
             
-                  <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
-                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:20px;flex-shrink:0;margin-top:1px"></ha-icon>
-                    <div style="flex:1;min-width:0">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-                        <span style="font-size:12px;font-weight:700;color:${statusColor}">預估 Bot 使用狀況</span>
-                        <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:${statusColor};color:#fff">${statusLabel}</span>
+                  <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
+                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
+                    <div style="flex:1;min-width:0;white-space:normal !important">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+                        <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
+                        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
                       </div>
-                      <div style="font-size:12.5px;line-height:1.45;color:var(--primary-text-color);word-break:break-all;overflow-wrap:anywhere">
-                        ${statusDesc}
+                      <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
+                        <div style="font-weight:600;white-space:normal !important">${desc1}</div>
+                        ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
                       </div>
                     </div>
                   </div>
             
-                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:4px">
+                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
                     <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
                   </div>
@@ -715,7 +720,7 @@ views:
     icon: mdi:battery-charging-medium
     type: custom:vertical-layout
     layout:
-      max_cols: 4
+      max_cols: 3
       width: 340
     cards:
     - type: vertical-stack
@@ -748,6 +753,7 @@ views:
               - width: 100%
               - min-width: 0
               - text-align: left
+              - white-space: normal
         custom_fields:
           body: |
             [[[
@@ -792,15 +798,15 @@ views:
             
               return `
                 <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                    <div style="display:flex;align-items:center;gap:8px">
-                      <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:24px"></ha-icon>
-                      <span style="font-size:16px;font-weight:700">${statusTitle}</span>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                      <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
+                      <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
                     </div>
-                    <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg}">${statusBadge}</span>
+                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
                   </div>
                   
-                  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin:12px 0;padding:10px;background:rgba(120,120,128,.1);border-radius:12px">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
                     <div>
                       <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
                       <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
@@ -819,21 +825,16 @@ views:
                     </div>
                   </div>
             
-                  <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;flex-direction:column;gap:4px;min-width:0">
-                    <div style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:1.5;color:var(--primary-text-color)">
-                      <span style="flex-shrink:0">💡</span>
-                      <span style="word-break:break-all;overflow-wrap:anywhere">${part1}</span>
+                  <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
+                    <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
+                    <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
+                      <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
+                      ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
                     </div>
-                    ${part2 ? `
-                    <div style="display:flex;align-items:flex-start;gap:6px;font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);padding-left:22px">
-                      <span style="word-break:break-all;overflow-wrap:anywhere">${part2}</span>
-                    </div>` : ''}
                   </div>
                 </div>
               `;
             ]]]
-    - type: vertical-stack
-      cards:
       - type: heading
         heading: "LINE Bot 額度"
         heading_style: title
@@ -1081,6 +1082,7 @@ views:
               - width: 100%
               - min-width: 0
               - text-align: left
+              - white-space: normal
         custom_fields:
           body: |
             [[[
@@ -1096,28 +1098,31 @@ views:
               const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
               const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
             
-              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, statusDesc;
+              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
               if (st === 'safe') {
                 statusColor = '#30D158';
                 statusBg = 'rgba(48,209,88,.12)';
                 statusBorder = 'rgba(48,209,88,.25)';
                 statusLabel = '額度安全充裕';
                 statusIcon = 'mdi:check-circle';
-                statusDesc = `預估本月一般 Bot 額度充裕（可用至 ${normalDate}），無需動用緊急 Bot。`;
+                desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
+                desc2 = '運作平穩，本月無需動用緊急 Bot。';
               } else if (st === 'need_emergency') {
                 statusColor = '#FF9F0A';
                 statusBg = 'rgba(255,159,10,.14)';
                 statusBorder = 'rgba(255,159,10,.3)';
                 statusLabel = '預備動用緊急 Bot';
                 statusIcon = 'mdi:alert-circle';
-                statusDesc = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot（智慧家庭A）；動用後可順利撐至月底重置。`;
+                desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
+                desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
               } else {
                 statusColor = '#FF453A';
                 statusBg = 'rgba(255,69,58,.14)';
                 statusBorder = 'rgba(255,69,58,.3)';
                 statusLabel = '額度告急';
                 statusIcon = 'mdi:alert-octagon';
-                statusDesc = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot，並於 ${totalDate} 前耗盡所有額度！`;
+                desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
+                desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
               }
             
               return `
@@ -1134,29 +1139,27 @@ views:
                     </div>
                   </div>
             
-                  <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
-                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:20px;flex-shrink:0;margin-top:1px"></ha-icon>
-                    <div style="flex:1;min-width:0">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-                        <span style="font-size:12px;font-weight:700;color:${statusColor}">預估 Bot 使用狀況</span>
-                        <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:${statusColor};color:#fff">${statusLabel}</span>
+                  <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
+                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
+                    <div style="flex:1;min-width:0;white-space:normal !important">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+                        <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
+                        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
                       </div>
-                      <div style="font-size:12.5px;line-height:1.45;color:var(--primary-text-color);word-break:break-all;overflow-wrap:anywhere">
-                        ${statusDesc}
+                      <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
+                        <div style="font-weight:600;white-space:normal !important">${desc1}</div>
+                        ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
                       </div>
                     </div>
                   </div>
             
-                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:4px">
+                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
                     <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
                   </div>
                 </div>
               `;
             ]]]
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
       - type: heading
         heading: "LINE Bot 設定"
         heading_style: title
@@ -1179,6 +1182,169 @@ views:
             name: "自訂目標 ID 啟用"
           - entity: input_text.line_bot_custom_user_id
             name: "自訂目標 ID"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "9 大感測器電池壽命預估"
+        heading_style: title
+        icon: mdi:battery-clock-outline
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: custom:button-card
+        entity: sensor.battery_forecast
+        show_name: false
+        show_icon: false
+        show_state: false
+        styles:
+          card:
+            - border-radius: 18px
+            - border: none
+            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+            - padding: 0
+            - white-space: normal
+          grid:
+            - grid-template-areas: '"body"'
+            - grid-template-columns: 1fr
+          custom_fields:
+            body:
+              - width: 100%
+              - min-width: 0
+              - text-align: left
+              - white-space: normal
+        custom_fields:
+          body: |
+            [[[
+              const f = states['sensor.battery_forecast'];
+              if (!f || !f.attributes || !f.attributes.items) {
+                return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 自動計算。</div>';
+              }
+              const items = f.attributes.items;
+              const names = {
+                'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
+                'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
+                'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
+              };
+            
+              const getBatteryIcon = (lvl) => {
+                if (lvl <= 5) return 'mdi:battery-alert';
+                if (lvl <= 15) return 'mdi:battery-10';
+                if (lvl <= 35) return 'mdi:battery-30';
+                if (lvl <= 65) return 'mdi:battery-50';
+                if (lvl <= 85) return 'mdi:battery-70';
+                return 'mdi:battery';
+              };
+            
+              let rowsHtml = '';
+              for (const [k, d] of Object.entries(items)) {
+                const name = names[k] || k;
+                const lvl = Math.round(d.level || 0);
+                const emptyLvl = d.empty || 10;
+                const isEmpty = d.status === 'empty' || lvl <= emptyLvl;
+                const isStable = d.status === 'stable';
+                
+                let color, rowBg, tagText, tagBg, tagFg;
+                if (isEmpty) {
+                  color = '#FF453A';
+                  rowBg = 'rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3)';
+                  tagText = '更換門檻';
+                  tagBg = 'rgba(255,69,58,.22)';
+                  tagFg = '#FF453A';
+                } else if (lvl <= 35) {
+                  color = '#FF9F0A';
+                  rowBg = 'rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25)';
+                  tagText = '偏低';
+                  tagBg = 'rgba(255,159,10,.2)';
+                  tagFg = '#FF9F0A';
+                } else if (isStable) {
+                  color = '#0A84FF';
+                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+                  tagText = '平穩';
+                  tagBg = 'rgba(10,132,255,.18)';
+                  tagFg = '#0A84FF';
+                } else {
+                  color = '#30D158';
+                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+                  tagText = '正常';
+                  tagBg = 'rgba(48,209,88,.18)';
+                  tagFg = '#30D158';
+                }
+            
+                let line1 = '', line2 = '';
+                if (isEmpty) {
+                  line1 = `<span style="color:#FF453A;font-weight:700">⚠️ 已達更換門檻（≤ ${emptyLvl}%）</span>`;
+                  line2 = '<span style="color:#FF453A">請儘速更換電池以確保穩定運作</span>';
+                } else if (d.days != null && d.days > 0) {
+                  line1 = `預估可用 <b style="font-size:13.5px;color:var(--primary-text-color)">${Math.round(d.days)}</b> 天`;
+                  line2 = `至 ${d.date} · 日耗 ${d.rate}%/天`;
+                } else if (isStable) {
+                  line1 = '<span style="color:#0A84FF;font-weight:600">滿電平穩 · 壽命充足</span>';
+                  line2 = `持續運作 ${Math.round(d.span_days || 0)} 天無掉格`;
+                } else {
+                  line1 = '壽命評估中';
+                  line2 = '持續收集放電曲線數據';
+                }
+            
+                const icon = getBatteryIcon(lvl);
+            
+                rowsHtml += `
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px;min-width:0;box-sizing:border-box">
+                    <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                      <div style="width:36px;height:36px;border-radius:10px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon>
+                      </div>
+                      <div style="flex:1;min-width:0">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                          <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
+                          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:${tagBg};color:${tagFg};white-space:nowrap">${tagText}</span>
+                        </div>
+                        <div style="font-size:12.5px;margin-top:3px;line-height:1.35;white-space:normal !important;word-break:break-word">
+                          ${line1}
+                        </div>
+                        <div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:2px;line-height:1.35;white-space:normal !important;word-break:break-word">
+                          ${line2}
+                        </div>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
+                      <div style="width:42px;height:5px;border-radius:999px;background:rgba(120,120,128,.2);margin-top:4px;overflow:hidden">
+                        <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px"></div>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
+            
+              return `
+                <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;box-sizing:border-box">
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    ${rowsHtml}
+                  </div>
+                </div>
+              `;
+            ]]]
+      - type: heading
+        heading: "耗材監控設定與操作"
+        heading_style: title
+        icon: mdi:tune-variant
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.notify_supply_extra_line_enable
+            name: "耗材更換額外 LINE 推播"
+          - entity: input_datetime.supply_battery_report_time
+            name: "耗材定期摘要時間"
+          - entity: input_button.battery_system_test_trigger
+            name: "測試耗材電量系統"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -1264,138 +1430,6 @@ views:
           - entity: input_boolean.supply_filter_notified
             name: "濾網更換已通知旗標"
         card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "9 大感測器電池壽命預估"
-        heading_style: title
-        icon: mdi:battery-clock-outline
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        entity: sensor.battery_forecast
-        show_name: false
-        show_icon: false
-        show_state: false
-        styles:
-          card:
-            - border-radius: 18px
-            - border: none
-            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-            - padding: 0
-          grid:
-            - grid-template-areas: '"body"'
-            - grid-template-columns: 1fr
-        custom_fields:
-          body: |
-            [[[
-              const f = states['sensor.battery_forecast'];
-              if (!f || !f.attributes || !f.attributes.items) {
-                return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 自動計算。</div>';
-              }
-              const items = f.attributes.items;
-              const names = {
-                'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
-                'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
-                'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
-              };
-            
-              const getBatteryIcon = (lvl) => {
-                if (lvl <= 5) return 'mdi:battery-alert';
-                if (lvl <= 15) return 'mdi:battery-10';
-                if (lvl <= 35) return 'mdi:battery-30';
-                if (lvl <= 65) return 'mdi:battery-50';
-                if (lvl <= 85) return 'mdi:battery-70';
-                return 'mdi:battery';
-              };
-            
-              let rowsHtml = '';
-              for (const [k, d] of Object.entries(items)) {
-                const name = names[k] || k;
-                const lvl = Math.round(d.level || 0);
-                const emptyLvl = d.empty || 10;
-                const isEmpty = d.status === 'empty' || lvl <= emptyLvl;
-                const isStable = d.status === 'stable';
-                
-                let color, rowBg, tagText, tagBg, tagFg;
-                if (isEmpty) {
-                  color = '#FF453A';
-                  rowBg = 'rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3)';
-                  tagText = '更換門檻';
-                  tagBg = 'rgba(255,69,58,.22)';
-                  tagFg = '#FF453A';
-                } else if (lvl <= 35) {
-                  color = '#FF9F0A';
-                  rowBg = 'rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25)';
-                  tagText = '偏低';
-                  tagBg = 'rgba(255,159,10,.2)';
-                  tagFg = '#FF9F0A';
-                } else if (isStable) {
-                  color = '#0A84FF';
-                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
-                  tagText = '平穩';
-                  tagBg = 'rgba(10,132,255,.18)';
-                  tagFg = '#0A84FF';
-                } else {
-                  color = '#30D158';
-                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
-                  tagText = '正常';
-                  tagBg = 'rgba(48,209,88,.18)';
-                  tagFg = '#30D158';
-                }
-            
-                let subtitle = '';
-                if (d.days != null && d.days > 0) {
-                  subtitle = `預估可用 <b style="color:var(--primary-text-color)">${Math.round(d.days)}</b> 天（至 ${d.date} · 日耗 ${d.rate}%）`;
-                } else if (isEmpty) {
-                  subtitle = '<span style="color:#FF453A;font-weight:700">⚠️ 已達更換標準，請儘速更換電池</span>';
-                } else if (isStable) {
-                  subtitle = `運作 ${Math.round(d.span_days || 0)} 天未掉格 · 壽命充足`;
-                } else {
-                  subtitle = '資料收集與學習中';
-                }
-            
-                const icon = getBatteryIcon(lvl);
-            
-                rowsHtml += `
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px">
-                    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-                      <div style="width:34px;height:34px;border-radius:9px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
-                        <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon>
-                      </div>
-                      <div style="flex:1;min-width:0">
-                        <div style="display:flex;align-items:center;gap:6px">
-                          <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
-                          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:${tagBg};color:${tagFg}">${tagText}</span>
-                        </div>
-                        <div style="font-size:12px;color:var(--secondary-text-color);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                          ${subtitle}
-                        </div>
-                      </div>
-                    </div>
-                    <div style="text-align:right;flex:none">
-                      <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
-                      <div style="width:40px;height:4px;border-radius:2px;background:rgba(120,120,128,.2);margin-top:3px;overflow:hidden">
-                        <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:2px"></div>
-                      </div>
-                    </div>
-                  </div>
-                `;
-              }
-            
-              return `
-                <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
-                  <div style="display:flex;flex-direction:column;gap:8px">
-                    ${rowsHtml}
-                  </div>
-                </div>
-              `;
-            ]]]
-    - type: vertical-stack
-      cards:
       - type: heading
         heading: "耗材相關自動化"
         heading_style: title
@@ -1410,27 +1444,6 @@ views:
         entities:
           - entity: automation.ai_00_2c_supply_battery_notify
             name: "00-2C耗材更換AI通知 (V4.1.6)"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "耗材監控設定與操作"
-        heading_style: title
-        icon: mdi:tune-variant
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.notify_supply_extra_line_enable
-            name: "耗材更換額外 LINE 推播"
-          - entity: input_datetime.supply_battery_report_time
-            name: "耗材定期摘要時間"
-          - entity: input_button.battery_system_test_trigger
-            name: "測試耗材電量系統"
         card_mod: *cm
   - title: "通知與廣播"
     path: notify

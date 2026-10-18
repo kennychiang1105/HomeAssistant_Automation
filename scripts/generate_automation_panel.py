@@ -392,28 +392,31 @@ def quota_section():
   const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
   const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
 
-  let statusColor, statusBg, statusBorder, statusLabel, statusIcon, statusDesc;
+  let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
   if (st === 'safe') {
     statusColor = '#30D158';
     statusBg = 'rgba(48,209,88,.12)';
     statusBorder = 'rgba(48,209,88,.25)';
     statusLabel = '額度安全充裕';
     statusIcon = 'mdi:check-circle';
-    statusDesc = `預估本月一般 Bot 額度充裕（可用至 ${normalDate}），無需動用緊急 Bot。`;
+    desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
+    desc2 = '運作平穩，本月無需動用緊急 Bot。';
   } else if (st === 'need_emergency') {
     statusColor = '#FF9F0A';
     statusBg = 'rgba(255,159,10,.14)';
     statusBorder = 'rgba(255,159,10,.3)';
     statusLabel = '預備動用緊急 Bot';
     statusIcon = 'mdi:alert-circle';
-    statusDesc = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot（智慧家庭A）；動用後可順利撐至月底重置。`;
+    desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
+    desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
   } else {
     statusColor = '#FF453A';
     statusBg = 'rgba(255,69,58,.14)';
     statusBorder = 'rgba(255,69,58,.3)';
     statusLabel = '額度告急';
     statusIcon = 'mdi:alert-octagon';
-    statusDesc = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot，並於 ${totalDate} 前耗盡所有額度！`;
+    desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
+    desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
   }
 
   return `
@@ -430,20 +433,21 @@ def quota_section():
         </div>
       </div>
 
-      <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
-        <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:20px;flex-shrink:0;margin-top:1px"></ha-icon>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-            <span style="font-size:12px;font-weight:700;color:${statusColor}">預估 Bot 使用狀況</span>
-            <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:${statusColor};color:#fff">${statusLabel}</span>
+      <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
+        <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
+        <div style="flex:1;min-width:0;white-space:normal !important">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+            <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
           </div>
-          <div style="font-size:12.5px;line-height:1.45;color:var(--primary-text-color);word-break:break-all;overflow-wrap:anywhere">
-            ${statusDesc}
+          <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
+            <div style="font-weight:600;white-space:normal !important">${desc1}</div>
+            ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
           </div>
         </div>
       </div>
 
-      <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:4px">
+      <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
         <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
         <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
       </div>
@@ -470,6 +474,7 @@ def quota_section():
     L.append("              - width: 100%")
     L.append("              - min-width: 0")
     L.append("              - text-align: left")
+    L.append("              - white-space: normal")
     L.append("        custom_fields:")
     L.append("          body: |")
     for ln in status_js.splitlines():
@@ -528,15 +533,15 @@ def linebot_forecast_banner():
 
   return `
     <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:24px"></ha-icon>
-          <span style="font-size:16px;font-weight:700">${statusTitle}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+          <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
+          <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
         </div>
-        <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg}">${statusBadge}</span>
+        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
       </div>
       
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin:12px 0;padding:10px;background:rgba(120,120,128,.1);border-radius:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
           <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
@@ -555,15 +560,12 @@ def linebot_forecast_banner():
         </div>
       </div>
 
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;flex-direction:column;gap:4px;min-width:0">
-        <div style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:1.5;color:var(--primary-text-color)">
-          <span style="flex-shrink:0">💡</span>
-          <span style="word-break:break-all;overflow-wrap:anywhere">${part1}</span>
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
+        <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
+        <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
+          <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
+          ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
         </div>
-        ${part2 ? `
-        <div style="display:flex;align-items:flex-start;gap:6px;font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);padding-left:22px">
-          <span style="word-break:break-all;overflow-wrap:anywhere">${part2}</span>
-        </div>` : ''}
       </div>
     </div>
   `;
@@ -576,7 +578,7 @@ def linebot_forecast_banner():
          "            - white-space: normal",
          "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
          "          custom_fields:", "            body:", "              - width: 100%",
-         "              - min-width: 0", "              - text-align: left",
+         "              - min-width: 0", "              - text-align: left", "              - white-space: normal",
          "        custom_fields:", "          body: |"]
     for ln in js.splitlines():
         L.append("            " + ln)
@@ -653,7 +655,7 @@ def filter_life_section():
 
 
 def battery_forecast_section():
-    """9 大感測器電池壽命預估清單卡片（高階 iOS 風格搭配色彩與進度指標）。"""
+    """9 大感測器電池壽命預估清單卡片（高階 iOS 風格搭配色彩與進度指標，清楚換行排版）。"""
     js = """[[[
   const f = states['sensor.battery_forecast'];
   if (!f || !f.attributes || !f.attributes.items) {
@@ -710,39 +712,46 @@ def battery_forecast_section():
       tagFg = '#30D158';
     }
 
-    let subtitle = '';
-    if (d.days != null && d.days > 0) {
-      subtitle = `預估可用 <b style="color:var(--primary-text-color)">${Math.round(d.days)}</b> 天（至 ${d.date} · 日耗 ${d.rate}%）`;
-    } else if (isEmpty) {
-      subtitle = '<span style="color:#FF453A;font-weight:700">⚠️ 已達更換標準，請儘速更換電池</span>';
+    let line1 = '', line2 = '';
+    if (isEmpty) {
+      line1 = `<span style="color:#FF453A;font-weight:700">⚠️ 已達更換門檻（≤ ${emptyLvl}%）</span>`;
+      line2 = '<span style="color:#FF453A">請儘速更換電池以確保穩定運作</span>';
+    } else if (d.days != null && d.days > 0) {
+      line1 = `預估可用 <b style="font-size:13.5px;color:var(--primary-text-color)">${Math.round(d.days)}</b> 天`;
+      line2 = `至 ${d.date} · 日耗 ${d.rate}%/天`;
     } else if (isStable) {
-      subtitle = `運作 ${Math.round(d.span_days || 0)} 天未掉格 · 壽命充足`;
+      line1 = '<span style="color:#0A84FF;font-weight:600">滿電平穩 · 壽命充足</span>';
+      line2 = `持續運作 ${Math.round(d.span_days || 0)} 天無掉格`;
     } else {
-      subtitle = '資料收集與學習中';
+      line1 = '壽命評估中';
+      line2 = '持續收集放電曲線數據';
     }
 
     const icon = getBatteryIcon(lvl);
 
     rowsHtml += `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-          <div style="width:34px;height:34px;border-radius:9px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
-            <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px;min-width:0;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon>
           </div>
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
-              <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:${tagBg};color:${tagFg}">${tagText}</span>
+              <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:${tagBg};color:${tagFg};white-space:nowrap">${tagText}</span>
             </div>
-            <div style="font-size:12px;color:var(--secondary-text-color);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${subtitle}
+            <div style="font-size:12.5px;margin-top:3px;line-height:1.35;white-space:normal !important;word-break:break-word">
+              ${line1}
+            </div>
+            <div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:2px;line-height:1.35;white-space:normal !important;word-break:break-word">
+              ${line2}
             </div>
           </div>
         </div>
-        <div style="text-align:right;flex:none">
+        <div style="text-align:right;flex-shrink:0">
           <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
-          <div style="width:40px;height:4px;border-radius:2px;background:rgba(120,120,128,.2);margin-top:3px;overflow:hidden">
-            <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:2px"></div>
+          <div style="width:42px;height:5px;border-radius:999px;background:rgba(120,120,128,.2);margin-top:4px;overflow:hidden">
+            <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px"></div>
           </div>
         </div>
       </div>
@@ -750,7 +759,7 @@ def battery_forecast_section():
   }
 
   return `
-    <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+    <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;box-sizing:border-box">
       <div style="display:flex;flex-direction:column;gap:8px">
         ${rowsHtml}
       </div>
@@ -763,7 +772,10 @@ def battery_forecast_section():
         "        show_name: false", "        show_icon: false", "        show_state: false",
         "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
         "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+        "            - white-space: normal",
         "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+        "          custom_fields:", "            body:", "              - width: 100%",
+        "              - min-width: 0", "              - text-align: left", "              - white-space: normal",
         "        custom_fields:", "          body: |",
     ]
     for ln in js.splitlines():
@@ -781,23 +793,45 @@ def supply_control_section():
     return heading("耗材監控設定與操作", "mdi:tune-variant") + entities_card(rows)
 
 
-def supply_sections(autos):
-    S = []
-    # 1. LINE Bot 全月預測診斷看板 + 4 大 Bot 額度進度 + 設定
-    S.append(section(heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant") + linebot_forecast_banner()))
-    S.append(section(quota_section()))
-    S.append(section(quota_settings()))
-    # 2. 空氣清淨機濾網壽命
-    S.append(section(filter_life_section()))
-    # 3. 設備電池壽命預估清單
-    S.append(section(battery_forecast_section()))
-    # 4. 相關自動化開關
+def supply_view(title, path, icon, autos):
+    """耗材與額度分頁（依使用者指定 3 欄平衡佈局）：
+    Col 1：LINE Bot 全月預測診斷看板 + 4 大 Bot 額度進度 + LINE Bot 設定（移至 Bot 下方）
+    Col 2：9 大感測器電池壽命預估（移至原 LINE Bot 設定位置） + 耗材監控設定與操作
+    Col 3：空氣清淨機濾網 + 耗材相關自動化
+    在寬螢幕/iPad 自動形成三欄，手機自動垂直循序排列。
+    """
     auto_rows = [(eid, fn) for fn, eid in sorted(autos.get("supply", []))]
-    if auto_rows:
-        S.append(section(heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows)))
-    # 5. 耗材監控設定與一鍵測試
-    S.append(section(supply_control_section()))
-    return S
+    col1_cards = (
+        heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
+        + linebot_forecast_banner()
+        + quota_section()
+        + quota_settings()
+    )
+    col2_cards = (
+        battery_forecast_section()
+        + supply_control_section()
+    )
+    col3_cards = (
+        filter_life_section()
+        + (heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if auto_rows else [])
+    )
+
+    L = [
+        f"  - title: {q(title)}",
+        f"    path: {path}",
+        f"    icon: {icon}",
+        "    type: custom:vertical-layout",
+        "    layout:",
+        "      max_cols: 3",
+        f"      width: {COL_WIDTH}",
+        "    cards:",
+    ]
+    L += section(col1_cards)
+    L.append("    - type: custom:layout-break")
+    L += section(col2_cards)
+    L.append("    - type: custom:layout-break")
+    L += section(col3_cards)
+    return L
 
 
 def manual_button(script, result_entity, name, icon):
@@ -990,7 +1024,7 @@ def build(data):
             L += view(title, key, icon, overview_sections(autos, stale))
             continue
         if key == "supply":
-            L += view(title, key, icon, supply_sections(autos))
+            L += supply_view(title, key, icon, autos)
             continue
         if key == "other" and not autos[key] and not settings[key]:
             continue   # 沒有未分類項目就不顯示「其他」分頁
