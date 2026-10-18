@@ -2720,86 +2720,29 @@
         value_template: '{{ cube_action in [''rotate'', ''rotate_left'', ''rotate_right'']
           }}'
       sequence:
-      - choose:
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 4 }}'
-          sequence:
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.yeelink_color5_4181_light
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 3 }}'
-          sequence:
-          - action: script.turn_on
-            target:
-              entity_id: script.light_group_on
-            data:
-              variables:
-                group: living_3
-                style: 快速
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 2 }}'
-          sequence:
-          - action: script.turn_on
-            target:
-              entity_id: script.light_group_on
-            data:
-              variables:
-                group: living_2
-                style: 快速
-          - action: light.turn_off
-            target:
-              entity_id: light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 1 }}'
-          sequence:
-          - action: script.turn_on
-            target:
-              entity_id: script.light_group_on
-            data:
-              variables:
-                group: living_1
-                style: 快速
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 0 }}'
-          sequence:
-          - action: script.turn_on
-            target:
-              entity_id: script.light_group_on
-            data:
-              variables:
-                group: living_small
-                style: 快速
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
+      - variables:
+          cube_units: >-
+            {% set u = [['living_small', 'light.yeelink_color5_4181_light'], ['living_1', 'light.ke_ting_deng_zu_1_ha'], ['living_2', 'light.ke_ting_deng_zu_2'], ['living_3', 'light.ke_ting_deng_zu_3']] %}
+            {{ u | selectattr('1', 'in', states.light | selectattr('state', 'eq', 'off') | map(attribute='entity_id') | list) | map(attribute='0') | list }}
+      - if:
+        - condition: template
+          value_template: '{{ cube_units | count == 0 }}'
+        then:
+        - action: light.turn_off
+          target:
+            entity_id:
+            - light.yeelink_color5_4181_light
+            - light.ke_ting_deng_zu_1_ha
+            - light.ke_ting_deng_zu_2
+            - light.ke_ting_deng_zu_3
+        else:
+        - action: script.turn_on
+          target:
+            entity_id: script.light_group_on
+          data:
+            variables:
+              group: '{{ cube_units[0] }}'
+              style: 快速
     - conditions:
       - condition: template
         value_template: '{{ cube_action == ''move'' }}'
