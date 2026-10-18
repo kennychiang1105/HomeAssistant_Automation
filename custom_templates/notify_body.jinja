@@ -122,6 +122,8 @@
 {%- set x = v | float(0) -%}
 {%- if kind == 'co2' -%}{{ '⟦g⟧' if x < 1000 else ('⟦o⟧' if x < 2000 else '⟦r⟧') }}
 {%- elif kind == 'pm' -%}{{ '⟦g⟧' if x <= 15 else ('⟦o⟧' if x <= 35 else '⟦r⟧') }}
+{%- elif kind == 'pm10' -%}{{ '⟦g⟧' if x <= 54 else ('⟦o⟧' if x <= 125 else '⟦r⟧') }}
+{%- elif kind == 'pm1' -%}{{ '⟦g⟧' if x <= 15 else ('⟦o⟧' if x <= 35 else '⟦r⟧') }}
 {%- elif kind == 'tvoc' -%}{{ '⟦g⟧' if x <= 220 else ('⟦o⟧' if x <= 600 else '⟦r⟧') }}
 {%- elif kind == 'co' -%}{{ '⟦g⟧' if x < 9 else ('⟦o⟧' if x < 35 else '⟦r⟧') }}
 {%- elif kind == 'ch2o' -%}{{ '⟦g⟧' if x <= 0.05 else ('⟦o⟧' if x <= 0.08 else '⟦r⟧') }}

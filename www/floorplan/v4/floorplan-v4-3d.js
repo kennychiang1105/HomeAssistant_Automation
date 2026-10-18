@@ -2920,8 +2920,9 @@ class FloorplanV4Sidebar extends HTMLElement {
         const [col, short] = AQ[lv] || AQ[2];
         const pm = parseFloat(aq.attributes.pm25);
         aqEl.style.setProperty("--c", col);
-        aqEl.innerHTML = `<ha-icon icon="mdi:weather-hazy"></ha-icon><div><div class="t">${short}</div><div class="c">空氣 · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`;
-        aqEl.title = `戶外空氣品質：${aq.state}（PM2.5 ${isNaN(pm) ? "--" : pm}）`;
+        const aqi = parseFloat(aq.attributes.aqi);
+        aqEl.innerHTML = `<ha-icon icon="mdi:weather-hazy"></ha-icon><div><div class="t">${short}</div><div class="c">${isNaN(aqi) ? "" : `AQI ${Math.round(aqi)} · `}PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`;
+        aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
         aqEl.onclick = () => this._more(aqId);
       }
     }

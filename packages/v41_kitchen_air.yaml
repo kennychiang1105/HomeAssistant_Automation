@@ -1,0 +1,33 @@
+# ────────────────────────────────────────────────────────
+# 廚房懸浮微粒整合檢測（V4.1.6，2026-10-18）
+# 把廚房環境感測器的 PM1.0／PM2.5／PM10 合成一個等級：取三項中最差的一項。
+# 分級（μg/m³）：PM1.0 與 PM2.5 ≤15 良好、≤35 普通、其餘偏高；PM10 ≤54 良好、≤125 普通、其餘偏高（PM1.0 沒有官方標準，比照 PM2.5）。
+# sensor.kitchen_particulate_level：狀態＝良好／普通／偏高；屬性 level（1/2/3）、pm1、pm25、pm10、worst（哪一項最差）。
+# 06環境異常通知AI 的超標項目與讀數列表使用同一套門檻。
+# ────────────────────────────────────────────────────────
+template:
+  - sensor:
+      - name: kitchen_particulate_level
+        unique_id: kitchen_particulate_level_v416
+        icon: mdi:blur
+        state: >-
+          {% set k = 'sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang' %}
+          {% set a = states(k ~ '_pm1_0') | float(-1) %}{% set b = states(k ~ '_pm2_5') | float(-1) %}{% set c = states(k ~ '_pm10') | float(-1) %}
+          {% set la = 0 if a < 0 else (1 if a <= 15 else (2 if a <= 35 else 3)) %}
+          {% set lb = 0 if b < 0 else (1 if b <= 15 else (2 if b <= 35 else 3)) %}
+          {% set lc = 0 if c < 0 else (1 if c <= 54 else (2 if c <= 125 else 3)) %}
+          {% set m = [la, lb, lc] | max %}
+          {{ 'unknown' if m == 0 else ('良好' if m == 1 else ('普通' if m == 2 else '偏高')) }}
+        attributes:
+          level: >-
+            {% set k = 'sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang' %}
+            {% set a = states(k ~ '_pm1_0') | float(-1) %}{% set b = states(k ~ '_pm2_5') | float(-1) %}{% set c = states(k ~ '_pm10') | float(-1) %}
+            {{ [0 if a < 0 else (1 if a <= 15 else (2 if a <= 35 else 3)), 0 if b < 0 else (1 if b <= 15 else (2 if b <= 35 else 3)), 0 if c < 0 else (1 if c <= 54 else (2 if c <= 125 else 3))] | max }}
+          pm1: "{{ states('sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_pm1_0') }}"
+          pm25: "{{ states('sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_pm2_5') }}"
+          pm10: "{{ states('sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang_pm10') }}"
+          worst: >-
+            {% set k = 'sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang' %}
+            {% set a = states(k ~ '_pm1_0') | float(-1) %}{% set b = states(k ~ '_pm2_5') | float(-1) %}{% set c = states(k ~ '_pm10') | float(-1) %}
+            {% set sc = {'PM1.0': (0 if a < 0 else (1 if a <= 15 else (2 if a <= 35 else 3))), 'PM2.5': (0 if b < 0 else (1 if b <= 15 else (2 if b <= 35 else 3))), 'PM10': (0 if c < 0 else (1 if c <= 54 else (2 if c <= 125 else 3)))} %}
+            {% set m = sc.values() | max %}{{ (sc | dictsort | selectattr('1', 'eq', m) | map(attribute='0') | list) | join('、') if m > 0 else '' }}

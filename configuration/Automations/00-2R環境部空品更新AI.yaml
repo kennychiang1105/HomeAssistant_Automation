@@ -1,0 +1,26 @@
+# ────────────────────────────────────────────────────────
+# 00-2R環境部空品更新AI (V4.1.6)
+# 相容版本：Helpers V4.1.6（packages/v41_outdoor_air.yaml）
+# 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-18）：新增。每 30 分鐘（整點後第 12、42 分，環境部資料約整點後 10 分鐘內更新）與 HA 啟動 2 分鐘後，
+#   執行 scripts/moenv_fetch.py 抓環境部 AQI／紫外線／空品預報，更新 sensor.moenv_air。
+# ────────────────────────────────────────────────────────
+- alias: 00-2R環境部空品更新AI (V4.1.6)
+  id: ai_00_2r_moenv_refresh
+  description: 定時抓環境部空氣品質、紫外線與預報資料
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      minutes: "12,42"
+    - trigger: homeassistant
+      event: start
+  actions:
+    - if: "{{ trigger.platform == 'homeassistant' }}"
+      then:
+        - delay: "00:02:00"
+    - action: shell_command.moenv_fetch_run
+      continue_on_error: true
+    - delay: "00:00:03"
+    - action: homeassistant.update_entity
+      target:
+        entity_id: sensor.moenv_air

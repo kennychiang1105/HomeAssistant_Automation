@@ -1,9 +1,11 @@
 # ────────────────────────────────────────────────────────
 # 戶外空氣品質（V4.1.6，2026-10-18）
-# 資料來源：Open-Meteo Air Quality API（免金鑰，CAMS 模式預報，約 11 公里網格、每小時更新），座標用 zone.home。
-# 這是模式資料、不是環境部測站實測；要接環境部測站（需免費申請 API 金鑰）可之後換掉 rest 的來源，下面的感測器名稱不變。
-# sensor.outdoor_pm2_5／outdoor_pm10／outdoor_aqi_us：戶外數值；sensor.outdoor_air_quality：台灣 PM2.5 分級（良好／普通／對敏感族群不健康／不健康／非常不健康／危害）。
-# 06環境異常通知AI 用來判斷「室內 PM2.5 偏高其實是戶外空氣不好」。
+# 主要來源：環境部開放資料（scripts/moenv_fetch.py，金鑰在 secrets.yaml 的 moenv_api_key）
+#   ・空氣品質指標 AQI 即時（頭份測站，約 3 公里）：AQI、PM2.5、PM10、O3、NO2、SO2、CO、風速風向、主要污染物
+#   ・紫外線指數（氣象署後龍站）、竹苗空品區空氣品質預報（今日～後天）
+# 備援：Open-Meteo Air Quality（免金鑰、CAMS 模式資料）— sensor.outdoor_pm2_5／outdoor_pm10／outdoor_aqi_us；環境部資料超過 4 小時沒更新時才用。
+# 對外介面：sensor.outdoor_air_quality（狀態＝官方 AQI 等級文字，屬性 pm25／pm10／aqi／level 1~6／station／source／pollutant…），
+#            sensor.outdoor_aqi、sensor.outdoor_uv_index、sensor.outdoor_aqi_forecast（明日預報）。
 # ────────────────────────────────────────────────────────
 rest:
   - resource_template: >-
@@ -28,19 +30,96 @@ rest:
         state_class: measurement
         value_template: "{{ value_json.current.us_aqi | float(none) }}"
 
+shell_command:
+  moenv_fetch_run: "python3 /config/scripts/moenv_fetch.py > /dev/null 2>&1"
+
+command_line:
+  - sensor:
+      name: moenv_air
+      unique_id: moenv_air_v416
+      command: "cat /config/moenv_air.json 2>/dev/null || echo '{}'"
+      value_template: "{{ value_json.updated | default('unknown') }}"
+      json_attributes:
+        - aq
+        - uv
+        - forecast
+        - ok
+        - errors
+      scan_interval: 600
+
 template:
   - sensor:
+      - name: outdoor_aqi
+        unique_id: outdoor_aqi_moenv
+        icon: mdi:air-filter
+        state: >-
+          {% set aq = state_attr('sensor.moenv_air', 'aq') %}
+          {% set ok = aq is mapping and aq.get('aqi') is number and aq.get('time') and ((now() - strptime(aq.time, '%Y/%m/%d %H:%M:%S').replace(tzinfo=now().tzinfo)).total_seconds() < 14400) %}
+          {{ aq.aqi | int if ok else 'unknown' }}
+        attributes:
+          status: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('status', '') }}"
+          pollutant: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('pollutant', '') }}"
+          station: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('station', '') }}"
+          o3: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('o3') }}"
+          no2: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('no2') }}"
+          so2: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('so2') }}"
+          co: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('co') }}"
+          wind_speed: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('wind_speed') }}"
+          wind_direction: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('wind_direc') }}"
+          time: "{{ (state_attr('sensor.moenv_air', 'aq') or {}).get('time', '') }}"
       - name: outdoor_air_quality
         unique_id: outdoor_air_quality_tw
         icon: mdi:weather-hazy
         state: >-
+          {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}
           {% set p = states('sensor.outdoor_pm2_5') | float(-1) %}
-          {% if p < 0 %}unknown{% elif p <= 15.4 %}良好{% elif p <= 35.4 %}普通{% elif p <= 54.4 %}對敏感族群不健康{% elif p <= 150.4 %}不健康{% elif p <= 250.4 %}非常不健康{% else %}危害{% endif %}
+          {% if aqi >= 0 %}{{ state_attr('sensor.outdoor_aqi', 'status') or ('良好' if aqi <= 50 else '普通' if aqi <= 100 else '對敏感族群不健康' if aqi <= 150 else '不健康' if aqi <= 200 else '非常不健康' if aqi <= 300 else '危害') }}
+          {% elif p < 0 %}unknown{% elif p <= 15.4 %}良好{% elif p <= 35.4 %}普通{% elif p <= 54.4 %}對敏感族群不健康{% elif p <= 150.4 %}不健康{% elif p <= 250.4 %}非常不健康{% else %}危害{% endif %}
         attributes:
-          pm25: "{{ states('sensor.outdoor_pm2_5') }}"
-          pm10: "{{ states('sensor.outdoor_pm10') }}"
-          us_aqi: "{{ states('sensor.outdoor_aqi_us') }}"
+          source: >-
+            {{ ('環境部 ' ~ state_attr('sensor.outdoor_aqi', 'station') ~ '站') if states('sensor.outdoor_aqi') | float(-1) >= 0 else 'Open-Meteo（模式）' }}
+          aqi: "{{ states('sensor.outdoor_aqi') if states('sensor.outdoor_aqi') | float(-1) >= 0 else states('sensor.outdoor_aqi_us') }}"
+          pm25: >-
+            {% set aq = state_attr('sensor.moenv_air', 'aq') %}
+            {% if states('sensor.outdoor_aqi') | float(-1) >= 0 and aq.get('pm25') is number %}{{ aq.pm25 }}{% else %}{{ states('sensor.outdoor_pm2_5') }}{% endif %}
+          pm10: >-
+            {% set aq = state_attr('sensor.moenv_air', 'aq') %}
+            {% if states('sensor.outdoor_aqi') | float(-1) >= 0 and aq.get('pm10') is number %}{{ aq.pm10 }}{% else %}{{ states('sensor.outdoor_pm10') }}{% endif %}
           level: >-
+            {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}
             {% set p = states('sensor.outdoor_pm2_5') | float(-1) %}
-            {{ 0 if p < 0 else (1 if p <= 15.4 else (2 if p <= 35.4 else (3 if p <= 54.4 else (4 if p <= 150.4 else (5 if p <= 250.4 else 6))))) }}
-          source: Open-Meteo（CAMS 模式）
+            {% if aqi >= 0 %}{{ 1 if aqi <= 50 else (2 if aqi <= 100 else (3 if aqi <= 150 else (4 if aqi <= 200 else (5 if aqi <= 300 else 6)))) }}
+            {% elif p < 0 %}0{% else %}{{ 1 if p <= 15.4 else (2 if p <= 35.4 else (3 if p <= 54.4 else (4 if p <= 150.4 else (5 if p <= 250.4 else 6)))) }}{% endif %}
+          pollutant: "{{ state_attr('sensor.outdoor_aqi', 'pollutant') or '' }}"
+          station: "{{ state_attr('sensor.outdoor_aqi', 'station') or '' }}"
+      - name: outdoor_uv_index
+        unique_id: outdoor_uv_index_cwa
+        icon: mdi:sun-wireless-outline
+        state: >-
+          {% set uv = state_attr('sensor.moenv_air', 'uv') %}
+          {% set ok = uv is mapping and uv.get('uvi') is number and uv.get('time') and ((now() - strptime(uv.time, '%Y-%m-%d %H:%M').replace(tzinfo=now().tzinfo)).total_seconds() < 21600) %}
+          {{ uv.uvi if ok else 'unknown' }}
+        attributes:
+          level: >-
+            {% set u = states('sensor.outdoor_uv_index') | float(-1) %}
+            {{ '' if u < 0 else ('低量' if u < 3 else ('中量' if u < 6 else ('高量' if u < 8 else ('過量' if u < 11 else '危險')))) }}
+          site: "{{ (state_attr('sensor.moenv_air', 'uv') or {}).get('site', '') }}"
+          time: "{{ (state_attr('sensor.moenv_air', 'uv') or {}).get('time', '') }}"
+      - name: outdoor_aqi_forecast
+        unique_id: outdoor_aqi_forecast_moenv
+        icon: mdi:calendar-clock
+        state: >-
+          {% set tm = (now() + timedelta(days=1)).strftime('%Y-%m-%d') %}
+          {% set l = (state_attr('sensor.moenv_air', 'forecast') or []) | selectattr('date', 'eq', tm) | list %}
+          {{ l[0].aqi | int if l and l[0].aqi is number else 'unknown' }}
+        attributes:
+          date: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d') }}"
+          major_pollutant: >-
+            {% set tm = (now() + timedelta(days=1)).strftime('%Y-%m-%d') %}
+            {% set l = (state_attr('sensor.moenv_air', 'forecast') or []) | selectattr('date', 'eq', tm) | list %}
+            {{ l[0].major if l else '' }}
+          today_aqi: >-
+            {% set tm = now().strftime('%Y-%m-%d') %}
+            {% set l = (state_attr('sensor.moenv_air', 'forecast') or []) | selectattr('date', 'eq', tm) | list %}
+            {{ l[0].aqi | int if l and l[0].aqi is number else '' }}
+          area: 竹苗空品區
