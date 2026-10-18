@@ -2,6 +2,7 @@
 # 燈組動畫AI (V4.1.6)
 # 相容版本：Helpers V4.1.6（packages/v41_light_anim.yaml）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-19）：氣氛色彩依太陽位置分 4 個時段換色調（黎明金橘、白天天藍暖白、黃昏橘→玫瑰→紫、夜晚柔和琥珀→藕紫→靛藍且較暗較慢）；新增 style 快速（Aqara 魔方轉動：新亮起的那組光暈一閃再回到記憶，約 1 秒）與 滑動（魔方滑動：餐廳燈光帶快速掃過）。
 # - V4.1.6（2026-10-18）：新增。客廳／餐廳燈組開燈動畫：
 #     氣氛＝每顆先以暖橘→粉色淡色依序亮起（光帶掃過），再依序漸變回「上次狀態」（色溫＋亮度記憶 input_text.mood_mem_*，沒有記錄用 4000K／100%）；
 #     依序＝每顆先以 35% 亮度依序亮起，再依序拉到記憶亮度。
@@ -23,14 +24,13 @@ light_group_on:
       description: 要開的燈（燈或燈組 entity_id 清單，依序）
       required: false
     style:
-      description: 氣氛 / 依序 / 關閉動畫（省略讀 input_select.light_anim_style）
+      description: 氣氛 / 依序 / 快速（Aqara 魔方轉動，單組光暈）/ 滑動（魔方滑動，餐廳一掃而過）；省略讀 input_select.light_anim_style（選「關閉動畫」時一律瞬間開）
       required: false
     origin:
       description: 起點區 living / dining / kitchen / garage（只影響 all 的先後）
       required: false
   variables:
     automation_version: "V4.1.6"
-    palette: [[255, 150, 40], [255, 120, 90], [255, 100, 150]]
     living: [yeelink_color5_4181, yeelink_color5_106d, yeelink_color5_fab7, yeelink_color5_8e3f, yeelink_color5_5007, yeelink_color5_2024, yeelink_color5_f21d]
     dining: [yeelink_color5_53ed, yeelink_color5_f618, yeelink_color5_c8d3]
   sequence:
@@ -58,6 +58,19 @@ light_group_on:
           {% endif %}
           {{ ns.o | unique | list }}
         style_eff: "{{ style if (style is defined and style) else states('input_select.light_anim_style') }}"
+        # V4.1.6：氣氛色彩依「當下太陽位置」換色調，每個時段一個儀式感
+        #   黎明（日出後～仰角 25°）金橘晨光；白天 天藍→淡藍→暖白；黃昏（仰角 20° 以下的日落前後）橘→玫瑰→紫；夜晚（仰角 < -6°）柔和琥珀→藕紫→靛藍，較暗、較慢
+        elev: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+        rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
+        period: >-
+          {% if elev < -6 %}night{% elif rising and elev < 25 %}dawn{% elif (not rising) and elev < 20 %}dusk{% else %}day{% endif %}
+        pal: >-
+          {{ {'dawn': [[255, 196, 84], [255, 170, 110], [255, 214, 150]], 'day': [[170, 214, 255], [210, 235, 255], [255, 244, 205]],
+              'dusk': [[255, 140, 60], [240, 95, 110], [160, 95, 205]], 'night': [[255, 176, 96], [214, 120, 150], [110, 120, 210]]}[period] }}
+        bri_c: "{{ {'dawn': 100, 'day': 130, 'dusk': 100, 'night': 55}[period] }}"
+        g1: "{{ ((300 if period == 'night' else 220) if style_eff == '氣氛' else (120 if style_eff == '快速' else 150)) }}"
+        g2: "{{ (130 if style_eff == '氣氛' else (100 if style_eff == '快速' else 80)) }}"
+        wmid: "{{ 300 if style_eff == '氣氛' else 180 }}"
         busy_em: >-
           {% set ns = namespace(b=false) %}
           {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
@@ -66,7 +79,7 @@ light_group_on:
           {% endfor %}
           {{ ns.b }}
         instant: >-
-          {{ is_state('input_boolean.light_anim_enable', 'off') or style_eff == '關閉動畫' or busy_em
+          {{ is_state('input_boolean.light_anim_enable', 'off') or states('input_select.light_anim_style') == '關閉動畫' or style_eff == '關閉動畫' or busy_em
              or is_state('input_boolean.mood_alert_active', 'on') or is_state('input_boolean.sleep_silent_active', 'on') }}
         todo: >-
           {% set ns = namespace(o=[]) %}
@@ -101,17 +114,17 @@ light_group_on:
     - repeat:
         for_each: "{{ todo }}"
         sequence:
-          - if: "{{ style_eff == '氣氛' }}"
+          - if: "{{ style_eff in ['氣氛', '快速', '滑動'] }}"
             then:
               - action: light.turn_on
                 target:
                   entity_id: "light.{{ repeat.item }}_light"
                 data:
-                  rgb_color: "{{ palette[(repeat.index - 1) % (palette | count)] }}"
-                  brightness: 90
+                  rgb_color: "{{ pal[(repeat.index - 1) % (pal | count)] }}"
+                  brightness: "{{ bri_c }}"
                 continue_on_error: true
               - delay:
-                  milliseconds: 220
+                  milliseconds: "{{ g1 }}"
             else:
               - action: light.turn_on
                 target:
@@ -123,7 +136,7 @@ light_group_on:
               - delay:
                   milliseconds: 200
     - delay:
-        milliseconds: 300
+        milliseconds: "{{ wmid }}"
     # ── 第 2 波：回到上次狀態 ──
     - repeat:
         for_each: "{{ todo }}"
@@ -136,7 +149,7 @@ light_group_on:
               brightness: "{{ mem[repeat.item].b }}"
             continue_on_error: true
           - delay:
-              milliseconds: 130
+              milliseconds: "{{ g2 }}"
     # ── 確認回到色溫模式：1.5 秒後檢查，有沒回到的補送一次；再 2 秒檢查，還是沒有就再補一次 ──
     - delay:
         milliseconds: 1500
