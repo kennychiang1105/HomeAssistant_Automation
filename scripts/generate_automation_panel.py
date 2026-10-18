@@ -429,8 +429,13 @@ def linebot_forecast_banner():
 
   const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
 
+  const rawSummary = a.summary || '';
+  const parts = rawSummary.split(/[；;]/);
+  const part1 = parts[0] ? parts[0].trim() : '';
+  const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
+
   return `
-    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);white-space:normal;word-break:break-word">
+    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px">
           <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:24px"></ha-icon>
@@ -458,8 +463,15 @@ def linebot_forecast_banner():
         </div>
       </div>
 
-      <div style="font-size:13px;line-height:1.6;color:var(--primary-text-color);padding:4px 2px;white-space:normal !important;word-break:break-word !important">
-        💡 ${a.summary || ''}
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;flex-direction:column;gap:4px;min-width:0">
+        <div style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:1.5;color:var(--primary-text-color)">
+          <span style="flex-shrink:0">💡</span>
+          <span style="word-break:break-all;overflow-wrap:anywhere">${part1}</span>
+        </div>
+        ${part2 ? `
+        <div style="display:flex;align-items:flex-start;gap:6px;font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);padding-left:22px">
+          <span style="word-break:break-all;overflow-wrap:anywhere">${part2}</span>
+        </div>` : ''}
       </div>
     </div>
   `;
@@ -469,8 +481,10 @@ def linebot_forecast_banner():
          "        show_name: false", "        show_icon: false", "        show_state: false",
          "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
          "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
-         "            - white-space: normal", "            - word-break: break-word",
+         "            - white-space: normal",
          "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+         "          custom_fields:", "            body:", "              - width: 100%",
+         "              - min-width: 0", "              - text-align: left",
          "        custom_fields:", "          body: |"]
     for ln in js.splitlines():
         L.append("            " + ln)
