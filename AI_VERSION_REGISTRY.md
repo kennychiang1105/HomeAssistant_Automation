@@ -20,6 +20,16 @@
 - configuration 主設定檔版本（`configuration.yaml`）：`V4.0`
 - 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
+<!-- STATS:BEGIN -->
+## 數量統計（`scripts/registry_stats.py` 產生，更新於 2026-10-18）
+
+| 項目 | 檔案數 | 數量 |
+|---|---|---|
+| AI 自動化（`Automations/*.yaml`，一項一個 id） | 60 | **89** |
+| AI 腳本（`Scripts/*.yaml`，一支一個 key） | 14 | **31** |
+
+<!-- STATS:END -->
+
 ## 現況總表（Automations）
 
 | File | Alias | id | automation_version |
