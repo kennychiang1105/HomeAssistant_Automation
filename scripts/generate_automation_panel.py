@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -31,9 +31,7 @@ GONE={"input_boolean.door_light_auto",
       # 2026-10-11 已刪除的舊 07 系列與舊 100A（restore_state 還會保留一陣子）
       "automation.kong_qi_qing_jing_ji_zi_dong_qi_dong","automation.10kong_qi_yan_zhong_tong_zhi",
       "automation.11kong_qi_yan_zhong_tong_zhi_yan_zhong","automation.07kong_qi_qing_jing_ji_zi_dong_qi_dong",
-      "automation.07_4kong_qi_qing_jing_ji_zi_dong_guan_bi","automation.100zi_dong_qi_dong_dao_jia_zao_an_qing_jing",
-       # 2026-10-18（V4.2.0）移除影子模式
-       "input_boolean.air_ai_shadow","input_boolean.auto_scene_shadow","input_boolean.intrusion_watch_shadow"}
+      "automation.07_4kong_qi_qing_jing_ji_zi_dong_guan_bi","automation.100zi_dong_qi_dong_dao_jia_zao_an_qing_jing"}
 # restore_state 會保留已刪除實體最多 7 天；現存實體的 last_seen 都是最近一次寫入時間，只收這一批
 from datetime import datetime
 ts=lambda x: datetime.fromisoformat(x["last_seen"].replace("Z","+00:00")).timestamp()
@@ -50,7 +48,8 @@ print(json.dumps(out,ensure_ascii=False))
 # 分類：(key, 標題, icon, 說明)
 CATS = [
     ("overview", "總覽", "mdi:view-dashboard-outline", ""),
-    ("notify", "通知與廣播", "mdi:bell-ring-outline", "通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈、LINE Bot。"),
+    ("supply", "耗材與額度", "mdi:battery-charging-medium", "設備電池預估、空氣清淨機濾網壽命、LINE Bot 額度消耗與月底全月預測。"),
+    ("notify", "通知與廣播", "mdi:bell-ring-outline", "通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。"),
     ("scene", "情境", "mdi:home-automation", "早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。"),
     ("switch", "開關按鈕", "mdi:light-switch", "Terncy／小米／Aqara 實體開關的單擊、雙擊、長按動作（800 系列），以及 Terncy 無線開關單擊切換（08-9）。"),
     ("lighting", "照明與感應燈", "mdi:lightbulb-on-outline", "樓梯燈、廚房／廁所感應燈、客廳／車庫燈、車庫鐵門感應燈。"),
@@ -58,13 +57,14 @@ CATS = [
     ("security", "保全與門鎖", "mdi:shield-home-outline", "離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。"),
     ("emergency", "緊急與災防", "mdi:alert-octagon-outline", "緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。"),
     ("air_fan", "空氣與風扇", "mdi:fan", "空氣清淨機、客廳／頂樓風扇、空調溫度門檻、夏季模式。"),
-    ("system", "系統維護", "mdi:cog-outline", "穩定重啟、看門狗、更新紀錄／版本、耗材電量、Tesla、測試與初始化、定位追蹤。"),
+    ("system", "系統維護", "mdi:cog-outline", "穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。"),
     ("internal", "內部狀態（勿動）", "mdi:lock-outline", "由自動化自動維護的旗標、紀錄、計時器與計數器，一般不用修改；手動改動可能讓自動化判斷錯誤。"),
     ("other", "其他", "mdi:dots-horizontal-circle-outline", "尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。"),
 ]
 
 # 自動化分類規則：依 friendly_name，由上而下第一個符合者
 AUTO_RULES = [
+    ("supply", r"^(00-2C|耗材|電池)"),
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7A|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
     ("topfloor", r"^(08-5[A-K]|800-開關系列-(11|12)[A-D]?)"),
     ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
@@ -78,6 +78,7 @@ AUTO_RULES = [
 
 # helper 分類規則：依 entity_id（含 friendly_name），由上而下第一個符合者
 HELPER_RULES = [
+    ("supply", r"supply_|battery_system|doorlock_batt|line_bot_forecast"),
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
     ("security", r"intrusion_|wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
@@ -86,7 +87,7 @@ HELPER_RULES = [
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
     ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
-    ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|supply_|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|battery_system|collection|last_disaster"),
+    ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|collection|last_disaster"),
 ]
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
 INTERNAL_RE = re.compile(
@@ -104,8 +105,13 @@ INTERNAL_RE = re.compile(
 
 # 各分類內的功能小組（依序比對，先符合者先分；沒符合的依元件種類分組）
 SUBGROUPS = {
+    "supply": [
+        ("LINE Bot 模式與設定", r"line_bot_mode|line_bot_sticky|line_bot_test_mode|line_bot_custom"),
+        ("耗材通知與報告設定", r"supply_battery_report_time|notify_supply_extra_line|supply_filter_notified"),
+        ("耗材測試按鈕", r"battery_system_test"),
+    ],
     "notify": [
-        ("LINE 通知開關", r"notify_line_|notify_supply_extra_line|notify_tesla_charge_extra_line"),
+        ("LINE 通知開關", r"notify_line_|notify_tesla_charge_extra_line"),
         ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|garage_away_off_ha_notify|notify_tesla_charge_extra_system"),
         ("災害訊息廣播開關", r"announce_disaster_"),
         ("手動廣播與手動通知", r"announce_manual|notify_manual"),
@@ -134,7 +140,6 @@ SUBGROUPS = {
         ("網關與警報", r"gateway_|wang_guan|jie_chu_wang_guan|網關|54ef44cf58f9_alarm"),
     ],
     "system": [
-        ("耗材電量回報", r"supply_battery|battery_system_test"),
         ("系統穩定自動重啟", r"system_stability"),
         ("版本與更新紀錄", r"version|ai_manual|ai_version|ai_leave"),
         ("家人定位追蹤", r"at_home|tracker"),
@@ -159,6 +164,12 @@ def classify(rules, text):
 
 
 def fetch():
+    local_storage = pathlib.Path("/homeassistant/.storage/core.restore_state")
+    if not local_storage.exists():
+        local_storage = pathlib.Path("/config/.storage/core.restore_state")
+    if local_storage.exists():
+        r = subprocess.run(["python3", "-"], input=QUERY, capture_output=True, text=True, check=True)
+        return json.loads(r.stdout)
     r = subprocess.run(["ssh", HOST, "sudo python3 -"], input=QUERY, capture_output=True, text=True, check=True)
     return json.loads(r.stdout)
 
@@ -298,7 +309,7 @@ def list_section(head_lines, rows, min_split=12):
     return section(head_lines + ["      - type: grid", "        columns: 2", "        square: false", "        cards:"] + inner, span=2)
 
 
-BOT_JS = """[[[
+BOT_JS = r"""[[[
   const e = entity;
   const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
   const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
@@ -379,6 +390,226 @@ def quota_settings():
             ("input_boolean.line_bot_test_mode", "測試模式"), ("input_boolean.line_bot_custom_user_enable", "自訂目標 ID 啟用"),
             ("input_text.line_bot_custom_user_id", "自訂目標 ID")]
     return heading("LINE Bot 設定", "mdi:robot-outline") + entities_card(rows)
+
+
+def linebot_forecast_banner():
+    """LINE Bot 全月預測診斷卡片：顯示日發送率、一般 Bot 耗盡日、緊急 Bot 狀態、重置倒數與診斷。"""
+    js = """[[[
+  const f = states['sensor.line_bot_forecast'];
+  if (!f || !f.attributes) return '<div style="padding:14px;text-align:center">LINE Bot 預測載入中...</div>';
+  const a = f.attributes;
+  const st = f.state;
+  
+  let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
+  if (st === 'safe') {
+    bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
+    statusTitle = '本月額度充裕（無需動用緊急Bot）';
+    statusBadge = '安全充裕';
+    badgeBg = 'rgba(48,209,88,.2)';
+    badgeFg = '#30D158';
+    iconName = 'mdi:check-circle';
+    iconColor = '#30D158';
+  } else if (st === 'need_emergency') {
+    bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
+    statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
+    statusBadge = '備援預備';
+    badgeBg = 'rgba(255,159,10,.2)';
+    badgeFg = '#FF9F0A';
+    iconName = 'mdi:alert-circle';
+    iconColor = '#FF9F0A';
+  } else {
+    bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
+    statusTitle = `額度告急（預估 ${a.total_exhaust_date || '月底前'} 耗盡）`;
+    statusBadge = '額度告急';
+    badgeBg = 'rgba(255,69,58,.2)';
+    badgeFg = '#FF453A';
+    iconName = 'mdi:alert-octagon';
+    iconColor = '#FF453A';
+  }
+
+  return `
+    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:24px"></ha-icon>
+          <span style="font-size:16px;font-weight:700">${statusTitle}</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg}">${statusBadge}</span>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin:12px 0;padding:10px;background:rgba(120,120,128,.1);border-radius:12px">
+        <div>
+          <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
+          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
+          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${a.normal_exhaust_date ? a.normal_exhaust_date.slice(5) : '--'} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
+          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">剩餘 ${a.emergency_remaining || 0} <span style="font-size:12px;font-weight:normal">則備援</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--secondary-text-color)">每月 1 日重置倒數</div>
+          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.days_left_in_month || 0} <span style="font-size:12px;font-weight:normal">天</span></div>
+        </div>
+      </div>
+
+      <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);padding:4px 2px">
+        💡 ${a.summary || ''}
+      </div>
+    </div>
+  `;
+]]]"""
+    L = ["      - type: custom:button-card",
+         "        entity: sensor.line_bot_forecast",
+         "        show_name: false", "        show_icon: false", "        show_state: false",
+         "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+         "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+         "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+         "        custom_fields:", "          body: |"]
+    for ln in js.splitlines():
+        L.append("            " + ln)
+    return L
+
+
+def filter_life_section():
+    """空氣清淨機濾網壽命卡片。"""
+    md = ("{% set lvl = states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') | int(0) %}"
+          "{% set notified = is_state('input_boolean.supply_filter_notified', 'on') %}"
+          "{% set color = '#FF453A' if lvl <= 5 else ('#FF9F0A' if lvl <= 10 else '#30D158') %}"
+          "<div style=\"background:rgba(120,120,128,.08);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.12)\">"
+          "  <div style=\"display:flex;align-items:center;justify-content:space-between\">"
+          "    <div style=\"display:flex;align-items:center;gap:10px\">"
+          "      <div style=\"width:38px;height:38px;border-radius:10px;background:rgba(10,132,255,.14);color:#0A84FF;display:flex;align-items:center;justify-content:center\">"
+          "        <ha-icon icon=\"mdi:air-filter\" style=\"--mdc-icon-size:22px\"></ha-icon>"
+          "      </div>"
+          "      <div>"
+          "        <div style=\"font-weight:600;font-size:15px\">空氣清淨機濾網壽命</div>"
+          "        <div style=\"font-size:12px;color:var(--secondary-text-color)\">"
+          "          {% if lvl <= 5 %}<span style=\"color:#FF453A;font-weight:600\">已達臨界壽命，請立即更換濾網</span>"
+          "          {% elif lvl <= 10 %}<span style=\"color:#FF9F0A;font-weight:600\">壽命低於 10%，請準備備用濾芯</span>"
+          "          {% else %}<span>運作狀態良好，濾網正常</span>{% endif %}"
+          "        </div>"
+          "      </div>"
+          "    </div>"
+          "    <div style=\"font-size:22px;font-weight:800;color:{{ color }}\">{{ lvl }}%</div>"
+          "  </div>"
+          "  <div style=\"height:6px;border-radius:4px;background:rgba(120,120,128,.2);margin:12px 0 6px;overflow:hidden\">"
+          "    <div style=\"width:{{ lvl }}%;height:100%;background:{{ color }};border-radius:4px\"></div>"
+          "  </div>"
+          "  <div style=\"display:flex;justify-content:space-between;font-size:11px;color:var(--secondary-text-color)\">"
+          "    <span>門檻：≤10% 提醒備品、≤5% 請更換</span>"
+          "    <span>通知狀態：{{ '已發出通知' if notified else '尚未觸發通知' }}</span>"
+          "  </div>"
+          "</div>")
+    rows = [
+        ("sensor.kong_qi_qing_jing_ji_filter_life_remaining", "濾網剩餘壽命"),
+        ("input_boolean.supply_filter_notified", "濾網更換已通知旗標"),
+    ]
+    return heading("空氣清淨機濾網", "mdi:air-filter") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS + entities_card(rows)
+
+
+def battery_forecast_section():
+    """9 大感測器電池壽命預估清單卡片。"""
+    md = ("{% set f = state_attr('sensor.battery_forecast', 'items') %}"
+          "{% set names = {'gar':'鐵門感應器','door':'客廳門鎖','study':'書房感應開關','cube':'客廳魔方','toiletm':'二樓廁所感應','kitchenm':'廚房人體感應','nightl':'廁所夜燈','bell':'二樓門口電鈴','kswitch':'廚房無線開關'} %}"
+          "{% if f %}"
+          "<div style=\"display:flex;flex-direction:column;gap:8px\">"
+          "{% for k, d in f.items() %}"
+          "  {% set name = names.get(k, k) %}"
+          "  {% set lvl = d.level | round(0) | int %}"
+          "  {% set days = d.days %}"
+          "  {% set date = d.date %}"
+          "  {% set rate = d.rate %}"
+          "  {% set color = '#FF453A' if lvl <= d.empty else ('#FF9F0A' if lvl <= 35 else '#30D158') %}"
+          "  <div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(120,120,128,.08);border-radius:14px\">"
+          "    <div style=\"flex:1;min-width:0\">"
+          "      <div style=\"display:flex;align-items:center;gap:6px\">"
+          "        <span style=\"font-weight:600;font-size:15px\">{{ name }}</span>"
+          "        {% if d.status == 'empty' %}<span style=\"font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(255,69,58,.18);color:#FF453A;font-weight:600\">更換門檻</span>"
+          "        {% elif d.status == 'stable' %}<span style=\"font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(10,132,255,.18);color:#0A84FF;font-weight:600\">平穩</span>{% endif %}"
+          "      </div>"
+          "      <div style=\"font-size:12px;color:var(--secondary-text-color);margin-top:2px\">"
+          "        {% if days is not none and days > 0 %}"
+          "          預估可用 <b style=\"color:var(--primary-text-color)\">{{ days | round(0) }}</b> 天（至 {{ date }}，日耗 {{ rate }}%）"
+          "        {% elif d.status == 'empty' %}<span style=\"color:#FF453A\">已達更換標準，請儘速換電池</span>"
+          "        {% elif d.status == 'stable' %}<span>運作 {{ d.span_days | round(0) }} 天未掉格，壽命充足</span>"
+          "        {% else %}<span>資料收集與學習中</span>{% endif %}"
+          "      </div>"
+          "    </div>"
+          "    <div style=\"text-align:right;margin-left:12px\">"
+          "      <div style=\"font-size:18px;font-weight:700;color:{{ color }}\">{{ lvl }}%</div>"
+          "    </div>"
+          "  </div>"
+          "{% endfor %}"
+          "</div>"
+          "{% else %}尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 計算。{% endif %}")
+    battery_entities = [
+        ("sensor.ke_ting_men_suo_dian_liang_guo_lu", "客廳門鎖電量"),
+        ("sensor.garage_battery", "鐵門感應器電量"),
+        ("sensor.shu_fang_gan_ying_kai_guan_battery", "書房感應開關電量"),
+        ("sensor.0x158d00027d8a8e_battery", "客廳魔方電量"),
+        ("sensor.e406bf25caa1_battery", "二樓廁所感應電量"),
+        ("sensor.08b95f06b466_battery", "廚房人體感應電量"),
+        ("sensor.28d1273d78cf_battery", "廁所夜燈電量"),
+        ("sensor.0x00158d0002419b84_battery", "二樓門口電鈴電量"),
+        ("sensor.0x00158d00023cd3dc_battery", "廚房無線開關電量"),
+    ]
+    return heading("9 大感測器電池壽命預估", "mdi:battery-clock-outline") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS + entities_card(battery_entities)
+
+
+def supply_control_section():
+    """耗材監控設定與操作按鈕。"""
+    rows = [
+        ("input_boolean.notify_supply_extra_line_enable", "耗材更換額外 LINE 推播"),
+        ("input_datetime.supply_battery_report_time", "耗材定期摘要時間"),
+    ]
+    test_btn = [
+        "      - type: custom:button-card",
+        "        entity: input_button.battery_system_test_trigger",
+        "        name: 立即執行耗材電量系統測試",
+        "        icon: mdi:battery-sync",
+        "        show_state: false",
+        "        tap_action:",
+        "          action: call-service",
+        "          service: input_button.press",
+        "          target:",
+        "            entity_id: input_button.battery_system_test_trigger",
+        "        styles:",
+        "          card:",
+        "            - border-radius: 14px",
+        "            - border: 1.5px solid #34C759",
+        "            - padding: 12px",
+        "            - background: transparent",
+        "          name:",
+        "            - color: '#34C759'",
+        "            - font-weight: 700",
+        "            - font-size: 15px",
+        "          icon:",
+        "            - color: '#34C759'",
+    ]
+    return heading("耗材監控設定與操作", "mdi:tune-variant") + entities_card(rows) + test_btn
+
+
+def supply_sections(autos):
+    S = []
+    # 1. LINE Bot 全月預測診斷看板 + 4 大 Bot 額度進度 + 設定
+    S.append(section(heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant") + linebot_forecast_banner()))
+    S.append(section(quota_section()))
+    S.append(section(quota_settings()))
+    # 2. 空氣清淨機濾網壽命
+    S.append(section(filter_life_section()))
+    # 3. 設備電池壽命預估清單
+    S.append(section(battery_forecast_section()))
+    # 4. 相關自動化開關
+    auto_rows = [(eid, fn) for fn, eid in sorted(autos.get("supply", []))]
+    if auto_rows:
+        S.append(section(heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows)))
+    # 5. 耗材監控設定與一鍵測試
+    S.append(section(supply_control_section()))
+    return S
 
 
 def manual_button(script, result_entity, name, icon):
@@ -570,6 +801,9 @@ def build(data):
         if key == "overview":
             L += view(title, key, icon, overview_sections(autos, stale))
             continue
+        if key == "supply":
+            L += view(title, key, icon, supply_sections(autos))
+            continue
         if key == "other" and not autos[key] and not settings[key]:
             continue   # 沒有未分類項目就不顯示「其他」分頁
         B = []
@@ -625,5 +859,12 @@ if __name__ == "__main__":
     OUT.write_text(text, encoding="utf-8")
     print("wrote", OUT, len(text.splitlines()), "lines")
     if "--deploy" in sys.argv:
-        subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
+        target_path = pathlib.Path("/homeassistant/automation-panel.yaml")
+        if not target_path.parent.exists():
+            target_path = pathlib.Path("/config/automation-panel.yaml")
+        if target_path.parent.exists():
+            target_path.write_text(text, encoding="utf-8")
+        else:
+            subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
+

@@ -1,0 +1,129 @@
+# ────────────────────────────────────────────────────────
+# LINE Bot 全月額度預測 (V4.2.0)
+# 依據本月至今消耗量計算日發送速率，推估一般 Bot (1~3) 與緊急 Bot (智慧家庭A) 之剩餘可用天數與耗盡日期。
+# 每月 1 日官方重置額度。
+# ────────────────────────────────────────────────────────
+template:
+  - sensor:
+      - name: line_bot_forecast
+        unique_id: line_bot_forecast_v420
+        icon: mdi:chart-timeline-variant
+        state: >-
+          {% set d = now().day %}
+          {% set next_month = (now().replace(day=28) + timedelta(days=4)).replace(day=1) %}
+          {% set total_days = (next_month - timedelta(days=1)).day %}
+          {% set days_left = total_days - d %}
+          {% set u0 = states('sensor.bot_msg_count0') | int(0) %}
+          {% set u1 = states('sensor.bot_msg_count1') | int(0) %}
+          {% set u2 = states('sensor.bot_msg_count2') | int(0) %}
+          {% set u3 = states('sensor.bot_msg_count3') | int(0) %}
+          {% set u_total = u1 + u2 + u3 + u0 %}
+          {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+          {% set r_normal = [196 - u1, 0] | max + [196 - u2, 0] | max + [196 - u3, 0] | max %}
+          {% set r0 = [200 - u0, 0] | max %}
+          {% set normal_days = (r_normal / rate) | round(1) %}
+          {% set total_days_left = ((r_normal + r0) / rate) | round(1) %}
+          {% if normal_days >= days_left %}
+            safe
+          {% elif total_days_left >= days_left %}
+            need_emergency
+          {% else %}
+            warning
+          {% endif %}
+        attributes:
+          daily_rate: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {{ (u_total / d) | round(1) }}
+          days_left_in_month: >-
+            {% set d = now().day %}
+            {% set next_month = (now().replace(day=28) + timedelta(days=4)).replace(day=1) %}
+            {% set total_days = (next_month - timedelta(days=1)).day %}
+            {{ total_days - d }}
+          normal_used: >-
+            {{ states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) }}
+          emergency_used: >-
+            {{ states('sensor.bot_msg_count0')|int(0) }}
+          normal_remaining: >-
+            {{ [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max }}
+          emergency_remaining: >-
+            {{ [200 - states('sensor.bot_msg_count0')|int(0), 0]|max }}
+          total_remaining: >-
+            {{ [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max + [200 - states('sensor.bot_msg_count0')|int(0), 0]|max }}
+          normal_days_left: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_normal = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max %}
+            {{ (r_normal / rate) | round(1) }}
+          normal_exhaust_date: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_normal = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max %}
+            {% set normal_days = (r_normal / rate) | round(1) %}
+            {{ (now() + timedelta(days=normal_days)).strftime('%Y-%m-%d') }}
+          normal_exhaust_day: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_normal = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max %}
+            {% set normal_days = (r_normal / rate) | round(1) %}
+            {{ (now() + timedelta(days=normal_days)).day }}
+          need_emergency: >-
+            {% set d = now().day %}
+            {% set next_month = (now().replace(day=28) + timedelta(days=4)).replace(day=1) %}
+            {% set total_days = (next_month - timedelta(days=1)).day %}
+            {% set days_left = total_days - d %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_normal = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max %}
+            {{ ((r_normal / rate) | round(1)) < days_left }}
+          total_days_left: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_total = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max + [200 - states('sensor.bot_msg_count0')|int(0), 0]|max %}
+            {{ (r_total / rate) | round(1) }}
+          total_exhaust_date: >-
+            {% set d = now().day %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_total = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max + [200 - states('sensor.bot_msg_count0')|int(0), 0]|max %}
+            {% set total_days_left = (r_total / rate) | round(1) %}
+            {{ (now() + timedelta(days=total_days_left)).strftime('%Y-%m-%d') }}
+          can_survive_month: >-
+            {% set d = now().day %}
+            {% set next_month = (now().replace(day=28) + timedelta(days=4)).replace(day=1) %}
+            {% set total_days = (next_month - timedelta(days=1)).day %}
+            {% set days_left = total_days - d %}
+            {% set u_total = states('sensor.bot_msg_count1')|int(0) + states('sensor.bot_msg_count2')|int(0) + states('sensor.bot_msg_count3')|int(0) + states('sensor.bot_msg_count0')|int(0) %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_total = [196 - states('sensor.bot_msg_count1')|int(0), 0]|max + [196 - states('sensor.bot_msg_count2')|int(0), 0]|max + [196 - states('sensor.bot_msg_count3')|int(0), 0]|max + [200 - states('sensor.bot_msg_count0')|int(0), 0]|max %}
+            {{ ((r_total / rate) | round(1)) >= days_left }}
+          reset_date: >-
+            {{ (now().replace(day=28) + timedelta(days=4)).replace(day=1).strftime('%Y-%m-01') }}
+          summary: >-
+            {% set d = now().day %}
+            {% set next_month = (now().replace(day=28) + timedelta(days=4)).replace(day=1) %}
+            {% set total_days = (next_month - timedelta(days=1)).day %}
+            {% set days_left = total_days - d %}
+            {% set u0 = states('sensor.bot_msg_count0') | int(0) %}
+            {% set u1 = states('sensor.bot_msg_count1') | int(0) %}
+            {% set u2 = states('sensor.bot_msg_count2') | int(0) %}
+            {% set u3 = states('sensor.bot_msg_count3') | int(0) %}
+            {% set u_total = u1 + u2 + u3 + u0 %}
+            {% set rate = [((u_total / d) | round(2)), 0.5] | max %}
+            {% set r_normal = [196 - u1, 0] | max + [196 - u2, 0] | max + [196 - u3, 0] | max %}
+            {% set r0 = [200 - u0, 0] | max %}
+            {% set normal_days = (r_normal / rate) | round(1) %}
+            {% set total_days_left = ((r_normal + r0) / rate) | round(1) %}
+            {% set normal_date = (now() + timedelta(days=normal_days)).strftime('%m/%d') %}
+            {% set total_date = (now() + timedelta(days=total_days_left)).strftime('%m/%d') %}
+            {% if normal_days >= days_left %}
+              一般 Bot 額度充裕（可用至 {{ normal_date }}），本月無需動用緊急 Bot。
+            {% elif total_days_left >= days_left %}
+              一般 Bot 預估於 {{ normal_date }} 用盡，將切換緊急 Bot（智慧家庭A）；動用後可順利撐至月底重置。
+            {% else %}
+              額度消耗較快，預估於 {{ normal_date }} 動用緊急 Bot，並於 {{ total_date }} 前耗盡所有額度，請留意發送量。
+            {% endif %}
