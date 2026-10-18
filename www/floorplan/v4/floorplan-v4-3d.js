@@ -2818,9 +2818,10 @@ class FloorplanV4Sidebar extends HTMLElement {
         .compact.box { height:auto; padding:10px 12px 12px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; }
         .compact.box.hasaq { grid-template-columns:1fr auto auto; }
         .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
-        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; }
-        .compact .aq { grid-column:3; grid-row:1 / span 2; flex-direction:column; justify-content:center; text-align:center; gap:2px; padding:6px 9px; margin:0; min-width:54px; }
-        .compact .aq .t { font-size:15px; font-weight:600; } .compact .aq .c { font-size:10px; margin-top:1px; }
+        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
+        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; gap:0; padding:6px 10px; margin:0; min-width:58px; }
+        .compact .aq .t { font-size:18px; line-height:24px; font-weight:600; } .compact .aq .c { font-size:11px; margin-top:4px; white-space:nowrap; }
+        .compact .aq .aqb.d, .compact .aq .pmx { display:none; } .compact .aq .aqb.m { display:inline-block; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
         .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
         .compact .cams { display:contents; }
@@ -2859,6 +2860,8 @@ class FloorplanV4Sidebar extends HTMLElement {
               background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
         .aq.show { display:flex; }
         .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
+        .aq .aqb { font:700 11px sans-serif; color:#fff; background:var(--c,#43a047); border-radius:8px; padding:5px 6px; line-height:1; letter-spacing:.3px; flex:none; }
+        .aq .aqb.m { display:none; padding:2px 5px; margin-right:3px; vertical-align:1px; font-size:10px; } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
         .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
         .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
         .sec { display:flex; flex-direction:column; gap:5px; }
@@ -2921,7 +2924,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         const pm = parseFloat(aq.attributes.pm25);
         aqEl.style.setProperty("--c", col);
         const aqi = parseFloat(aq.attributes.aqi);
-        aqEl.innerHTML = `<ha-icon icon="mdi:weather-hazy"></ha-icon><div><div class="t">${short}</div><div class="c">${isNaN(aqi) ? "" : `AQI ${Math.round(aqi)} · `}PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`;
+        aqEl.innerHTML = `<span class="aqb d">AQI</span><div><div class="t">${short}</div><div class="c"><span class="aqb m">AQI</span><span class="n">${isNaN(aqi) ? "--" : Math.round(aqi)}</span><span class="pmx"> · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</span></div></div>`;
         aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
         aqEl.onclick = () => this._more(aqId);
       }
