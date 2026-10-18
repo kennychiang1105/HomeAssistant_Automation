@@ -378,10 +378,102 @@ def quota_section():
         L.append("              body: |")
         for ln in BOT_JS.replace("__IDX__", str(i)).splitlines():
             L.append("                " + ln)
-    md = ("目前使用：**{{ states('sensor.line_bot_in_use') }}**　下一個：Bot{{ state_attr('sensor.line_bot_rotation_target','next_bot') }}\n\n"
-          "已用達 {{ state_attr('sensor.line_bot_in_use','rotation_switch_limit') }} 則（剩餘不到 5）自動切換下一個 Bot；群組訊息一次約耗 5 個額度；月初沿用上月最後使用的 Bot。")
-    L.append("      - type: markdown")
-    L.append("        content: " + q(md))
+
+    status_js = """[[[
+  const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
+  const targetObj = states['sensor.line_bot_rotation_target'];
+  const nextIdx = targetObj?.attributes?.next_bot;
+  const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
+  const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
+
+  const f = states['sensor.line_bot_forecast'];
+  const st = f ? f.state : 'safe';
+  const a = f?.attributes || {};
+  const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
+  const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
+
+  let statusColor, statusBg, statusBorder, statusLabel, statusIcon, statusDesc;
+  if (st === 'safe') {
+    statusColor = '#30D158';
+    statusBg = 'rgba(48,209,88,.12)';
+    statusBorder = 'rgba(48,209,88,.25)';
+    statusLabel = '額度安全充裕';
+    statusIcon = 'mdi:check-circle';
+    statusDesc = `預估本月一般 Bot 額度充裕（可用至 ${normalDate}），無需動用緊急 Bot。`;
+  } else if (st === 'need_emergency') {
+    statusColor = '#FF9F0A';
+    statusBg = 'rgba(255,159,10,.14)';
+    statusBorder = 'rgba(255,159,10,.3)';
+    statusLabel = '預備動用緊急 Bot';
+    statusIcon = 'mdi:alert-circle';
+    statusDesc = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot（智慧家庭A）；動用後可順利撐至月底重置。`;
+  } else {
+    statusColor = '#FF453A';
+    statusBg = 'rgba(255,69,58,.14)';
+    statusBorder = 'rgba(255,69,58,.3)';
+    statusLabel = '額度告急';
+    statusIcon = 'mdi:alert-octagon';
+    statusDesc = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot，並於 ${totalDate} 前耗盡所有額度！`;
+  }
+
+  return `
+    <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
+          <span style="color:var(--secondary-text-color)">目前使用：</span>
+          <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--secondary-text-color)">下一輪替：</span>
+          <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
+        </div>
+      </div>
+
+      <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
+        <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:20px;flex-shrink:0;margin-top:1px"></ha-icon>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:12px;font-weight:700;color:${statusColor}">預估 Bot 使用狀況</span>
+            <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:${statusColor};color:#fff">${statusLabel}</span>
+          </div>
+          <div style="font-size:12.5px;line-height:1.45;color:var(--primary-text-color);word-break:break-all;overflow-wrap:anywhere">
+            ${statusDesc}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:4px">
+        <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
+        <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
+      </div>
+    </div>
+  `;
+]]]"""
+    L.append("      - type: custom:button-card")
+    L.append("        entity: sensor.line_bot_in_use")
+    L.append("        show_name: false")
+    L.append("        show_icon: false")
+    L.append("        show_state: false")
+    L.append("        styles:")
+    L.append("          card:")
+    L.append("            - border-radius: 18px")
+    L.append("            - border: none")
+    L.append("            - box-shadow: 0 1px 2px rgba(0,0,0,.18)")
+    L.append("            - padding: 0")
+    L.append("            - white-space: normal")
+    L.append("          grid:")
+    L.append("            - grid-template-areas: '\"body\"'")
+    L.append("            - grid-template-columns: 1fr")
+    L.append("          custom_fields:")
+    L.append("            body:")
+    L.append("              - width: 100%")
+    L.append("              - min-width: 0")
+    L.append("              - text-align: left")
+    L.append("        custom_fields:")
+    L.append("          body: |")
+    for ln in status_js.splitlines():
+        L.append("            " + ln)
     return L
 
 
