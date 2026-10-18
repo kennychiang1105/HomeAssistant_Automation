@@ -2831,7 +2831,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
         .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
         .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:7px; padding:6px 10px; margin:0; --mdc-icon-size:30px; }
-        .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:block; }
+        .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:flex; flex-direction:column; align-items:center; text-align:center; }
         .compact .aq .aqi-ic.m { display:block; width:26px; height:26px; }
         .compact .aq .mob .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
         .compact .aq .mob .c { font:700 12px sans-serif; color:var(--c); margin-top:4px; white-space:nowrap; }
