@@ -31,7 +31,9 @@ GONE={"input_boolean.door_light_auto",
       # 2026-10-11 已刪除的舊 07 系列與舊 100A（restore_state 還會保留一陣子）
       "automation.kong_qi_qing_jing_ji_zi_dong_qi_dong","automation.10kong_qi_yan_zhong_tong_zhi",
       "automation.11kong_qi_yan_zhong_tong_zhi_yan_zhong","automation.07kong_qi_qing_jing_ji_zi_dong_qi_dong",
-      "automation.07_4kong_qi_qing_jing_ji_zi_dong_guan_bi","automation.100zi_dong_qi_dong_dao_jia_zao_an_qing_jing"}
+      "automation.07_4kong_qi_qing_jing_ji_zi_dong_guan_bi","automation.100zi_dong_qi_dong_dao_jia_zao_an_qing_jing",
+       # 2026-10-18（V4.2.0）移除影子模式
+       "input_boolean.air_ai_shadow","input_boolean.auto_scene_shadow","input_boolean.intrusion_watch_shadow"}
 # restore_state 會保留已刪除實體最多 7 天；現存實體的 last_seen 都是最近一次寫入時間，只收這一批
 from datetime import datetime
 ts=lambda x: datetime.fromisoformat(x["last_seen"].replace("Z","+00:00")).timestamp()

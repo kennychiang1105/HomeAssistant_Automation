@@ -46,7 +46,7 @@
 | `configuration/Automations/05F緊急模式快照到期AI.yaml` | `05F緊急模式快照到期AI (V4.1.0)` | `ai_05f_emergency_snapshot_expire_v41` | `V4.1.0` |
 | `configuration/Automations/05G緊急三擊維修暫停AI.yaml` | `05G緊急三擊維修暫停AI (V4.1.5)` | `ai_05g_emergency_triple_press_pause` | `V4.1.5` |
 | `configuration/Automations/06環境異常通知AI.yaml` | `06環境異常通知AI (V4.1.6)` | `ai_06_env_alert_v41` | `V4.1.6` |
-| `configuration/Automations/07空氣清淨機整合AI.yaml` | `07空氣清淨機整合AI (V4.1.0)` | `ai_07_air_purifier_v41` | `V4.1.0` |
+| `configuration/Automations/07空氣清淨機整合AI.yaml` | `07空氣清淨機整合AI (V4.2.0)` | `ai_07_air_purifier_v41` | `V4.2.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)` | `ai_08_5a_5f_security_webhook_guard` | `V4.0.0` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` / `V4.1.5` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.0.4) / 08-5F頂樓下樓補判AI (V4.0.1)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.0.4` / `V4.0.1` |
@@ -59,7 +59,7 @@
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2) / 08-8A 廚房感應燈重新偵測AI (V3.3.0) / 08-8A 廚房燈無人保險關燈AI (V3.4.0)` | `ai_08_8a_kitchen_motion_light` / `ai_08_8a_kitchen_motion_retrigger` / `ai_08_8a_kitchen_idle_off` | `V3.2` / `V3.3.0` / `V3.4.0` |
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
-| `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.1.6)` | `ai_100a_auto_arrive_morning_v41` | `V4.1.6` |
+| `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.2.0)` | `ai_100a_auto_arrive_morning_v41` | `V4.2.0` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.1.6)` | `ai_auto_leave_system` | `V4.1.6` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_cycle_calibration` | `V4.0.0` |
@@ -89,6 +89,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.2.0 | 2026-10-18 | 移除影子模式 helper：`air_ai_shadow`（空氣清淨機）、`auto_scene_shadow`（到家早安）、`intrusion_watch_shadow`（入侵偵測）；新增 `packages/v41_light_anim.yaml`（燈組動畫 helper 與 7 個動畫燈）、`v41_outdoor_air.yaml`、`v41_outdoor_brief.yaml`、`v41_kitchen_air.yaml`。 |
 | V4.1.5 | 2026-10-11 | 廚房「空氣品質危險」旗標條件：PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（原 CO2>1000）。 |
 | V4.1.5 | 2026-10-11 | 新增 `packages/v41_day_label.yaml`：`sensor.tw_day_label`（今日日型標籤，供 3D 儀表板日期列使用）。 |
 | V4.1.5 | 2026-10-11 | 新增 `packages/v41_emergency_pause.yaml`：`input_boolean.emergency_triple_press_pause`（緊急三擊維修暫停，已加入 HomeKit 與自動化管理面板）、`timer.emergency_triple_press_pause`（2 小時自動恢復）。 |
@@ -597,7 +598,11 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 ### AI 4.0 版號統一（2026-10-05）
 V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
 
-## 本次調整（V4.1.6 - 2026-10-12：廚房／廁所保險關燈、充電完成後誤報修正、實體檢查誤報修正、100A 通知開關）
+## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
+
+- 打包 V4.1.6 草稿至今的全部更新發布為 V4.2.0（次版本：新增動畫燈、戶外空氣品質、通知卡片統一排版等功能）。
+- **清理（冗余移除）**：①移除影子模式。07 空氣清淨機（`air_ai_shadow`）與 100A 到家早安（`auto_scene_shadow`）早在 2026-10-10 核准並關閉，程式碼分支與 helper 刪除、行為不變；入侵偵測 08-7（`intrusion_watch_shadow`）依使用者決定改為正式運作，判定成立即緊急通知、廣播、倒數後觸發網關警報，`script.intrusion_alert` 只剩 real／dry／test 三種 mode，乾跑（事件 `intrusion_signal` 加 `test: dry`）與 LINE 測試模式保留。②自動化管理面板不再列這三個開關（`scripts/generate_automation_panel.py` 的 GONE 清單）並已重新部署。③已停用的舊 07／07-1～07-4／舊 100A 在 V4.1.5 已刪除，不再保留。
+- **發布注意**：入侵偵測沒有經過影子觀察就轉為正式，若發生誤報請在 Known Bugs 回報；`env_alert_co_dry_run`（CO 緊急乾跑）不是影子模式，維持開啟。
 
 - 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」。現在標籤固定在時間右邊、完整顯示，秒數縮小（.74em）；放不下時 `_fit()` 依序縮小時間與標籤（fit1：23px／10px、fit2：20px／9px、fit3：17px），寬度 130px 以上都能一行完整顯示（瀏覽器實測 240／200／170／150／130px）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。
 - `100A自動啟動到家早安情境AI`（V4.1.6）新增觸發 `living_room`：任何一位家人（person 位置 `sensor.at_home_*_location`）在客廳停留 1 分鐘（原 2 分鐘，2026-10-14 縮短），且網關不在在家模式（`aqara_zai_jia` 為 off），就依時段自動啟動早安或到家情境。停留期間位置跳到別處或離家會重新計時（只有持續在客廳才算）；仍受最早啟動時間（半夜在客廳不會啟動）、總開關、影子模式、3 分鐘防重複與保全模式限制，不需要「家裡有活動跡象」。

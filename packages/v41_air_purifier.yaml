@@ -1,12 +1,6 @@
 # 空氣清淨機整合 AI 輔助項目（V4.1.0，2026-10-10；C／項目 6）
 # 由 07空氣清淨機整合AI 使用。濾網壽命不在這裡（由 00-2C 負責）。
-# air_ai_shadow（影子模式，預設 on）：on 時新自動化只寫 logbook「影子：會…」，不控制風扇、不發通知；舊 07／07-1～07-4 維持啟用。
-# 2026-10-10 使用者核准：影子模式預設改關（新 07 實際運作，舊 07 系列已停用）。
-input_boolean:
-  air_ai_shadow:
-    name: 空氣清淨機AI影子模式（只記錄不動作）
-    icon: mdi:ghost-outline
-    initial: false
+# V4.2.0：移除 air_ai_shadow（影子模式，2026-10-10 已核准關閉，新 07 實際運作）。
 input_number:
   air_pm_start:
     name: PM2.5 啟動門檻

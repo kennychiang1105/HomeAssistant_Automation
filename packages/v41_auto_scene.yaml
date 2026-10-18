@@ -1,8 +1,7 @@
 # 自動啟動到家／早安情境 AI 輔助項目（V4.1.0，2026-10-10；B／項目 4）
 # 由 100A自動啟動到家早安情境AI 使用。
-# auto_scene_shadow（影子模式，預設 on）：on 時只寫 logbook「影子：會觸發 早安/到家（原因）」，不呼叫 101／103；舊 100A 維持啟用。
 # auto_scene_enable：自動情境總開關（可公開給 HomeKit，由使用者在 HomeKit 設定公開）。
-# 2026-10-10 使用者核准：影子模式預設改關（新 100A 實際運作，舊 100A 已停用）。
+# V4.2.0：移除 auto_scene_shadow（影子模式，2026-10-10 已核准關閉，新 100A 實際運作）。
 # 2026-10-11（V4.1.5）使用者要求：最早啟動時間改用日出時間（auto_scene_earliest_use_sunrise，預設 on；日出後偏移：工作日 auto_scene_earliest_sunrise_offset_min（預設 30 分）、非工作日 auto_scene_earliest_sunrise_offset_holiday_min（預設 150 分＝2.5 小時））；
 #   關閉開關或日出時間讀不到時，退回平日 05:30／假日 07:00 的固定時間。日出來源同 sensor.scene_morning_start 的 sunrise 屬性。
 # 2026-10-11（V4.1.6）使用者要求：新增 auto_scene_notify_enable（預設 on）：關閉後 100A 自動啟動情境時不再發「自動啟動早安／到家情境」HA 資訊通知（情境照常啟動、logbook 與 input_text.auto_scene_last 照常記錄）。
@@ -15,10 +14,6 @@ input_boolean:
     name: 自動到家／早安情境通知（HA 資訊通知）
     icon: mdi:bell-outline
     initial: true
-  auto_scene_shadow:
-    name: 自動到家／早安情境影子模式（只記錄不動作）
-    icon: mdi:ghost-outline
-    initial: false
   auto_scene_earliest_use_sunrise:
     name: 自動情境最早啟動改用日出時間（關閉＝用下面平日／假日固定時間）
     icon: mdi:weather-sunset-up

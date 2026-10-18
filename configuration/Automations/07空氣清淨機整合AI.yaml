@@ -1,22 +1,21 @@
 # ──────────────────────────────────────────────
-# 07空氣清淨機整合AI (V4.1.0)
+# 07空氣清淨機整合AI (V4.2.0)
 # 更新紀錄：
+# - V4.2.0（2026-10-18）：移除影子模式（air_ai_shadow 已於 2026-10-10 核准關閉，程式碼與 helper 一併刪除），行為不變；舊 07／07-1～07-4 已不存在。
 # - V4.1.0（2026-10-10）：新增。整合舊 07／07-1／07-2／07-3／07-4（device 觸發）為單一自動化、具名分支，門檻全改 helper（packages/v41_air_purifier.yaml）。
 #   分支：start（PM2.5 超過啟動門檻或回到在家）／notice（>30 持續10分鐘）／severe（>150 持續10分鐘，LINE）／very_severe（>300 即時，加強運作）／stop（<10 持續5分鐘）／manual_off（記錄手動關機）。
 #   同等級通知冷卻 30 分鐘；手動關機（非自動化造成，parent_id 為空）後 30 分鐘不自動重啟。濾網壽命不在這裡（由 00-2C 負責）。
-#   影子模式（input_boolean.air_ai_shadow，預設 on）：只寫 logbook「影子：會…」，不控制風扇、不發通知；舊 07 系列維持啟用。
 # ──────────────────────────────────────────────
 - id: ai_07_air_purifier_v41
-  alias: 07空氣清淨機整合AI (V4.1.0)
+  alias: 07空氣清淨機整合AI (V4.2.0)
   description: >
-    PM2.5 啟動／一般通知／嚴重通知／非常嚴重加強／自動關閉整合版。預設影子模式（只記錄不動作）。
+    PM2.5 啟動／一般通知／嚴重通知／非常嚴重加強／自動關閉整合版。
   mode: queued
   max: 10
   max_exceeded: silent
   variables:
     fan: fan.kong_qi_qing_jing_ji
     pm_sensor: sensor.kong_qi_qing_jing_ji_pm2_5
-    shadow: "{{ is_state('input_boolean.air_ai_shadow', 'on') }}"
     pm: "{{ states(pm_sensor) | float(0) }}"
     now_ts: "{{ as_timestamp(now()) | int }}"
     st_raw: "{{ states('input_text.air_ai_state') }}"
@@ -92,7 +91,7 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：' if shadow else '' }}偵測到手動關機，{{ (hold_s / 60) | int }} 分鐘內不自動重啟"
+                message: "偵測到手動關機，{{ (hold_s / 60) | int }} 分鐘內不自動重啟"
                 entity_id: fan.kong_qi_qing_jing_ji
         - alias: "啟動：在家、PM2.5 高、風扇關、非手動關機保護期"
           conditions:
@@ -112,15 +111,11 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：會' if shadow else '已' }}啟動空氣清淨機（PM2.5 {{ pm | int }}）"
+                message: "已啟動空氣清淨機（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
-            - if:
-                - condition: template
-                  value_template: "{{ not shadow }}"
-              then:
-                - action: fan.turn_on
-                  target:
-                    entity_id: fan.kong_qi_qing_jing_ji
+            - action: fan.turn_on
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji
         - alias: "一般通知：>30 持續10分鐘"
           conditions:
             - condition: trigger
@@ -131,7 +126,7 @@
             - condition: template
               value_template: "{{ cd_ok }}"
           sequence:
-            - alias: "記錄通知時間（影子模式也記，才能驗證冷卻）"
+            - alias: "記錄通知時間（冷卻用）"
               action: input_text.set_value
               target:
                 entity_id: input_text.air_ai_state
@@ -141,31 +136,27 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：會' if shadow else '已' }}發一般通知並啟動（PM2.5 {{ pm | int }}）"
+                message: "已發一般通知並啟動（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
             - if:
+                - condition: state
+                  entity_id: fan.kong_qi_qing_jing_ji
+                  state: "off"
                 - condition: template
-                  value_template: "{{ not shadow }}"
+                  value_template: "{{ not manual_hold }}"
               then:
-                - if:
-                    - condition: state
-                      entity_id: fan.kong_qi_qing_jing_ji
-                      state: "off"
-                    - condition: template
-                      value_template: "{{ not manual_hold }}"
-                  then:
-                    - action: fan.turn_on
-                      target:
-                        entity_id: fan.kong_qi_qing_jing_ji
-                - action: script.notify_dispatch
-                  data:
-                    level: general
-                    line: false
-                    source: 07空氣清淨機整合AI
-                    version: V4.1.0
-                    title: 空氣品質變差
-                    message: "偵測到空氣品質變差（PM2.5 {{ pm | int }}），空氣清淨機運作中。"
-                    voice: "{{ none if night else '智慧家庭通知，偵測到空氣品質變差，空氣清淨機運作中。' }}"
+                - action: fan.turn_on
+                  target:
+                    entity_id: fan.kong_qi_qing_jing_ji
+            - action: script.notify_dispatch
+              data:
+                level: general
+                line: false
+                source: 07空氣清淨機整合AI
+                version: V4.2.0
+                title: 空氣品質變差
+                message: "偵測到空氣品質變差（PM2.5 {{ pm | int }}），空氣清淨機運作中。"
+                voice: "{{ none if night else '智慧家庭通知，偵測到空氣品質變差，空氣清淨機運作中。' }}"
         - alias: "嚴重通知：>150 持續10分鐘（LINE）"
           conditions:
             - condition: trigger
@@ -185,29 +176,25 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：會' if shadow else '已' }}發嚴重通知（含LINE）並啟動（PM2.5 {{ pm | int }}）"
+                message: "已發嚴重通知（含LINE）並啟動（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
             - if:
-                - condition: template
-                  value_template: "{{ not shadow }}"
+                - condition: state
+                  entity_id: fan.kong_qi_qing_jing_ji
+                  state: "off"
               then:
-                - if:
-                    - condition: state
-                      entity_id: fan.kong_qi_qing_jing_ji
-                      state: "off"
-                  then:
-                    - action: fan.turn_on
-                      target:
-                        entity_id: fan.kong_qi_qing_jing_ji
-                - action: script.notify_dispatch
-                  data:
-                    level: important
-                    line: true
-                    source: 07空氣清淨機整合AI
-                    version: V4.1.0
-                    title: 空氣品質嚴重變差
-                    message: "空氣品質較差（PM2.5 {{ pm | int }}），空氣清淨機已運作。\n請留意門窗與室內空氣。"
-                    voice: "{{ none if night else '智慧家庭通知，請注意，偵測到空氣品質較差，空氣清淨機運作中。' }}"
+                - action: fan.turn_on
+                  target:
+                    entity_id: fan.kong_qi_qing_jing_ji
+            - action: script.notify_dispatch
+              data:
+                level: important
+                line: true
+                source: 07空氣清淨機整合AI
+                version: V4.2.0
+                title: 空氣品質嚴重變差
+                message: "空氣品質較差（PM2.5 {{ pm | int }}），空氣清淨機已運作。\n請留意門窗與室內空氣。"
+                voice: "{{ none if night else '智慧家庭通知，請注意，偵測到空氣品質較差，空氣清淨機運作中。' }}"
         - alias: "非常嚴重：>300 即時，加強運作"
           conditions:
             - condition: trigger
@@ -227,30 +214,26 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：會' if shadow else '已' }}發非常嚴重通知並加強運作（PM2.5 {{ pm | int }}）"
+                message: "已發非常嚴重通知並加強運作（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
-            - if:
-                - condition: template
-                  value_template: "{{ not shadow }}"
-              then:
-                - action: fan.turn_on
-                  target:
-                    entity_id: fan.kong_qi_qing_jing_ji
-                - action: fan.set_preset_mode
-                  target:
-                    entity_id: fan.kong_qi_qing_jing_ji
-                  data:
-                    preset_mode: Favorite
-                  continue_on_error: true
-                - action: script.notify_dispatch
-                  data:
-                    level: important
-                    line: true
-                    source: 07空氣清淨機整合AI
-                    version: V4.1.0
-                    title: 空氣品質非常差
-                    message: "空氣品質非常差（PM2.5 {{ pm | int }}），空氣清淨機已加強運作。"
-                    voice: "智慧家庭通知，請注意，偵測到空氣品質非常差，空氣清淨機將加強運作。"
+            - action: fan.turn_on
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji
+            - action: fan.set_preset_mode
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji
+              data:
+                preset_mode: Favorite
+              continue_on_error: true
+            - action: script.notify_dispatch
+              data:
+                level: important
+                line: true
+                source: 07空氣清淨機整合AI
+                version: V4.2.0
+                title: 空氣品質非常差
+                message: "空氣品質非常差（PM2.5 {{ pm | int }}），空氣清淨機已加強運作。"
+                voice: "智慧家庭通知，請注意，偵測到空氣品質非常差，空氣清淨機將加強運作。"
         - alias: "自動關閉：<10 持續5分鐘（遲滯）"
           conditions:
             - condition: trigger
@@ -262,12 +245,8 @@
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "{{ '影子：會' if shadow else '已' }}關閉空氣清淨機（PM2.5 {{ pm | int }}）"
+                message: "已關閉空氣清淨機（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
-            - if:
-                - condition: template
-                  value_template: "{{ not shadow }}"
-              then:
-                - action: fan.turn_off
-                  target:
-                    entity_id: fan.kong_qi_qing_jing_ji
+            - action: fan.turn_off
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji

@@ -1,15 +1,12 @@
 ﻿# 離家入侵偵測輔助項目（V4.1.6，2026-10-12）
 # 由 08-7離家入侵偵測AI／08-7C訊號收集AI／08-7D感應器統計AI／script.intrusion_alert 使用。
 # 監控條件：四位家人都離家滿 intrusion_arm_nobody_min 分鐘 且 網關離家情境滿 intrusion_arm_away_min 分鐘；網關切到在家／早安／到家（aqara_zai_jia 開）就不監控、倒數中也取消。
+# V4.2.0：移除 intrusion_watch_shadow（影子模式），判定成立即正式通知。
 # 判定：intrusion_window_min 分鐘內，來自「不同裝置」的 2 個以上訊號（入口訊號＋室內動作，或兩個不同位置的室內動作）。
 input_boolean:
   intrusion_watch_enable:
     name: 離家入侵偵測（總開關）
     icon: mdi:shield-alert-outline
-    initial: true
-  intrusion_watch_shadow:
-    name: 入侵偵測影子模式（只寫紀錄，不通知不響警報）
-    icon: mdi:ghost-outline
     initial: true
   intrusion_watch_test_mode:
     name: 入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）
