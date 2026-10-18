@@ -34,7 +34,7 @@
 {%- elif t | regex_search('攝影|影像|截圖|監視') -%}camera
 {%- elif t | regex_search('地震|震度|規模') -%}quake
 {%- elif t | regex_search('颱風|氣象|天氣|豪雨') -%}weather
-{%- elif t | regex_search('日出|日落|白天|早安') -%}sun
+{%- elif t | regex_search('紫外線|UV|日出|日落|白天|早安') -%}sun
 {%- elif t | regex_search('晚安|夜間|深夜') -%}moon
 {%- elif t | regex_search('熟睡|睡眠|睡') -%}bed
 {%- elif t | regex_search('闖入|入侵') -%}shieldoff

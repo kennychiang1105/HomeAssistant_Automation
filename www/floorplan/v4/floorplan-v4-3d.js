@@ -92,6 +92,17 @@ const tempColor = (t) => (t < 16 ? "#4f8fff" : t < 20 ? "#4fc3f7" : t < 24 ? "#4
   : t < 30 ? "#ffd54f" : t < 32 ? "#ffa726" : t < 35 ? "#ff7043" : "#e53935");
 const humColor = (h) => (h < 40 ? "#ffb74d" : h < 60 ? "#66bb6a" : h < 70 ? "#4fc3f7" : h < 80 ? "#5c8dff" : "#7e57c2");
 // V4.1.6: living / dining lights get the opening animation (script.light_group_on) when switched ON from the panel
+// V4.1.6: Apple Home "air quality" glyph – a dot matrix disc (centre dot + rings of smaller dots)
+const aqiSvg = (cls, px) => {
+  let d = `<circle cx="12" cy="12" r="2.1"/>`;
+  for (const [n, rad, r] of [[6, 4.9, 1.45], [12, 8.2, 1.1], [18, 11.0, 0.8]]) {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + (rad > 8 ? Math.PI / n : 0);
+      d += `<circle cx="${(12 + rad * Math.cos(a)).toFixed(2)}" cy="${(12 + rad * Math.sin(a)).toFixed(2)}" r="${r}"/>`;
+    }
+  }
+  return `<svg class="aqi-ic ${cls}" viewBox="0 0 24 24" width="${px}" height="${px}" fill="currentColor">${d}</svg>`;
+};
 const ANIM_RE = /^light\.(ke_ting_deng_zu_(quan|1_ha|2|3)|can_ting_deng_zu_1_ha|yeelink_color5_(4181|106d|fab7|8e3f|5007|2024|f21d|53ed|f618|c8d3)_light)$/;
 const switchLights = (hass, ids, wantOn) => {
   const anim = wantOn ? ids.filter((e) => ANIM_RE.test(e)) : [];
@@ -2821,7 +2832,10 @@ class FloorplanV4Sidebar extends HTMLElement {
         .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
         .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; gap:0; padding:6px 10px; margin:0; min-width:58px; }
         .compact .aq .t { font-size:18px; line-height:24px; font-weight:600; } .compact .aq .c { font-size:11px; margin-top:4px; white-space:nowrap; }
-        .compact .aq .aqb.d, .compact .aq .pmx { display:none; } .compact .aq .aqb.m { display:inline-block; }
+        .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:block; }
+        .compact .aq .mob .t { display:flex; align-items:center; gap:4px; font-size:18px; line-height:24px; font-weight:600; color:var(--c); }
+        .compact .aq .mob .t .aqi-ic { flex:none; } .compact .aq .mob .t .n { color:var(--primary-text-color); }
+        .compact .aq .mob .c { font-size:10.5px; font-weight:600; color:var(--c); margin-top:3px; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
         .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
         .compact .cams { display:contents; }
@@ -2860,8 +2874,8 @@ class FloorplanV4Sidebar extends HTMLElement {
               background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
         .aq.show { display:flex; }
         .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
-        .aq .aqb { font:700 11px sans-serif; color:#fff; background:var(--c,#43a047); border-radius:8px; padding:5px 6px; line-height:1; letter-spacing:.3px; flex:none; }
-        .aq .aqb.m { display:none; padding:2px 5px; margin-right:3px; vertical-align:1px; font-size:10px; } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
+        .aq .mob { display:none; } .aq .aqi-ic { flex:none; color:var(--c,#43a047); } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
+        .wx .uv { font:600 11px sans-serif; margin-top:3px; display:none; } .wx .uv.show { display:block; }
         .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
         .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
         .sec { display:flex; flex-direction:column; gap:5px; }
@@ -2906,8 +2920,13 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (box && wx) {
       const [ic, txt] = WX[wx.state] || ["mdi:weather-partly-cloudy", wx.state];
       const a = wx.attributes;
+      const uvS = h.states[this._cfg.uv || "sensor.outdoor_uv_index"];
+      const uvN = parseFloat(uvS?.state);
+      const UVC = (u) => (u < 3 ? ["#43a047", "低量"] : u < 6 ? ["#f9a825", "中量"] : u < 8 ? ["#fb8c00", "高量"] : u < 11 ? ["#e53935", "過量"] : ["#8e24aa", "危險"]);
+      const [uvCol, uvTxt] = isNaN(uvN) ? ["", ""] : UVC(uvN);
       box.innerHTML = `<ha-icon icon="${ic}"></ha-icon><div><div class="t">${a.temperature ?? "--"}°</div>
-        <div class="c">${txt} · 濕度 ${a.humidity ?? "--"}%</div></div>`;
+        <div class="c">${txt} · 濕度 ${a.humidity ?? "--"}%</div>
+        <div class="uv ${isNaN(uvN) ? "" : "show"}" style="color:${uvCol}">紫外線 ${isNaN(uvN) ? "" : uvN.toFixed(1)} ${uvTxt}</div></div>`;
       box.onclick = () => this._more(wxId);
     }
     const aqEl = root.querySelector(".aq");
@@ -2924,7 +2943,9 @@ class FloorplanV4Sidebar extends HTMLElement {
         const pm = parseFloat(aq.attributes.pm25);
         aqEl.style.setProperty("--c", col);
         const aqi = parseFloat(aq.attributes.aqi);
-        aqEl.innerHTML = `<span class="aqb d">AQI</span><div><div class="t">${short}</div><div class="c"><span class="aqb m">AQI</span><span class="n">${isNaN(aqi) ? "--" : Math.round(aqi)}</span><span class="pmx"> · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</span></div></div>`;
+        const aqn = isNaN(aqi) ? "--" : Math.round(aqi);
+        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}</div><div class="c"><span class="n">AQI ${aqn}</span> · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`
+          + `<div class="mob"><div class="t">${aqiSvg("m", 20)}<span class="n">${aqn}</span></div><div class="c">${short}</div></div>`;
         aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
         aqEl.onclick = () => this._more(aqId);
       }

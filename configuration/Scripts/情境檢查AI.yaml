@@ -5,6 +5,7 @@
 # - V4.1.6（2026-10-14）：① 保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，11:31 的「離家情境補救後仍未到位（保全模式）」就是只等 5 秒造成的誤報）；② 106C 解除網關警報的重置流程期間（input_datetime.scene_verify_skip_alarm_until 之前）略過保全模式檢查，因為離家情境後馬上會解除網關。
 # - V4.0.0：情境執行廣播提示音改為「噔噔」兩聲（/media/scene_ding.mp3，約 0.75 秒）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
+# - V4.1.6（2026-10-18）：離家廣播加上戶外天氣、紫外線、空氣品質與提醒（sensor.leave_outdoor_brief 的 voice）。
 # - V1.0.4：新增 script.scene_announce（情境執行廣播，一般級）；scene_verify 開頭呼叫。
 # - V1.0.3：空氣清淨機不再檢查狀態（07-4 會在 PM2.5 < 10 時立刻關閉它，與到家/早安開啟互相抵觸）；情境仍會送出開/關指令，確認有執行即可。
 # - V1.0.2：通知改用 script.notify_dispatch（補救成功/離線=資訊級僅 HA；補救失敗=重要級 HA+LINE Flex）。
@@ -171,7 +172,7 @@ scene_announce:
       required: false
   variables:
     msg: >-
-      {{ {'leave': '已啟動離家模式，電器與燈光已關閉，請確認門窗，路上小心。',
+      {{ {'leave': '已啟動離家模式，電器與燈光已關閉，請確認門窗。' ~ (state_attr('sensor.leave_outdoor_brief', 'voice') or '') ~ '路上小心。',
           'goodnight': '晚安，已啟動晚安模式，燈光與電器已關閉，祝您有個好夢。',
           'morning': '早安，已啟動早安模式，祝您有美好的一天。',
           'arrive': '歡迎回家，已啟動到家模式。'}.get(scene, '') }}

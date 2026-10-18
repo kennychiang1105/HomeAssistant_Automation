@@ -1,0 +1,55 @@
+# ────────────────────────────────────────────────────────
+# 出門前戶外狀況摘要（V4.1.6，2026-10-18）
+# sensor.leave_outdoor_brief：把戶外天氣、紫外線、空氣品質整理成通知文字與語音，異常時附提醒。
+#   屬性 text＝LINE／HA 通知用（小標題＋名稱：數值＋※ 提醒行，⟦g/o/r:文字⟧ 是顏色標記）、voice＝廣播用一句話、abnormal＝是否有需要提醒的項目。
+# 提醒條件：紫外線 ≥ 6（高量以上）、空氣品質 AQI > 100（對敏感族群不健康以上）、降雨機率 ≥ 50% 或正在下雨、氣溫 ≥ 35°C 或體感 ≥ 38°C、氣溫 ≤ 12°C、風速 ≥ 40 km/h。
+# 100B自動離家AI 的離家通知（LINE／HA）與 script.scene_announce 的離家廣播使用。
+# ────────────────────────────────────────────────────────
+template:
+  - sensor:
+      - name: leave_outdoor_brief
+        unique_id: leave_outdoor_brief_v416
+        icon: mdi:weather-partly-cloudy
+        state: >-
+          {% set w = states('weather.homeweather_zhu_nan_zhen') %}
+          {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
+          {{ w }}｜UV {{ uv if uv >= 0 else '--' }}｜{{ states('sensor.outdoor_air_quality') }}
+        attributes:
+          text: >-
+            {% set WX = {'sunny': '晴', 'clear-night': '晴朗', 'cloudy': '多雲', 'partlycloudy': '晴時多雲', 'rainy': '雨', 'pouring': '大雨', 'lightning-rainy': '雷雨', 'lightning': '雷', 'fog': '霧', 'windy': '強風', 'snowy': '雪'} %}
+            {% set w = states('weather.homeweather_zhu_nan_zhen') %}
+            {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
+            {% set t = wa.get('temperature') | float(none) %}{% set at = wa.get('apparent_temperature') | float(none) %}{% set ws = wa.get('wind_speed') | float(0) %}
+            {% set rp = states('sensor.homeweather_zhu_nan_zhen_forecast_precipitation_probability') | float(-1) %}
+            {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
+            {% set uvl = state_attr('sensor.outdoor_uv_index', 'level') or '' %}
+            {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}{% set aql = states('sensor.outdoor_air_quality') %}
+            {% set rain = w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] or rp >= 50 %}
+            {% set ns = namespace(o=['戶外狀況：']) %}
+            {% set wc = 'o' if (rain or (t is not none and (t >= 35 or t <= 12)) or ws >= 40) else 'g' %}
+            {% set ns.o = ns.o + ['天氣：⟦' ~ wc ~ ':' ~ WX.get(w, w) ~ (' ' ~ (t | round(0) | int) ~ '°C' if t is not none else '') ~ '⟧' ~ ('　降雨機率 ' ~ (rp | round(0) | int) ~ '%' if rp >= 0 else '')] %}
+            {% if uv >= 0 %}{% set ns.o = ns.o + ['紫外線：⟦' ~ ('g' if uv < 3 else ('o' if uv < 8 else 'r')) ~ ':' ~ uvl ~ ' ' ~ (uv | round(1)) ~ '⟧'] %}{% endif %}
+            {% if aql not in ['unknown', 'unavailable'] %}{% set ns.o = ns.o + ['空氣品質：⟦' ~ ('g' if aqi <= 50 and aqi >= 0 else ('o' if aqi <= 150 else 'r')) ~ ':' ~ aql ~ (('（AQI ' ~ (aqi | round(0) | int) ~ '）') if aqi >= 0 else '') ~ '⟧'] %}{% endif %}
+            {% if uv >= 6 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if uv >= 8 else 'o') ~ ':紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，出門請防曬、戴帽或撐傘⟧'] %}{% endif %}
+            {% if aqi > 100 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if aqi > 150 else 'o') ~ ':空氣品質不佳，敏感族群建議戴口罩，減少戶外活動⟧'] %}{% endif %}
+            {% if rain %}{% set ns.o = ns.o + ['※ ⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
+            {% if t is not none and (t >= 35 or (at is not none and at >= 38)) %}{% set ns.o = ns.o + ['※ ⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif t is not none and t <= 12 %}{% set ns.o = ns.o + ['※ ⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
+            {% if ws >= 40 %}{% set ns.o = ns.o + ['※ ⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
+            {{ ns.o | join('\n') }}
+          voice: >-
+            {% set WX = {'sunny': '晴天', 'clear-night': '晴朗', 'cloudy': '多雲', 'partlycloudy': '晴時多雲', 'rainy': '下雨', 'pouring': '大雨', 'lightning-rainy': '雷雨', 'lightning': '有雷', 'fog': '有霧', 'windy': '風大', 'snowy': '下雪'} %}
+            {% set w = states('weather.homeweather_zhu_nan_zhen') %}
+            {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
+            {% set t = wa.get('temperature') | float(none) %}{% set ws = wa.get('wind_speed') | float(0) %}
+            {% set rp = states('sensor.homeweather_zhu_nan_zhen_forecast_precipitation_probability') | float(-1) %}
+            {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
+            {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}
+            {% set rain = w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] or rp >= 50 %}
+            {% set ns = namespace(o=[]) %}
+            {% set ns.o = ns.o + ['外面' ~ WX.get(w, '天氣不明') ~ ('，' ~ (t | round(0) | int) ~ '度' if t is not none else '')] %}
+            {% if uv >= 6 %}{% set ns.o = ns.o + ['紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，請防曬'] %}{% endif %}
+            {% if aqi > 100 %}{% set ns.o = ns.o + ['空氣品質' ~ (states('sensor.outdoor_air_quality')) ~ '，建議戴口罩'] %}{% endif %}
+            {% if rain %}{% set ns.o = ns.o + ['可能下雨，請帶傘'] %}{% endif %}
+            {% if t is not none and t >= 35 %}{% set ns.o = ns.o + ['天氣炎熱，請補充水分'] %}{% elif t is not none and t <= 12 %}{% set ns.o = ns.o + ['天氣偏冷，請加衣物'] %}{% endif %}
+            {% if ws >= 40 %}{% set ns.o = ns.o + ['風勢強勁'] %}{% endif %}
+            {{ ns.o | join('，') }}。
