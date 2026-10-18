@@ -1,0 +1,46 @@
+# ────────────────────────────────────────────────────────
+# 戶外空氣品質（V4.1.6，2026-10-18）
+# 資料來源：Open-Meteo Air Quality API（免金鑰，CAMS 模式預報，約 11 公里網格、每小時更新），座標用 zone.home。
+# 這是模式資料、不是環境部測站實測；要接環境部測站（需免費申請 API 金鑰）可之後換掉 rest 的來源，下面的感測器名稱不變。
+# sensor.outdoor_pm2_5／outdoor_pm10／outdoor_aqi_us：戶外數值；sensor.outdoor_air_quality：台灣 PM2.5 分級（良好／普通／對敏感族群不健康／不健康／非常不健康／危害）。
+# 06環境異常通知AI 用來判斷「室內 PM2.5 偏高其實是戶外空氣不好」。
+# ────────────────────────────────────────────────────────
+rest:
+  - resource_template: >-
+      https://air-quality-api.open-meteo.com/v1/air-quality?latitude={{ state_attr('zone.home', 'latitude') | float(24.68) | round(2) }}&longitude={{ state_attr('zone.home', 'longitude') | float(120.87) | round(2) }}&current=pm2_5,pm10,us_aqi&timezone=Asia%2FTaipei
+    scan_interval: 1800
+    timeout: 20
+    sensor:
+      - name: outdoor_pm2_5
+        unique_id: outdoor_pm2_5_openmeteo
+        unit_of_measurement: "μg/m³"
+        device_class: pm25
+        state_class: measurement
+        value_template: "{{ value_json.current.pm2_5 | float(none) }}"
+      - name: outdoor_pm10
+        unique_id: outdoor_pm10_openmeteo
+        unit_of_measurement: "μg/m³"
+        device_class: pm10
+        state_class: measurement
+        value_template: "{{ value_json.current.pm10 | float(none) }}"
+      - name: outdoor_aqi_us
+        unique_id: outdoor_aqi_us_openmeteo
+        state_class: measurement
+        value_template: "{{ value_json.current.us_aqi | float(none) }}"
+
+template:
+  - sensor:
+      - name: outdoor_air_quality
+        unique_id: outdoor_air_quality_tw
+        icon: mdi:weather-hazy
+        state: >-
+          {% set p = states('sensor.outdoor_pm2_5') | float(-1) %}
+          {% if p < 0 %}unknown{% elif p <= 15.4 %}良好{% elif p <= 35.4 %}普通{% elif p <= 54.4 %}對敏感族群不健康{% elif p <= 150.4 %}不健康{% elif p <= 250.4 %}非常不健康{% else %}危害{% endif %}
+        attributes:
+          pm25: "{{ states('sensor.outdoor_pm2_5') }}"
+          pm10: "{{ states('sensor.outdoor_pm10') }}"
+          us_aqi: "{{ states('sensor.outdoor_aqi_us') }}"
+          level: >-
+            {% set p = states('sensor.outdoor_pm2_5') | float(-1) %}
+            {{ 0 if p < 0 else (1 if p <= 15.4 else (2 if p <= 35.4 else (3 if p <= 54.4 else (4 if p <= 150.4 else (5 if p <= 250.4 else 6))))) }}
+          source: Open-Meteo（CAMS 模式）

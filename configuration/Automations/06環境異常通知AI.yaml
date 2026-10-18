@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # 06環境異常通知AI (V4.1.6)
 # 更新紀錄：
+# - V4.1.6（2026-10-18）：新增戶外空氣品質（packages/v41_outdoor_air.yaml，Open-Meteo）。廚房「空氣品質危險」若只有 PM2.5 超標、其他項目正常且戶外 PM2.5 ≥ 25，改發「戶外空氣品質偏差／太差」一般級通知（關閉門窗並開啟空氣清淨機，語音也改成這句），並列出戶外 PM2.5 與等級；其他情況的讀數最後多一行戶外 PM2.5。
 # - V4.1.6（2026-10-16）：讀數改成條列（每項一行、依等級標紅黃綠）、TVOC 改「總揮發性有機物」、「超過門檻」另起一行、內文不再重複標題。
 # - V4.1.5（2026-10-11）：通知內文（LINE 與 HA 通知）帶上相關數值：空氣品質／甲醛／一氧化碳危險顯示「超標項目」與「目前讀數」（CO2、PM2.5、TVOC、CO、甲醛、溫度、濕度）；CO2／CO／溫度分級警示也加上「目前讀數」。
 # - V4.1.0（2026-10-10）：新增。監測廚房環境感測器（CO2／CO／溫度，另含3個危險二元感測器）、五樓與車庫攝影機 CO 警報、環境感測器失聯 30 分鐘。
@@ -36,10 +37,17 @@
     m_unit: "{{ {'co2': 'ppm', 'co': 'ppm', 'temp': '°C'}.get(metric, '') }}"
     m_entity: "{{ {'co2': kitchen ~ '_co2', 'co': kitchen ~ '_yi_yang_hua_tan_co', 'temp': kitchen ~ '_wen_du'}.get(metric, '') }}"
     m_value: "{{ (states(m_entity) | float(0) | round(1)) if m_entity != '' else '' }}"
+    # V4.1.6：戶外空氣不好造成的室內 PM2.5 偏高（只有 PM2.5 超標、其他項目都正常，且戶外 PM2.5 ≥ 25）→ 改成「戶外空氣品質」提醒（關窗＋開清淨機）
+    op: "{{ states('sensor.outdoor_pm2_5') | float(-1) }}"
+    op_level: "{{ states('sensor.outdoor_air_quality') }}"
+    pm_only: >-
+      {{ states(kitchen ~ '_pm2_5') | float(-1) > 35 and not (states(kitchen ~ '_co2') | float(-1) > 1500 or states(kitchen ~ '_tvoc') | float(-1) > 600
+         or states(kitchen ~ '_jia_quan_ch2o') | float(-1) > 0.08 or states(kitchen ~ '_yi_yang_hua_tan_co') | float(-1) > 9) }}
+    outside_only: "{{ trigger.id == 'dangeraq' and pm_only and op >= 25 }}"
     level_name: "{{ {1: '一般', 2: '重要', 3: '嚴重'}.get(lvl | int(1), '') }}"
-    notify_level: "{{ {0: 'info', 1: 'general', 2: 'important', 3: 'emergency'}.get(lvl | int(1)) }}"
+    notify_level: "{{ 'general' if outside_only else {0: 'info', 1: 'general', 2: 'important', 3: 'emergency'}.get(lvl | int(1)) }}"
     title: >-
-      {% if is_metric %}{{ m_name }}{{ level_name }}警示{% elif trigger.id == 'dangerco' %}廚房一氧化碳危險{% elif trigger.id == 'dangeraq' %}廚房空氣品質危險{% elif trigger.id == 'dangerch2o' %}廚房甲醛危險{% elif trigger.id == 'cam5f' %}五樓偵測到一氧化碳警報{% elif trigger.id == 'camgar' %}車庫偵測到一氧化碳警報{% elif trigger.id == 'offline' %}環境感測器失聯{% else %}一氧化碳危險{% endif %}
+      {% if is_metric %}{{ m_name }}{{ level_name }}警示{% elif trigger.id == 'dangerco' %}廚房一氧化碳危險{% elif trigger.id == 'dangeraq' %}{{ ('戶外空氣品質' ~ ('太差' if op >= 35.5 else '偏差')) if outside_only else '廚房空氣品質危險' }}{% elif trigger.id == 'dangerch2o' %}廚房甲醛危險{% elif trigger.id == 'cam5f' %}五樓偵測到一氧化碳警報{% elif trigger.id == 'camgar' %}車庫偵測到一氧化碳警報{% elif trigger.id == 'offline' %}環境感測器失聯{% else %}一氧化碳危險{% endif %}
     # V4.1.5：通知內文帶上相關數值（-1＝讀不到）
     rd: >-
       {{ {'co2': states(kitchen ~ '_co2') | float(-1), 'pm': states(kitchen ~ '_pm2_5') | float(-1),
@@ -62,11 +70,12 @@
       {% if rd.ch >= 0 %}{% set ns.r = ns.r + ['甲醛：' ~ (rd.ch | round(3)) ~ ' mg/m³' ~ env_tag('ch2o', rd.ch)] %}{% endif %}
       {% if rd.t >= 0 %}{% set ns.r = ns.r + ['溫度：' ~ (rd.t | round(1)) ~ '°C' ~ env_tag('temp', rd.t)] %}{% endif %}
       {% if rd.h >= 0 %}{% set ns.r = ns.r + ['濕度：' ~ (rd.h | round(0) | int) ~ '%' ~ env_tag('hum', rd.h)] %}{% endif %}
+      {% if op >= 0 and not outside_only %}{% set ns.r = ns.r + ['戶外 PM2.5：' ~ (op | round(0) | int) ~ ' μg/m³' ~ env_tag('pm', op)] %}{% endif %}
       {{ ns.r | join('\n') }}
     body: >-
-      {% from 'notify_body.jinja' import env_tag %}{% if is_metric %}{{ m_name }}目前 {{ m_value }} {{ m_unit }}，已超過{{ level_name }}門檻。{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'offline' %}{{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }} 已失聯超過 30 分鐘，請檢查裝置。{% elif trigger.id == 'dangeraq' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}{{ over_text }}{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'dangerch2o' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}甲醛：{{ rd.ch | round(3) }} mg/m³{{ env_tag('ch2o', rd.ch) }}{{ '\n' }}超過門檻 0.08 mg/m³{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'dangerco' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}一氧化碳：{{ rd.co | round(1) }} ppm{{ env_tag('co', rd.co) }}{{ '\n' }}超過門檻 9 ppm{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% else %}請立即確認現場並開窗通風。{% endif %}
+      {% from 'notify_body.jinja' import env_tag %}{% if is_metric %}{{ m_name }}目前 {{ m_value }} {{ m_unit }}，已超過{{ level_name }}門檻。{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'offline' %}{{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }} 已失聯超過 30 分鐘，請檢查裝置。{% elif trigger.id == 'dangeraq' and outside_only %}戶外空氣品質{{ '太差' if op >= 35.5 else '偏差' }}，請關閉門窗並開啟空氣清淨機。{{ '\n\n' }}戶外空氣：{{ '\n' }}PM2.5：{{ op | round(0) | int }} μg/m³{{ env_tag('pm', op) }}{{ '\n' }}空氣品質：{{ op_level }}{{ env_tag('pm', op) }}{{ '\n' }}※ 室內 PM2.5 偏高多半是戶外空氣進來{{ '\n\n' }}廚房室內：{{ '\n' }}PM2.5：{{ rd.pm | round(0) | int }} μg/m³{{ env_tag('pm', rd.pm) }}{{ '\n' }}二氧化碳：{{ rd.co2 | round(0) | int }} ppm{{ env_tag('co2', rd.co2) }}{% elif trigger.id == 'dangeraq' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}{{ over_text }}{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'dangerch2o' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}甲醛：{{ rd.ch | round(3) }} mg/m³{{ env_tag('ch2o', rd.ch) }}{{ '\n' }}超過門檻 0.08 mg/m³{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% elif trigger.id == 'dangerco' %}請立即確認現場並開窗通風。{{ '\n\n' }}超標項目：{{ '\n' }}一氧化碳：{{ rd.co | round(1) }} ppm{{ env_tag('co', rd.co) }}{{ '\n' }}超過門檻 9 ppm{{ '\n\n' }}目前讀數：{{ '\n' }}{{ read_text }}{% else %}請立即確認現場並開窗通風。{% endif %}
     voice_text: >-
-      {% if is_metric %}智慧家庭通知，{{ m_name }}過高，請開窗通風。{% else %}智慧家庭通知，{{ title }}，請立即確認並通風。{% endif %}
+      {% if is_metric %}智慧家庭通知，{{ m_name }}過高，請開窗通風。{% elif outside_only %}智慧家庭通知，戶外空氣品質不佳，請關閉門窗並開啟空氣清淨機。{% else %}智慧家庭通知，{{ title }}，請立即確認並通風。{% endif %}
     do_voice: "{{ lvl | int(1) >= 1 and (not night or lvl | int(1) >= 3) }}"
   triggers:
     - trigger: numeric_state
@@ -246,7 +255,7 @@
         - action: script.notify_dispatch
           data:
             level: "{{ notify_level }}"
-            line: "{{ lvl | int(1) >= 2 }}"
+            line: "{{ lvl | int(1) >= 2 or outside_only }}"
             source: 06環境異常通知AI
             version: V4.1.6
             title: "{{ title }}"
