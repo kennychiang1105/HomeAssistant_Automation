@@ -2816,8 +2816,11 @@ class FloorplanV4Sidebar extends HTMLElement {
                        background:rgba(79,195,247,.2); color:#1f9bd6; font:700 13px sans-serif; cursor:pointer; --mdc-icon-size:20px; }
         .cams button:active { filter:brightness(1.2); scale:.97; }
         .compact.box { height:auto; padding:10px 12px 12px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; }
+        .compact.box.hasaq { grid-template-columns:1fr auto auto; }
         .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
         .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; }
+        .compact .aq { grid-column:3; grid-row:1 / span 2; flex-direction:column; justify-content:center; text-align:center; gap:2px; padding:6px 9px; margin:0; min-width:54px; }
+        .compact .aq .t { font-size:15px; font-weight:600; } .compact .aq .c { font-size:10px; margin-top:1px; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
         .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
         .compact .cams { display:contents; }
@@ -2851,6 +2854,13 @@ class FloorplanV4Sidebar extends HTMLElement {
               cursor:pointer; --mdc-icon-size:30px; color:#ffd36b; }
         .wx .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
         .wx .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
+        /* V4.1.6: outdoor air quality (sensor.outdoor_air_quality, Taiwan PM2.5 bands) – under the weather on desktop, beside it on the phone (.compact) */
+        .aq { display:none; align-items:center; gap:10px; padding:7px 10px; margin-top:6px; border-radius:12px; cursor:pointer; --mdc-icon-size:26px; color:var(--c,#43a047);
+              background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
+        .aq.show { display:flex; }
+        .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
+        .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
+        .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
         .sec { display:flex; flex-direction:column; gap:5px; }
         .box > * { flex-shrink:0; } .box > .ppl { flex:0 1 auto; }
         .nav { margin-top:10px; }
@@ -2866,7 +2876,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         ${PEOPLE_CSS}
       </style>
       <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div><span class="dtag ntag"></span></div><div class="date"></div>
-        <div class="wx"></div>
+        <div class="wx"></div><div class="aq"></div>
         <div class="h hrow">保全狀態<span class="led"></span></div><div class="sec"></div>
         <div class="nav">${floors.map((f) => `<button data-f="${f}">${f === "全棟" ? "全棟" : f}</button>`).join("")}</div>
         <div class="h">在家成員</div><div class="ppl"></div></div>`;
@@ -2896,6 +2906,24 @@ class FloorplanV4Sidebar extends HTMLElement {
       box.innerHTML = `<ha-icon icon="${ic}"></ha-icon><div><div class="t">${a.temperature ?? "--"}°</div>
         <div class="c">${txt} · 濕度 ${a.humidity ?? "--"}%</div></div>`;
       box.onclick = () => this._more(wxId);
+    }
+    const aqEl = root.querySelector(".aq");
+    if (aqEl) {
+      const aqId = this._cfg.air || "sensor.outdoor_air_quality";
+      const aq = h.states[aqId];
+      const AQ = { 1: ["#43a047", "良好"], 2: ["#f9a825", "普通"], 3: ["#fb8c00", "敏感"], 4: ["#e53935", "不健康"], 5: ["#8e24aa", "很不健康"], 6: ["#7b1f3a", "危害"] };
+      const ok = aq && !["unknown", "unavailable", ""].includes(aq.state);
+      aqEl.classList.toggle("show", !!ok);
+      root.querySelector(".box")?.classList.toggle("hasaq", !!ok);
+      if (ok) {
+        const lv = parseInt(aq.attributes.level, 10) || 2;
+        const [col, short] = AQ[lv] || AQ[2];
+        const pm = parseFloat(aq.attributes.pm25);
+        aqEl.style.setProperty("--c", col);
+        aqEl.innerHTML = `<ha-icon icon="mdi:weather-hazy"></ha-icon><div><div class="t">${short}</div><div class="c">空氣 · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`;
+        aqEl.title = `戶外空氣品質：${aq.state}（PM2.5 ${isNaN(pm) ? "--" : pm}）`;
+        aqEl.onclick = () => this._more(aqId);
+      }
     }
     const sec = root.querySelector(".sec");
     if (sec) {

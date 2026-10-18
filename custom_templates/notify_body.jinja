@@ -195,7 +195,7 @@
     {%- set ns.base = tone(hb) | trim -%}
     {%- set hc = ca_split(hb) | from_json(['', '']) -%}
     {%- set hcat = 'bell' if (hb | regex_search('通知$|通知。$')) else (pick(hb) | trim) -%}
-    {%- set hbal = balance(hb, 15 - (2 if hc[1] else 0)) -%}
+    {%- set hbal = (hb | replace('，', '，\n')) if (hb.count('，') >= 2 and not hb.endswith('，')) else balance(hb, 15 - (2 if hc[1] else 0)) -%}
     {%- set hn = (hbal.split('\n') | map('length') | max) + (2 if hc[1] else 0) -%}
     {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': hbal, 'ca': hc[1], 'pre': '', 'cain': false, 'icon': (hcat if hcat else 'announce'), 'tone': tone(hb) | trim, 'hsz': ([16, (246 / ([hn, 1] | max)) | int] | min)}] -%}
     {%- set ns.first = false -%}
