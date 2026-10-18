@@ -1046,12 +1046,13 @@ if __name__ == "__main__":
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print("wrote", OUT, len(text.splitlines()), "lines")
-    if "--deploy" in sys.argv:
-        target_path = pathlib.Path("/homeassistant/automation-panel.yaml")
-        if not target_path.parent.exists():
-            target_path = pathlib.Path("/config/automation-panel.yaml")
-        if target_path.parent.exists():
-            target_path.write_text(text, encoding="utf-8")
-        else:
-            subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
-        print("deployed to /homeassistant/automation-panel.yaml")
+
+    # Always ensure root automation-panel.yaml is updated in sync
+    root_panel = pathlib.Path(__file__).resolve().parent.parent / "automation-panel.yaml"
+    ha_panel = pathlib.Path("/homeassistant/automation-panel.yaml")
+    if ha_panel.parent.exists():
+        ha_panel.write_text(text, encoding="utf-8")
+        print("deployed to", ha_panel)
+    elif root_panel.exists():
+        root_panel.write_text(text, encoding="utf-8")
+        print("deployed to", root_panel)
