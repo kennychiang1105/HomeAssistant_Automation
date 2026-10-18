@@ -2860,91 +2860,98 @@ class FloorplanV4Sidebar extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; }
-        .box { background:var(--card-background-color,#1c1c1e); border-radius:16px; padding:12px; box-sizing:border-box;
-               height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column; overflow:hidden; }
-        .top { display:flex; align-items:baseline; gap:10px; }
-        .time { font:300 34px sans-serif; color:var(--primary-text-color); letter-spacing:1px; }
-        .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; }
+        .box { background:var(--card-background-color,#1c1c1e); border-radius:16px; padding:10px; box-sizing:border-box;
+               height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column;
+               overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
+        .box::-webkit-scrollbar { display:none; }
+        .top { display:flex; align-items:baseline; gap:8px; }
+        .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
+        .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
         .hrow { display:flex; align-items:center; gap:8px; } .row2 .led { display:none; } .compact .row2 .led { display:block; }
-        .led { flex:1; min-width:26px; height:4px; border-radius:2px; background:#8e8e93; opacity:.5; transition:background .4s; }
+        .led { flex:1; min-width:24px; height:4px; border-radius:2px; background:#8e8e93; opacity:.5; transition:background .4s; }
         .led.blink { opacity:1; animation:ledblink 1s infinite ease-in-out; }
         @keyframes ledblink { 0%,100% { opacity:1; box-shadow:0 0 6px 1px var(--c); } 50% { opacity:.25; box-shadow:none; } }
-        .cams { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
-        .cams button { display:flex; align-items:center; justify-content:center; gap:6px; border:0; border-radius:10px; padding:8px 4px;
-                       background:rgba(79,195,247,.2); color:#1f9bd6; font:700 13px sans-serif; cursor:pointer; --mdc-icon-size:20px; }
+        .cams { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+        .cams button { display:flex; align-items:center; justify-content:center; gap:5px; border:0; border-radius:8px; padding:6px 4px;
+                       background:rgba(79,195,247,.2); color:#1f9bd6; font:700 12px sans-serif; cursor:pointer; --mdc-icon-size:18px; }
         .cams button:active { filter:brightness(1.2); scale:.97; }
-        .compact.box { height:auto; padding:10px 12px 12px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; }
+        .compact.box { height:auto; padding:8px 10px 10px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px 8px; }
         .compact.box.hasaq { grid-template-columns:1fr auto auto; }
-        .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
-        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
-        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:7px; padding:6px 10px; margin:0; --mdc-icon-size:30px; }
+        .compact .top, .compact .date { grid-column:1; } .compact .top { flex-wrap:nowrap; gap:4px; }
+        .compact .time { font-size:26px; } .compact .date { margin:0; font-size:11.5px; white-space:nowrap; }
+        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:5px 8px; align-self:stretch; gap:6px; --mdc-icon-size:24px; }
+        .compact .wx .t { font-size:20px; } .compact .wx .c { font-size:10.5px; }
+        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:5px; padding:5px 8px; margin:0; --mdc-icon-size:24px; }
         .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:flex; flex-direction:column; align-items:center; text-align:center; }
-        .compact .aq .aqi-ic.m { display:block; width:26px; height:26px; }
-        .compact .aq .mob .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
-        .compact .aq .mob .c { font:700 12px sans-serif; color:var(--c); margin-top:4px; white-space:nowrap; }
+        .compact .aq .aqi-ic.m { display:block; width:22px; height:22px; }
+        .compact .aq .mob .t { font:300 20px sans-serif; color:var(--primary-text-color); line-height:1; }
+        .compact .aq .mob .c { font:700 11px sans-serif; color:var(--c); margin-top:3px; white-space:nowrap; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
-        .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
+        .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(60px,1fr)); gap:5px; }
         .compact .cams { display:contents; }
-        .compact .row2, .compact .cams button { flex-direction:column; justify-content:center; gap:3px; padding:8px 4px; text-align:center; min-height:54px; --mdc-icon-size:22px; border-radius:12px; }
-        .compact .row2 .n { display:none; } .compact .row2 .v { font-size:11px; }
-        .compact .row2 .led { flex:none; width:22px; }
-        .date { font:12px sans-serif; color:var(--secondary-text-color); margin:0 0 8px; display:flex; flex-wrap:wrap; align-items:center; gap:3px 0; }
+        .compact .row2, .compact .cams button { flex-direction:column; justify-content:center; gap:2px; padding:6px 2px; text-align:center; min-height:48px; --mdc-icon-size:20px; border-radius:10px; }
+        .compact .row2 .n { display:none; } .compact .row2 .v { font-size:10.5px; }
+        .compact .row2 .led { flex:none; width:20px; }
+        .date { font:12px sans-serif; color:var(--secondary-text-color); margin:0 0 5px; display:flex; flex-wrap:wrap; align-items:center; gap:3px 0; }
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
         .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; white-space:nowrap; }
         /* narrow sidebar (e.g. iPad mini landscape): day tag stays to the right of the clock, seconds a little smaller; if it still does not fit
            _fit() steps the clock / tag down (fit1, fit2) until everything is visible on one line */
-        .narrow .top { flex-wrap:nowrap; gap:6px; } .narrow .time { white-space:nowrap; } .narrow .time .s { font-size:.74em; }
-        .narrow.fit1 .time { font-size:23px; } .narrow.fit1 .ntag { font-size:10px; padding:1px 5px; }
-        .narrow.fit2 .time { font-size:20px; } .narrow.fit2 .time .s { font-size:.66em; } .narrow.fit2 .ntag { font-size:9px; padding:1px 4px; }
-        .narrow.fit3 .time { font-size:17px; letter-spacing:0; } .narrow.fit3 .top { gap:4px; }
-        .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-        .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
-                      color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
+        .narrow .top { flex-wrap:nowrap; gap:6px; } .narrow .time { white-space:nowrap; font-size:24px; } .narrow .time .s { font-size:.74em; }
+        .narrow.fit1 .time { font-size:22px; } .narrow.fit1 .ntag { font-size:10px; padding:1px 5px; }
+        .narrow.fit2 .time { font-size:19px; } .narrow.fit2 .time .s { font-size:.66em; } .narrow.fit2 .ntag { font-size:9px; padding:1px 4px; }
+        .narrow.fit3 .time { font-size:16px; letter-spacing:0; } .narrow.fit3 .top { gap:4px; }
+        .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:6px; }
+        .nav button { border:0; border-radius:8px; padding:6px 2px; background:rgba(120,120,128,.14);
+                      color:var(--primary-text-color); font:600 12.5px sans-serif; cursor:pointer; }
         .nav button.on { background:rgba(255,185,0,.2); color:#FFB900; }
-        .h { font:12px sans-serif; color:var(--secondary-text-color); margin:10px 4px 5px; }
-        .narrow .time { font-size:26px; } .narrow .date { display:none; }
-        .narrow .box { padding:8px; } .narrow .wx { padding:6px 8px; gap:8px; --mdc-icon-size:24px; }
-        .narrow .wx .t { font-size:20px; } .narrow .wx .c { font-size:10.5px; margin-top:2px; }
-        .narrow .h { margin:7px 2px 4px; font-size:11px; }
-        .narrow .row2 { padding:5px 8px; gap:6px; --mdc-icon-size:18px; } .narrow .row2 .n { font-size:12px; } .narrow .row2 .v { font-size:10.5px; }
-        .narrow .nav { gap:4px; margin-top:6px; } .narrow .nav button { padding:7px 2px; font-size:12px; border-radius:8px; }
-        .narrow .ppl { grid-template-columns:1fr; gap:0; } .narrow .ppl .row { padding:2px 2px; }
-        .wx { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; background:rgba(79,195,247,.1);
-              cursor:pointer; --mdc-icon-size:30px; color:#ffd36b; }
-        .wx .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
-        .wx .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
+        .h { font:11.5px sans-serif; color:var(--secondary-text-color); margin:6px 4px 3px; }
+        .narrow .box { padding:6px; }
+        .narrow .date { display:none; }
+        .narrow .wx { padding:5px 6px; gap:6px; --mdc-icon-size:22px; }
+        .narrow .wx .t { font-size:18px; } .narrow .wx .c { font-size:10px; margin-top:1px; }
+        .narrow .h { margin:4px 2px 2px; font-size:10.5px; }
+        .narrow .row2 { padding:4px 6px; gap:5px; --mdc-icon-size:16px; } .narrow .row2 .n { font-size:11.5px; } .narrow .row2 .v { font-size:10px; }
+        .narrow .cams button { padding:5px 3px; font-size:11px; }
+        .narrow .nav { gap:3px; margin-top:4px; } .narrow .nav button { padding:5px 1px; font-size:11.5px; border-radius:6px; }
+        .narrow .ppl { grid-template-columns:1fr 1fr; gap:1px 3px; }
+        .narrow .ppl .row { padding:1px 1px; gap:4px; }
+        .narrow .ppl .av { width:22px; height:22px; font-size:10px; }
+        .narrow .ppl .nm { font-size:11.5px; }
+        .narrow .ppl .lc { font-size:10px; }
+        .wx { display:flex; align-items:center; gap:8px; padding:6px 9px; border-radius:12px; background:rgba(79,195,247,.1);
+              cursor:pointer; --mdc-icon-size:26px; color:#ffd36b; }
+        .wx .t { font:300 22px sans-serif; color:var(--primary-text-color); line-height:1; }
+        .wx .c { font:11.5px sans-serif; color:var(--secondary-text-color); margin-top:3px; }
+        .wx .uv { font:600 10.5px sans-serif; margin-top:2px; display:none; } .wx .uv.show { display:block; }
         /* V4.1.6: outdoor air quality (sensor.outdoor_air_quality, Taiwan PM2.5 bands) – under the weather on desktop, beside it on the phone (.compact) */
-        .aq { display:none; align-items:center; gap:10px; padding:7px 10px; margin-top:6px; border-radius:12px; cursor:pointer; --mdc-icon-size:26px; color:var(--c,#43a047);
+        .aq { display:none; align-items:center; gap:8px; padding:5px 9px; margin-top:4px; border-radius:12px; cursor:pointer; --mdc-icon-size:24px; color:var(--c,#43a047);
               background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
         .aq.show { display:flex; }
-        .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
+        .aq .t { font:600 16px sans-serif; color:var(--c,#43a047); line-height:1; }
         .aq .mob { display:none; } .aq .aqi-ic.m { display:none; } .aq .aqi-ic { flex:none; color:var(--c,#43a047); } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
-        .aq .dsk .t .v { font:600 13px sans-serif; color:var(--primary-text-color); margin-left:6px; opacity:.85; }
-        .aq .dsk .pmr { font:12px sans-serif; color:var(--secondary-text-color); margin-top:5px; display:flex; flex-wrap:wrap; gap:2px 9px; }
+        .aq .dsk .t .v { font:600 12px sans-serif; color:var(--primary-text-color); margin-left:5px; opacity:.85; }
+        .aq .dsk .pmr { font:11px sans-serif; color:var(--secondary-text-color); margin-top:3px; display:flex; flex-wrap:wrap; gap:2px 7px; }
         .aq .dsk .pmr b { font-weight:600; } .aq .dsk .pmr .o b { color:#fb8c00; } .aq .dsk .pmr .r b { color:#e53935; font-weight:700; }
-        .wx .uv { font:600 11px sans-serif; margin-top:3px; display:none; } .wx .uv.show { display:block; }
-        .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
-        .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
-        /* V4.1.6: narrow sidebar (iPad mini landscape, ~155 px): everything a little tighter so all four family members still fit under the cards */
-        .narrow .aq .aqi-ic.d { width:22px; height:22px; } .narrow .aq .dsk .t { font-size:15px; } .narrow .aq .dsk .t .v { font-size:11px; margin-left:4px; }
-        .narrow .aq .dsk .pmr { font-size:10px; gap:0 6px; flex-wrap:nowrap; white-space:nowrap; margin-top:3px; }
-        .narrow .wx .uv { margin-top:1px; font-size:10px; }
-        .narrow .ppl .row { padding:1px 2px; gap:6px; } .narrow .ppl .av { width:24px; height:24px; font-size:11px; } .narrow .ppl .nm { font-size:12px; } .narrow .ppl .lc { font-size:10px; }
-        .narrow .h { margin:5px 2px 3px; } .narrow .ppl { overflow-y:auto; scrollbar-width:none; } .narrow .ppl::-webkit-scrollbar { display:none; }
-        .sec { display:flex; flex-direction:column; gap:5px; }
-        .box > * { flex-shrink:0; } .box > .ppl { flex:0 1 auto; }
-        .nav { margin-top:10px; }
-        .row2 { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:10px; cursor:pointer;
-                background:rgba(120,120,128,.14); --mdc-icon-size:20px; }
-        .row2 .n { flex:1; font:600 13px sans-serif; color:var(--primary-text-color); }
-        .row2 .v { font:600 12px sans-serif; color:var(--secondary-text-color); }
+        .aq .c { font:11.5px sans-serif; color:var(--secondary-text-color); margin-top:3px; }
+        .narrow .aq { padding:4px 6px; gap:6px; --mdc-icon-size:20px; margin-top:4px; } .narrow .aq .t { font-size:14px; } .narrow .aq .c { font-size:10px; margin-top:1px; }
+        .narrow .aq .aqi-ic.d { width:20px; height:20px; } .narrow .aq .dsk .t { font-size:14px; } .narrow .aq .dsk .t .v { font-size:10.5px; margin-left:3px; }
+        .narrow .aq .dsk .pmr { font-size:9.5px; gap:0 4px; flex-wrap:nowrap; white-space:nowrap; margin-top:2px; }
+        .narrow .wx .uv { margin-top:1px; font-size:9.5px; }
+        .sec { display:flex; flex-direction:column; gap:4px; }
+        .box > * { flex-shrink:0; }
+        .box > .ppl { flex-shrink:0; min-height:fit-content; }
+        .row2 { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:8px; cursor:pointer;
+                background:rgba(120,120,128,.14); --mdc-icon-size:18px; }
+        .row2 .n { flex:1; font:600 12.5px sans-serif; color:var(--primary-text-color); }
+        .row2 .v { font:600 11.5px sans-serif; color:var(--secondary-text-color); }
         .row2.ok ha-icon { color:#43a047; } .row2.warn ha-icon { color:#FFB900; } .row2.bad { background:rgba(229,57,53,.25); }
         .row2.bad ha-icon { color:#e53935; }
-        .ppl { display:grid; grid-template-columns:1fr 1fr; gap:2px 6px; align-content:start; min-height:0; overflow:hidden; }
-        .ppl .row { padding:3px 2px; gap:7px; } .ppl .av { width:28px; height:28px; font-size:12px; }
-        .ppl .nm { font-size:13px; } .ppl .lc { font-size:11px; }
+        .ppl { display:grid; grid-template-columns:1fr 1fr; gap:2px 6px; align-content:start; }
+        .ppl .row { padding:2px 2px; gap:6px; } .ppl .av { width:26px; height:26px; font-size:11.5px; }
+        .ppl .nm { font-size:12.5px; } .ppl .lc { font-size:11px; }
         ${PEOPLE_CSS}
       </style>
       <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div><span class="dtag ntag"></span></div><div class="date"></div>

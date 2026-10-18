@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """產生「自動化管理」側邊欄面板（/homeassistant/automation-panel.yaml）。
 
 用法（在專案資料夾執行）：
@@ -419,7 +419,7 @@ def linebot_forecast_banner():
     iconColor = '#FF9F0A';
   } else {
     bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-    statusTitle = `額度告急（預估 ${a.total_exhaust_date || '月底前'} 耗盡）`;
+    statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
     statusBadge = '額度告急';
     badgeBg = 'rgba(255,69,58,.2)';
     badgeFg = '#FF453A';
@@ -427,8 +427,10 @@ def linebot_forecast_banner():
     iconColor = '#FF453A';
   }
 
+  const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
+
   return `
-    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);white-space:normal;word-break:break-word">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px">
           <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:24px"></ha-icon>
@@ -444,7 +446,7 @@ def linebot_forecast_banner():
         </div>
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
-          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${a.normal_exhaust_date ? a.normal_exhaust_date.slice(5) : '--'} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
+          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
         </div>
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
@@ -456,7 +458,7 @@ def linebot_forecast_banner():
         </div>
       </div>
 
-      <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);padding:4px 2px">
+      <div style="font-size:13px;line-height:1.6;color:var(--primary-text-color);padding:4px 2px;white-space:normal !important;word-break:break-word !important">
         💡 ${a.summary || ''}
       </div>
     </div>
@@ -467,6 +469,7 @@ def linebot_forecast_banner():
          "        show_name: false", "        show_icon: false", "        show_state: false",
          "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
          "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+         "            - white-space: normal", "            - word-break: break-word",
          "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
          "        custom_fields:", "          body: |"]
     for ln in js.splitlines():
@@ -475,89 +478,191 @@ def linebot_forecast_banner():
 
 
 def filter_life_section():
-    """空氣清淨機濾網壽命卡片。"""
-    md = ("{% set lvl = states('sensor.kong_qi_qing_jing_ji_filter_life_remaining') | int(0) %}"
-          "{% set notified = is_state('input_boolean.supply_filter_notified', 'on') %}"
-          "{% set color = '#FF453A' if lvl <= 5 else ('#FF9F0A' if lvl <= 10 else '#30D158') %}"
-          "<div style=\"background:rgba(120,120,128,.08);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.12)\">"
-          "  <div style=\"display:flex;align-items:center;justify-content:space-between\">"
-          "    <div style=\"display:flex;align-items:center;gap:10px\">"
-          "      <div style=\"width:38px;height:38px;border-radius:10px;background:rgba(10,132,255,.14);color:#0A84FF;display:flex;align-items:center;justify-content:center\">"
-          "        <ha-icon icon=\"mdi:air-filter\" style=\"--mdc-icon-size:22px\"></ha-icon>"
-          "      </div>"
-          "      <div>"
-          "        <div style=\"font-weight:600;font-size:15px\">空氣清淨機濾網壽命</div>"
-          "        <div style=\"font-size:12px;color:var(--secondary-text-color)\">"
-          "          {% if lvl <= 5 %}<span style=\"color:#FF453A;font-weight:600\">已達臨界壽命，請立即更換濾網</span>"
-          "          {% elif lvl <= 10 %}<span style=\"color:#FF9F0A;font-weight:600\">壽命低於 10%，請準備備用濾芯</span>"
-          "          {% else %}<span>運作狀態良好，濾網正常</span>{% endif %}"
-          "        </div>"
-          "      </div>"
-          "    </div>"
-          "    <div style=\"font-size:22px;font-weight:800;color:{{ color }}\">{{ lvl }}%</div>"
-          "  </div>"
-          "  <div style=\"height:6px;border-radius:4px;background:rgba(120,120,128,.2);margin:12px 0 6px;overflow:hidden\">"
-          "    <div style=\"width:{{ lvl }}%;height:100%;background:{{ color }};border-radius:4px\"></div>"
-          "  </div>"
-          "  <div style=\"display:flex;justify-content:space-between;font-size:11px;color:var(--secondary-text-color)\">"
-          "    <span>門檻：≤10% 提醒備品、≤5% 請更換</span>"
-          "    <span>通知狀態：{{ '已發出通知' if notified else '尚未觸發通知' }}</span>"
-          "  </div>"
-          "</div>")
+    """空氣清淨機濾網壽命卡片（高階 iOS 風格 custom:button-card）。"""
+    js = """[[[
+  const s = states['sensor.kong_qi_qing_jing_ji_filter_life_remaining'];
+  const lvl = s ? parseInt(s.state, 10) || 0 : 0;
+  const notified = states['input_boolean.supply_filter_notified']?.state === 'on';
+  
+  let color, bgGradient, statusDesc;
+  if (lvl <= 5) {
+    color = '#FF453A';
+    bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
+    statusDesc = '已達臨界壽命，請立即更換濾網';
+  } else if (lvl <= 10) {
+    color = '#FF9F0A';
+    bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
+    statusDesc = '濾網壽命偏低，請準備備用濾芯';
+  } else {
+    color = '#30D158';
+    bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
+    statusDesc = '濾網狀態良好，壽命充足';
+  }
+
+  return `
+    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:42px;height:42px;border-radius:12px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
+            <ha-icon icon="mdi:air-filter" style="--mdc-icon-size:24px"></ha-icon>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:16px;color:var(--primary-text-color)">空氣清淨機濾網壽命</div>
+            <div style="font-size:12.5px;color:${color};font-weight:600;margin-top:2px">${statusDesc}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:26px;font-weight:800;color:${color}">${lvl}<small style="font-size:16px">%</small></span>
+        </div>
+      </div>
+
+      <div style="height:8px;border-radius:999px;background:rgba(120,120,128,.18);margin:14px 0 10px;overflow:hidden">
+        <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px;box-shadow:0 0 8px ${color}66;transition:width 0.4s"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--secondary-text-color)">
+        <span style="padding:2px 8px;border-radius:6px;background:rgba(120,120,128,.1)">門檻：≤10% 提醒備品 · ≤5% 請更換</span>
+        <span style="padding:2px 8px;border-radius:6px;background:${notified ? 'rgba(255,159,10,.2)' : 'rgba(120,120,128,.1)'};color:${notified ? '#FF9F0A' : 'inherit'};font-weight:${notified ? '600' : 'normal'}">
+          ${notified ? '⚠️ 已發出更換通知' : '尚未發送通知'}
+        </span>
+      </div>
+    </div>
+  `;
+]]]"""
+    card = [
+        "      - type: custom:button-card",
+        "        entity: sensor.kong_qi_qing_jing_ji_filter_life_remaining",
+        "        show_name: false", "        show_icon: false", "        show_state: false",
+        "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+        "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+        "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+        "        custom_fields:", "          body: |",
+    ]
+    for ln in js.splitlines():
+        card.append("            " + ln)
     rows = [
-        ("sensor.kong_qi_qing_jing_ji_filter_life_remaining", "濾網剩餘壽命"),
         ("input_boolean.supply_filter_notified", "濾網更換已通知旗標"),
     ]
-    return heading("空氣清淨機濾網", "mdi:air-filter") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS + entities_card(rows)
+    return heading("空氣清淨機濾網", "mdi:air-filter") + card + entities_card(rows)
 
 
 def battery_forecast_section():
-    """9 大感測器電池壽命預估清單卡片。"""
-    md = ("{% set f = state_attr('sensor.battery_forecast', 'items') %}"
-          "{% set names = {'gar':'鐵門感應器','door':'客廳門鎖','study':'書房感應開關','cube':'客廳魔方','toiletm':'二樓廁所感應','kitchenm':'廚房人體感應','nightl':'廁所夜燈','bell':'二樓門口電鈴','kswitch':'廚房無線開關'} %}"
-          "{% if f %}"
-          "<div style=\"display:flex;flex-direction:column;gap:8px\">"
-          "{% for k, d in f.items() %}"
-          "  {% set name = names.get(k, k) %}"
-          "  {% set lvl = d.level | round(0) | int %}"
-          "  {% set days = d.days %}"
-          "  {% set date = d.date %}"
-          "  {% set rate = d.rate %}"
-          "  {% set color = '#FF453A' if lvl <= d.empty else ('#FF9F0A' if lvl <= 35 else '#30D158') %}"
-          "  <div style=\"display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(120,120,128,.08);border-radius:14px\">"
-          "    <div style=\"flex:1;min-width:0\">"
-          "      <div style=\"display:flex;align-items:center;gap:6px\">"
-          "        <span style=\"font-weight:600;font-size:15px\">{{ name }}</span>"
-          "        {% if d.status == 'empty' %}<span style=\"font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(255,69,58,.18);color:#FF453A;font-weight:600\">更換門檻</span>"
-          "        {% elif d.status == 'stable' %}<span style=\"font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(10,132,255,.18);color:#0A84FF;font-weight:600\">平穩</span>{% endif %}"
-          "      </div>"
-          "      <div style=\"font-size:12px;color:var(--secondary-text-color);margin-top:2px\">"
-          "        {% if days is not none and days > 0 %}"
-          "          預估可用 <b style=\"color:var(--primary-text-color)\">{{ days | round(0) }}</b> 天（至 {{ date }}，日耗 {{ rate }}%）"
-          "        {% elif d.status == 'empty' %}<span style=\"color:#FF453A\">已達更換標準，請儘速換電池</span>"
-          "        {% elif d.status == 'stable' %}<span>運作 {{ d.span_days | round(0) }} 天未掉格，壽命充足</span>"
-          "        {% else %}<span>資料收集與學習中</span>{% endif %}"
-          "      </div>"
-          "    </div>"
-          "    <div style=\"text-align:right;margin-left:12px\">"
-          "      <div style=\"font-size:18px;font-weight:700;color:{{ color }}\">{{ lvl }}%</div>"
-          "    </div>"
-          "  </div>"
-          "{% endfor %}"
-          "</div>"
-          "{% else %}尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 計算。{% endif %}")
-    battery_entities = [
-        ("sensor.ke_ting_men_suo_dian_liang_guo_lu", "客廳門鎖電量"),
-        ("sensor.garage_battery", "鐵門感應器電量"),
-        ("sensor.shu_fang_gan_ying_kai_guan_battery", "書房感應開關電量"),
-        ("sensor.0x158d00027d8a8e_battery", "客廳魔方電量"),
-        ("sensor.e406bf25caa1_battery", "二樓廁所感應電量"),
-        ("sensor.08b95f06b466_battery", "廚房人體感應電量"),
-        ("sensor.28d1273d78cf_battery", "廁所夜燈電量"),
-        ("sensor.0x00158d0002419b84_battery", "二樓門口電鈴電量"),
-        ("sensor.0x00158d00023cd3dc_battery", "廚房無線開關電量"),
+    """9 大感測器電池壽命預估清單卡片（高階 iOS 風格搭配色彩與進度指標）。"""
+    js = """[[[
+  const f = states['sensor.battery_forecast'];
+  if (!f || !f.attributes || !f.attributes.items) {
+    return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 自動計算。</div>';
+  }
+  const items = f.attributes.items;
+  const names = {
+    'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
+    'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
+    'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
+  };
+
+  const getBatteryIcon = (lvl) => {
+    if (lvl <= 5) return 'mdi:battery-alert';
+    if (lvl <= 15) return 'mdi:battery-10';
+    if (lvl <= 35) return 'mdi:battery-30';
+    if (lvl <= 65) return 'mdi:battery-50';
+    if (lvl <= 85) return 'mdi:battery-70';
+    return 'mdi:battery';
+  };
+
+  let rowsHtml = '';
+  for (const [k, d] of Object.entries(items)) {
+    const name = names[k] || k;
+    const lvl = Math.round(d.level || 0);
+    const emptyLvl = d.empty || 10;
+    const isEmpty = d.status === 'empty' || lvl <= emptyLvl;
+    const isStable = d.status === 'stable';
+    
+    let color, rowBg, tagText, tagBg, tagFg;
+    if (isEmpty) {
+      color = '#FF453A';
+      rowBg = 'rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3)';
+      tagText = '更換門檻';
+      tagBg = 'rgba(255,69,58,.22)';
+      tagFg = '#FF453A';
+    } else if (lvl <= 35) {
+      color = '#FF9F0A';
+      rowBg = 'rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25)';
+      tagText = '偏低';
+      tagBg = 'rgba(255,159,10,.2)';
+      tagFg = '#FF9F0A';
+    } else if (isStable) {
+      color = '#0A84FF';
+      rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+      tagText = '平穩';
+      tagBg = 'rgba(10,132,255,.18)';
+      tagFg = '#0A84FF';
+    } else {
+      color = '#30D158';
+      rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+      tagText = '正常';
+      tagBg = 'rgba(48,209,88,.18)';
+      tagFg = '#30D158';
+    }
+
+    let subtitle = '';
+    if (d.days != null && d.days > 0) {
+      subtitle = `預估可用 <b style="color:var(--primary-text-color)">${Math.round(d.days)}</b> 天（至 ${d.date} · 日耗 ${d.rate}%）`;
+    } else if (isEmpty) {
+      subtitle = '<span style="color:#FF453A;font-weight:700">⚠️ 已達更換標準，請儘速更換電池</span>';
+    } else if (isStable) {
+      subtitle = `運作 ${Math.round(d.span_days || 0)} 天未掉格 · 壽命充足`;
+    } else {
+      subtitle = '資料收集與學習中';
+    }
+
+    const icon = getBatteryIcon(lvl);
+
+    rowsHtml += `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div style="width:34px;height:34px;border-radius:9px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
+            <ha-icon icon="${icon}" style="--mdc-icon-size:20px"></ha-icon>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
+              <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:${tagBg};color:${tagFg}">${tagText}</span>
+            </div>
+            <div style="font-size:12px;color:var(--secondary-text-color);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${subtitle}
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right;flex:none">
+          <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
+          <div style="width:40px;height:4px;border-radius:2px;background:rgba(120,120,128,.2);margin-top:3px;overflow:hidden">
+            <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:2px"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${rowsHtml}
+      </div>
+    </div>
+  `;
+]]]"""
+    card = [
+        "      - type: custom:button-card",
+        "        entity: sensor.battery_forecast",
+        "        show_name: false", "        show_icon: false", "        show_state: false",
+        "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+        "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+        "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+        "        custom_fields:", "          body: |",
     ]
-    return heading("9 大感測器電池壽命預估", "mdi:battery-clock-outline") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS + entities_card(battery_entities)
+    for ln in js.splitlines():
+        card.append("            " + ln)
+    return heading("9 大感測器電池壽命預估", "mdi:battery-clock-outline") + card
 
 
 def supply_control_section():
@@ -565,32 +670,9 @@ def supply_control_section():
     rows = [
         ("input_boolean.notify_supply_extra_line_enable", "耗材更換額外 LINE 推播"),
         ("input_datetime.supply_battery_report_time", "耗材定期摘要時間"),
+        ("input_button.battery_system_test_trigger", "測試耗材電量系統"),
     ]
-    test_btn = [
-        "      - type: custom:button-card",
-        "        entity: input_button.battery_system_test_trigger",
-        "        name: 立即執行耗材電量系統測試",
-        "        icon: mdi:battery-sync",
-        "        show_state: false",
-        "        tap_action:",
-        "          action: call-service",
-        "          service: input_button.press",
-        "          target:",
-        "            entity_id: input_button.battery_system_test_trigger",
-        "        styles:",
-        "          card:",
-        "            - border-radius: 14px",
-        "            - border: 1.5px solid #34C759",
-        "            - padding: 12px",
-        "            - background: transparent",
-        "          name:",
-        "            - color: '#34C759'",
-        "            - font-weight: 700",
-        "            - font-size: 15px",
-        "          icon:",
-        "            - color: '#34C759'",
-    ]
-    return heading("耗材監控設定與操作", "mdi:tune-variant") + entities_card(rows) + test_btn
+    return heading("耗材監控設定與操作", "mdi:tune-variant") + entities_card(rows)
 
 
 def supply_sections(autos):
@@ -867,4 +949,3 @@ if __name__ == "__main__":
         else:
             subprocess.run(["ssh", HOST, "sudo tee /homeassistant/automation-panel.yaml >/dev/null"], input=text, text=True, check=True)
         print("deployed to /homeassistant/automation-panel.yaml")
-
