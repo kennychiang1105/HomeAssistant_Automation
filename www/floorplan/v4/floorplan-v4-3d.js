@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta6) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta7) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -354,6 +354,18 @@ class FloorplanV43D extends HTMLElement {
         .chips::-webkit-scrollbar { display:none; }
         .hint { position:absolute; left:10px; top:12px; right:200px; font:11px sans-serif; color:rgba(255,255,255,.5);
                 pointer-events:none; }
+        .airbk { position:absolute; inset:0; z-index:39; background:rgba(0,0,0,.28); } .airbk[hidden], .airinfo[hidden] { display:none; }
+        .airinfo { position:absolute; z-index:40; left:50%; top:50%; transform:translate(-50%,-50%); width:min(340px, calc(100% - 24px)); max-height:86%; overflow:auto;
+                   box-sizing:border-box; padding:12px 14px 12px; border-radius:18px; background:rgba(28,28,30,.97); color:#f2f2f7; box-shadow:0 8px 30px rgba(0,0,0,.5); font-family:sans-serif; }
+        .wrap.light .airinfo { background:rgba(255,255,255,.98); color:#1c1c1e; box-shadow:0 8px 30px rgba(0,0,0,.25); }
+        .airinfo .hd { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .airinfo .hd .tt { flex:1; font:700 15px sans-serif; } .airinfo .hd .x { border:0; background:rgba(120,120,128,.25); color:inherit; width:26px; height:26px; border-radius:13px; font:700 14px sans-serif; cursor:pointer; }
+        .airinfo .vd { display:inline-block; padding:2px 9px; border-radius:10px; font:700 12px sans-serif; color:#fff; }
+        .airinfo .rw { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:2px 10px; padding:6px 0; border-top:1px solid rgba(120,120,128,.25); font:13px sans-serif; }
+        .airinfo .rw .v { font-weight:700; text-align:right; } .airinfo .rw .v small { font-weight:400; opacity:.65; margin-left:2px; }
+        .airinfo .rw .g { min-width:42px; text-align:center; padding:1px 8px; border-radius:9px; font:700 11px sans-serif; color:#fff; }
+        .airinfo .sm { font:12px sans-serif; opacity:.75; margin-top:8px; line-height:1.5; }
+        .airinfo .ad { margin-top:8px; padding:8px 10px; border-radius:10px; font:600 12.5px sans-serif; line-height:1.5; background:rgba(120,120,128,.18); }
         .ver { position:absolute; right:10px; bottom:5px; font:600 10.5px sans-serif; letter-spacing:.3px;
                color:rgba(255,255,255,.45); pointer-events:none; z-index:3; }
         .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -366,7 +378,8 @@ class FloorplanV43D extends HTMLElement {
         <div class="filter"><div class="seg"><button data-p="default" title="恢復此樓層預設顯示"><ha-icon icon="mdi:restore"></ha-icon></button>${PRESETS.map(([k, n]) => `<button data-p="${k}" title="${n}"><ha-icon icon="${PRESET_ICONS[k]}"></ha-icon><span class="t${k === "custom" ? " keep" : ""}">${n}</span></button>`).join("")}</div>
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
-        <div class="ver">UI4.0-beta6</div>
+        <div class="airbk" hidden></div><div class="airinfo" hidden></div>
+        <div class="ver">UI4.0-beta7</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -387,6 +400,7 @@ class FloorplanV43D extends HTMLElement {
     if (light !== this._light) { this._light = light; this.shadowRoot.querySelector(".wrap")?.classList.toggle("light", light); }
     if (first) this._loadOverrides();
     if (!this._ready) return;
+    if (this._airInfoOpen) this._renderAirInfo();
     const now = Date.now();                       // HA pushes every state change: sync at most ~3 times a second
     if (now - (this._lastSync || 0) > 350) { this._lastSync = now; clearTimeout(this._syncT); this._sync(); }
     else { clearTimeout(this._syncT); this._syncT = setTimeout(() => { this._lastSync = Date.now(); this._sync(); }, 350); }
@@ -2041,6 +2055,7 @@ class FloorplanV43D extends HTMLElement {
           if (!moved) {
             this._expanded = key; this._focus = box;           // tap: zoom in and list every reading
             this._frame(); this._applyCats(); this._renderZones();
+            if (/廚房/.test(prefix)) { this._airInfoOpen = true; this._renderAirInfo(); }     // V4.1.6: indoor air-quality details
           }
         });
         host.appendChild(el);
@@ -2200,6 +2215,38 @@ class FloorplanV43D extends HTMLElement {
     } else {
       this._moreInfo(d.entity);
     }
+  }
+  // V4.1.6: kitchen indoor air quality panel (PM1.0 / PM2.5 / PM10 + gases) with a plain-language verdict
+  _renderAirInfo() {
+    const root = this.shadowRoot, box = root.querySelector(".airinfo"), bk = root.querySelector(".airbk");
+    if (!box || !bk) return;
+    const close = () => { this._airInfoOpen = false; box.hidden = true; bk.hidden = true; };
+    if (!this._airInfoOpen || !this._hass) return close();
+    const st = this._hass.states, K = "sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang";
+    const ROWS = [["PM1.0", "_pm1_0", "μg/m³", 15, 35, 0], ["PM2.5", "_pm2_5", "μg/m³", 15, 35, 0], ["PM10", "_pm10", "μg/m³", 54, 125, 0],
+      ["二氧化碳", "_co2", "ppm", 1000, 2000, 0], ["總揮發性有機物", "_tvoc", "ppb", 220, 600, 0], ["甲醛", "_jia_quan_ch2o", "mg/m³", 0.05, 0.08, 3], ["一氧化碳", "_yi_yang_hua_tan_co", "ppm", 9, 35, 1]];
+    const COL = ["#43a047", "#f9a825", "#e53935"], TXT = ["優良", "普通", "偏高"];
+    let worst = 0, worstP = 0, html = "";
+    for (const [name, suf, unit, a, b, dec] of ROWS) {
+      const v = parseFloat(st[K + suf]?.state);
+      if (isNaN(v)) continue;
+      const lv = v <= a ? 0 : v <= b ? 1 : 2;
+      worst = Math.max(worst, lv);
+      if (/^PM/.test(name)) worstP = Math.max(worstP, lv);
+      html += `<div class="rw"><span>${name}</span><span class="v">${dec ? v.toFixed(dec) : Math.round(v)}<small>${unit}</small></span><span class="g" style="background:${COL[lv]}">${TXT[lv]}</span></div>`;
+    }
+    const t = parseFloat(st[K + "_wen_du"]?.state), hm = parseFloat(st[K + "_shi_du"]?.state);
+    const oq = st["sensor.outdoor_air_quality"];
+    const oLv = parseInt(oq?.attributes?.level, 10) || 0;
+    const verdict = worst === 0 ? "室內空氣品質優良，不需要處理。" : worst === 1 ? "室內空氣品質普通，建議開啟空氣清淨機並適度通風。" : "室內空氣品質偏高，請開啟空氣清淨機，並確認是否有烹飪、煙霧或粉塵來源。";
+    const hint = worstP > 0 && oLv >= 3 ? "戶外空氣品質也不佳（" + oq.state + "），請先關閉門窗，再開空氣清淨機。" : "";
+    const upd = st[K + "_pm2_5"]?.last_updated ? new Date(st[K + "_pm2_5"].last_updated).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    box.innerHTML = `<div class="hd"><span class="tt">廚房室內空氣品質</span><span class="vd" style="background:${COL[worst]}">${TXT[worst]}</span><button class="x" aria-label="關閉">✕</button></div>${html || "<div class='sm'>目前沒有感測器資料</div>"}
+      <div class="ad" style="border-left:4px solid ${COL[worst]}">${verdict}${hint ? "<br>" + hint : ""}</div>
+      <div class="sm">${isNaN(t) ? "" : `溫度 ${t.toFixed(1)}°C`}${isNaN(hm) ? "" : `　濕度 ${Math.round(hm)}%`}${oq && !["unknown", "unavailable"].includes(oq.state) ? `<br>戶外：${oq.state}（AQI ${oq.attributes.aqi ?? "--"}　PM2.5 ${oq.attributes.pm25 ?? "--"}）` : ""}${upd ? `<br>更新 ${upd}` : ""}</div>`;
+    box.hidden = false; bk.hidden = false;
+    box.querySelector(".x").onclick = close;
+    bk.onclick = close;
   }
   _moreInfo(entityId) {
     if (!entityId) return;
@@ -2880,6 +2927,12 @@ class FloorplanV4Sidebar extends HTMLElement {
         .wx .uv { font:600 11px sans-serif; margin-top:3px; display:none; } .wx .uv.show { display:block; }
         .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
         .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
+        /* V4.1.6: narrow sidebar (iPad mini landscape, ~155 px): everything a little tighter so all four family members still fit under the cards */
+        .narrow .aq .aqi-ic.d { width:22px; height:22px; } .narrow .aq .dsk .t { font-size:15px; } .narrow .aq .dsk .t .v { font-size:11px; margin-left:4px; }
+        .narrow .aq .dsk .pmr { font-size:10px; gap:0 6px; flex-wrap:nowrap; white-space:nowrap; margin-top:3px; }
+        .narrow .wx .uv { margin-top:1px; font-size:10px; }
+        .narrow .ppl .row { padding:1px 2px; gap:6px; } .narrow .ppl .av { width:24px; height:24px; font-size:11px; } .narrow .ppl .nm { font-size:12px; } .narrow .ppl .lc { font-size:10px; }
+        .narrow .h { margin:5px 2px 3px; } .narrow .ppl { overflow-y:auto; scrollbar-width:none; } .narrow .ppl::-webkit-scrollbar { display:none; }
         .sec { display:flex; flex-direction:column; gap:5px; }
         .box > * { flex-shrink:0; } .box > .ppl { flex:0 1 auto; }
         .nav { margin-top:10px; }
