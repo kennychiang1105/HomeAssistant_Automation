@@ -2830,12 +2830,11 @@ class FloorplanV4Sidebar extends HTMLElement {
         .compact.box.hasaq { grid-template-columns:1fr auto auto; }
         .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
         .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
-        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; gap:0; padding:6px 10px; margin:0; min-width:58px; }
-        .compact .aq .t { font-size:18px; line-height:24px; font-weight:600; } .compact .aq .c { font-size:11px; margin-top:4px; white-space:nowrap; }
+        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:7px; padding:6px 10px; margin:0; --mdc-icon-size:30px; }
         .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:block; }
-        .compact .aq .mob .t { display:flex; align-items:center; gap:4px; font-size:18px; line-height:24px; font-weight:600; color:var(--c); }
-        .compact .aq .mob .t .aqi-ic { flex:none; } .compact .aq .mob .t .n { color:var(--primary-text-color); }
-        .compact .aq .mob .c { font-size:10.5px; font-weight:600; color:var(--c); margin-top:3px; }
+        .compact .aq .aqi-ic.m { display:block; width:26px; height:26px; }
+        .compact .aq .mob .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
+        .compact .aq .mob .c { font:700 12px sans-serif; color:var(--c); margin-top:4px; white-space:nowrap; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
         .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
         .compact .cams { display:contents; }
@@ -2874,7 +2873,10 @@ class FloorplanV4Sidebar extends HTMLElement {
               background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
         .aq.show { display:flex; }
         .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
-        .aq .mob { display:none; } .aq .aqi-ic { flex:none; color:var(--c,#43a047); } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
+        .aq .mob { display:none; } .aq .aqi-ic.m { display:none; } .aq .aqi-ic { flex:none; color:var(--c,#43a047); } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
+        .aq .dsk .t .v { font:600 13px sans-serif; color:var(--primary-text-color); margin-left:6px; opacity:.85; }
+        .aq .dsk .pmr { font:12px sans-serif; color:var(--secondary-text-color); margin-top:5px; display:flex; flex-wrap:wrap; gap:2px 9px; }
+        .aq .dsk .pmr b { font-weight:600; } .aq .dsk .pmr .o b { color:#fb8c00; } .aq .dsk .pmr .r b { color:#e53935; font-weight:700; }
         .wx .uv { font:600 11px sans-serif; margin-top:3px; display:none; } .wx .uv.show { display:block; }
         .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
         .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
@@ -2944,8 +2946,16 @@ class FloorplanV4Sidebar extends HTMLElement {
         aqEl.style.setProperty("--c", col);
         const aqi = parseFloat(aq.attributes.aqi);
         const aqn = isNaN(aqi) ? "--" : Math.round(aqi);
-        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}</div><div class="c"><span class="n">AQI ${aqn}</span> · PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div></div>`
-          + `<div class="mob"><div class="t">${aqiSvg("m", 20)}<span class="n">${aqn}</span></div><div class="c">${short}</div></div>`;
+        // indoor (kitchen) particulates: orange when elevated, red when abnormal (PM1.0 / PM2.5 > 35, PM10 > 125 µg/m³)
+        const kp = h.states["sensor.kitchen_particulate_level"]?.attributes || {};
+        const pmCell = (lab, v, o, r) => {
+          const n = parseFloat(v);
+          if (isNaN(n)) return "";
+          return `<span class="${n > r ? "r" : n > o ? "o" : ""}">${lab} <b>${Math.round(n)}</b></span>`;
+        };
+        const pmRow = [pmCell("PM1.0", kp.pm1, 15, 35), pmCell("PM2.5", kp.pm25, 15, 35), pmCell("PM10", kp.pm10, 54, 125)].join("");
+        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}<span class="v">AQI ${aqn}</span></div>${pmRow ? `<div class="pmr"><span>室內</span>${pmRow}</div>` : `<div class="c">PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div>`}</div>`
+          + `${aqiSvg("m", 26)}<div class="mob"><div class="t">${aqn}</div><div class="c">${short}</div></div>`;
         aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
         aqEl.onclick = () => this._more(aqId);
       }
