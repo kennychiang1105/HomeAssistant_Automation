@@ -267,6 +267,144 @@
 | `configuration/Scripts/車庫錄影AI.yaml` | `車庫錄影AI (V4.0.0) / 車庫短片LINE發送AI (V4.0.0)` | `garage_video` / `garage_video_line` | `V4.0.0` |
 | `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.1.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0) / 頂樓樓梯燈套用平常亮度 (V4.0.0) / 頂樓樓梯燈實體按鈕切換 (V4.0.0)` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.1.0` / `V4.0.0` |
 
+## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
+
+- 打包 V4.1.6 草稿至今的全部更新發布為 V4.2.0（次版本：新增動畫燈、戶外空氣品質、通知卡片統一排版等功能）。
+- **清理（冗余移除）**：①移除影子模式。07 空氣清淨機（`air_ai_shadow`）與 100A 到家早安（`auto_scene_shadow`）早在 2026-10-10 核准並關閉，程式碼分支與 helper 刪除、行為不變；入侵偵測 08-7（`intrusion_watch_shadow`）依使用者決定改為正式運作，判定成立即緊急通知、廣播、倒數後觸發網關警報，`script.intrusion_alert` 只剩 real／dry／test 三種 mode，乾跑（事件 `intrusion_signal` 加 `test: dry`）與 LINE 測試模式保留。②自動化管理面板不再列這三個開關（`scripts/generate_automation_panel.py` 的 GONE 清單）並已重新部署。③已停用的舊 07／07-1～07-4／舊 100A 在 V4.1.5 已刪除，不再保留。
+- **情境廣播（`script.scene_announce`，`Scripts/情境檢查AI.yaml`）**：早安／到家廣播加上目前室內空氣狀況（廚房 PM1.0／2.5／10、CO2、TVOC、甲醛、CO 取最差一項；良好只報良好，稍高或偏高時說明是哪一項並建議開空氣清淨機，偏高時依戶外空氣建議開窗或先不要開窗）；晚安廣播加上明天天氣（用 `weather.get_forecasts` 逐 3 小時預報算天氣、氣溫範圍、降雨機率，必要時提醒帶傘、防曬或加衣；預報讀不到就維持原句）。晚安廣播仍只在手動觸發時播報。
+- **發布注意**：入侵偵測沒有經過影子觀察就轉為正式，若發生誤報請在 Known Bugs 回報；`env_alert_co_dry_run`（CO 緊急乾跑）不是影子模式，維持開啟。
+
+- 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」。現在標籤固定在時間右邊、完整顯示，秒數縮小（.74em）；放不下時 `_fit()` 依序縮小時間與標籤（fit1：23px／10px、fit2：20px／9px、fit3：17px），寬度 130px 以上都能一行完整顯示（瀏覽器實測 240／200／170／150／130px）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。
+- `100A自動啟動到家早安情境AI`（V4.1.6）新增觸發 `living_room`：任何一位家人（person 位置 `sensor.at_home_*_location`）在客廳停留 1 分鐘（原 2 分鐘，2026-10-14 縮短），且網關不在在家模式（`aqara_zai_jia` 為 off），就依時段自動啟動早安或到家情境。停留期間位置跳到別處或離家會重新計時（只有持續在客廳才算）；仍受最早啟動時間（半夜在客廳不會啟動）、總開關、影子模式、3 分鐘防重複與保全模式限制，不需要「家裡有活動跡象」。
+- `100A自動啟動到家早安情境AI`（V4.1.6）：燈光／設備／鐵門觸發（客廳小燈、餐廳燈、廁所燈、廚房燈、客廳電風扇、車庫鐵門關閉）新增條件：至少一位家人（`binary_sensor.at_home_anyone_home`）在家才啟動，避免非家人進屋碰到燈或設備讓網關自動變成在家模式；有人回到家／門鎖解除離家模式／有人在客廳三種觸發不受影響。
+- 新增 **離家入侵偵測**（V4.1.6）：`08-7離家入侵偵測AI`（偵測與判定）、`08-7C入侵偵測訊號收集AI`（由 `scripts/intrusion_stats.py` 自動產生，把候選感應器的觸發轉成 `intrusion_signal` 事件）、`08-7D入侵偵測感應器統計AI`（每週日 03:50 或按統計按鈕）、`Scripts/入侵警報AI.yaml`（`script.intrusion_record_signal`、`script.intrusion_alert`）、`packages/v41_intrusion.yaml`（開關、參數、手動覆寫欄位、`sensor.intrusion_sensor_lists`、`sensor.intrusion_effective_summary`）。
+  · 監控條件：總開關開、四位家人都離家滿 10 分鐘（`intrusion_arm_nobody_min`）、網關離家情境滿 20 分鐘（`intrusion_arm_away_min`），且網關不在在家模式（在家／早安／到家就不監控，倒數中也取消）。
+  · 訊號：室內動作感應器、客廳門鎖（事件型，有人開門才回報，不看離線比例）、車庫鐵門（開啟後緩衝 5 分鐘等家人回來；用 HA／HomeKit／自動化開的不算）、二樓門鎖同步開關（緩衝 90 秒）。5 分鐘內來自「不同裝置」的 2 個以上訊號才判定疑似入侵。
+  · 處理：緊急級 LINE／HA 通知（附車庫與頂樓攝影機截圖兩張、攝影機即時影像與「家庭」App 按鈕、備註「家人回來切到在家或早安情境即可避免觸發」）＋廣播 → 倒數 30 秒（家人回來／切到在家模式／關閉功能就取消）→ 觸發網關警報（`aqara_chu_fa`，由 106 同步到實體網關）；30 分鐘內不重複。
+  · 面板開關：`intrusion_watch_enable`（總開關）、`intrusion_watch_alarm_enable`（觸發網關警報）、`intrusion_watch_shadow`（影子模式，預設開：只寫 logbook，不通知不響警報）、各項秒數／分鐘設定、強制納入／排除欄位；`intrusion_watch_test` 測試按鈕只發通知（不廣播、不響警報）。
+  · 每週統計（離家期間資料）：離線比例 > 10% 或離家時每小時觸發 > 0.5 次的排除，穩定的（觀察 ≥ 24 小時、有回報）自動納入，包含新裝的感應器；有變動發 HA 資訊通知。首次統計（74 小時離家資料）：納入 15 個，排除 3 個（廁所夜燈、車庫夜燈離線比例過高；廚房毫米波每小時亂跳 1.6 次）。
+  · `統一通知AI`（V4.1.6）：`notify_dispatch` 新增選填欄位 `image2`（第二張圖）。
+  · 限制：家裡沒有獨立的門窗磁簧感應器，窗戶只能靠室內動作偵測；客廳門鎖是事件型感應器。
+- `入侵偵測測試通知`（V4.1.6）：新增 `input_boolean.intrusion_watch_test_mode`（LINE 測試模式，預設關）；沒開時按測試按鈕只發一則 HA 說明通知，開了才會真的發 LINE 測試卡（送出一次後自動關閉）。按鈕觸發（測試與統計）加 `not_from: unavailable／unknown`，避免重新載入 helper 時被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
+- `100B自動離家AI`（V4.1.6）離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。2026-10-13 的誤報原因：`input_boolean.er_lou_men_suo_tong_bu_kai_guan` 的 on／off 設定相反，已由使用者修正。
+- `情境檢查AI`（V4.1.6）：保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，原本固定 5 秒；2026-10-14 11:31 的「離家情境補救後仍未到位（保全模式）」誤報原因）；`106C_解除網關警報整合AI`（V4.2.1）重置流程開始時寫入 `input_datetime.scene_verify_skip_alarm_until`（現在＋60 秒），期間情境檢查略過保全模式檢查（離家情境後馬上解除網關）。
+- 3D 儀表板「全棟」模式右側樓梯燈標籤被卡片右緣切掉（`floorplan-v4-3d.js`）：右欄標籤位置用第一次量到的寬度（量不到就用 90px）快取，實際標籤比它寬時就超出右緣；改成標籤顯示時每次排版重新量寬度，右欄靠右位置也多留 12px 並保證不小於左邊界。HA 與 NAS kiosk 都已更新（重新整理即可）。
+- 3D 儀表板「全棟」模式（手機與電腦，`floorplan-v4-3d.js`）：工具列（恢復預設視角／名稱等按鈕）不再被隱藏；全棟預設顯示名稱標籤（手動切換過名稱按鈕則依使用者設定）；手機版縮小圖示與文字，並限制左右欄標籤寬度不超過卡片一半（過長名稱以刪節號截斷），避免被切掉或跑版。HA 與 NAS kiosk 皆已更新（重新整理即可）。
+- LINE 卡片排版（`custom_templates/notify_body.jinja`，所有 LINE 訊息共用，含舊格式純文字訊息）：圖示只留給需要注意的行（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示；「名稱：數值」拆成灰色名稱＋粗體數值；內文與標題中的 emoji 一律移除。
+- `08-3鐵門狀態不穩通知`（V4.1.6）：改用統一通知（LINE 卡片），移除舊的三段純文字；鐵門中斷 4 分鐘時，若 UniFi 設備 20 分鐘內剛重開機或不是已連線（例如更新路由器／AP），先最多等 10 分鐘讓鐵門恢復，仍未恢復才通知。
+- LINE／HA 通知圖示改版（`custom_templates/notify_body.jinja`）：標題行不放圖示（保持單行）；小標題（冒號結尾）、「名稱：數值」與警告行才放圖示；新增 70 款扁平圓形圖示（`www/icons/b2/<名稱>_<n|g|o|r>.png`，圖案自動置中），顏色依重要度（紅=緊急、橘=警告、綠=正常完成、藍=一般）；依關鍵字自動挑對應圖示（電量、天數、時間、鐵門、門鎖、保全、網路…）。
+- LINE 卡片細節：「名稱：數值」間距縮小、注意符號 ⚠︎（無圓圈）緊接在「請注意。」後面、圖示對齊換行文字的第一行；LINE Bot 額度通知（即將切換／額度用盡）改用同一套新格式。
+- `00-2J氣氛燈情境同步AI`（V4.1.6）：一樓 mesh、四樓 extender 重開機／更新後 60 秒自動重新套用目前情境顏色（原本更新後 LED 變回預設色，需手動再按情境）。
+- `氣氛燈AI`（V4.1.6）：通知閃燈（重要／緊急）加入車庫樓梯燈（`switch.lou_ti_deng`，開關式，閃完還原原本開／關；不可用時略過）。原本已含客廳／餐廳彩燈、三樓樓梯燈（開關）、四樓與頂樓樓梯燈（`yeelink_color5_0fb7/13b8`）及 UniFi 機台 LED。
+- LINE 卡片（共用範本）：「…通知」標題用鈴鐺圖示避免與下方內容圖示重複；重點行（開始時間、結束時間、用電量、預估、狀態…）最多 3 行用綠／紫對比色；沒有冒號的舊式行（例如「開始時間 2026-10-15」）也自動當成名稱／數值行。
+- 新增 `09C電視待機喚醒AI`（V4.1.6）：客廳電視（Android TV 遙控與 Chromecast）都連不上 2 分鐘 → 開啟 `input_boolean.tv_ir_power`（自動復位，由 Apple 家庭自動化觸發 Aqara 紅外線電視情境）→ 等電視重新連上 → 用網路指令關機，讓電視停在待機且保持連線；連不上發通知不重送。總開關 `input_boolean.tv_keepalive_enable`，維護模式期間不動作。需自行把 `input_boolean.tv_ir_power` 加入 HomeKit 橋接並建立 Apple 家庭自動化。
+- Xiaomi Gateway 3（HACS）更新 v4.2.4 → v4.3.0（2026-10-16）：官方只動 `core/devices.py` 以外的轉換器與新裝置支援，你自己改過的 `core/devices.py` 五處（藍牙溫濕度計 19457/19458/18435、Motion Sensor 2s 19552、旋鈕電量 1.p.1、濕度浮點 18440、Linptech 23308）以三方合併保留；本機修改存成補丁 `scripts/xg3_devices_local.patch`（相對官方 v4.2.4），備份在 `backup_20261016_xiaomi_gateway3_v424/`。**之後 HACS 再更新這個整合會把 `devices.py` 蓋回官方版，需要重新套回你的五處修改**。
+- 3D 儀表板感測器名稱（`floorplan-v4-3d.js`）：廚房／廁所人體感應固定顯示「廚房人體感應」「廁所人體感應」；廚房兩組溫濕度改名「廚房溫濕計」、空品儀佔用改「廚房空品儀 佔用」；單層畫面不再把「廚房／客廳／餐廳」前綴去掉（同一層有多個房間，只會去掉樓層字樣如頂樓、五樓、車庫）。
+- `06環境異常通知AI`（V4.1.6）：空氣品質等通知的讀數改成條列（超標項目、目前讀數各一組，每項一行並縮排），數值與圖示依等級標綠／黃／紅（`notify_body.jinja` 新增行尾標記 `⟦g⟧⟦o⟧⟦r⟧` 與 `env_tag()` 燈號巨集；門檻：CO2 1000／2000、PM2.5 15／35、TVOC 220／600、CO 9／35、甲醛 0.05／0.08、溫度 15–30／10–40、濕度 40–60／30–70），TVOC 改「總揮發性有機物」，「超過門檻」另起一行，內文不再重複標題。其他通知也可在行尾加 `⟦g⟧⟦o⟧⟦r⟧` 標示數值等級。
+- `08-5F頂樓自動上下樓情境AI`（V4.1.6）：上樓不再被「剛下樓的保護鎖」卡住——保護期間只要 iPhone 90 秒內連上頂樓 AP 且攝影機 30 秒內看到人（確定回來），就直接成立上樓情境並解除下樓鎖；下樓鎖 90 秒縮為 45 秒（含 `08-5F頂樓下樓補判AI`）。起因：2026-10-17 21:36 下樓補判成立後 20 秒就回頂樓，上樓情境晚了 1 分 40 秒（21:38:04 才成立）。
+- 新增統一電池電量預估（`scripts/battery_forecast.py`、`packages/v41_battery_forecast.yaml`、`00-2Q電池預估更新AI`）：讀 HA 長期統計（1 年以上），每日中位數＋5 天移動中位數去掉突波與來回跳動，偵測換電池分段，日耗電率＝本輪平均（含最後一次下降後一直沒掉的時間＋半格）、最近 60 天較快時往快修正、有上一輪完整電池或門鎖上一輪日耗電率時混合；目前電量依耗電率從最後一次下降往下推（不低於最後讀數減一格），所以裝置久久才回報時剩餘天數仍會每天遞減。結果在 `sensor.battery_forecast`（屬性 items），每天 03:50 與 HA 啟動後更新。客廳門鎖 `sensor.doorlock_batt_days_left_last_model` 改為優先使用這個預估（舊公式 291 天 → 新 393 天）。
+- `00-2C耗材更換AI通知`（V4.1.6）：定期摘要電量以顏色標在百分比上（綠健康／黃偏低／紅請更換），下一行縮排淡色顯示預估還能用多久（半年以上綠、1～6 個月黃、1 個月內紅），已排除與資料天數改為備註，名稱縮短避免換行，最後附顏色說明；分階段提醒附預估天數。通知範本新增 `※` 開頭的備註行（小字淡色、縮排）與行內顏色標記 `⟦g:文字⟧⟦o:…⟧⟦r:…⟧⟦n:…⟧`。
+- V4.1.6 修正與追加：①魔方轉動改成「亮第一個還沒亮的單元（小燈→組一→組二→組三），全亮再轉一格才全關」，不再用已亮數量判斷（避免只亮組一時轉動沒反應）；魔方經 Aqara 網關只回報離散的 rotate 事件，沒有角度或方向，無法依轉動大小細調；②`06環境異常通知AI`：開窗或關門窗統一看戶外空氣（AQI>100／PM2.5≥35.5／PM10≥125 為不佳），空氣品質、甲醛、CO2、溫度警示的 LINE 與廣播在戶外不佳時建議不要開窗、開空氣清淨機，一氧化碳維持開窗通風。
+- 燈組動畫 V4.1.6 追加：①「氣氛」色彩依太陽位置分 4 個時段換色調（黎明金橘、白天天藍→淡藍→暖白、黃昏橘→玫瑰→紫、夜晚柔和琥珀→藕紫→靛藍且較暗較慢）；②新增 style「快速」與「滑動」：Aqara 魔方轉動時，新亮起的那組以該時段色調光暈一閃再回到記憶（約 1 秒）；魔方滑動時餐廳三顆光帶快速掃過（約 3 秒）；關燈仍瞬間，helper 選「關閉動畫」時一律瞬間開（`configuration/Scripts/燈組動畫AI.yaml`、`automations.yaml` 魔方自動化 `1781414206841`）。
+- 新增客廳／餐廳開燈動畫（`Scripts/燈組動畫AI.yaml` → `script.light_group_on`、`packages/v41_light_anim.yaml`）：打開客廳小燈、燈組一／二／三／全、餐廳燈組、全部時，燈依序（`input_select.light_anim_style`＝依序）或以暖橘→粉色光帶掃過再回到記憶色溫亮度（氣氛）亮起；只對關著的燈做動畫；緊急模式、氣氛燈提醒、熟睡鎖、總開關 `light_anim_enable` 關閉或風格選「關閉動畫」時瞬間開；關燈一律瞬間。入口＝7 個「（動畫）」template light（`light.ke_ting_xiao_deng_dong_hua`、`…_deng_zu_yi/er/san_dong_hua`、`…_deng_zu_quan_dong_hua`、`light.can_ting_deng_zu_dong_hua`、`light.ke_ting_can_ting_quan_bu_dong_hua`）；800-2／800-5／800-6 實體按鈕、`漸進情境AI`（到家／早安開燈）、3D 面板（`floorplan-v4-3d.js` 的 `switchLights`）、Google 暴露清單（`configuration.yaml`）都改走動畫；Apple 家庭請自行把動畫燈加進 HomeKit 橋接。`00-2H燈況記憶AI`（V4.1.6）記憶範圍擴大到客廳 7 顆＋餐廳 3 顆＋四樓／頂樓樓梯燈，改用燈泡自己的 `light.mode`／`light.color_temperature`／`light.brightness` 判斷（HA 的 color_mode 對這些燈常誤報 rgb）。
+- 新增戶外空氣品質（`packages/v41_outdoor_air.yaml`）：`sensor.outdoor_pm2_5`／`outdoor_pm10`／`outdoor_aqi_us`（Open-Meteo Air Quality API，免金鑰、CAMS 模式資料、每 30 分鐘更新，座標取自 zone.home）與 `sensor.outdoor_air_quality`（台灣 PM2.5 分級）。`06環境異常通知AI`（V4.1.6）：廚房「空氣品質危險」若只有 PM2.5 超標、其他項目正常且戶外 PM2.5 ≥ 25，改發一般級「戶外空氣品質偏差／太差」（建議關閉門窗並開啟空氣清淨機，語音同步改寫），列出戶外 PM2.5 與等級；其他空氣品質通知的讀數最後多一行戶外 PM2.5。之後想換成環境部測站實測資料（需免費申請 API 金鑰），只要換 rest 的來源，感測器名稱不變。
+- 戶外空氣品質改接環境部開放資料（`scripts/moenv_fetch.py`、`packages/v41_outdoor_air.yaml`、`00-2R環境部空品更新AI`；API 金鑰在 `secrets.yaml` 的 `moenv_api_key`，不進 git）：頭份測站 AQI／PM2.5／PM10／O3／NO2／SO2／CO／風速風向、後龍站紫外線指數、竹苗空品區 AQI 預報；每 30 分鐘更新。對外：`sensor.outdoor_air_quality`（官方 AQI 等級，屬性 aqi／pm25／pm10／level／source）、`sensor.outdoor_aqi`、`sensor.outdoor_uv_index`、`sensor.outdoor_aqi_forecast`；環境部資料超過 4 小時沒更新時退回 Open-Meteo。（data.moenv.gov.tw 憑證缺 Subject Key Identifier，Python 3.13+ 預設嚴格檢查會失敗，腳本只關掉 VERIFY_X509_STRICT，憑證鏈與主機名稱仍驗證。）
+- 廚房 PM1.0 與 PM10 加入空氣品質檢測：`06環境異常通知AI` 讀數列表、超標項目（PM1.0>35、PM10>125）、戶外成因判斷；新增 `sensor.kitchen_particulate_level`（`packages/v41_kitchen_air.yaml`，三項取最差，良好／普通／偏高）。3D 面板空氣品質方塊改顯示官方 AQI。
+- 離家通知與離家廣播加入「戶外狀況」（`packages/v41_outdoor_brief.yaml` 的 `sensor.leave_outdoor_brief`）：天氣、紫外線、空氣品質三行（顏色標記）；異常時附提醒——紫外線 ≥ 6、AQI > 100、降雨機率 ≥ 50% 或正在下雨、氣溫 ≥ 35°C 或體感 ≥ 38°C、氣溫 ≤ 12°C、風速 ≥ 40 km/h。`100B自動離家AI`（V4.1.6）各分支的 HA 與 LINE 通知最後附這段；`scene_announce` 的離家廣播多念一句戶外狀況。
+- 3D 面板（`floorplan-v4-3d.js`）：天氣卡片新增紫外線（依等級上色：低量綠／中量黃／高量橘／過量紅／危險紫）；空氣品質卡片改用 Apple 家庭風格的 AQI 圓點圖示——電腦版圖示在左、等級與「AQI 數值 · PM2.5」在右；手機版第一行「圖示＋AQI 數值」、第二行等級小字，與天氣卡片同高。通知範本新增紫外線圖示。
+- 3D 面板 UI4.0-beta7（`floorplan-v4-3d.js`）：①廚房室內感測器群組（廚房環境）點一下除了拉近，還會跳出「廚房室內空氣品質」面板：PM1.0、PM2.5、PM10、二氧化碳、總揮發性有機物、甲醛、一氧化碳各項數值與優良／普通／偏高標示，整體結論與建議（含戶外空氣不佳時請先關窗）、溫濕度與戶外 AQI，隨資料即時更新，點背景或 ✕ 關閉；②iPad mini 窄側欄（約 155 px）縮小空氣品質卡、紫外線行與在家成員的間距與字級，並讓成員清單可捲動，4 位成員都能顯示。
+- 新增維護模式（`packages/v41_maintenance.yaml`）：`binary_sensor.maintenance_active`（手動 `script.maintenance_start` / `maintenance_stop`、UniFi 設備 20 分鐘內重開機或非已連線、更新安裝中，任一成立即啟動）；維護期間 `notify_dispatch` 與舊格式 `send_line_to_user` 略過一般／重要級且屬連線／離線／失敗／異常類的通知（保全、入侵、門鎖、未關、緊急級照常發送），並寫日誌。
+- 新增 `106D網關切換同步Aqara開關AI`（V4.1.6）：在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，補上對應的 Aqara 虛擬情境開關（在家警戒→`aqara_zai_jia`、夜間警戒→`aqara_wan_an`、離家警戒→`aqara_li_jia`；先關其他四個再打開目標，避免 106 看到 2 個以上開關同時為 on 而走異常分流）。切換後先等 6 秒讓 Apple 家庭同步，沒對應才由 HA 補上；只處理人為／實體切換（context 無 parent_id），不處理 106／情境／100B 等自動化改的模式，所以不會迴圈。不處理解除與警報觸發（106 的解除情境會先解除再回到在家警戒）。（2026-10-14 紀錄：直接切網關時 Apple 家庭的同步有延遲 1 秒～數分鐘，甚至沒有同步。）
+- 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。
+- `00-2M實體引用檢查AI`（V4.1.6）：不再把服務（action）名稱（`fan.set_preset_mode`、`weather.get_forecasts`…）與「只是前綴」的字串（`sensor.chu_fang_…_chu_fang`，後面用 `~ '_co2'` 組合）當成「可能不存在的實體」誤報（2026-10-12 03:40 的 3 則都是誤報）；修改 `scripts/check_entities.py`，修正後檢查結果為 OK。
+- `100A自動啟動到家早安情境AI`（V4.1.6）：新增通知開關 `input_boolean.auto_scene_notify_enable`（預設開，自動化管理面板可關）；關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知，情境照常啟動、logbook 與 `input_text.auto_scene_last` 照常記錄。
+- 修正 `107Tesla充電器狀態與通知AI`（V4.1.6）：充飽後 00:02 誤報「離峰時段已過仍未充電／仍未開始充電」。「這次連接後是否已充過電」原本比較 `tesla_charger_start_time`（只到秒）大於 `vehicle_connected.last_changed`（含毫秒），插槍同一秒就進入充電時 start_time 反而略小而判成沒充過；改成容許 10 秒誤差。2026-10-11 18:35:57 插槍即充電、22:12:57 充飽，00:02 誤報一次。
+- 新增 `08-8A 廚房燈無人保險關燈AI`（V3.4.0）與 `08-8B 廁所燈無人保險關燈AI`（V3.2.0）：燈亮著、感應器無人超過 10 分鐘就關燈（廚房需小米人體與毫米波兩顆都無人）。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。廚房「感應燈自動化」被長按關掉、廁所「手動關閉模式」啟用時不處理。
+
+## 本次調整（V4.1.5 - 2026-10-11：夏季模式自動判斷、災害訊息分級、到家情境併入門鎖、風扇防抖、車庫誤報修正、緊急三擊維修暫停與清理）
+
+- `22頂樓電風扇自動化AI` 修補版升級至 `V4.1.5`：風扇「關→開」時裝置自行回報的風量變動（0%→N%），以及開機後 10 秒內的風量回報，不再被判定為人為調速（原因：這類更新沒有使用者與上層動作，被 `manual_actor_detected` 誤判，導致 `ding_lou_fan_manual_speed_snooze` 自動開啟、自動調速停擺）。人為在風扇運轉中調速仍會啟用防護罩。
+- 同版追加：自動調速門檻由「差 5%」降為「差 2.5%」（與 2.5% 級距一致）；新增每 5 分鐘定時重算觸發（`time_pattern`），感測器長時間沒更新時風量也會跟上；定時觸發時略過「冷氣同步開機」（避免過冷關機後被每 5 分鐘反覆開起），並補強 `manual_actor_detected` 對沒有 `to_state` 觸發的防呆。
+- 新增 `05G緊急三擊維修暫停AI (V4.1.5)`＋helper `emergency_triple_press_pause`（開關＋2 小時計時）：維修時暫停「實體開關連點三下→緊急模式」（`05E緊急實體按鈕` 加了「暫停開關不是 on」條件：用範本判斷，開關失聯／不存在時仍可觸發緊急模式，不會因 helper 異常而讓緊急按鈕失效）。到期自動恢復並發 HA 通知；只暫停實體開關三擊，HomeKit／虛擬按鈕、地震預警、CO 自動觸發不受影響。開關已加入 HomeKit（HASS Bridge）與自動化管理面板。
+- 修正 `800-開關系列-12E／12F`（UI 自動化，`automations.yaml`）：觸發實體被刪除（`to_state` 為空）時不再誤判為雙擊上樓／長按下樓（2026-10-11 11:09 Terncy 網關重連、裝置被移除，誤觸發上樓情境）；事件觸發（`terncy_pressed`）行為不變。
+- 修正 `800-開關系列-12A／12B`（UI 自動化）：「四樓樓梯開關上2」（來源 `540f57fffe8239d3-02`）與「頂樓樓梯燈／四樓樓梯開關上1」（來源 `540f57fffe8239d3-01`）在 2026-10-11 被刪除並重新加入後，`terncy_pressed` 事件改帶新的 device_id（`058a0c17…`、`e259d035…`），原本只認舊 id（`ea7743a9…`、`ad6e414d…`）的單擊觸發失效；已補上新 id（保留舊 id）。05E／12E／12F 原本就已含新 id。
+- 修正 `08-5C頂樓樓梯燈解除深夜亮度AI`（V4.1.5）：兩盞樓梯燈同時被打開（如手動上樓情境）時，頂樓樓梯燈會因旗標被先跑完的那一輪清掉而被跳過，卡在深夜亮度（60%／3000K）；改為等 3 秒後依「燈是否仍亮著且仍是深夜亮度／色溫」決定是否調回平常亮度，不再依賴共用旗標。
+- 日誌整理（`configuration.yaml` V4.0，需重啟生效）：降級事件觸發器舊 device_id 警告、recorder 排除兩個超大屬性的版本感測器；`00-01` 週期重啟加 `continue_on_error`，檔內三支自動化統一升為 V4.0.0。
+- 3D 智慧家庭儀表板日期列新增「日型標籤」：節日／週末紅色、工作日／補班日一般文字色，並顯示節日名稱（含補假、不放假的紀念日）。新增 `packages/v41_day_label.yaml`（`sensor.tw_day_label`：由 `sensor.tw_day_type_today`＋`calendar.tai_wan` 產生，`calendar.get_events` 再以 start<=今天<end 過濾）；前端為 `www/floorplan/v4/floorplan-v4-3d.js` 的 `floorplan-v4-sidebar`（直向 compact、橫向寬版與窄版皆有；標籤過期或感應器不存在時退回週六日＝週末）。前端 JS 已在 git（`www/floorplan/v4/floorplan-v4-3d.js`），本機副本在專案資料夾 `www/floorplan/v4/`。
+- 修正 `情境與狀況氣氛燈AI`（`script.mood_alert` V4.1.5）：同一則通知被呼叫兩次時，第二次排隊到第一次跑完才開始，超過 8 秒去重窗口又跑一輪，且快照拍在第一輪收尾的暫時開燈期間，導致原本關著的客廳燈提醒後留成亮著（橘色）。改為結束時重寫去重時間，並在拍快照前等 `mood_alert_restore_off` 結束。
+- 廚房「空氣品質危險」旗標（`packages/helper.yaml`，MQTT `kitchenmqtt_pm25_homekit_alarm`）條件：原 PM2.5>35 或 CO2>1000，改為 PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（CO2 與 06 的「重要」門檻 1500 一致，並新增 TVOC）。1000～1500 ppm 只走 06 的「一般」CO2 警示。
+- `packages/v41_env_alert.yaml`：`input_number.env_co2_l1`（CO2 一般門檻）預設 1000 → 1500 ppm。同時 `env_co2_l2`（重要）預設 1500 → 2000 ppm，三級為 1500／2000／2500，避免超過 1500 ppm 時一般與重要同時通知。
+- `氣氛燈AI` 重要級（橘色）閃爍加長：每次亮 0.8→1.5 秒、熄滅 0.4→0.8 秒（2 次，約 4.6 秒；原約 2.4 秒），緊急級（紅色）不變。
+- `06環境異常通知AI`（V4.1.5）：LINE 與 HA 通知內文帶上相關數值——空氣品質／甲醛／一氧化碳危險列出「超標項目」與「目前讀數」（CO2、PM2.5、TVOC、CO、甲醛、溫度、濕度），CO2／CO／溫度分級警示也加上「目前讀數」。
+- 修正 `104-1車庫鐵門感應燈AI`（V4.1.5）：樓梯燈被別的自動化關掉時，「燈具關閉」觸發讓 restart 模式的本自動化重啟，中止鐵門關閉後的 5 分鐘關燈倒數，車庫主燈就一直亮著。移除該觸發，手動關燈冷卻拆成 `104-1B`（parallel）。
+- 新增 `104-1C全員離家關閉車庫燈AI`（V4.1.5）：所有人都不在家（`binary_sensor.at_home_nobody_home` 持續 1 分鐘，HA 啟動後 2 分鐘也檢查一次）自動關閉車庫主燈與車庫樓梯燈。Jerry 一律只用 iPhone 16 判斷（`person.jerry` 與 `at_home_jerry*` 都只含 `device_tracker.iphone_16_jerry`）。 關燈後的 HA 通知由 `input_boolean.garage_away_off_ha_notify`（`packages/v41_garage_away.yaml`）控制，預設關閉。
+- 修正 `104-4車庫回家通知系統AI`（V4.1.5）：人在車庫用遙控器開門時，車庫 Wi-Fi 在家判斷因手機換 AP 短暫掉線（約 30 秒），加上攝影機剛看到人不到 2 分鐘的寬限期，被誤報成「有人即將到家」。現在 Wi-Fi 判斷「剛掉線不到 2 分鐘」也視為車庫有人，不通知。
+- `100A自動啟動到家早安情境AI`（V4.1.5）新增「有人回到家」觸發：家裡原本沒人、離家情境（`aqara_li_jia`）持續超過 10 分鐘，之後有人連上 Wi-Fi（`at_home_nobody_home` 由 on 變 off 持續 30 秒），自動啟動早安（早安時段）或到家情境；不受最早啟動時間與活動跡象限制，仍受總開關、影子模式、3 分鐘防重複與保全模式限制。Jerry 只用 iPhone 判斷。
+- `100A自動啟動到家早安情境AI`（V4.1.5）：「最早啟動時間」由平日 05:30／假日 07:00 改為日出時間，新增 `input_boolean.auto_scene_earliest_use_sunrise`（預設 on，關閉退回固定時間）與日出後偏移 `input_number.auto_scene_earliest_sunrise_offset_min`（工作日，預設 30 分）、`input_number.auto_scene_earliest_sunrise_offset_holiday_min`（非工作日，預設 150 分＝2.5 小時），`packages/v41_auto_scene.yaml`。
+- 刪除已被取代且停用的舊自動化（`automations.yaml`，2026-10-11 使用者確認新版運作正常）：`07空氣清淨機-自動啟動`、`07-1空氣清淨機自動通知`、`07-2空氣嚴重通知`、`07-3空氣嚴重通知 (嚴重)`、`07-4空氣清淨機-自動關閉`（由 `07空氣清淨機整合AI` 取代）、`100A自動啟動到家早安情境`（由 `100A自動啟動到家早安情境AI` 取代）；`configuration.yaml` 同步移除 07-2／07-3 的 Google 助理曝光設定（需重啟生效）。
+- `106網關系統AI`（V4.1.5）：移除「自動化重載」觸發（避免每次重載都對實體網關重送警戒指令，2026-10-11 一天內已送出 29 次）；HA 啟動時若實體網關正在警報中／倒數中，不覆蓋它。實體網關 → 虛擬情境開關的回寫維持由 Apple 家庭處理。
+- `21A_客廳電風扇整合控制AI`（V4.1.5）自動調速防抖：t_eff 在門檻上下 0.1°C 抖動會讓風量每 15～30 秒大小來回（30 小時 67 次變化）。改為遲滯（`input_number.living_room_fan_hysteresis_c`，預設 0.3°C）、自動調速最短間隔（`input_number.living_room_fan_min_interval_min`，預設 3 分；`timer.living_room_fan_speed_dwell`）、濕度加成改連續線性、曲線下限 20%。新增 `packages/v41_living_fan.yaml`。
+- `22頂樓電風扇自動化AI`（V4.1.5）：上樓情境「介於門檻」那一段已設過風速時，步驟 5 略過，不再在同一次執行內重複送同一個風速。
+- 決議（2026-10-11 使用者）：`auto_scene_enable` **不**公開給 HomeKit；「補班日資料來源自動化」**不做**（補班日維持手動填 `input_text.tw_makeup_workdays`）。`08-4客廳大門開啟自動開燈` 已用 `sun.sun` 低於地平線判斷（日落／日出），無需再改。
+- 清理（2026-10-11 使用者核可）：移除 `packages/helper.yaml` 內 10 個已不使用的 `input_number.supply_batt_lowest_*`（00-2C V4.1.0 起改用 `supply_battery_lastvalid`／`supply_battery_stage`）。`input_text.at_home_*_trackers`（5 個）同日移除：`packages/helper.yaml` 的在家判斷樣板本來就優先讀 `person.*`，現在不再有 input_text 備援（Kenny／Elay／Jerry／Iris 讀 person 的 `device_trackers`，Kenny iPad 固定為 `device_tracker.ipad_pro_2024_kenny`）；移除前後 `binary_sensor.at_home_*`、`sensor.at_home_count`／`who_home` 狀態逐一比對相同。22 個未載入的整合依使用者決定保留。舊 07／07-1～07-4／舊 100A 已於 UI 自動化刪除。
+- `08-5F頂樓自動上下樓情境AI`／`08-5G書房燈感應AI`／`08-5J頂樓動線推理AI`（V4.1.5）：手機追蹤實體改讀 `sensor.kenny_phone_tracker`（person.kenny 的 source），不再讀 `input_text.iphone_tracker_entity_kenny`；該輔助項目與 `00-4手機追蹤比對AI`、`binary_sensor.v41_phone_ap_match`、`input_number.v41_phone_match_ok/bad` 一併移除（切換完成）。
+- `03苗栗天氣告知系統AI`（V4.1.5）：災害訊息依內容分級。重要類（竹南有影響：竹南的淹水警戒／停水停電／洩洪；縣市層級且列有苗栗的颱風警報、豪雨特報、橙紅燈號）→ LINE／HA 用「一般」級、並廣播；緊急類（疏散、土石流、國家級警報）→「重要」級；info（鄰近鄉鎮、大雨預報、解除、演練演習）只發 HA 資訊通知；地震不處理（由 02 負責）；海嘯仍由 03 處理（內文有苗栗→緊急類，解除或沒寫苗栗→info）。新增 `packages/v41_disaster_notify.yaml` 四個開關：`notify_line_disaster_important_enable`／`notify_line_disaster_emergency_enable`（LINE，已公開給 HomeKit『HASS Bridge』）、`notify_ha_disaster_important_enable`／`notify_ha_disaster_emergency_enable`（HA）。另有廣播開關 `announce_disaster_important_enable`／`announce_disaster_emergency_enable`（不公開給 HomeKit；關閉後該類不廣播、早晨補報也停）。自動化管理面板新增「災害訊息廣播開關」小組。歷史 255 則訊息測試：重要 2、緊急 0、info 23、不通知 230。此自動化目前為**關閉**狀態（2026-08-26 起）。
+- `104-4車庫回家通知系統AI`（V4.1.5）：車庫攝影機偵測到人（不論多久）或 60 秒內才剛變沒人時不通知，修正人走進車庫再開鐵門的誤報；Wi-Fi 判斷規則不變。
+- `100A自動啟動到家早安情境AI`（V4.1.5）：併入「105門鎖自動判斷到家」（新增觸發 `lock_home`：門鎖解除離家模式 → 依時段啟動早安／到家，不受最早時間與活動跡象限制，但受總開關、3 分鐘防重複、保全模式限制）；舊 105（UI 自動化 id 1691155847932）已刪除。
+- 新增 `21B夏季模式自動判斷AI`（V4.1.5）：依今日預報體感最高（weather 每小時預報 feels_like_temperature）與今日實測體感最高（戶外體感感測器）自動開關 `input_boolean.summer_mode`；分數 ≥ 28.5°C 開、< 26°C 關、之間維持現狀，06:30–18:00 每 30 分鐘判斷。人工切換（context 無 parent_id）會記 `input_datetime.summer_manual_date`，當天不再自動調整，隔天恢復。新增 `packages/v41_summer_auto.yaml`：`summer_auto_enable`（總開關）、`summer_auto_on_feels_c`／`summer_auto_off_feels_c`（門檻）、`summer_manual_date`、`summer_auto_today_flag`／`summer_auto_last`（內部）。
+- 根目錄 `automations.yaml` 與 `configuration.yaml` 納入 git（2026-10-11）：`configuration.yaml` 的小米風扇 token、LINE 權杖與 client id 改為 `!secret`（值在 `secrets.yaml`，不進 git）。
+- Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
+
+### Known Bugs／待實體驗證（V4.1.5）
+- `03苗栗天氣告知系統AI` 目前為關閉狀態（2026-08-26 起）；分級只以歷史 255 則與模擬訊息驗證，尚無真實災害訊息實測。
+- 尚未實體驗證：`05G` 三擊維修暫停（開／關）、`100A` 的 `arrive`（離家超過 10 分鐘後連上 Wi-Fi）與 `lock_home`（門鎖解除離家模式）觸發、`104-4` 車庫攝影機偵測、`21B` 手動切換偵測與隔天恢復。
+- 根目錄 `automations.yaml`（UI 自動化）與 `configuration.yaml` 不在 git 內；本版 12A／12B／12E／12F／05E 修補與 105 刪除只存在主機與本機備份（`V4.1.5/automations.yaml`）。
+
+### Next Version（V4.2 候選）
+- `104-2車牌辨識AI優化`；智慧家庭 Home UI 4.0 優化（UI 4.0-beta 8）。
+- `input_text.at_home_*_trackers` 仍用於在家判斷，評估改讀 `person.*` 後再清除；22 個未載入的整合保留。
+
+## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
+
+### 新功能（八項規劃）
+- **耗材通知整合與修復**（`00-2C` V4.1.0）：濾網壽命只通知一次（≤10% 通知、回升 >50% 才重置）；電池改階段式（≤35% 準備備品、≤20% 請更換、≤10% 緊急，各階段一次，≤20% 每 7 天再提醒）；電量讀不到時用 7 天內最後有效值，7 天都沒有就排除（只通知一次）；一鍵測試與 15 天摘要改為真實報告。
+- **緊急模式快照還原**：`05A` 啟動時先存快照（`script.emergency_snapshot_save`，38 個受影響設備），解除網關警報時（`106C` V4.2.0，`emergency_restore_route`）可還原燈／開關／風扇／插座／頂樓空調、警報開關關閉；鐵門「無人車才自動關回」，二樓門鎖只通知；地震預警與 CO 自動觸發排除狀況後也可還原；`05F` 管理 2 小時到期。
+- **手機追蹤 person 化**：`helper.yaml` 的 `at_home_*` 範本優先讀 `person.*`；新增 `sensor.kenny_phone_ap_mac`，頂樓 `08-5F`／`5G`／`5J` 改讀它（V4.0.4／V4.1.3／V4.1.1）；`00-4` 比對新舊判斷；`00-3` 每週巡檢 unavailable＋restored 失效實體（清理 71 個舊空殼）。
+- **日出日落時間窗**：`binary_sensor.scene_morning_window`（日出前 30 分～日落前 60 分，上下限 05:00／18:30，皆可調）；`00-2J`、`105`、`800-0／0B／13`、`106C`、新 `100A` 共用，功能開關 `scene_window_use_sun`（預設開）。
+- **假日判斷**：`sensor.tw_day_type_today／tomorrow`、`script.tw_day_type`（Workday 整合只用 `government` 類別；補班日填 `input_text.tw_makeup_workdays`）。
+- **100A 自動到家／早安 AI 版**（V4.1.0）：具名觸發、依平日／假日最早時間、HomeKit 總開關；影子模式（`auto_scene_shadow`）預設已關＝實際運作，舊 100A 已停用（未刪除）。
+- **熟睡起床搭配國定假日**（`08-5H` V4.3.0）：03:00／05:00、09:30／10:30 改為可調 helper，功能開關 `sleep_holiday_aware`（預設開）。
+- **環境異常通知**（`06` V4.1.0）：CO2／CO／廚房溫度三級、危險感測器、攝影機 CO 警報、感測器失聯；CO 危險自動觸發緊急模式已實際接線（`env_alert_co_dry_run` 預設關，可打開改回乾跑）。
+- **空氣清淨機整合**（`07` V4.1.0）：單一自動化取代舊 07 系列；影子模式（`air_ai_shadow`）預設已關＝實際運作，舊 07 系列已停用（未刪除）；手動關機尊重 30 分鐘。
+
+### 開關與樓梯燈
+- **Terncy 無線開關**（`08-9` V4.1.1）：37 鍵無線模式、單擊切換；雙擊／三擊事件對照表。
+- **樓梯燈定時關燈**（`800-14` 系列 V4.1.2／14D V4.1.3）：單擊 3 分鐘後關、雙擊常開；四樓樓梯燈若頂樓感應正在使用，交給頂樓感應與頂樓樓梯燈一起關（`stage_scene` V4.0.1）。
+- **車庫主燈**：按鈕 5 秒防小燈（`800-15` V4.1.1）、感應冷卻與保護（`104-1` V4.1.1）、回家通知提早廣播（`104-4`）。
+- **廚房／廁所感應燈**：重新偵測與縮短關燈延遲（`08-8A` V3.3.0／`08-8B` V3.1.0），廚房不用毫米波開燈。
+
+### 頂樓
+- 熟睡鎖統一只看 `sleep_silent_active`、動態解鎖（`08-5H`）；動線仲裁與書房燈防呆（`08-5J`／`08-5G`）；樓梯燈使用權與手動保持（`08-5K`）。
+- `topfloor_publish_path` 動線事件仲裁（`頂樓感應AI` V4.1.0）。
+
+### 其他
+- `手動廣播AI`／`手動通知AI`、`00-2J` 氣氛燈、`05B` 復原說明、`22` 頂樓電風扇、自動化管理面板分類更新、3D 平面圖調整。
+
+### 已修正的問題
+- `max(0.5)` 過濾器不能用在單一數值（`800-15`、`104-1`、`800-10`：燈關閉 5 秒內再按／再感應時報錯、燈沒開）。
+- 自動化 `reload` 會中斷正在等待中的執行（08-5F 下樓 120 秒等待）——操作面提醒，非程式錯誤。
+
+### Known Bugs／待實體驗證
+- 新 `07空氣清淨機整合AI`、`100A自動啟動到家早安情境AI` 已實際運作（使用者核准，未經長時間影子觀察）；舊 07／07-1～07-4／舊 100A 已停用但未刪除，異常時重新打開舊的並把 `air_ai_shadow`／`auto_scene_shadow` 開回即可退回。
+- CO 危險自動緊急模式（`env_alert_co_dry_run` 已關）尚未實測：會開全屋燈、車庫鐵門、響網關警報、解二樓門鎖；誤觸時可按解除網關警報還原。
+- 緊急模式快照還原端對端（HomeKit 觸發 → 解除網關警報）尚未實測；`sleep_holiday_aware` 預設開，補班週六需手動填 `tw_makeup_workdays`。
+- `fan.set_preset_mode: Favorite`（空氣非常嚴重加強運作）需實機確認。
+
+### Next Version（V4.2 候選）
+- 觀察穩定後：刪除已停用的舊 `07`、`07-1～07-4`、舊 `100A`；刪除 `supply_batt_lowest_*`（9 個）與 `input_text.at_home_*_trackers`、`iphone_tracker_entity_kenny`。
+- `08-4客廳大門開啟自動開燈` 改用日落／日出；`auto_scene_enable` 公開給 HomeKit。
+- 補班日資料來源（目前手動填）。
+
 ## 本次調整（V4.0 - 2026-10-08 AI 4.0 正式版：通知分級、氣氛燈與廣播、頂樓動線重構、車庫回家通知、LINE Bot 輪替）
 
 ### 1. 通知與廣播全面統一
@@ -292,6 +430,38 @@
 - 修復：08-6 離家保全（Iris 手機實體已失效）改用 `person.*`；21A 風扇備援感測器與 `t_eff` 判斷；13 魔方、00-2C 魔方電量失效實體；`sensor.lights_on`；門鎖日耗電率 `doorlock_battery_drop_mean_7d` 重建（00-2P 每日紀錄）。
 - 新增 00-2M 每晚 03:40 實體引用檢查（`scripts/check_entities.py`）；資料庫保留 45 天並排除雜訊實體；自動化管理側邊欄面板與整合儀表板「智慧家庭」。
 - 移出載入範圍：測試觸發機制 00-2G 與 `test_trigger` package（保存在 `deprecated_automations_backup/Archived_20261008/` 與 `scripts/dev_tools/`）、106-1、00-2廣播系統測試、00-3 手動清理空間。
+
+## 本次調整（V4.0-beta1 追加 - 2026-10-05：通知分級、統一廣播、漸進情境、LINE Bot 輪替修正）
+
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| LINE Bot 輪替 | `packages/linebot.yaml` | V1.12 | 沿用主用 Bot（跨月不回 Bot1）、切換預告以 196 門檻計算；`send_line_to_user` 自動將「標題+等級+內文」多泡泡合併為 1 則扁平 Flex 卡片（節省額度） |
+| LINE 額度監控 | `00-2BLINE推播AI` | V3.5 | 改用 `notify_dispatch`；切換/低額度=重要、用盡=緊急、例行摘要=資訊 |
+| 統一通知 | `Scripts/統一通知AI.yaml` | V1.0.2 | `script.notify_dispatch`（HA 通知+LINE Flex，資訊級不發 LINE）、`script.announce`（提示音播完才播 TTS，播完恢復音量；提示音改本機 media-source，保底秒數=實際長度） |
+| 漸進情境 | `Scripts/漸進情境AI.yaml` | V1.0.2 | 依按鈕位置由近到遠分環開/關；離家由開關觸發時樓梯燈豁免，3 分鐘後關閉 |
+| 情境檢查 | `Scripts/情境檢查AI.yaml` | V1.0.2 | 晚安/離家/早安/到家執行後檢查、補救；補救成功=資訊（僅 HA），失敗=重要（HA+LINE） |
+| 通知開關初始化 | `00-2D通知開關初始化AI` | V1.0.0 | HA 通知資訊/一般/重要開關首次一次性開啟，之後由使用者調整 |
+| 通知測試 | `00-2E通知測試AI` | V1.0.0 | 4 個測試按鈕 |
+| 等級套用 | 約 20 個 `*AI.yaml` + `automations.yaml` | — | `notify.persistent_notification` → `script.notify_dispatch`（line:false，保留原 LINE 發送）；45 組「提示音+固定延遲+TTS」→ `script.announce` |
+| 廣播群組 | HA 設定 | — | 廣播群組All→緊急、通知→重要，新增「廣播群組一般」（客廳 HomePod+車庫攝影機）；實體 ID 不變 |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | 新增 `notify_ha_*_enable`、`notify_test_*`、`line_bot_sticky`、`scene_origin_device` 等 |
+
+### V4.0-beta1 追加：情境與狀況氣氛燈AI（2026-10-05）
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| 氣氛燈提醒 | `Scripts/氣氛燈AI.yaml` | V1.0.1 | `script.mood_alert`：LINE（重要/緊急）或廣播送出時，客廳小燈→餐廳燈2→三樓樓梯燈→四樓→頂樓樓梯燈依序閃爍（重要=琥珀橘約 4 秒、緊急=紅色約 6 秒），完成後還原；離家模式不提醒、晚安/夜燈情境只有緊急提醒、緊急模式 05A/05B/05E 執行中或 3 分鐘內略過；25 秒內與 LINE/廣播同事件去重 |
+| 呼叫點 | `統一通知AI.yaml` V1.0.4、`packages/linebot.yaml` V1.13 | — | `notify_dispatch`、`announce`、舊格式 LINE 送出後觸發 `mood_alert` |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | `mood_alert_enable/_important_enable/_emergency_enable`（首次由 00-2D 一次性開啟）、`mood_alert_active`、`mood_alert_last` |
+
+### V4.0-beta1 追加：情境執行廣播（2026-10-05）
+| 項目 | 檔案 | 版本 | 說明 |
+|---|---|---|---|
+| 情境廣播 | `Scripts/情境檢查AI.yaml` | V1.0.4 | 新增 `script.scene_announce`：離家/晚安/早安/到家執行時用「一般」廣播播報；離家、晚安僅手動（實體開關）觸發時播，早安、到家一律播；60 秒內同情境不重複；`scene_verify` 開頭呼叫 |
+| Helper | `packages/helper.yaml` | V4.0-beta1 | `scene_announce_enable`（首次由 00-2D 一次性開啟）、`scene_announce_last`、`scene_announce_init` |
+| 其他 | 漸進情境 V1.0.3、`07*` 空氣清淨機自動化 | — | 早安/到家不再開空氣清淨機；07/07-1/07-2/07-3 需有人在家（aqara_zai_jia）才啟動 |
+
+### AI 4.0 版號統一（2026-10-05）
+V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
 
 ## 本次調整（V3.6.9 - 2026-09-20 AI 4.0 測試導入、LINE Bot 額度判定與去重修復、Tesla 充電樁充電完成通知邏輯修復、車庫主燈與樓梯燈自動關閉修復）
 - **AI 4.0 測試導入（全新 Agent 與次世代模型完整接管，全面 AI 化更新）**：
@@ -565,174 +735,3 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。
-
-## 本次調整（V4.0-beta1 追加 - 2026-10-05：通知分級、統一廣播、漸進情境、LINE Bot 輪替修正）
-
-| 項目 | 檔案 | 版本 | 說明 |
-|---|---|---|---|
-| LINE Bot 輪替 | `packages/linebot.yaml` | V1.12 | 沿用主用 Bot（跨月不回 Bot1）、切換預告以 196 門檻計算；`send_line_to_user` 自動將「標題+等級+內文」多泡泡合併為 1 則扁平 Flex 卡片（節省額度） |
-| LINE 額度監控 | `00-2BLINE推播AI` | V3.5 | 改用 `notify_dispatch`；切換/低額度=重要、用盡=緊急、例行摘要=資訊 |
-| 統一通知 | `Scripts/統一通知AI.yaml` | V1.0.2 | `script.notify_dispatch`（HA 通知+LINE Flex，資訊級不發 LINE）、`script.announce`（提示音播完才播 TTS，播完恢復音量；提示音改本機 media-source，保底秒數=實際長度） |
-| 漸進情境 | `Scripts/漸進情境AI.yaml` | V1.0.2 | 依按鈕位置由近到遠分環開/關；離家由開關觸發時樓梯燈豁免，3 分鐘後關閉 |
-| 情境檢查 | `Scripts/情境檢查AI.yaml` | V1.0.2 | 晚安/離家/早安/到家執行後檢查、補救；補救成功=資訊（僅 HA），失敗=重要（HA+LINE） |
-| 通知開關初始化 | `00-2D通知開關初始化AI` | V1.0.0 | HA 通知資訊/一般/重要開關首次一次性開啟，之後由使用者調整 |
-| 通知測試 | `00-2E通知測試AI` | V1.0.0 | 4 個測試按鈕 |
-| 等級套用 | 約 20 個 `*AI.yaml` + `automations.yaml` | — | `notify.persistent_notification` → `script.notify_dispatch`（line:false，保留原 LINE 發送）；45 組「提示音+固定延遲+TTS」→ `script.announce` |
-| 廣播群組 | HA 設定 | — | 廣播群組All→緊急、通知→重要，新增「廣播群組一般」（客廳 HomePod+車庫攝影機）；實體 ID 不變 |
-| Helper | `packages/helper.yaml` | V4.0-beta1 | 新增 `notify_ha_*_enable`、`notify_test_*`、`line_bot_sticky`、`scene_origin_device` 等 |
-
-### V4.0-beta1 追加：情境與狀況氣氛燈AI（2026-10-05）
-| 項目 | 檔案 | 版本 | 說明 |
-|---|---|---|---|
-| 氣氛燈提醒 | `Scripts/氣氛燈AI.yaml` | V1.0.1 | `script.mood_alert`：LINE（重要/緊急）或廣播送出時，客廳小燈→餐廳燈2→三樓樓梯燈→四樓→頂樓樓梯燈依序閃爍（重要=琥珀橘約 4 秒、緊急=紅色約 6 秒），完成後還原；離家模式不提醒、晚安/夜燈情境只有緊急提醒、緊急模式 05A/05B/05E 執行中或 3 分鐘內略過；25 秒內與 LINE/廣播同事件去重 |
-| 呼叫點 | `統一通知AI.yaml` V1.0.4、`packages/linebot.yaml` V1.13 | — | `notify_dispatch`、`announce`、舊格式 LINE 送出後觸發 `mood_alert` |
-| Helper | `packages/helper.yaml` | V4.0-beta1 | `mood_alert_enable/_important_enable/_emergency_enable`（首次由 00-2D 一次性開啟）、`mood_alert_active`、`mood_alert_last` |
-
-### V4.0-beta1 追加：情境執行廣播（2026-10-05）
-| 項目 | 檔案 | 版本 | 說明 |
-|---|---|---|---|
-| 情境廣播 | `Scripts/情境檢查AI.yaml` | V1.0.4 | 新增 `script.scene_announce`：離家/晚安/早安/到家執行時用「一般」廣播播報；離家、晚安僅手動（實體開關）觸發時播，早安、到家一律播；60 秒內同情境不重複；`scene_verify` 開頭呼叫 |
-| Helper | `packages/helper.yaml` | V4.0-beta1 | `scene_announce_enable`（首次由 00-2D 一次性開啟）、`scene_announce_last`、`scene_announce_init` |
-| 其他 | 漸進情境 V1.0.3、`07*` 空氣清淨機自動化 | — | 早安/到家不再開空氣清淨機；07/07-1/07-2/07-3 需有人在家（aqara_zai_jia）才啟動 |
-
-### AI 4.0 版號統一（2026-10-05）
-V4.0-beta1 期間新增或修改過的自動化與腳本（00-2A/2B/2C/2D/2E、03、05B、08-5A/5F/6、100B、100C1/2、104-2/3、105、106、107、21A/21B、22、地震預警、統一通知、漸進情境、情境檢查、氣氛燈）版本統一為 `V4.0.0`；未異動的檔案維持原版號。00-2A 於 18:00 偵測到版本差異時會自動推播更新通知（依 SOP 步驟 8 不手動設基準）。
-
-## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
-
-- 打包 V4.1.6 草稿至今的全部更新發布為 V4.2.0（次版本：新增動畫燈、戶外空氣品質、通知卡片統一排版等功能）。
-- **清理（冗余移除）**：①移除影子模式。07 空氣清淨機（`air_ai_shadow`）與 100A 到家早安（`auto_scene_shadow`）早在 2026-10-10 核准並關閉，程式碼分支與 helper 刪除、行為不變；入侵偵測 08-7（`intrusion_watch_shadow`）依使用者決定改為正式運作，判定成立即緊急通知、廣播、倒數後觸發網關警報，`script.intrusion_alert` 只剩 real／dry／test 三種 mode，乾跑（事件 `intrusion_signal` 加 `test: dry`）與 LINE 測試模式保留。②自動化管理面板不再列這三個開關（`scripts/generate_automation_panel.py` 的 GONE 清單）並已重新部署。③已停用的舊 07／07-1～07-4／舊 100A 在 V4.1.5 已刪除，不再保留。
-- **情境廣播（`script.scene_announce`，`Scripts/情境檢查AI.yaml`）**：早安／到家廣播加上目前室內空氣狀況（廚房 PM1.0／2.5／10、CO2、TVOC、甲醛、CO 取最差一項；良好只報良好，稍高或偏高時說明是哪一項並建議開空氣清淨機，偏高時依戶外空氣建議開窗或先不要開窗）；晚安廣播加上明天天氣（用 `weather.get_forecasts` 逐 3 小時預報算天氣、氣溫範圍、降雨機率，必要時提醒帶傘、防曬或加衣；預報讀不到就維持原句）。晚安廣播仍只在手動觸發時播報。
-- **發布注意**：入侵偵測沒有經過影子觀察就轉為正式，若發生誤報請在 Known Bugs 回報；`env_alert_co_dry_run`（CO 緊急乾跑）不是影子模式，維持開啟。
-
-- 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」。現在標籤固定在時間右邊、完整顯示，秒數縮小（.74em）；放不下時 `_fit()` 依序縮小時間與標籤（fit1：23px／10px、fit2：20px／9px、fit3：17px），寬度 130px 以上都能一行完整顯示（瀏覽器實測 240／200／170／150／130px）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。
-- `100A自動啟動到家早安情境AI`（V4.1.6）新增觸發 `living_room`：任何一位家人（person 位置 `sensor.at_home_*_location`）在客廳停留 1 分鐘（原 2 分鐘，2026-10-14 縮短），且網關不在在家模式（`aqara_zai_jia` 為 off），就依時段自動啟動早安或到家情境。停留期間位置跳到別處或離家會重新計時（只有持續在客廳才算）；仍受最早啟動時間（半夜在客廳不會啟動）、總開關、影子模式、3 分鐘防重複與保全模式限制，不需要「家裡有活動跡象」。
-- `100A自動啟動到家早安情境AI`（V4.1.6）：燈光／設備／鐵門觸發（客廳小燈、餐廳燈、廁所燈、廚房燈、客廳電風扇、車庫鐵門關閉）新增條件：至少一位家人（`binary_sensor.at_home_anyone_home`）在家才啟動，避免非家人進屋碰到燈或設備讓網關自動變成在家模式；有人回到家／門鎖解除離家模式／有人在客廳三種觸發不受影響。
-- 新增 **離家入侵偵測**（V4.1.6）：`08-7離家入侵偵測AI`（偵測與判定）、`08-7C入侵偵測訊號收集AI`（由 `scripts/intrusion_stats.py` 自動產生，把候選感應器的觸發轉成 `intrusion_signal` 事件）、`08-7D入侵偵測感應器統計AI`（每週日 03:50 或按統計按鈕）、`Scripts/入侵警報AI.yaml`（`script.intrusion_record_signal`、`script.intrusion_alert`）、`packages/v41_intrusion.yaml`（開關、參數、手動覆寫欄位、`sensor.intrusion_sensor_lists`、`sensor.intrusion_effective_summary`）。
-  · 監控條件：總開關開、四位家人都離家滿 10 分鐘（`intrusion_arm_nobody_min`）、網關離家情境滿 20 分鐘（`intrusion_arm_away_min`），且網關不在在家模式（在家／早安／到家就不監控，倒數中也取消）。
-  · 訊號：室內動作感應器、客廳門鎖（事件型，有人開門才回報，不看離線比例）、車庫鐵門（開啟後緩衝 5 分鐘等家人回來；用 HA／HomeKit／自動化開的不算）、二樓門鎖同步開關（緩衝 90 秒）。5 分鐘內來自「不同裝置」的 2 個以上訊號才判定疑似入侵。
-  · 處理：緊急級 LINE／HA 通知（附車庫與頂樓攝影機截圖兩張、攝影機即時影像與「家庭」App 按鈕、備註「家人回來切到在家或早安情境即可避免觸發」）＋廣播 → 倒數 30 秒（家人回來／切到在家模式／關閉功能就取消）→ 觸發網關警報（`aqara_chu_fa`，由 106 同步到實體網關）；30 分鐘內不重複。
-  · 面板開關：`intrusion_watch_enable`（總開關）、`intrusion_watch_alarm_enable`（觸發網關警報）、`intrusion_watch_shadow`（影子模式，預設開：只寫 logbook，不通知不響警報）、各項秒數／分鐘設定、強制納入／排除欄位；`intrusion_watch_test` 測試按鈕只發通知（不廣播、不響警報）。
-  · 每週統計（離家期間資料）：離線比例 > 10% 或離家時每小時觸發 > 0.5 次的排除，穩定的（觀察 ≥ 24 小時、有回報）自動納入，包含新裝的感應器；有變動發 HA 資訊通知。首次統計（74 小時離家資料）：納入 15 個，排除 3 個（廁所夜燈、車庫夜燈離線比例過高；廚房毫米波每小時亂跳 1.6 次）。
-  · `統一通知AI`（V4.1.6）：`notify_dispatch` 新增選填欄位 `image2`（第二張圖）。
-  · 限制：家裡沒有獨立的門窗磁簧感應器，窗戶只能靠室內動作偵測；客廳門鎖是事件型感應器。
-- `入侵偵測測試通知`（V4.1.6）：新增 `input_boolean.intrusion_watch_test_mode`（LINE 測試模式，預設關）；沒開時按測試按鈕只發一則 HA 說明通知，開了才會真的發 LINE 測試卡（送出一次後自動關閉）。按鈕觸發（測試與統計）加 `not_from: unavailable／unknown`，避免重新載入 helper 時被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
-- `100B自動離家AI`（V4.1.6）離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。2026-10-13 的誤報原因：`input_boolean.er_lou_men_suo_tong_bu_kai_guan` 的 on／off 設定相反，已由使用者修正。
-- `情境檢查AI`（V4.1.6）：保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，原本固定 5 秒；2026-10-14 11:31 的「離家情境補救後仍未到位（保全模式）」誤報原因）；`106C_解除網關警報整合AI`（V4.2.1）重置流程開始時寫入 `input_datetime.scene_verify_skip_alarm_until`（現在＋60 秒），期間情境檢查略過保全模式檢查（離家情境後馬上解除網關）。
-- 3D 儀表板「全棟」模式右側樓梯燈標籤被卡片右緣切掉（`floorplan-v4-3d.js`）：右欄標籤位置用第一次量到的寬度（量不到就用 90px）快取，實際標籤比它寬時就超出右緣；改成標籤顯示時每次排版重新量寬度，右欄靠右位置也多留 12px 並保證不小於左邊界。HA 與 NAS kiosk 都已更新（重新整理即可）。
-- 3D 儀表板「全棟」模式（手機與電腦，`floorplan-v4-3d.js`）：工具列（恢復預設視角／名稱等按鈕）不再被隱藏；全棟預設顯示名稱標籤（手動切換過名稱按鈕則依使用者設定）；手機版縮小圖示與文字，並限制左右欄標籤寬度不超過卡片一半（過長名稱以刪節號截斷），避免被切掉或跑版。HA 與 NAS kiosk 皆已更新（重新整理即可）。
-- LINE 卡片排版（`custom_templates/notify_body.jinja`，所有 LINE 訊息共用，含舊格式純文字訊息）：圖示只留給需要注意的行（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示；「名稱：數值」拆成灰色名稱＋粗體數值；內文與標題中的 emoji 一律移除。
-- `08-3鐵門狀態不穩通知`（V4.1.6）：改用統一通知（LINE 卡片），移除舊的三段純文字；鐵門中斷 4 分鐘時，若 UniFi 設備 20 分鐘內剛重開機或不是已連線（例如更新路由器／AP），先最多等 10 分鐘讓鐵門恢復，仍未恢復才通知。
-- LINE／HA 通知圖示改版（`custom_templates/notify_body.jinja`）：標題行不放圖示（保持單行）；小標題（冒號結尾）、「名稱：數值」與警告行才放圖示；新增 70 款扁平圓形圖示（`www/icons/b2/<名稱>_<n|g|o|r>.png`，圖案自動置中），顏色依重要度（紅=緊急、橘=警告、綠=正常完成、藍=一般）；依關鍵字自動挑對應圖示（電量、天數、時間、鐵門、門鎖、保全、網路…）。
-- LINE 卡片細節：「名稱：數值」間距縮小、注意符號 ⚠︎（無圓圈）緊接在「請注意。」後面、圖示對齊換行文字的第一行；LINE Bot 額度通知（即將切換／額度用盡）改用同一套新格式。
-- `00-2J氣氛燈情境同步AI`（V4.1.6）：一樓 mesh、四樓 extender 重開機／更新後 60 秒自動重新套用目前情境顏色（原本更新後 LED 變回預設色，需手動再按情境）。
-- `氣氛燈AI`（V4.1.6）：通知閃燈（重要／緊急）加入車庫樓梯燈（`switch.lou_ti_deng`，開關式，閃完還原原本開／關；不可用時略過）。原本已含客廳／餐廳彩燈、三樓樓梯燈（開關）、四樓與頂樓樓梯燈（`yeelink_color5_0fb7/13b8`）及 UniFi 機台 LED。
-- LINE 卡片（共用範本）：「…通知」標題用鈴鐺圖示避免與下方內容圖示重複；重點行（開始時間、結束時間、用電量、預估、狀態…）最多 3 行用綠／紫對比色；沒有冒號的舊式行（例如「開始時間 2026-10-15」）也自動當成名稱／數值行。
-- 新增 `09C電視待機喚醒AI`（V4.1.6）：客廳電視（Android TV 遙控與 Chromecast）都連不上 2 分鐘 → 開啟 `input_boolean.tv_ir_power`（自動復位，由 Apple 家庭自動化觸發 Aqara 紅外線電視情境）→ 等電視重新連上 → 用網路指令關機，讓電視停在待機且保持連線；連不上發通知不重送。總開關 `input_boolean.tv_keepalive_enable`，維護模式期間不動作。需自行把 `input_boolean.tv_ir_power` 加入 HomeKit 橋接並建立 Apple 家庭自動化。
-- Xiaomi Gateway 3（HACS）更新 v4.2.4 → v4.3.0（2026-10-16）：官方只動 `core/devices.py` 以外的轉換器與新裝置支援，你自己改過的 `core/devices.py` 五處（藍牙溫濕度計 19457/19458/18435、Motion Sensor 2s 19552、旋鈕電量 1.p.1、濕度浮點 18440、Linptech 23308）以三方合併保留；本機修改存成補丁 `scripts/xg3_devices_local.patch`（相對官方 v4.2.4），備份在 `backup_20261016_xiaomi_gateway3_v424/`。**之後 HACS 再更新這個整合會把 `devices.py` 蓋回官方版，需要重新套回你的五處修改**。
-- 3D 儀表板感測器名稱（`floorplan-v4-3d.js`）：廚房／廁所人體感應固定顯示「廚房人體感應」「廁所人體感應」；廚房兩組溫濕度改名「廚房溫濕計」、空品儀佔用改「廚房空品儀 佔用」；單層畫面不再把「廚房／客廳／餐廳」前綴去掉（同一層有多個房間，只會去掉樓層字樣如頂樓、五樓、車庫）。
-- `06環境異常通知AI`（V4.1.6）：空氣品質等通知的讀數改成條列（超標項目、目前讀數各一組，每項一行並縮排），數值與圖示依等級標綠／黃／紅（`notify_body.jinja` 新增行尾標記 `⟦g⟧⟦o⟧⟦r⟧` 與 `env_tag()` 燈號巨集；門檻：CO2 1000／2000、PM2.5 15／35、TVOC 220／600、CO 9／35、甲醛 0.05／0.08、溫度 15–30／10–40、濕度 40–60／30–70），TVOC 改「總揮發性有機物」，「超過門檻」另起一行，內文不再重複標題。其他通知也可在行尾加 `⟦g⟧⟦o⟧⟦r⟧` 標示數值等級。
-- `08-5F頂樓自動上下樓情境AI`（V4.1.6）：上樓不再被「剛下樓的保護鎖」卡住——保護期間只要 iPhone 90 秒內連上頂樓 AP 且攝影機 30 秒內看到人（確定回來），就直接成立上樓情境並解除下樓鎖；下樓鎖 90 秒縮為 45 秒（含 `08-5F頂樓下樓補判AI`）。起因：2026-10-17 21:36 下樓補判成立後 20 秒就回頂樓，上樓情境晚了 1 分 40 秒（21:38:04 才成立）。
-- 新增統一電池電量預估（`scripts/battery_forecast.py`、`packages/v41_battery_forecast.yaml`、`00-2Q電池預估更新AI`）：讀 HA 長期統計（1 年以上），每日中位數＋5 天移動中位數去掉突波與來回跳動，偵測換電池分段，日耗電率＝本輪平均（含最後一次下降後一直沒掉的時間＋半格）、最近 60 天較快時往快修正、有上一輪完整電池或門鎖上一輪日耗電率時混合；目前電量依耗電率從最後一次下降往下推（不低於最後讀數減一格），所以裝置久久才回報時剩餘天數仍會每天遞減。結果在 `sensor.battery_forecast`（屬性 items），每天 03:50 與 HA 啟動後更新。客廳門鎖 `sensor.doorlock_batt_days_left_last_model` 改為優先使用這個預估（舊公式 291 天 → 新 393 天）。
-- `00-2C耗材更換AI通知`（V4.1.6）：定期摘要電量以顏色標在百分比上（綠健康／黃偏低／紅請更換），下一行縮排淡色顯示預估還能用多久（半年以上綠、1～6 個月黃、1 個月內紅），已排除與資料天數改為備註，名稱縮短避免換行，最後附顏色說明；分階段提醒附預估天數。通知範本新增 `※` 開頭的備註行（小字淡色、縮排）與行內顏色標記 `⟦g:文字⟧⟦o:…⟧⟦r:…⟧⟦n:…⟧`。
-- V4.1.6 修正與追加：①魔方轉動改成「亮第一個還沒亮的單元（小燈→組一→組二→組三），全亮再轉一格才全關」，不再用已亮數量判斷（避免只亮組一時轉動沒反應）；魔方經 Aqara 網關只回報離散的 rotate 事件，沒有角度或方向，無法依轉動大小細調；②`06環境異常通知AI`：開窗或關門窗統一看戶外空氣（AQI>100／PM2.5≥35.5／PM10≥125 為不佳），空氣品質、甲醛、CO2、溫度警示的 LINE 與廣播在戶外不佳時建議不要開窗、開空氣清淨機，一氧化碳維持開窗通風。
-- 燈組動畫 V4.1.6 追加：①「氣氛」色彩依太陽位置分 4 個時段換色調（黎明金橘、白天天藍→淡藍→暖白、黃昏橘→玫瑰→紫、夜晚柔和琥珀→藕紫→靛藍且較暗較慢）；②新增 style「快速」與「滑動」：Aqara 魔方轉動時，新亮起的那組以該時段色調光暈一閃再回到記憶（約 1 秒）；魔方滑動時餐廳三顆光帶快速掃過（約 3 秒）；關燈仍瞬間，helper 選「關閉動畫」時一律瞬間開（`configuration/Scripts/燈組動畫AI.yaml`、`automations.yaml` 魔方自動化 `1781414206841`）。
-- 新增客廳／餐廳開燈動畫（`Scripts/燈組動畫AI.yaml` → `script.light_group_on`、`packages/v41_light_anim.yaml`）：打開客廳小燈、燈組一／二／三／全、餐廳燈組、全部時，燈依序（`input_select.light_anim_style`＝依序）或以暖橘→粉色光帶掃過再回到記憶色溫亮度（氣氛）亮起；只對關著的燈做動畫；緊急模式、氣氛燈提醒、熟睡鎖、總開關 `light_anim_enable` 關閉或風格選「關閉動畫」時瞬間開；關燈一律瞬間。入口＝7 個「（動畫）」template light（`light.ke_ting_xiao_deng_dong_hua`、`…_deng_zu_yi/er/san_dong_hua`、`…_deng_zu_quan_dong_hua`、`light.can_ting_deng_zu_dong_hua`、`light.ke_ting_can_ting_quan_bu_dong_hua`）；800-2／800-5／800-6 實體按鈕、`漸進情境AI`（到家／早安開燈）、3D 面板（`floorplan-v4-3d.js` 的 `switchLights`）、Google 暴露清單（`configuration.yaml`）都改走動畫；Apple 家庭請自行把動畫燈加進 HomeKit 橋接。`00-2H燈況記憶AI`（V4.1.6）記憶範圍擴大到客廳 7 顆＋餐廳 3 顆＋四樓／頂樓樓梯燈，改用燈泡自己的 `light.mode`／`light.color_temperature`／`light.brightness` 判斷（HA 的 color_mode 對這些燈常誤報 rgb）。
-- 新增戶外空氣品質（`packages/v41_outdoor_air.yaml`）：`sensor.outdoor_pm2_5`／`outdoor_pm10`／`outdoor_aqi_us`（Open-Meteo Air Quality API，免金鑰、CAMS 模式資料、每 30 分鐘更新，座標取自 zone.home）與 `sensor.outdoor_air_quality`（台灣 PM2.5 分級）。`06環境異常通知AI`（V4.1.6）：廚房「空氣品質危險」若只有 PM2.5 超標、其他項目正常且戶外 PM2.5 ≥ 25，改發一般級「戶外空氣品質偏差／太差」（建議關閉門窗並開啟空氣清淨機，語音同步改寫），列出戶外 PM2.5 與等級；其他空氣品質通知的讀數最後多一行戶外 PM2.5。之後想換成環境部測站實測資料（需免費申請 API 金鑰），只要換 rest 的來源，感測器名稱不變。
-- 戶外空氣品質改接環境部開放資料（`scripts/moenv_fetch.py`、`packages/v41_outdoor_air.yaml`、`00-2R環境部空品更新AI`；API 金鑰在 `secrets.yaml` 的 `moenv_api_key`，不進 git）：頭份測站 AQI／PM2.5／PM10／O3／NO2／SO2／CO／風速風向、後龍站紫外線指數、竹苗空品區 AQI 預報；每 30 分鐘更新。對外：`sensor.outdoor_air_quality`（官方 AQI 等級，屬性 aqi／pm25／pm10／level／source）、`sensor.outdoor_aqi`、`sensor.outdoor_uv_index`、`sensor.outdoor_aqi_forecast`；環境部資料超過 4 小時沒更新時退回 Open-Meteo。（data.moenv.gov.tw 憑證缺 Subject Key Identifier，Python 3.13+ 預設嚴格檢查會失敗，腳本只關掉 VERIFY_X509_STRICT，憑證鏈與主機名稱仍驗證。）
-- 廚房 PM1.0 與 PM10 加入空氣品質檢測：`06環境異常通知AI` 讀數列表、超標項目（PM1.0>35、PM10>125）、戶外成因判斷；新增 `sensor.kitchen_particulate_level`（`packages/v41_kitchen_air.yaml`，三項取最差，良好／普通／偏高）。3D 面板空氣品質方塊改顯示官方 AQI。
-- 離家通知與離家廣播加入「戶外狀況」（`packages/v41_outdoor_brief.yaml` 的 `sensor.leave_outdoor_brief`）：天氣、紫外線、空氣品質三行（顏色標記）；異常時附提醒——紫外線 ≥ 6、AQI > 100、降雨機率 ≥ 50% 或正在下雨、氣溫 ≥ 35°C 或體感 ≥ 38°C、氣溫 ≤ 12°C、風速 ≥ 40 km/h。`100B自動離家AI`（V4.1.6）各分支的 HA 與 LINE 通知最後附這段；`scene_announce` 的離家廣播多念一句戶外狀況。
-- 3D 面板（`floorplan-v4-3d.js`）：天氣卡片新增紫外線（依等級上色：低量綠／中量黃／高量橘／過量紅／危險紫）；空氣品質卡片改用 Apple 家庭風格的 AQI 圓點圖示——電腦版圖示在左、等級與「AQI 數值 · PM2.5」在右；手機版第一行「圖示＋AQI 數值」、第二行等級小字，與天氣卡片同高。通知範本新增紫外線圖示。
-- 3D 面板 UI4.0-beta7（`floorplan-v4-3d.js`）：①廚房室內感測器群組（廚房環境）點一下除了拉近，還會跳出「廚房室內空氣品質」面板：PM1.0、PM2.5、PM10、二氧化碳、總揮發性有機物、甲醛、一氧化碳各項數值與優良／普通／偏高標示，整體結論與建議（含戶外空氣不佳時請先關窗）、溫濕度與戶外 AQI，隨資料即時更新，點背景或 ✕ 關閉；②iPad mini 窄側欄（約 155 px）縮小空氣品質卡、紫外線行與在家成員的間距與字級，並讓成員清單可捲動，4 位成員都能顯示。
-- 新增維護模式（`packages/v41_maintenance.yaml`）：`binary_sensor.maintenance_active`（手動 `script.maintenance_start` / `maintenance_stop`、UniFi 設備 20 分鐘內重開機或非已連線、更新安裝中，任一成立即啟動）；維護期間 `notify_dispatch` 與舊格式 `send_line_to_user` 略過一般／重要級且屬連線／離線／失敗／異常類的通知（保全、入侵、門鎖、未關、緊急級照常發送），並寫日誌。
-- 新增 `106D網關切換同步Aqara開關AI`（V4.1.6）：在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，補上對應的 Aqara 虛擬情境開關（在家警戒→`aqara_zai_jia`、夜間警戒→`aqara_wan_an`、離家警戒→`aqara_li_jia`；先關其他四個再打開目標，避免 106 看到 2 個以上開關同時為 on 而走異常分流）。切換後先等 6 秒讓 Apple 家庭同步，沒對應才由 HA 補上；只處理人為／實體切換（context 無 parent_id），不處理 106／情境／100B 等自動化改的模式，所以不會迴圈。不處理解除與警報觸發（106 的解除情境會先解除再回到在家警戒）。（2026-10-14 紀錄：直接切網關時 Apple 家庭的同步有延遲 1 秒～數分鐘，甚至沒有同步。）
-- 修正 `100B自動離家AI`（V4.1.6）：離家通知整個漏掉。2026-10-12 08:09:57 判定全員離家時鐵門正在關（`closing`，08:10:05 才 `closed`），原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發，且觸發條件維持成立不會再觸發。現在通知前先等鐵門停下來（`open`／`closed`，最多 90 秒），並新增預設分支：兩個條件都不成立時仍發一般級離家通知（含情境、鐵門與門鎖同步狀態）。
-- `00-2M實體引用檢查AI`（V4.1.6）：不再把服務（action）名稱（`fan.set_preset_mode`、`weather.get_forecasts`…）與「只是前綴」的字串（`sensor.chu_fang_…_chu_fang`，後面用 `~ '_co2'` 組合）當成「可能不存在的實體」誤報（2026-10-12 03:40 的 3 則都是誤報）；修改 `scripts/check_entities.py`，修正後檢查結果為 OK。
-- `100A自動啟動到家早安情境AI`（V4.1.6）：新增通知開關 `input_boolean.auto_scene_notify_enable`（預設開，自動化管理面板可關）；關閉後自動啟動情境時不發「自動啟動早安／到家情境」HA 資訊通知，情境照常啟動、logbook 與 `input_text.auto_scene_last` 照常記錄。
-- 修正 `107Tesla充電器狀態與通知AI`（V4.1.6）：充飽後 00:02 誤報「離峰時段已過仍未充電／仍未開始充電」。「這次連接後是否已充過電」原本比較 `tesla_charger_start_time`（只到秒）大於 `vehicle_connected.last_changed`（含毫秒），插槍同一秒就進入充電時 start_time 反而略小而判成沒充過；改成容許 10 秒誤差。2026-10-11 18:35:57 插槍即充電、22:12:57 充飽，00:02 誤報一次。
-- 新增 `08-8A 廚房燈無人保險關燈AI`（V3.4.0）與 `08-8B 廁所燈無人保險關燈AI`（V3.2.0）：燈亮著、感應器無人超過 10 分鐘就關燈（廚房需小米人體與毫米波兩顆都無人）。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。廚房「感應燈自動化」被長按關掉、廁所「手動關閉模式」啟用時不處理。
-
-## 本次調整（V4.1.5 - 2026-10-11：夏季模式自動判斷、災害訊息分級、到家情境併入門鎖、風扇防抖、車庫誤報修正、緊急三擊維修暫停與清理）
-
-- `22頂樓電風扇自動化AI` 修補版升級至 `V4.1.5`：風扇「關→開」時裝置自行回報的風量變動（0%→N%），以及開機後 10 秒內的風量回報，不再被判定為人為調速（原因：這類更新沒有使用者與上層動作，被 `manual_actor_detected` 誤判，導致 `ding_lou_fan_manual_speed_snooze` 自動開啟、自動調速停擺）。人為在風扇運轉中調速仍會啟用防護罩。
-- 同版追加：自動調速門檻由「差 5%」降為「差 2.5%」（與 2.5% 級距一致）；新增每 5 分鐘定時重算觸發（`time_pattern`），感測器長時間沒更新時風量也會跟上；定時觸發時略過「冷氣同步開機」（避免過冷關機後被每 5 分鐘反覆開起），並補強 `manual_actor_detected` 對沒有 `to_state` 觸發的防呆。
-- 新增 `05G緊急三擊維修暫停AI (V4.1.5)`＋helper `emergency_triple_press_pause`（開關＋2 小時計時）：維修時暫停「實體開關連點三下→緊急模式」（`05E緊急實體按鈕` 加了「暫停開關不是 on」條件：用範本判斷，開關失聯／不存在時仍可觸發緊急模式，不會因 helper 異常而讓緊急按鈕失效）。到期自動恢復並發 HA 通知；只暫停實體開關三擊，HomeKit／虛擬按鈕、地震預警、CO 自動觸發不受影響。開關已加入 HomeKit（HASS Bridge）與自動化管理面板。
-- 修正 `800-開關系列-12E／12F`（UI 自動化，`automations.yaml`）：觸發實體被刪除（`to_state` 為空）時不再誤判為雙擊上樓／長按下樓（2026-10-11 11:09 Terncy 網關重連、裝置被移除，誤觸發上樓情境）；事件觸發（`terncy_pressed`）行為不變。
-- 修正 `800-開關系列-12A／12B`（UI 自動化）：「四樓樓梯開關上2」（來源 `540f57fffe8239d3-02`）與「頂樓樓梯燈／四樓樓梯開關上1」（來源 `540f57fffe8239d3-01`）在 2026-10-11 被刪除並重新加入後，`terncy_pressed` 事件改帶新的 device_id（`058a0c17…`、`e259d035…`），原本只認舊 id（`ea7743a9…`、`ad6e414d…`）的單擊觸發失效；已補上新 id（保留舊 id）。05E／12E／12F 原本就已含新 id。
-- 修正 `08-5C頂樓樓梯燈解除深夜亮度AI`（V4.1.5）：兩盞樓梯燈同時被打開（如手動上樓情境）時，頂樓樓梯燈會因旗標被先跑完的那一輪清掉而被跳過，卡在深夜亮度（60%／3000K）；改為等 3 秒後依「燈是否仍亮著且仍是深夜亮度／色溫」決定是否調回平常亮度，不再依賴共用旗標。
-- 日誌整理（`configuration.yaml` V4.0，需重啟生效）：降級事件觸發器舊 device_id 警告、recorder 排除兩個超大屬性的版本感測器；`00-01` 週期重啟加 `continue_on_error`，檔內三支自動化統一升為 V4.0.0。
-- 3D 智慧家庭儀表板日期列新增「日型標籤」：節日／週末紅色、工作日／補班日一般文字色，並顯示節日名稱（含補假、不放假的紀念日）。新增 `packages/v41_day_label.yaml`（`sensor.tw_day_label`：由 `sensor.tw_day_type_today`＋`calendar.tai_wan` 產生，`calendar.get_events` 再以 start<=今天<end 過濾）；前端為 `www/floorplan/v4/floorplan-v4-3d.js` 的 `floorplan-v4-sidebar`（直向 compact、橫向寬版與窄版皆有；標籤過期或感應器不存在時退回週六日＝週末）。前端 JS 已在 git（`www/floorplan/v4/floorplan-v4-3d.js`），本機副本在專案資料夾 `www/floorplan/v4/`。
-- 修正 `情境與狀況氣氛燈AI`（`script.mood_alert` V4.1.5）：同一則通知被呼叫兩次時，第二次排隊到第一次跑完才開始，超過 8 秒去重窗口又跑一輪，且快照拍在第一輪收尾的暫時開燈期間，導致原本關著的客廳燈提醒後留成亮著（橘色）。改為結束時重寫去重時間，並在拍快照前等 `mood_alert_restore_off` 結束。
-- 廚房「空氣品質危險」旗標（`packages/helper.yaml`，MQTT `kitchenmqtt_pm25_homekit_alarm`）條件：原 PM2.5>35 或 CO2>1000，改為 PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（CO2 與 06 的「重要」門檻 1500 一致，並新增 TVOC）。1000～1500 ppm 只走 06 的「一般」CO2 警示。
-- `packages/v41_env_alert.yaml`：`input_number.env_co2_l1`（CO2 一般門檻）預設 1000 → 1500 ppm。同時 `env_co2_l2`（重要）預設 1500 → 2000 ppm，三級為 1500／2000／2500，避免超過 1500 ppm 時一般與重要同時通知。
-- `氣氛燈AI` 重要級（橘色）閃爍加長：每次亮 0.8→1.5 秒、熄滅 0.4→0.8 秒（2 次，約 4.6 秒；原約 2.4 秒），緊急級（紅色）不變。
-- `06環境異常通知AI`（V4.1.5）：LINE 與 HA 通知內文帶上相關數值——空氣品質／甲醛／一氧化碳危險列出「超標項目」與「目前讀數」（CO2、PM2.5、TVOC、CO、甲醛、溫度、濕度），CO2／CO／溫度分級警示也加上「目前讀數」。
-- 修正 `104-1車庫鐵門感應燈AI`（V4.1.5）：樓梯燈被別的自動化關掉時，「燈具關閉」觸發讓 restart 模式的本自動化重啟，中止鐵門關閉後的 5 分鐘關燈倒數，車庫主燈就一直亮著。移除該觸發，手動關燈冷卻拆成 `104-1B`（parallel）。
-- 新增 `104-1C全員離家關閉車庫燈AI`（V4.1.5）：所有人都不在家（`binary_sensor.at_home_nobody_home` 持續 1 分鐘，HA 啟動後 2 分鐘也檢查一次）自動關閉車庫主燈與車庫樓梯燈。Jerry 一律只用 iPhone 16 判斷（`person.jerry` 與 `at_home_jerry*` 都只含 `device_tracker.iphone_16_jerry`）。 關燈後的 HA 通知由 `input_boolean.garage_away_off_ha_notify`（`packages/v41_garage_away.yaml`）控制，預設關閉。
-- 修正 `104-4車庫回家通知系統AI`（V4.1.5）：人在車庫用遙控器開門時，車庫 Wi-Fi 在家判斷因手機換 AP 短暫掉線（約 30 秒），加上攝影機剛看到人不到 2 分鐘的寬限期，被誤報成「有人即將到家」。現在 Wi-Fi 判斷「剛掉線不到 2 分鐘」也視為車庫有人，不通知。
-- `100A自動啟動到家早安情境AI`（V4.1.5）新增「有人回到家」觸發：家裡原本沒人、離家情境（`aqara_li_jia`）持續超過 10 分鐘，之後有人連上 Wi-Fi（`at_home_nobody_home` 由 on 變 off 持續 30 秒），自動啟動早安（早安時段）或到家情境；不受最早啟動時間與活動跡象限制，仍受總開關、影子模式、3 分鐘防重複與保全模式限制。Jerry 只用 iPhone 判斷。
-- `100A自動啟動到家早安情境AI`（V4.1.5）：「最早啟動時間」由平日 05:30／假日 07:00 改為日出時間，新增 `input_boolean.auto_scene_earliest_use_sunrise`（預設 on，關閉退回固定時間）與日出後偏移 `input_number.auto_scene_earliest_sunrise_offset_min`（工作日，預設 30 分）、`input_number.auto_scene_earliest_sunrise_offset_holiday_min`（非工作日，預設 150 分＝2.5 小時），`packages/v41_auto_scene.yaml`。
-- 刪除已被取代且停用的舊自動化（`automations.yaml`，2026-10-11 使用者確認新版運作正常）：`07空氣清淨機-自動啟動`、`07-1空氣清淨機自動通知`、`07-2空氣嚴重通知`、`07-3空氣嚴重通知 (嚴重)`、`07-4空氣清淨機-自動關閉`（由 `07空氣清淨機整合AI` 取代）、`100A自動啟動到家早安情境`（由 `100A自動啟動到家早安情境AI` 取代）；`configuration.yaml` 同步移除 07-2／07-3 的 Google 助理曝光設定（需重啟生效）。
-- `106網關系統AI`（V4.1.5）：移除「自動化重載」觸發（避免每次重載都對實體網關重送警戒指令，2026-10-11 一天內已送出 29 次）；HA 啟動時若實體網關正在警報中／倒數中，不覆蓋它。實體網關 → 虛擬情境開關的回寫維持由 Apple 家庭處理。
-- `21A_客廳電風扇整合控制AI`（V4.1.5）自動調速防抖：t_eff 在門檻上下 0.1°C 抖動會讓風量每 15～30 秒大小來回（30 小時 67 次變化）。改為遲滯（`input_number.living_room_fan_hysteresis_c`，預設 0.3°C）、自動調速最短間隔（`input_number.living_room_fan_min_interval_min`，預設 3 分；`timer.living_room_fan_speed_dwell`）、濕度加成改連續線性、曲線下限 20%。新增 `packages/v41_living_fan.yaml`。
-- `22頂樓電風扇自動化AI`（V4.1.5）：上樓情境「介於門檻」那一段已設過風速時，步驟 5 略過，不再在同一次執行內重複送同一個風速。
-- 決議（2026-10-11 使用者）：`auto_scene_enable` **不**公開給 HomeKit；「補班日資料來源自動化」**不做**（補班日維持手動填 `input_text.tw_makeup_workdays`）。`08-4客廳大門開啟自動開燈` 已用 `sun.sun` 低於地平線判斷（日落／日出），無需再改。
-- 清理（2026-10-11 使用者核可）：移除 `packages/helper.yaml` 內 10 個已不使用的 `input_number.supply_batt_lowest_*`（00-2C V4.1.0 起改用 `supply_battery_lastvalid`／`supply_battery_stage`）。`input_text.at_home_*_trackers`（5 個）同日移除：`packages/helper.yaml` 的在家判斷樣板本來就優先讀 `person.*`，現在不再有 input_text 備援（Kenny／Elay／Jerry／Iris 讀 person 的 `device_trackers`，Kenny iPad 固定為 `device_tracker.ipad_pro_2024_kenny`）；移除前後 `binary_sensor.at_home_*`、`sensor.at_home_count`／`who_home` 狀態逐一比對相同。22 個未載入的整合依使用者決定保留。舊 07／07-1～07-4／舊 100A 已於 UI 自動化刪除。
-- `08-5F頂樓自動上下樓情境AI`／`08-5G書房燈感應AI`／`08-5J頂樓動線推理AI`（V4.1.5）：手機追蹤實體改讀 `sensor.kenny_phone_tracker`（person.kenny 的 source），不再讀 `input_text.iphone_tracker_entity_kenny`；該輔助項目與 `00-4手機追蹤比對AI`、`binary_sensor.v41_phone_ap_match`、`input_number.v41_phone_match_ok/bad` 一併移除（切換完成）。
-- `03苗栗天氣告知系統AI`（V4.1.5）：災害訊息依內容分級。重要類（竹南有影響：竹南的淹水警戒／停水停電／洩洪；縣市層級且列有苗栗的颱風警報、豪雨特報、橙紅燈號）→ LINE／HA 用「一般」級、並廣播；緊急類（疏散、土石流、國家級警報）→「重要」級；info（鄰近鄉鎮、大雨預報、解除、演練演習）只發 HA 資訊通知；地震不處理（由 02 負責）；海嘯仍由 03 處理（內文有苗栗→緊急類，解除或沒寫苗栗→info）。新增 `packages/v41_disaster_notify.yaml` 四個開關：`notify_line_disaster_important_enable`／`notify_line_disaster_emergency_enable`（LINE，已公開給 HomeKit『HASS Bridge』）、`notify_ha_disaster_important_enable`／`notify_ha_disaster_emergency_enable`（HA）。另有廣播開關 `announce_disaster_important_enable`／`announce_disaster_emergency_enable`（不公開給 HomeKit；關閉後該類不廣播、早晨補報也停）。自動化管理面板新增「災害訊息廣播開關」小組。歷史 255 則訊息測試：重要 2、緊急 0、info 23、不通知 230。此自動化目前為**關閉**狀態（2026-08-26 起）。
-- `104-4車庫回家通知系統AI`（V4.1.5）：車庫攝影機偵測到人（不論多久）或 60 秒內才剛變沒人時不通知，修正人走進車庫再開鐵門的誤報；Wi-Fi 判斷規則不變。
-- `100A自動啟動到家早安情境AI`（V4.1.5）：併入「105門鎖自動判斷到家」（新增觸發 `lock_home`：門鎖解除離家模式 → 依時段啟動早安／到家，不受最早時間與活動跡象限制，但受總開關、3 分鐘防重複、保全模式限制）；舊 105（UI 自動化 id 1691155847932）已刪除。
-- 新增 `21B夏季模式自動判斷AI`（V4.1.5）：依今日預報體感最高（weather 每小時預報 feels_like_temperature）與今日實測體感最高（戶外體感感測器）自動開關 `input_boolean.summer_mode`；分數 ≥ 28.5°C 開、< 26°C 關、之間維持現狀，06:30–18:00 每 30 分鐘判斷。人工切換（context 無 parent_id）會記 `input_datetime.summer_manual_date`，當天不再自動調整，隔天恢復。新增 `packages/v41_summer_auto.yaml`：`summer_auto_enable`（總開關）、`summer_auto_on_feels_c`／`summer_auto_off_feels_c`（門檻）、`summer_manual_date`、`summer_auto_today_flag`／`summer_auto_last`（內部）。
-- 根目錄 `automations.yaml` 與 `configuration.yaml` 納入 git（2026-10-11）：`configuration.yaml` 的小米風扇 token、LINE 權杖與 client id 改為 `!secret`（值在 `secrets.yaml`，不進 git）。
-- Helper 套件版本由 `V4.1.0` 增加獨立 package `v41_emergency_pause.yaml`（`helper.yaml` 本身未異動）。
-
-### Known Bugs／待實體驗證（V4.1.5）
-- `03苗栗天氣告知系統AI` 目前為關閉狀態（2026-08-26 起）；分級只以歷史 255 則與模擬訊息驗證，尚無真實災害訊息實測。
-- 尚未實體驗證：`05G` 三擊維修暫停（開／關）、`100A` 的 `arrive`（離家超過 10 分鐘後連上 Wi-Fi）與 `lock_home`（門鎖解除離家模式）觸發、`104-4` 車庫攝影機偵測、`21B` 手動切換偵測與隔天恢復。
-- 根目錄 `automations.yaml`（UI 自動化）與 `configuration.yaml` 不在 git 內；本版 12A／12B／12E／12F／05E 修補與 105 刪除只存在主機與本機備份（`V4.1.5/automations.yaml`）。
-
-### Next Version（V4.2 候選）
-- `104-2車牌辨識AI優化`；智慧家庭 Home UI 4.0 優化（UI 4.0-beta 8）。
-- `input_text.at_home_*_trackers` 仍用於在家判斷，評估改讀 `person.*` 後再清除；22 個未載入的整合保留。
-
-## 本次調整（V4.1 - 2026-10-10：八項功能、Terncy 無線開關、樓梯燈／車庫／感應燈與頂樓優化）
-
-### 新功能（八項規劃）
-- **耗材通知整合與修復**（`00-2C` V4.1.0）：濾網壽命只通知一次（≤10% 通知、回升 >50% 才重置）；電池改階段式（≤35% 準備備品、≤20% 請更換、≤10% 緊急，各階段一次，≤20% 每 7 天再提醒）；電量讀不到時用 7 天內最後有效值，7 天都沒有就排除（只通知一次）；一鍵測試與 15 天摘要改為真實報告。
-- **緊急模式快照還原**：`05A` 啟動時先存快照（`script.emergency_snapshot_save`，38 個受影響設備），解除網關警報時（`106C` V4.2.0，`emergency_restore_route`）可還原燈／開關／風扇／插座／頂樓空調、警報開關關閉；鐵門「無人車才自動關回」，二樓門鎖只通知；地震預警與 CO 自動觸發排除狀況後也可還原；`05F` 管理 2 小時到期。
-- **手機追蹤 person 化**：`helper.yaml` 的 `at_home_*` 範本優先讀 `person.*`；新增 `sensor.kenny_phone_ap_mac`，頂樓 `08-5F`／`5G`／`5J` 改讀它（V4.0.4／V4.1.3／V4.1.1）；`00-4` 比對新舊判斷；`00-3` 每週巡檢 unavailable＋restored 失效實體（清理 71 個舊空殼）。
-- **日出日落時間窗**：`binary_sensor.scene_morning_window`（日出前 30 分～日落前 60 分，上下限 05:00／18:30，皆可調）；`00-2J`、`105`、`800-0／0B／13`、`106C`、新 `100A` 共用，功能開關 `scene_window_use_sun`（預設開）。
-- **假日判斷**：`sensor.tw_day_type_today／tomorrow`、`script.tw_day_type`（Workday 整合只用 `government` 類別；補班日填 `input_text.tw_makeup_workdays`）。
-- **100A 自動到家／早安 AI 版**（V4.1.0）：具名觸發、依平日／假日最早時間、HomeKit 總開關；影子模式（`auto_scene_shadow`）預設已關＝實際運作，舊 100A 已停用（未刪除）。
-- **熟睡起床搭配國定假日**（`08-5H` V4.3.0）：03:00／05:00、09:30／10:30 改為可調 helper，功能開關 `sleep_holiday_aware`（預設開）。
-- **環境異常通知**（`06` V4.1.0）：CO2／CO／廚房溫度三級、危險感測器、攝影機 CO 警報、感測器失聯；CO 危險自動觸發緊急模式已實際接線（`env_alert_co_dry_run` 預設關，可打開改回乾跑）。
-- **空氣清淨機整合**（`07` V4.1.0）：單一自動化取代舊 07 系列；影子模式（`air_ai_shadow`）預設已關＝實際運作，舊 07 系列已停用（未刪除）；手動關機尊重 30 分鐘。
-
-### 開關與樓梯燈
-- **Terncy 無線開關**（`08-9` V4.1.1）：37 鍵無線模式、單擊切換；雙擊／三擊事件對照表。
-- **樓梯燈定時關燈**（`800-14` 系列 V4.1.2／14D V4.1.3）：單擊 3 分鐘後關、雙擊常開；四樓樓梯燈若頂樓感應正在使用，交給頂樓感應與頂樓樓梯燈一起關（`stage_scene` V4.0.1）。
-- **車庫主燈**：按鈕 5 秒防小燈（`800-15` V4.1.1）、感應冷卻與保護（`104-1` V4.1.1）、回家通知提早廣播（`104-4`）。
-- **廚房／廁所感應燈**：重新偵測與縮短關燈延遲（`08-8A` V3.3.0／`08-8B` V3.1.0），廚房不用毫米波開燈。
-
-### 頂樓
-- 熟睡鎖統一只看 `sleep_silent_active`、動態解鎖（`08-5H`）；動線仲裁與書房燈防呆（`08-5J`／`08-5G`）；樓梯燈使用權與手動保持（`08-5K`）。
-- `topfloor_publish_path` 動線事件仲裁（`頂樓感應AI` V4.1.0）。
-
-### 其他
-- `手動廣播AI`／`手動通知AI`、`00-2J` 氣氛燈、`05B` 復原說明、`22` 頂樓電風扇、自動化管理面板分類更新、3D 平面圖調整。
-
-### 已修正的問題
-- `max(0.5)` 過濾器不能用在單一數值（`800-15`、`104-1`、`800-10`：燈關閉 5 秒內再按／再感應時報錯、燈沒開）。
-- 自動化 `reload` 會中斷正在等待中的執行（08-5F 下樓 120 秒等待）——操作面提醒，非程式錯誤。
-
-### Known Bugs／待實體驗證
-- 新 `07空氣清淨機整合AI`、`100A自動啟動到家早安情境AI` 已實際運作（使用者核准，未經長時間影子觀察）；舊 07／07-1～07-4／舊 100A 已停用但未刪除，異常時重新打開舊的並把 `air_ai_shadow`／`auto_scene_shadow` 開回即可退回。
-- CO 危險自動緊急模式（`env_alert_co_dry_run` 已關）尚未實測：會開全屋燈、車庫鐵門、響網關警報、解二樓門鎖；誤觸時可按解除網關警報還原。
-- 緊急模式快照還原端對端（HomeKit 觸發 → 解除網關警報）尚未實測；`sleep_holiday_aware` 預設開，補班週六需手動填 `tw_makeup_workdays`。
-- `fan.set_preset_mode: Favorite`（空氣非常嚴重加強運作）需實機確認。
-
-### Next Version（V4.2 候選）
-- 觀察穩定後：刪除已停用的舊 `07`、`07-1～07-4`、舊 `100A`；刪除 `supply_batt_lowest_*`（9 個）與 `input_text.at_home_*_trackers`、`iphone_tracker_entity_kenny`。
-- `08-4客廳大門開啟自動開燈` 改用日落／日出；`auto_scene_enable` 公開給 HomeKit。
-- 補班日資料來源（目前手動填）。
-
