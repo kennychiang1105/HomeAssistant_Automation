@@ -794,43 +794,77 @@ def supply_control_section():
 
 
 def supply_view(title, path, icon, autos):
-    """耗材與額度分頁（依使用者指定 3 欄平衡佈局）：
-    Col 1：LINE Bot 全月預測診斷看板 + 4 大 Bot 額度進度 + LINE Bot 設定（移至 Bot 下方）
-    Col 2：9 大感測器電池壽命預估（移至原 LINE Bot 設定位置） + 耗材監控設定與操作
-    Col 3：空氣清淨機濾網 + 耗材相關自動化
-    在寬螢幕/iPad 自動形成三欄，手機自動垂直循序排列。
+    """耗材與額度分頁（依裝置尺寸響應式排版）：
+    - 三欄（橫向寬螢幕）：Col 1 LINE Bot 全套、Col 2 電池壽命+耗材設定、Col 3 清淨機濾網+自動化（三欄維持不變）
+    - 雙欄（iPad 直向/中寬度）：Col 1 LINE Bot 全套、Col 2 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
+    - 單欄（手機/窄視窗）：LINE Bot 全套 ➔ 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
+    採用 custom:grid-layout 搭配 mediaquery 精準達成各裝置尺寸響應排版。
     """
     auto_rows = [(eid, fn) for fn, eid in sorted(autos.get("supply", []))]
+    has_auto = bool(auto_rows)
+
     col1_cards = (
         heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
         + linebot_forecast_banner()
         + quota_section()
         + quota_settings()
     )
-    col2_cards = (
-        battery_forecast_section()
-        + supply_control_section()
-    )
-    col3_cards = (
-        filter_life_section()
-        + (heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if auto_rows else [])
-    )
+    battery_cards = battery_forecast_section()
+    filter_cards = filter_life_section()
+    settings_cards = supply_control_section()
+    auto_cards = heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if has_auto else []
+
+    if has_auto:
+        areas_3col = '        "col1 battery filter"\n        "col1 settings auto"'
+        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"\n            "col1 auto"'
+        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"\n            "auto"'
+    else:
+        areas_3col = '        "col1 battery filter"\n        "col1 settings ."'
+        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"'
+        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"'
 
     L = [
         f"  - title: {q(title)}",
         f"    path: {path}",
         f"    icon: {icon}",
-        "    type: custom:vertical-layout",
+        "    type: custom:grid-layout",
         "    layout:",
-        "      max_cols: 3",
-        f"      width: {COL_WIDTH}",
+        "      grid-template-columns: repeat(3, minmax(280px, 1fr))",
+        "      grid-gap: 8px",
+        "      margin: 0",
+        "      align-items: start",
+        "      grid-template-areas: |",
+        areas_3col,
+        "      mediaquery:",
+        '        "(max-width: 1024px)":',
+        "          grid-template-columns: repeat(2, minmax(280px, 1fr))",
+        "          grid-template-areas: |",
+        areas_2col,
+        '        "(max-width: 768px)":',
+        "          grid-template-columns: 100%",
+        "          grid-template-areas: |",
+        areas_1col,
         "    cards:",
     ]
-    L += section(col1_cards)
-    L.append("    - type: custom:layout-break")
-    L += section(col2_cards)
-    L.append("    - type: custom:layout-break")
-    L += section(col3_cards)
+
+    def _grid_stack(area, cards_lines):
+        out = [
+            "      - type: vertical-stack",
+            "        view_layout:",
+            f"          grid-area: {area}",
+            "        cards:",
+        ]
+        for ln in cards_lines:
+            out.append("  " + ln)
+        return out
+
+    L += _grid_stack("col1", col1_cards)
+    L += _grid_stack("battery", battery_cards)
+    L += _grid_stack("filter", filter_cards)
+    L += _grid_stack("settings", settings_cards)
+    if has_auto:
+        L += _grid_stack("auto", auto_cards)
+
     return L
 
 

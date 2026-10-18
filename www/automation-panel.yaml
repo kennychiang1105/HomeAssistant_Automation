@@ -718,733 +718,766 @@ views:
   - title: "耗材與額度"
     path: supply
     icon: mdi:battery-charging-medium
-    type: custom:vertical-layout
+    type: custom:grid-layout
     layout:
-      max_cols: 3
-      width: 340
+      grid-template-columns: repeat(3, minmax(280px, 1fr))
+      grid-gap: 8px
+      margin: 0
+      align-items: start
+      grid-template-areas: |
+        "col1 battery filter"
+        "col1 settings auto"
+      mediaquery:
+        "(max-width: 1024px)":
+          grid-template-columns: repeat(2, minmax(280px, 1fr))
+          grid-template-areas: |
+            "col1 battery"
+            "col1 filter"
+            "col1 settings"
+            "col1 auto"
+        "(max-width: 768px)":
+          grid-template-columns: 100%
+          grid-template-areas: |
+            "col1"
+            "battery"
+            "filter"
+            "settings"
+            "auto"
     cards:
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "LINE Bot 全月預測診斷"
-        heading_style: title
-        icon: mdi:chart-timeline-variant
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        entity: sensor.line_bot_forecast
-        show_name: false
-        show_icon: false
-        show_state: false
-        styles:
-          card:
-            - border-radius: 18px
-            - border: none
-            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-            - padding: 0
-            - white-space: normal
-          grid:
-            - grid-template-areas: '"body"'
-            - grid-template-columns: 1fr
-          custom_fields:
-            body:
-              - width: 100%
-              - min-width: 0
-              - text-align: left
-              - white-space: normal
-        custom_fields:
-          body: |
-            [[[
-              const f = states['sensor.line_bot_forecast'];
-              if (!f || !f.attributes) return '<div style="padding:14px;text-align:center">LINE Bot 預測載入中...</div>';
-              const a = f.attributes;
-              const st = f.state;
-              
-              let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
-              if (st === 'safe') {
-                bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
-                statusTitle = '本月額度充裕（無需動用緊急Bot）';
-                statusBadge = '安全充裕';
-                badgeBg = 'rgba(48,209,88,.2)';
-                badgeFg = '#30D158';
-                iconName = 'mdi:check-circle';
-                iconColor = '#30D158';
-              } else if (st === 'need_emergency') {
-                bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
-                statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
-                statusBadge = '備援預備';
-                badgeBg = 'rgba(255,159,10,.2)';
-                badgeFg = '#FF9F0A';
-                iconName = 'mdi:alert-circle';
-                iconColor = '#FF9F0A';
-              } else {
-                bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-                statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
-                statusBadge = '額度告急';
-                badgeBg = 'rgba(255,69,58,.2)';
-                badgeFg = '#FF453A';
-                iconName = 'mdi:alert-octagon';
-                iconColor = '#FF453A';
-              }
-            
-              const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-            
-              const rawSummary = a.summary || '';
-              const parts = rawSummary.split(/[；;]/);
-              const part1 = parts[0] ? parts[0].trim() : '';
-              const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
-            
-              return `
-                <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                      <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
-                      <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
-                    </div>
-                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
-                  </div>
-                  
-                  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
-                    <div>
-                      <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
-                      <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
-                    </div>
-                    <div>
-                      <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
-                      <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
-                    </div>
-                    <div>
-                      <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
-                      <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">剩餘 ${a.emergency_remaining || 0} <span style="font-size:12px;font-weight:normal">則備援</span></div>
-                    </div>
-                    <div>
-                      <div style="font-size:11px;color:var(--secondary-text-color)">每月 1 日重置倒數</div>
-                      <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.days_left_in_month || 0} <span style="font-size:12px;font-weight:normal">天</span></div>
-                    </div>
-                  </div>
-            
-                  <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
-                    <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
-                    <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
-                      <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
-                      ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            ]]]
-      - type: heading
-        heading: "LINE Bot 額度"
-        heading_style: title
-        icon: mdi:message-text-outline
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:layout-card
-        layout_type: custom:grid-layout
-        layout:
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))
-          grid-gap: 8px
-          margin: 0
+      - type: vertical-stack
+        view_layout:
+          grid-area: col1
         cards:
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining0
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 0;
-                  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-                  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining1
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 1;
-                  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-                  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining2
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 2;
-                  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-                  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining3
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 3;
-                  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-                  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-      - type: custom:button-card
-        entity: sensor.line_bot_in_use
-        show_name: false
-        show_icon: false
-        show_state: false
-        styles:
-          card:
-            - border-radius: 18px
-            - border: none
-            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-            - padding: 0
-            - white-space: normal
-          grid:
-            - grid-template-areas: '"body"'
-            - grid-template-columns: 1fr
-          custom_fields:
-            body:
-              - width: 100%
-              - min-width: 0
-              - text-align: left
+        - type: heading
+          heading: "LINE Bot 全月預測診斷"
+          heading_style: title
+          icon: mdi:chart-timeline-variant
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: custom:button-card
+          entity: sensor.line_bot_forecast
+          show_name: false
+          show_icon: false
+          show_state: false
+          styles:
+            card:
+              - border-radius: 18px
+              - border: none
+              - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+              - padding: 0
               - white-space: normal
-        custom_fields:
-          body: |
-            [[[
-              const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
-              const targetObj = states['sensor.line_bot_rotation_target'];
-              const nextIdx = targetObj?.attributes?.next_bot;
-              const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
-              const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
-            
-              const f = states['sensor.line_bot_forecast'];
-              const st = f ? f.state : 'safe';
-              const a = f?.attributes || {};
-              const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-              const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
-            
-              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
-              if (st === 'safe') {
-                statusColor = '#30D158';
-                statusBg = 'rgba(48,209,88,.12)';
-                statusBorder = 'rgba(48,209,88,.25)';
-                statusLabel = '額度安全充裕';
-                statusIcon = 'mdi:check-circle';
-                desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
-                desc2 = '運作平穩，本月無需動用緊急 Bot。';
-              } else if (st === 'need_emergency') {
-                statusColor = '#FF9F0A';
-                statusBg = 'rgba(255,159,10,.14)';
-                statusBorder = 'rgba(255,159,10,.3)';
-                statusLabel = '預備動用緊急 Bot';
-                statusIcon = 'mdi:alert-circle';
-                desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
-                desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
-              } else {
-                statusColor = '#FF453A';
-                statusBg = 'rgba(255,69,58,.14)';
-                statusBorder = 'rgba(255,69,58,.3)';
-                statusLabel = '額度告急';
-                statusIcon = 'mdi:alert-octagon';
-                desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
-                desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
-              }
-            
-              return `
-                <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
-                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
-                      <span style="color:var(--secondary-text-color)">目前使用：</span>
-                      <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <span style="color:var(--secondary-text-color)">下一輪替：</span>
-                      <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
-                    </div>
-                  </div>
-            
-                  <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
-                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
-                    <div style="flex:1;min-width:0;white-space:normal !important">
-                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-                        <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
-                        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
-                      </div>
-                      <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
-                        <div style="font-weight:600;white-space:normal !important">${desc1}</div>
-                        ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
-                      </div>
-                    </div>
-                  </div>
-            
-                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-                    <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
-                    <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
-                  </div>
-                </div>
-              `;
-            ]]]
-      - type: heading
-        heading: "LINE Bot 設定"
-        heading_style: title
-        icon: mdi:robot-outline
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_select.line_bot_mode
-            name: "LINE Bot 模式"
-          - entity: input_number.line_bot_sticky
-            name: "主用 Bot（Auto 沿用）"
-          - entity: input_boolean.line_bot_test_mode
-            name: "測試模式"
-          - entity: input_boolean.line_bot_custom_user_enable
-            name: "自訂目標 ID 啟用"
-          - entity: input_text.line_bot_custom_user_id
-            name: "自訂目標 ID"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "9 大感測器電池壽命預估"
-        heading_style: title
-        icon: mdi:battery-clock-outline
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        entity: sensor.battery_forecast
-        show_name: false
-        show_icon: false
-        show_state: false
-        styles:
-          card:
-            - border-radius: 18px
-            - border: none
-            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-            - padding: 0
-            - white-space: normal
-          grid:
-            - grid-template-areas: '"body"'
-            - grid-template-columns: 1fr
+            grid:
+              - grid-template-areas: '"body"'
+              - grid-template-columns: 1fr
+            custom_fields:
+              body:
+                - width: 100%
+                - min-width: 0
+                - text-align: left
+                - white-space: normal
           custom_fields:
-            body:
-              - width: 100%
-              - min-width: 0
-              - text-align: left
-              - white-space: normal
-        custom_fields:
-          body: |
-            [[[
-              const f = states['sensor.battery_forecast'];
-              if (!f || !f.attributes || !f.attributes.items) {
-                return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 自動計算。</div>';
-              }
-              const items = f.attributes.items;
-              const names = {
-                'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
-                'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
-                'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
-              };
-            
-              const getBatteryIcon = (lvl) => {
-                if (lvl <= 5) return 'mdi:battery-alert';
-                if (lvl <= 15) return 'mdi:battery-10';
-                if (lvl <= 35) return 'mdi:battery-30';
-                if (lvl <= 65) return 'mdi:battery-50';
-                if (lvl <= 85) return 'mdi:battery-70';
-                return 'mdi:battery';
-              };
-            
-              let rowsHtml = '';
-              for (const [k, d] of Object.entries(items)) {
-                const name = names[k] || k;
-                const lvl = Math.round(d.level || 0);
-                const emptyLvl = d.empty || 10;
-                const isEmpty = d.status === 'empty' || lvl <= emptyLvl;
-                const isStable = d.status === 'stable';
+            body: |
+              [[[
+                const f = states['sensor.line_bot_forecast'];
+                if (!f || !f.attributes) return '<div style="padding:14px;text-align:center">LINE Bot 預測載入中...</div>';
+                const a = f.attributes;
+                const st = f.state;
                 
-                let color, rowBg, tagText, tagBg, tagFg;
-                if (isEmpty) {
-                  color = '#FF453A';
-                  rowBg = 'rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3)';
-                  tagText = '更換門檻';
-                  tagBg = 'rgba(255,69,58,.22)';
-                  tagFg = '#FF453A';
-                } else if (lvl <= 35) {
-                  color = '#FF9F0A';
-                  rowBg = 'rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25)';
-                  tagText = '偏低';
-                  tagBg = 'rgba(255,159,10,.2)';
-                  tagFg = '#FF9F0A';
-                } else if (isStable) {
-                  color = '#0A84FF';
-                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
-                  tagText = '平穩';
-                  tagBg = 'rgba(10,132,255,.18)';
-                  tagFg = '#0A84FF';
+                let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
+                if (st === 'safe') {
+                  bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
+                  statusTitle = '本月額度充裕（無需動用緊急Bot）';
+                  statusBadge = '安全充裕';
+                  badgeBg = 'rgba(48,209,88,.2)';
+                  badgeFg = '#30D158';
+                  iconName = 'mdi:check-circle';
+                  iconColor = '#30D158';
+                } else if (st === 'need_emergency') {
+                  bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
+                  statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
+                  statusBadge = '備援預備';
+                  badgeBg = 'rgba(255,159,10,.2)';
+                  badgeFg = '#FF9F0A';
+                  iconName = 'mdi:alert-circle';
+                  iconColor = '#FF9F0A';
                 } else {
-                  color = '#30D158';
-                  rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
-                  tagText = '正常';
-                  tagBg = 'rgba(48,209,88,.18)';
-                  tagFg = '#30D158';
+                  bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
+                  statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
+                  statusBadge = '額度告急';
+                  badgeBg = 'rgba(255,69,58,.2)';
+                  badgeFg = '#FF453A';
+                  iconName = 'mdi:alert-octagon';
+                  iconColor = '#FF453A';
                 }
-            
-                let line1 = '', line2 = '';
-                if (isEmpty) {
-                  line1 = `<span style="color:#FF453A;font-weight:700">⚠️ 已達更換門檻（≤ ${emptyLvl}%）</span>`;
-                  line2 = '<span style="color:#FF453A">請儘速更換電池以確保穩定運作</span>';
-                } else if (d.days != null && d.days > 0) {
-                  line1 = `預估可用 <b style="font-size:13.5px;color:var(--primary-text-color)">${Math.round(d.days)}</b> 天`;
-                  line2 = `至 ${d.date} · 日耗 ${d.rate}%/天`;
-                } else if (isStable) {
-                  line1 = '<span style="color:#0A84FF;font-weight:600">滿電平穩 · 壽命充足</span>';
-                  line2 = `持續運作 ${Math.round(d.span_days || 0)} 天無掉格`;
-                } else {
-                  line1 = '壽命評估中';
-                  line2 = '持續收集放電曲線數據';
-                }
-            
-                const icon = getBatteryIcon(lvl);
-            
-                rowsHtml += `
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px;min-width:0;box-sizing:border-box">
-                    <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-                      <div style="width:36px;height:36px;border-radius:10px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                        <ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon>
+              
+                const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
+              
+                const rawSummary = a.summary || '';
+                const parts = rawSummary.split(/[；;]/);
+                const part1 = parts[0] ? parts[0].trim() : '';
+                const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
+              
+                return `
+                  <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                        <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
+                        <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
                       </div>
-                      <div style="flex:1;min-width:0">
-                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                          <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
-                          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:${tagBg};color:${tagFg};white-space:nowrap">${tagText}</span>
-                        </div>
-                        <div style="font-size:12.5px;margin-top:3px;line-height:1.35;white-space:normal !important;word-break:break-word">
-                          ${line1}
-                        </div>
-                        <div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:2px;line-height:1.35;white-space:normal !important;word-break:break-word">
-                          ${line2}
-                        </div>
+                      <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
+                    </div>
+                    
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
+                      <div>
+                        <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
+                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
+                      </div>
+                      <div>
+                        <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
+                        <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
+                      </div>
+                      <div>
+                        <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
+                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">剩餘 ${a.emergency_remaining || 0} <span style="font-size:12px;font-weight:normal">則備援</span></div>
+                      </div>
+                      <div>
+                        <div style="font-size:11px;color:var(--secondary-text-color)">每月 1 日重置倒數</div>
+                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.days_left_in_month || 0} <span style="font-size:12px;font-weight:normal">天</span></div>
                       </div>
                     </div>
-                    <div style="text-align:right;flex-shrink:0">
-                      <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
-                      <div style="width:42px;height:5px;border-radius:999px;background:rgba(120,120,128,.2);margin-top:4px;overflow:hidden">
-                        <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px"></div>
+              
+                    <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
+                      <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
+                      <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
+                        <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
+                        ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
                       </div>
                     </div>
                   </div>
                 `;
-              }
-            
-              return `
-                <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;box-sizing:border-box">
-                  <div style="display:flex;flex-direction:column;gap:8px">
-                    ${rowsHtml}
-                  </div>
-                </div>
-              `;
-            ]]]
-      - type: heading
-        heading: "耗材監控設定與操作"
-        heading_style: title
-        icon: mdi:tune-variant
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.notify_supply_extra_line_enable
-            name: "耗材更換額外 LINE 推播"
-          - entity: input_datetime.supply_battery_report_time
-            name: "耗材定期摘要時間"
-          - entity: input_button.battery_system_test_trigger
-            name: "測試耗材電量系統"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "空氣清淨機濾網"
-        heading_style: title
-        icon: mdi:air-filter
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        entity: sensor.kong_qi_qing_jing_ji_filter_life_remaining
-        show_name: false
-        show_icon: false
-        show_state: false
-        styles:
-          card:
-            - border-radius: 18px
-            - border: none
-            - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-            - padding: 0
-          grid:
-            - grid-template-areas: '"body"'
-            - grid-template-columns: 1fr
-        custom_fields:
-          body: |
-            [[[
-              const s = states['sensor.kong_qi_qing_jing_ji_filter_life_remaining'];
-              const lvl = s ? parseInt(s.state, 10) || 0 : 0;
-              const notified = states['input_boolean.supply_filter_notified']?.state === 'on';
+              ]]]
+        - type: heading
+          heading: "LINE Bot 額度"
+          heading_style: title
+          icon: mdi:message-text-outline
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: custom:layout-card
+          layout_type: custom:grid-layout
+          layout:
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))
+            grid-gap: 8px
+            margin: 0
+          cards:
+            - type: custom:button-card
+              entity: sensor.bot_msg_remaining0
+              show_name: false
+              show_icon: false
+              show_state: false
+              tap_action:
+                action: more-info
+              hold_action:
+                action: more-info
+              styles:
+                card:
+                  - cursor: pointer
+                  - height: auto
+                  - padding: 12px 14px
+                  - border-radius: 18px
+                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                  - border: none
+                grid:
+                  - grid-template-areas: '"body"'
+                  - grid-template-columns: 1fr
+              custom_fields:
+                body: |
+                  [[[
+                    const e = entity;
+                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
+                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 0;
+                    const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
+                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                    const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
+                    const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
+                    const full = String(e.attributes.friendly_name || '');
+                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
+                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
+                    return `
+                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
+                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
+                       <div style="flex:1;min-width:0">
+                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
+                         </div>
+                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
+                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
+                         </div>
+                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
+                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
+                         </div>
+                       </div>
+                     </div>`;
+                  ]]]
+            - type: custom:button-card
+              entity: sensor.bot_msg_remaining1
+              show_name: false
+              show_icon: false
+              show_state: false
+              tap_action:
+                action: more-info
+              hold_action:
+                action: more-info
+              styles:
+                card:
+                  - cursor: pointer
+                  - height: auto
+                  - padding: 12px 14px
+                  - border-radius: 18px
+                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                  - border: none
+                grid:
+                  - grid-template-areas: '"body"'
+                  - grid-template-columns: 1fr
+              custom_fields:
+                body: |
+                  [[[
+                    const e = entity;
+                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
+                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 1;
+                    const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
+                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                    const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
+                    const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
+                    const full = String(e.attributes.friendly_name || '');
+                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
+                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
+                    return `
+                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
+                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
+                       <div style="flex:1;min-width:0">
+                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
+                         </div>
+                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
+                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
+                         </div>
+                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
+                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
+                         </div>
+                       </div>
+                     </div>`;
+                  ]]]
+            - type: custom:button-card
+              entity: sensor.bot_msg_remaining2
+              show_name: false
+              show_icon: false
+              show_state: false
+              tap_action:
+                action: more-info
+              hold_action:
+                action: more-info
+              styles:
+                card:
+                  - cursor: pointer
+                  - height: auto
+                  - padding: 12px 14px
+                  - border-radius: 18px
+                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                  - border: none
+                grid:
+                  - grid-template-areas: '"body"'
+                  - grid-template-columns: 1fr
+              custom_fields:
+                body: |
+                  [[[
+                    const e = entity;
+                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
+                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 2;
+                    const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
+                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                    const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
+                    const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
+                    const full = String(e.attributes.friendly_name || '');
+                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
+                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
+                    return `
+                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
+                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
+                       <div style="flex:1;min-width:0">
+                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
+                         </div>
+                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
+                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
+                         </div>
+                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
+                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
+                         </div>
+                       </div>
+                     </div>`;
+                  ]]]
+            - type: custom:button-card
+              entity: sensor.bot_msg_remaining3
+              show_name: false
+              show_icon: false
+              show_state: false
+              tap_action:
+                action: more-info
+              hold_action:
+                action: more-info
+              styles:
+                card:
+                  - cursor: pointer
+                  - height: auto
+                  - padding: 12px 14px
+                  - border-radius: 18px
+                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                  - border: none
+                grid:
+                  - grid-template-areas: '"body"'
+                  - grid-template-columns: 1fr
+              custom_fields:
+                body: |
+                  [[[
+                    const e = entity;
+                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
+                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 3;
+                    const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
+                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                    const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
+                    const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
+                    const full = String(e.attributes.friendly_name || '');
+                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
+                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
+                    return `
+                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
+                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
+                       <div style="flex:1;min-width:0">
+                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
+                         </div>
+                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
+                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
+                         </div>
+                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
+                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
+                         </div>
+                       </div>
+                     </div>`;
+                  ]]]
+        - type: custom:button-card
+          entity: sensor.line_bot_in_use
+          show_name: false
+          show_icon: false
+          show_state: false
+          styles:
+            card:
+              - border-radius: 18px
+              - border: none
+              - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+              - padding: 0
+              - white-space: normal
+            grid:
+              - grid-template-areas: '"body"'
+              - grid-template-columns: 1fr
+            custom_fields:
+              body:
+                - width: 100%
+                - min-width: 0
+                - text-align: left
+                - white-space: normal
+          custom_fields:
+            body: |
+              [[[
+                const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
+                const targetObj = states['sensor.line_bot_rotation_target'];
+                const nextIdx = targetObj?.attributes?.next_bot;
+                const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
+                const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
               
-              let color, bgGradient, statusDesc;
-              if (lvl <= 5) {
-                color = '#FF453A';
-                bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-                statusDesc = '已達臨界壽命，請立即更換濾網';
-              } else if (lvl <= 10) {
-                color = '#FF9F0A';
-                bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
-                statusDesc = '濾網壽命偏低，請準備備用濾芯';
-              } else {
-                color = '#30D158';
-                bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
-                statusDesc = '濾網狀態良好，壽命充足';
-              }
-            
-              return `
-                <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                    <div style="display:flex;align-items:center;gap:12px">
-                      <div style="width:42px;height:42px;border-radius:12px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
-                        <ha-icon icon="mdi:air-filter" style="--mdc-icon-size:24px"></ha-icon>
+                const f = states['sensor.line_bot_forecast'];
+                const st = f ? f.state : 'safe';
+                const a = f?.attributes || {};
+                const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
+                const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
+              
+                let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
+                if (st === 'safe') {
+                  statusColor = '#30D158';
+                  statusBg = 'rgba(48,209,88,.12)';
+                  statusBorder = 'rgba(48,209,88,.25)';
+                  statusLabel = '額度安全充裕';
+                  statusIcon = 'mdi:check-circle';
+                  desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
+                  desc2 = '運作平穩，本月無需動用緊急 Bot。';
+                } else if (st === 'need_emergency') {
+                  statusColor = '#FF9F0A';
+                  statusBg = 'rgba(255,159,10,.14)';
+                  statusBorder = 'rgba(255,159,10,.3)';
+                  statusLabel = '預備動用緊急 Bot';
+                  statusIcon = 'mdi:alert-circle';
+                  desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
+                  desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
+                } else {
+                  statusColor = '#FF453A';
+                  statusBg = 'rgba(255,69,58,.14)';
+                  statusBorder = 'rgba(255,69,58,.3)';
+                  statusLabel = '額度告急';
+                  statusIcon = 'mdi:alert-octagon';
+                  desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
+                  desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
+                }
+              
+                return `
+                  <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
+                        <span style="color:var(--secondary-text-color)">目前使用：</span>
+                        <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
                       </div>
-                      <div>
-                        <div style="font-weight:700;font-size:16px;color:var(--primary-text-color)">空氣清淨機濾網壽命</div>
-                        <div style="font-size:12.5px;color:${color};font-weight:600;margin-top:2px">${statusDesc}</div>
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <span style="color:var(--secondary-text-color)">下一輪替：</span>
+                        <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
                       </div>
                     </div>
-                    <div style="text-align:right">
-                      <span style="font-size:26px;font-weight:800;color:${color}">${lvl}<small style="font-size:16px">%</small></span>
+              
+                    <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
+                      <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
+                      <div style="flex:1;min-width:0;white-space:normal !important">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+                          <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
+                          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
+                        </div>
+                        <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
+                          <div style="font-weight:600;white-space:normal !important">${desc1}</div>
+                          ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
+                        </div>
+                      </div>
+                    </div>
+              
+                    <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                      <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
+                      <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
                     </div>
                   </div>
-            
-                  <div style="height:8px;border-radius:999px;background:rgba(120,120,128,.18);margin:14px 0 10px;overflow:hidden">
-                    <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px;box-shadow:0 0 8px ${color}66;transition:width 0.4s"></div>
+                `;
+              ]]]
+        - type: heading
+          heading: "LINE Bot 設定"
+          heading_style: title
+          icon: mdi:robot-outline
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: entities
+          show_header_toggle: false
+          state_color: true
+          entities:
+            - entity: input_select.line_bot_mode
+              name: "LINE Bot 模式"
+            - entity: input_number.line_bot_sticky
+              name: "主用 Bot（Auto 沿用）"
+            - entity: input_boolean.line_bot_test_mode
+              name: "測試模式"
+            - entity: input_boolean.line_bot_custom_user_enable
+              name: "自訂目標 ID 啟用"
+            - entity: input_text.line_bot_custom_user_id
+              name: "自訂目標 ID"
+          card_mod: *cm
+      - type: vertical-stack
+        view_layout:
+          grid-area: battery
+        cards:
+        - type: heading
+          heading: "9 大感測器電池壽命預估"
+          heading_style: title
+          icon: mdi:battery-clock-outline
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: custom:button-card
+          entity: sensor.battery_forecast
+          show_name: false
+          show_icon: false
+          show_state: false
+          styles:
+            card:
+              - border-radius: 18px
+              - border: none
+              - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+              - padding: 0
+              - white-space: normal
+            grid:
+              - grid-template-areas: '"body"'
+              - grid-template-columns: 1fr
+            custom_fields:
+              body:
+                - width: 100%
+                - min-width: 0
+                - text-align: left
+                - white-space: normal
+          custom_fields:
+            body: |
+              [[[
+                const f = states['sensor.battery_forecast'];
+                if (!f || !f.attributes || !f.attributes.items) {
+                  return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">尚無電池預測數據，請點擊下方測試按鈕或等待系統每日 03:50 自動計算。</div>';
+                }
+                const items = f.attributes.items;
+                const names = {
+                  'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
+                  'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
+                  'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
+                };
+              
+                const getBatteryIcon = (lvl) => {
+                  if (lvl <= 5) return 'mdi:battery-alert';
+                  if (lvl <= 15) return 'mdi:battery-10';
+                  if (lvl <= 35) return 'mdi:battery-30';
+                  if (lvl <= 65) return 'mdi:battery-50';
+                  if (lvl <= 85) return 'mdi:battery-70';
+                  return 'mdi:battery';
+                };
+              
+                let rowsHtml = '';
+                for (const [k, d] of Object.entries(items)) {
+                  const name = names[k] || k;
+                  const lvl = Math.round(d.level || 0);
+                  const emptyLvl = d.empty || 10;
+                  const isEmpty = d.status === 'empty' || lvl <= emptyLvl;
+                  const isStable = d.status === 'stable';
+                  
+                  let color, rowBg, tagText, tagBg, tagFg;
+                  if (isEmpty) {
+                    color = '#FF453A';
+                    rowBg = 'rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3)';
+                    tagText = '更換門檻';
+                    tagBg = 'rgba(255,69,58,.22)';
+                    tagFg = '#FF453A';
+                  } else if (lvl <= 35) {
+                    color = '#FF9F0A';
+                    rowBg = 'rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.25)';
+                    tagText = '偏低';
+                    tagBg = 'rgba(255,159,10,.2)';
+                    tagFg = '#FF9F0A';
+                  } else if (isStable) {
+                    color = '#0A84FF';
+                    rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+                    tagText = '平穩';
+                    tagBg = 'rgba(10,132,255,.18)';
+                    tagFg = '#0A84FF';
+                  } else {
+                    color = '#30D158';
+                    rowBg = 'rgba(120,120,128,.08);border:1px solid rgba(120,120,128,.14)';
+                    tagText = '正常';
+                    tagBg = 'rgba(48,209,88,.18)';
+                    tagFg = '#30D158';
+                  }
+              
+                  let line1 = '', line2 = '';
+                  if (isEmpty) {
+                    line1 = `<span style="color:#FF453A;font-weight:700">⚠️ 已達更換門檻（≤ ${emptyLvl}%）</span>`;
+                    line2 = '<span style="color:#FF453A">請儘速更換電池以確保穩定運作</span>';
+                  } else if (d.days != null && d.days > 0) {
+                    line1 = `預估可用 <b style="font-size:13.5px;color:var(--primary-text-color)">${Math.round(d.days)}</b> 天`;
+                    line2 = `至 ${d.date} · 日耗 ${d.rate}%/天`;
+                  } else if (isStable) {
+                    line1 = '<span style="color:#0A84FF;font-weight:600">滿電平穩 · 壽命充足</span>';
+                    line2 = `持續運作 ${Math.round(d.span_days || 0)} 天無掉格`;
+                  } else {
+                    line1 = '壽命評估中';
+                    line2 = '持續收集放電曲線數據';
+                  }
+              
+                  const icon = getBatteryIcon(lvl);
+              
+                  rowsHtml += `
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:${rowBg};gap:10px;min-width:0;box-sizing:border-box">
+                      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                        <div style="width:36px;height:36px;border-radius:10px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                          <ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon>
+                        </div>
+                        <div style="flex:1;min-width:0">
+                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                            <span style="font-weight:700;font-size:14.5px;color:var(--primary-text-color)">${name}</span>
+                            <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:${tagBg};color:${tagFg};white-space:nowrap">${tagText}</span>
+                          </div>
+                          <div style="font-size:12.5px;margin-top:3px;line-height:1.35;white-space:normal !important;word-break:break-word">
+                            ${line1}
+                          </div>
+                          <div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:2px;line-height:1.35;white-space:normal !important;word-break:break-word">
+                            ${line2}
+                          </div>
+                        </div>
+                      </div>
+                      <div style="text-align:right;flex-shrink:0">
+                        <div style="font-size:18px;font-weight:800;color:${color}">${lvl}<small style="font-size:12px">%</small></div>
+                        <div style="width:42px;height:5px;border-radius:999px;background:rgba(120,120,128,.2);margin-top:4px;overflow:hidden">
+                          <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px"></div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }
+              
+                return `
+                  <div style="background:var(--card-background-color,#1c1c1e);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;box-sizing:border-box">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      ${rowsHtml}
+                    </div>
                   </div>
-            
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--secondary-text-color)">
-                    <span style="padding:2px 8px;border-radius:6px;background:rgba(120,120,128,.1)">門檻：≤10% 提醒備品 · ≤5% 請更換</span>
-                    <span style="padding:2px 8px;border-radius:6px;background:${notified ? 'rgba(255,159,10,.2)' : 'rgba(120,120,128,.1)'};color:${notified ? '#FF9F0A' : 'inherit'};font-weight:${notified ? '600' : 'normal'}">
-                      ${notified ? '⚠️ 已發出更換通知' : '尚未發送通知'}
-                    </span>
+                `;
+              ]]]
+      - type: vertical-stack
+        view_layout:
+          grid-area: filter
+        cards:
+        - type: heading
+          heading: "空氣清淨機濾網"
+          heading_style: title
+          icon: mdi:air-filter
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: custom:button-card
+          entity: sensor.kong_qi_qing_jing_ji_filter_life_remaining
+          show_name: false
+          show_icon: false
+          show_state: false
+          styles:
+            card:
+              - border-radius: 18px
+              - border: none
+              - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+              - padding: 0
+            grid:
+              - grid-template-areas: '"body"'
+              - grid-template-columns: 1fr
+          custom_fields:
+            body: |
+              [[[
+                const s = states['sensor.kong_qi_qing_jing_ji_filter_life_remaining'];
+                const lvl = s ? parseInt(s.state, 10) || 0 : 0;
+                const notified = states['input_boolean.supply_filter_notified']?.state === 'on';
+                
+                let color, bgGradient, statusDesc;
+                if (lvl <= 5) {
+                  color = '#FF453A';
+                  bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
+                  statusDesc = '已達臨界壽命，請立即更換濾網';
+                } else if (lvl <= 10) {
+                  color = '#FF9F0A';
+                  bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
+                  statusDesc = '濾網壽命偏低，請準備備用濾芯';
+                } else {
+                  color = '#30D158';
+                  bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
+                  statusDesc = '濾網狀態良好，壽命充足';
+                }
+              
+                return `
+                  <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:42px;height:42px;border-radius:12px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
+                          <ha-icon icon="mdi:air-filter" style="--mdc-icon-size:24px"></ha-icon>
+                        </div>
+                        <div>
+                          <div style="font-weight:700;font-size:16px;color:var(--primary-text-color)">空氣清淨機濾網壽命</div>
+                          <div style="font-size:12.5px;color:${color};font-weight:600;margin-top:2px">${statusDesc}</div>
+                        </div>
+                      </div>
+                      <div style="text-align:right">
+                        <span style="font-size:26px;font-weight:800;color:${color}">${lvl}<small style="font-size:16px">%</small></span>
+                      </div>
+                    </div>
+              
+                    <div style="height:8px;border-radius:999px;background:rgba(120,120,128,.18);margin:14px 0 10px;overflow:hidden">
+                      <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px;box-shadow:0 0 8px ${color}66;transition:width 0.4s"></div>
+                    </div>
+              
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--secondary-text-color)">
+                      <span style="padding:2px 8px;border-radius:6px;background:rgba(120,120,128,.1)">門檻：≤10% 提醒備品 · ≤5% 請更換</span>
+                      <span style="padding:2px 8px;border-radius:6px;background:${notified ? 'rgba(255,159,10,.2)' : 'rgba(120,120,128,.1)'};color:${notified ? '#FF9F0A' : 'inherit'};font-weight:${notified ? '600' : 'normal'}">
+                        ${notified ? '⚠️ 已發出更換通知' : '尚未發送通知'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              `;
-            ]]]
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.supply_filter_notified
-            name: "濾網更換已通知旗標"
-        card_mod: *cm
-      - type: heading
-        heading: "耗材相關自動化"
-        heading_style: title
-        icon: mdi:robot
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: automation.ai_00_2c_supply_battery_notify
-            name: "00-2C耗材更換AI通知 (V4.1.6)"
-        card_mod: *cm
+                `;
+              ]]]
+        - type: entities
+          show_header_toggle: false
+          state_color: true
+          entities:
+            - entity: input_boolean.supply_filter_notified
+              name: "濾網更換已通知旗標"
+          card_mod: *cm
+      - type: vertical-stack
+        view_layout:
+          grid-area: settings
+        cards:
+        - type: heading
+          heading: "耗材監控設定與操作"
+          heading_style: title
+          icon: mdi:tune-variant
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: entities
+          show_header_toggle: false
+          state_color: true
+          entities:
+            - entity: input_boolean.notify_supply_extra_line_enable
+              name: "耗材更換額外 LINE 推播"
+            - entity: input_datetime.supply_battery_report_time
+              name: "耗材定期摘要時間"
+            - entity: input_button.battery_system_test_trigger
+              name: "測試耗材電量系統"
+          card_mod: *cm
+      - type: vertical-stack
+        view_layout:
+          grid-area: auto
+        cards:
+        - type: heading
+          heading: "耗材相關自動化"
+          heading_style: title
+          icon: mdi:robot
+          card_mod:
+            style: |
+              .container { padding: 14px 6px 4px !important; }
+              .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+        - type: entities
+          show_header_toggle: false
+          state_color: true
+          entities:
+            - entity: automation.ai_00_2c_supply_battery_notify
+              name: "00-2C耗材更換AI通知 (V4.1.6)"
+          card_mod: *cm
   - title: "通知與廣播"
     path: notify
     icon: mdi:bell-ring-outline
