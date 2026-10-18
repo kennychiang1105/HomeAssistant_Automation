@@ -2,6 +2,7 @@
 # 情境檢查AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.0（2026-10-18）：早安／到家廣播加上目前室內空氣狀況（廚房 PM1.0／2.5／10、CO2、TVOC、甲醛、CO 取最差一項；稍高或偏高時說明是哪項並建議開空氣清淨機，偏高時依戶外空氣建議開窗或先不要開窗）；晚安廣播加上明天天氣（天氣、氣溫範圍、降雨機率，必要時提醒帶傘、防曬或加衣）。
 # - V4.1.6（2026-10-14）：① 保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，11:31 的「離家情境補救後仍未到位（保全模式）」就是只等 5 秒造成的誤報）；② 106C 解除網關警報的重置流程期間（input_datetime.scene_verify_skip_alarm_until 之前）略過保全模式檢查，因為離家情境後馬上會解除網關。
 # - V4.0.0：情境執行廣播提示音改為「噔噔」兩聲（/media/scene_ding.mp3，約 0.75 秒）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
@@ -171,11 +172,29 @@ scene_announce:
       description: 是否由實體開關/手動觸發（離家、晚安僅手動時播報）
       required: false
   variables:
+    # V4.2.0：早安／到家附上目前室內空氣狀況（廚房感測器，各項取最差）
+    air_voice: >-
+      {% set k = 'sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang' %}
+      {% set pl = state_attr('sensor.kitchen_particulate_level', 'level') | int(0) %}
+      {% set co2 = states(k ~ '_co2') | float(-1) %}{% set tv = states(k ~ '_tvoc') | float(-1) %}
+      {% set ch = states(k ~ '_jia_quan_ch2o') | float(-1) %}{% set co = states(k ~ '_yi_yang_hua_tan_co') | float(-1) %}
+      {% set lv = {'懸浮微粒': pl, '二氧化碳': (0 if co2 < 0 else (1 if co2 <= 1000 else (2 if co2 <= 1500 else 3))),
+                   '揮發性有機物': (0 if tv < 0 else (1 if tv <= 220 else (2 if tv <= 600 else 3))),
+                   '甲醛': (0 if ch < 0 else (1 if ch <= 0.05 else (2 if ch <= 0.08 else 3))),
+                   '一氧化碳': (0 if co < 0 else (1 if co <= 9 else (2 if co <= 35 else 3)))} %}
+      {% set worst = lv.values() | max %}
+      {% set bad = lv | dictsort | selectattr('1', 'ge', 2) | map(attribute='0') | list %}
+      {% set out_bad = state_attr('sensor.outdoor_air_quality', 'aqi') | float(-1) > 100 or state_attr('sensor.outdoor_air_quality', 'pm25') | float(-1) >= 35.5 %}
+      {% if worst == 0 %}
+      {% elif worst == 1 %}目前室內空氣品質良好，
+      {% elif worst == 2 %}目前室內空氣品質普通，{{ bad | join('、') }}稍高，建議開啟空氣清淨機，
+      {% else %}目前室內空氣品質偏高，{{ bad | join('、') }}偏高，請開啟空氣清淨機，{{ '戶外空氣也不佳，請先不要開窗，' if out_bad else '並開窗通風，' }}
+      {% endif %}
     msg: >-
       {{ {'leave': '已啟動離家模式，電器與燈光已關閉，請確認門窗。' ~ (state_attr('sensor.leave_outdoor_brief', 'voice') or '') ~ '路上小心。',
           'goodnight': '晚安，已啟動晚安模式，燈光與電器已關閉，祝您有個好夢。',
-          'morning': '早安，已啟動早安模式，祝您有美好的一天。',
-          'arrive': '歡迎回家，已啟動到家模式。'}.get(scene, '') }}
+          'morning': '早安，已啟動早安模式，' ~ (air_voice | trim) ~ '祝您有美好的一天。',
+          'arrive': '歡迎回家，已啟動到家模式，' ~ (air_voice | trim) ~ '祝您居家愉快。'}.get(scene, '') }}
     is_manual: "{{ manual | default(false) in [true, 'true', 'True'] }}"
     last_raw: "{{ states('input_text.scene_announce_last') }}"
     last_scene: "{{ last_raw.split('|')[0] if '|' in last_raw else '' }}"
@@ -193,10 +212,46 @@ scene_announce:
         entity_id: input_text.scene_announce_last
       data:
         value: "{{ scene }}|{{ as_timestamp(now()) | int }}"
+    # V4.2.0：晚安廣播附上明天天氣（取明天本地日期的逐 3 小時預報；讀不到就維持原句）
+    - variables:
+        final_msg: "{{ msg }}"
+    - if: "{{ scene == 'goodnight' }}"
+      then:
+        - action: weather.get_forecasts
+          target:
+            entity_id: weather.homeweather_zhu_nan_zhen
+          data:
+            type: hourly
+          response_variable: fc
+          continue_on_error: true
+        - variables:
+            WX: {sunny: 晴天, clear-night: 晴朗, cloudy: 多雲, partlycloudy: 晴時多雲, rainy: 有雨, pouring: 有大雨, lightning-rainy: 有雷雨, lightning: 有雷, fog: 有霧, windy: 風大, snowy: 下雪}
+            tm_text: >-
+              {% set fl = (fc['weather.homeweather_zhu_nan_zhen'].forecast if fc is mapping and fc.get('weather.homeweather_zhu_nan_zhen') else []) %}
+              {% set tmd = (now() + timedelta(days=1)).date() %}
+              {% set ns = namespace(t=[], p=0, c=[], r=false) %}
+              {% for f in fl %}{% set d = as_local(as_datetime(f.datetime)) %}
+              {% if d.date() == tmd %}
+              {% if f.temperature is number %}{% set ns.t = ns.t + [f.temperature] %}{% endif %}
+              {% if (f.precipitation_probability | float(0)) > ns.p %}{% set ns.p = f.precipitation_probability | float(0) %}{% endif %}
+              {% if f.condition in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] %}{% set ns.r = true %}{% endif %}
+              {% if 6 <= d.hour <= 18 %}{% set ns.c = ns.c + [f.condition] %}{% endif %}
+              {% endif %}{% endfor %}
+              {% if ns.t | count > 0 %}
+              {% set top = namespace(k='', n=0) %}
+              {% for c in ns.c | unique %}{% set n = ns.c | select('eq', c) | list | count %}{% if n > top.n %}{% set top.k = c %}{% set top.n = n %}{% endif %}{% endfor %}
+              明天{{ WX.get('rainy') if ns.r and top.k not in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else WX.get(top.k, '天氣不明') }}，氣溫{{ ns.t | min | round(0) | int }}到{{ ns.t | max | round(0) | int }}度，
+              {%- if ns.p >= 50 or ns.r %}降雨機率{{ ns.p | round(0) | int }}%，出門記得帶傘，
+              {%- elif ns.t | max >= 35 %}天氣炎熱，請防曬並補充水分，
+              {%- elif ns.t | min <= 12 %}天氣偏冷，請多加衣物，
+              {%- endif %}
+              {% endif %}
+        - variables:
+            final_msg: "{{ msg | replace('燈光與電器已關閉，', '燈光與電器已關閉，' ~ (tm_text | trim | replace('\n', ''))) }}"
     - action: script.announce
       data:
         level: general
-        message: "{{ msg }}"
+        message: "{{ final_msg }}"
         chime_media: media-source://media_source/local/scene_ding.mp3
         chime_media_s: 0.75
         merge_audio: true
