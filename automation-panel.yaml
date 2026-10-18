@@ -728,6 +728,14 @@ views:
         "col1 battery filter"
         "col1 settings auto"
       mediaquery:
+        "(max-width: 768px)":
+          grid-template-columns: minmax(0, 1fr)
+          grid-template-areas: |
+            "col1"
+            "battery"
+            "filter"
+            "settings"
+            "auto"
         "(max-width: 1024px)":
           grid-template-columns: repeat(2, minmax(280px, 1fr))
           grid-template-areas: |
@@ -735,14 +743,6 @@ views:
             "col1 filter"
             "col1 settings"
             "col1 auto"
-        "(max-width: 768px)":
-          grid-template-columns: 100%
-          grid-template-areas: |
-            "col1"
-            "battery"
-            "filter"
-            "settings"
-            "auto"
     cards:
       - type: vertical-stack
         view_layout:

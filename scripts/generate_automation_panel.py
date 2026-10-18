@@ -836,14 +836,14 @@ def supply_view(title, path, icon, autos):
         "      grid-template-areas: |",
         areas_3col,
         "      mediaquery:",
+        '        "(max-width: 768px)":',
+        "          grid-template-columns: minmax(0, 1fr)",
+        "          grid-template-areas: |",
+        areas_1col,
         '        "(max-width: 1024px)":',
         "          grid-template-columns: repeat(2, minmax(280px, 1fr))",
         "          grid-template-areas: |",
         areas_2col,
-        '        "(max-width: 768px)":',
-        "          grid-template-columns: 100%",
-        "          grid-template-areas: |",
-        areas_1col,
         "    cards:",
     ]
 
