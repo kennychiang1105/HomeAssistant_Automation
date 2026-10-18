@@ -1,0 +1,146 @@
+﻿# 離家入侵偵測輔助項目（V4.1.6，2026-10-12）
+# 由 08-7離家入侵偵測AI／08-7C訊號收集AI／08-7D感應器統計AI／script.intrusion_alert 使用。
+# 監控條件：四位家人都離家滿 intrusion_arm_nobody_min 分鐘 且 網關離家情境滿 intrusion_arm_away_min 分鐘；網關切到在家／早安／到家（aqara_zai_jia 開）就不監控、倒數中也取消。
+# V4.2.0：移除 intrusion_watch_shadow（影子模式），判定成立即正式通知。
+# 判定：intrusion_window_min 分鐘內，來自「不同裝置」的 2 個以上訊號（入口訊號＋室內動作，或兩個不同位置的室內動作）。
+input_boolean:
+  intrusion_watch_enable:
+    name: 離家入侵偵測（總開關）
+    icon: mdi:shield-alert-outline
+    initial: true
+  intrusion_watch_test_mode:
+    name: 入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）
+    icon: mdi:test-tube
+    initial: false
+  intrusion_watch_alarm_enable:
+    name: 入侵偵測觸發網關警報
+    icon: mdi:alarm-light-outline
+    initial: true
+input_number:
+  intrusion_arm_nobody_min:
+    name: 入侵偵測｜全員離家滿幾分鐘才開始
+    min: 0
+    max: 240
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 10
+    icon: mdi:account-off-outline
+  intrusion_arm_away_min:
+    name: 入侵偵測｜網關離家滿幾分鐘才開始
+    min: 0
+    max: 240
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 20
+    icon: mdi:shield-lock-outline
+  intrusion_garage_buffer_min:
+    name: 入侵偵測｜車庫鐵門開啟後緩衝（分鐘，等家人回來）
+    min: 0
+    max: 60
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 5
+    icon: mdi:garage-open-variant
+  intrusion_lock_buffer_sec:
+    name: 入侵偵測｜門鎖／二樓門鎖有動作後緩衝（秒）
+    min: 0
+    max: 900
+    step: 10
+    unit_of_measurement: s
+    mode: box
+    initial: 90
+    icon: mdi:door-closed-lock
+  intrusion_window_min:
+    name: 入侵偵測｜幾分鐘內累積的訊號才一起算
+    min: 1
+    max: 60
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 5
+    icon: mdi:timer-sand
+  intrusion_countdown_sec:
+    name: 入侵偵測｜通知後倒數幾秒才觸發網關警報
+    min: 0
+    max: 600
+    step: 5
+    unit_of_measurement: s
+    mode: box
+    initial: 30
+    icon: mdi:timer-outline
+  intrusion_cooldown_min:
+    name: 入侵偵測｜兩次通知至少間隔（分鐘）
+    min: 1
+    max: 1440
+    step: 1
+    unit_of_measurement: min
+    mode: box
+    initial: 30
+    icon: mdi:bell-sleep-outline
+input_text:
+  intrusion_manual_include:
+    name: 入侵偵測｜強制納入的感應器（逗號分隔 entity_id）
+    max: 255
+    icon: mdi:plus-circle-outline
+  intrusion_manual_exclude:
+    name: 入侵偵測｜強制排除的感應器（逗號分隔 entity_id）
+    max: 255
+    icon: mdi:minus-circle-outline
+  intrusion_recent:
+    name: 入侵偵測最近訊號（內部）
+    max: 255
+input_datetime:
+  intrusion_last_alert:
+    name: 入侵偵測最近一次通知時間
+    has_date: true
+    has_time: true
+    icon: mdi:history
+input_button:
+  intrusion_watch_test:
+    name: 入侵偵測測試通知（要先開「LINE 測試模式」才會發送；不廣播不響警報）
+    icon: mdi:bell-check-outline
+  intrusion_stats_run:
+    name: 入侵偵測立即重新統計感應器
+    icon: mdi:chart-box-outline
+shell_command:
+  intrusion_stats: 'python3 /config/scripts/intrusion_stats.py'
+command_line:
+  - sensor:
+      name: intrusion_sensor_lists
+      unique_id: intrusion_sensor_lists
+      command: 'cat /config/intrusion_sensors.json'
+      command_timeout: 10
+      scan_interval: 900
+      value_template: "{{ value_json.updated }}"
+      json_attributes:
+        - hours
+        - windows
+        - monitored
+        - excluded
+        - insufficient
+        - names
+template:
+  - sensor:
+      - name: 入侵偵測目前生效清單
+        unique_id: intrusion_effective_summary
+        default_entity_id: sensor.intrusion_effective_summary
+        icon: mdi:shield-search
+        state: >-
+          {% set a = state_attr('sensor.intrusion_sensor_lists', 'monitored') or {} %}
+          {% set ex = state_attr('sensor.intrusion_sensor_lists', 'excluded') or {} %}
+          {% set mi = (states('input_text.intrusion_manual_include') or '').split(',') | map('trim') | select('!=', '') | list %}
+          {% set me = (states('input_text.intrusion_manual_exclude') or '').split(',') | map('trim') | select('!=', '') | list %}
+          {% set eff = (a.keys() | list + mi) | unique | reject('in', me) | list %}
+          監控 {{ eff | count }} 個｜自動排除 {{ ex | count }} 個
+        attributes:
+          monitored: >-
+            {% set a = state_attr('sensor.intrusion_sensor_lists', 'monitored') or {} %}
+            {% set mi = (states('input_text.intrusion_manual_include') or '').split(',') | map('trim') | select('!=', '') | list %}
+            {% set me = (states('input_text.intrusion_manual_exclude') or '').split(',') | map('trim') | select('!=', '') | list %}
+            {{ (a.keys() | list + mi) | unique | reject('in', me) | list }}
+          excluded_auto: "{{ (state_attr('sensor.intrusion_sensor_lists', 'excluded') or {}) | list }}"
+          names: "{{ state_attr('sensor.intrusion_sensor_lists', 'names') or {} }}"
+

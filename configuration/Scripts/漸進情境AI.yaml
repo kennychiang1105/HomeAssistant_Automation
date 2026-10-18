@@ -2,6 +2,7 @@
 # 漸進情境AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-18）：到家／早安「開」燈時，客廳／餐廳燈改交 script.light_group_on 做開燈動畫（其餘家電與關燈不變）。
 # - V4.0.1（2026-10-10）：stairs_off 時，四樓樓梯燈若是頂樓感應正在使用（五樓梯廳燈由感應開著），改交給頂樓感應、與頂樓樓梯燈一起關。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
 # - V4.0.0：手動晚安（實體開關）時，先點亮樓梯燈（2→3F、3F、3→4F、5F、四樓/頂樓樓梯燈）再依序關其他燈，3 分鐘後由 stairs_delayed_off 關閉。
@@ -132,11 +133,31 @@ stage_scene:
               - action: input_boolean.turn_on
                 target:
                   entity_id: input_boolean.topfloor_0fb7_auto
-          - if: "{{ ring_items | count > 0 }}"
+          # V4.1.6：到家／早安「開」燈時，客廳／餐廳燈交給燈組動畫（不阻塞，節奏照舊）
+          - variables:
+              anim_set: >-
+                {% set ns = namespace(a=[], p=[]) %}
+                {% for e in ring_items %}
+                  {% if turn_state == 'on' and scene in ['morning', 'arrive'] and (e is match('light[.](ke_ting_deng_zu|can_ting_deng_zu|yeelink_color5_(4181|106d|fab7|8e3f|5007|2024|f21d|53ed|f618|c8d3))')) %}
+                    {% set ns.a = ns.a + [e] %}
+                  {% else %}{% set ns.p = ns.p + [e] %}{% endif %}
+                {% endfor %}
+                {{ {'a': ns.a, 'p': ns.p} | tojson }}
+              anim_items: "{{ (anim_set | from_json).a if anim_set is string else anim_set.a }}"
+              plain_items: "{{ (anim_set | from_json).p if anim_set is string else anim_set.p }}"
+          - if: "{{ anim_items | count > 0 }}"
+            then:
+              - action: script.turn_on
+                target:
+                  entity_id: script.light_group_on
+                data:
+                  variables:
+                    entities: "{{ anim_items }}"
+          - if: "{{ plain_items | count > 0 }}"
             then:
               - action: "homeassistant.turn_{{ turn_state }}"
                 target:
-                  entity_id: "{{ ring_items }}"
+                  entity_id: "{{ plain_items }}"
                 continue_on_error: true
           - if: "{{ not repeat.last }}"
             then:

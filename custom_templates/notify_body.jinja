@@ -1,6 +1,8 @@
 {# ──────────────────────────────────────────────────────
-   通知內文排版 (V4.1.0)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
-   - 每一個項目行都有圖示（先依關鍵字挑；沒有關鍵字時，「本次更新／版本」段落用 update，其餘用 info），不再「有的有、有的沒有」。
+   通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
+   - V4.1.6：圖示只放在「小標題（冒號結尾）」「名稱：數值」與「警告」行（標題行不放，保持單行）；圖示顏色依重要度（紅=緊急、橘=警告、綠=正常完成、藍=一般），共 70 款（www/icons/b2/<名稱>_<n|g|o|r>.png）（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
+             「名稱：數值」拆成灰色小字名稱＋粗體數值（例如 客廳門鎖電量　76%）；一般句子用正常粗細。
+   - V4.1.0（已被上一行取代）：每一個項目行都有圖示。
    - 「名稱：舊版 → 新版」與「名稱：V1.2.3」一律拆成兩行：名稱一行、版本獨立一行（舊版灰色、新版綠色粗體）。
    - 每個項目之間空一行（margin）；【小標題】獨立成行、藍色粗體；第一行是通知重點（粗體、較大）。
    用法：{% from 'notify_body.jinja' import flex_rows, md_lines %}
@@ -8,36 +10,151 @@
    ────────────────────────────────────────────────────── #}
 {% macro pick(t) -%}
 {%- if t | regex_search('門鈴') -%}doorbell
-{%- elif t | regex_search('電量|電池|耗材') -%}battery
-{%- elif t | regex_search('溫度|°C|體感|冷氣|空調') -%}thermo
-{%- elif t | regex_search('濕度|降雨|豪雨|下雨|水位|洩洪') -%}drop
-{%- elif t | regex_search('PM2|PM1|空氣|清淨機') -%}air
-{%- elif t | regex_search('風扇|風速') -%}fan
-{%- elif t | regex_search('門鎖|上鎖|已鎖|解鎖') -%}lock
+{%- elif t | regex_search('電量|電池|耗材|濾網') -%}battery
+{%- elif t | regex_search('離家|外出|出門') -%}homeout
+{%- elif t | regex_search('到家|回家|返家') -%}homein
+{%- elif t | regex_search('解鎖|開鎖|已開鎖') -%}unlock
+{%- elif t | regex_search('指紋|密碼|鑰匙|卡片') -%}key
+{%- elif t | regex_search('門鎖|上鎖|已鎖|未鎖') -%}lock
+{%- elif t | regex_search('鐵門|車庫') and t | regex_search('開啟|打開|未關|沒關|開著') -%}gateopen
 {%- elif t | regex_search('鐵門|車庫') -%}gate
-{%- elif t | regex_search('車牌|Tesla|充電|車輛') -%}car
-{%- elif t | regex_search('攝影|影像|截圖|影片|監視') -%}camera
+{%- elif t | regex_search('天數|日期|星期|今天|明天|本週|週報') -%}calendar
+{%- elif t | regex_search('預估|倒數|分鐘|等待|秒後|逾時|剩餘') -%}hourglass
+{%- elif t | regex_search('\d{1,2}:\d{2}|時間|時刻') -%}clock
+{%- elif t | regex_search('溫度|°C|體感') -%}thermo
+{%- elif t | regex_search('冷氣|空調|暖氣') -%}ac
+{%- elif t | regex_search('濕度') -%}humid
+{%- elif t | regex_search('降雨|豪雨|下雨|水位|洩洪|漏水') -%}drop
+{%- elif t | regex_search('PM2|PM1|空氣|清淨機|CO2|二氧化碳|一氧化碳|揮發|VOC|甲醛|懸浮微粒') -%}air
+{%- elif t | regex_search('風扇|風速') -%}fan
+{%- elif t | regex_search('Tesla|充電|充電樁') -%}ev
+{%- elif t | regex_search('電壓|電流|功率|用電|耗電|插座') -%}plug
+{%- elif t | regex_search('車牌|車輛|汽車|車子') -%}car
+{%- elif t | regex_search('影片|錄影') -%}video
+{%- elif t | regex_search('攝影|影像|截圖|監視') -%}camera
 {%- elif t | regex_search('地震|震度|規模') -%}quake
-{%- elif t | regex_search('天氣|颱風|氣象') -%}weather
-{%- elif t | regex_search('保全|闖入|入侵|防區') -%}shield
-{%- elif t | regex_search('網路|網關|Wi-Fi|WiFi|連線|離線|伺服器|斷線') -%}network
-{%- elif t | regex_search('廣播|喇叭|語音') -%}speaker
+{%- elif t | regex_search('颱風|氣象|天氣|豪雨') -%}weather
+{%- elif t | regex_search('紫外線|UV|日出|日落|白天|早安') -%}sun
+{%- elif t | regex_search('晚安|夜間|深夜') -%}moon
+{%- elif t | regex_search('熟睡|睡眠|睡') -%}bed
+{%- elif t | regex_search('闖入|入侵') -%}shieldoff
+{%- elif t | regex_search('警戒|布防|撤防') -%}shieldlock
+{%- elif t | regex_search('保全|防區') -%}shield
+{%- elif t | regex_search('警報') -%}alarm
+{%- elif t | regex_search('路由|AP|Wi-Fi|WiFi') -%}router
+{%- elif t | regex_search('伺服器|主機|NAS') -%}server
+{%- elif t | regex_search('網路|網關|連線|離線|斷線') -%}network
+{%- elif t | regex_search('麥克風') -%}mic
+{%- elif t | regex_search('廣播|喇叭|語音|HomePod') -%}speaker
+{%- elif t | regex_search('電視') -%}tv
 {%- elif t | regex_search('燈') -%}bulb
-{%- elif t | regex_search('家人|有人|人員|在家|離家|回家|到家') -%}person
-{%- elif t | regex_search('\d{1,2}:\d{2}|分鐘|小時|秒後|預估|天數|時間') -%}clock
-{%- elif t | regex_search('注意|警告|異常|請確認|⚠|‼|❗') -%}alarm
-{%- elif t | regex_search('已完成|成功|已關閉|已開啟|已啟動|已執行|正常|✅') -%}check
-{%- elif t | regex_search('設定|系統|參數|模式') -%}gear
-{%- elif t | regex_search('更新|版本') -%}update
+{%- elif t | regex_search('感應|移動|偵測|動作') -%}motion
+{%- elif t | regex_search('家人|人員|所有人|成員') -%}people
+{%- elif t | regex_search('在家|有人|人物') -%}person
+{%- elif t | regex_search('樓梯') -%}stairs
+{%- elif t | regex_search('客廳') -%}sofa
+{%- elif t | regex_search('臥室|房間') -%}bed
+{%- elif t | regex_search('廁所|浴室') -%}toilet
+{%- elif t | regex_search('廚房') -%}kitchen
+{%- elif t | regex_search('大門|房門|門(?!檻)') -%}door
+{%- elif t | regex_search('手機|平板|iPhone|iPad') -%}phone
+{%- elif t | regex_search('位置|地點|座標') -%}pin
+{%- elif t | regex_search('次數|數量|統計|計數') -%}counter
+{%- elif t | regex_search('款式|型號|名稱|版本') -%}tag
+{%- elif t | regex_search('更新') -%}update
+{%- elif t | regex_search('重置|重啟|重新|重試') -%}refresh
+{%- elif t | regex_search('關機|開機|電源') -%}power
+{%- elif t | regex_search('公告|提醒|宣告') -%}announce
+{%- elif t | regex_search('通知|訊息|LINE') -%}mail
+{%- elif t | regex_search('Bot|對話') -%}chat
+{%- elif t | regex_search('維修|維護|保養') -%}tool
+{%- elif t | regex_search('設定|參數|模式|情境|系統') -%}gear
+{%- elif t | regex_search('失敗|異常|錯誤') -%}bug
+{%- elif t | regex_search('已完成|成功|正常') -%}check
 {%- endif -%}
 {%- endmacro %}
 
+{# 重要度配色：r 紅（緊急）／o 橘（警告）／g 綠（正常完成）／n 藍（一般資訊） #}
+{% macro tone(t) -%}
+{%- if t | regex_search('緊急|入侵|闖入|警報|地震|火災|一氧化碳|嚴重') -%}r
+{%- elif t | regex_search('注意|警告|異常|失敗|未完成|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠') -%}o
+{%- elif t | regex_search('已完成|完成|完畢|成功|正常|已關閉|已上鎖|皆已|已恢復|已啟動|已執行|已開啟|已提前|已關') -%}g
+{%- else -%}n
+{%- endif -%}
+{%- endmacro %}
+
+{# V4.1.6：過長的句子在「，」靠近中間處斷行（LINE 自動換行會留下孤字，例如「請注／意。」）#}
+{% macro balance(t, lim) -%}
+{%- if (t | length) <= lim or '，' not in t -%}{{ t }}
+{%- else -%}
+  {%- set parts = t.split('，') -%}
+  {%- set ns = namespace(lines=[], cur='') -%}
+  {%- for p in parts -%}
+    {%- set piece = p ~ ('，' if not loop.last else '') -%}
+    {%- if ns.cur != '' and ((ns.cur | length) + (piece | length)) > lim -%}
+      {%- set ns.lines = ns.lines + [ns.cur] -%}{%- set ns.cur = piece -%}
+    {%- else -%}
+      {%- set ns.cur = ns.cur ~ piece -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {{- (ns.lines + [ns.cur]) | join('\n') -}}
+{%- endif -%}
+{%- endmacro %}
+
+{# V4.1.6：行內顏色標記 ⟦g:文字⟧（綠）⟦o:…⟧（黃）⟦r:…⟧（紅）⟦n:…⟧（灰）→ LINE span 清單（JSON） #}
+{% macro mspans(txt, dflt='#111827') -%}
+{%- set cmap = {'g': '#16A34A', 'o': '#D97706', 'r': '#DC2626', 'n': '#9CA3AF'} -%}
+{%- set ns = namespace(o=[]) -%}
+{%- for c, t1, t2 in (txt | regex_findall('⟦([rogn]):([^⟧]*)⟧|([^⟦]+)')) -%}
+  {%- if c and t1 -%}{%- set ns.o = ns.o + [{"type": "span", "text": t1, "color": cmap[c], "weight": "bold"}] -%}
+  {%- elif t2 -%}{%- set ns.o = ns.o + [{"type": "span", "text": t2, "color": dflt}] -%}{%- endif -%}
+{%- endfor -%}
+{{- ns.o | tojson -}}
+{%- endmacro %}
+{# 同一套標記 → HA 通知（HTML） #}
+{% macro mhtml(txt) -%}
+{{- txt | regex_replace('⟦g:([^⟧]*)⟧', '<span style="color:#16A34A"><b>\\1</b></span>') | regex_replace('⟦o:([^⟧]*)⟧', '<span style="color:#D97706"><b>\\1</b></span>')
+       | regex_replace('⟦r:([^⟧]*)⟧', '<span style="color:#DC2626"><b>\\1</b></span>') | regex_replace('⟦n:([^⟧]*)⟧', '<span style="color:#9CA3AF">\\1</span>') -}}
+{%- endmacro %}
+
+{# V4.1.6：空氣品質讀數的燈號（綠 g／黃 o／紅 r），回傳 ⟦g⟧ 這種行尾標記；標記會被排版吃掉、並把該行數值與圖示染成對應顏色 #}
+{% macro env_tag(kind, v) -%}
+{%- set x = v | float(0) -%}
+{%- if kind == 'co2' -%}{{ '⟦g⟧' if x < 1000 else ('⟦o⟧' if x < 2000 else '⟦r⟧') }}
+{%- elif kind == 'pm' -%}{{ '⟦g⟧' if x <= 15 else ('⟦o⟧' if x <= 35 else '⟦r⟧') }}
+{%- elif kind == 'pm10' -%}{{ '⟦g⟧' if x <= 54 else ('⟦o⟧' if x <= 125 else '⟦r⟧') }}
+{%- elif kind == 'pm1' -%}{{ '⟦g⟧' if x <= 15 else ('⟦o⟧' if x <= 35 else '⟦r⟧') }}
+{%- elif kind == 'tvoc' -%}{{ '⟦g⟧' if x <= 220 else ('⟦o⟧' if x <= 600 else '⟦r⟧') }}
+{%- elif kind == 'co' -%}{{ '⟦g⟧' if x < 9 else ('⟦o⟧' if x < 35 else '⟦r⟧') }}
+{%- elif kind == 'ch2o' -%}{{ '⟦g⟧' if x <= 0.05 else ('⟦o⟧' if x <= 0.08 else '⟦r⟧') }}
+{%- elif kind == 'temp' -%}{{ '⟦g⟧' if (15 <= x <= 30) else ('⟦o⟧' if (10 <= x < 15 or 30 < x < 40) else '⟦r⟧') }}
+{%- elif kind == 'hum' -%}{{ '⟦g⟧' if (40 <= x <= 60) else ('⟦o⟧' if (30 <= x < 40 or 60 < x <= 70) else '⟦r⟧') }}
+{%- endif -%}
+{%- endmacro %}
+
+{# V4.1.6：句尾的「請注意」拆出來，後面加注意圖示。回傳 JSON [前段, 請注意] ；沒有就回 ["",""] #}
+{% macro ca_split(t) -%}
+{%- set m = t | regex_findall('^(.*?)\\s*(請注意[。.]?)$') -%}
+{%- if m | length > 0 and (m[0][0] == '' or m[0][0][-1:] in ['，', ',']) -%}{{ [m[0][0], m[0][1]] | tojson }}{%- else -%}["", ""]{%- endif -%}
+{%- endmacro %}
+
+{# V4.1.6：需要注意的行才放圖示 #}
+{% macro is_warn(t) -%}
+{%- if t | regex_search('注意|警告|異常|失敗|未關|沒關|未上鎖|沒上鎖|未鎖|離線|斷線|不穩|逾時|過低|過高|過熱|偏低|偏高|請確認|⚠|‼|❗|入侵|闖入|緊急') -%}1{%- endif -%}
+{%- endmacro %}
+
 {# 去掉行首的項目符號與 emoji（圖示取代它們） #}
+{% macro noemoji(t) -%}
+{{- (t | trim) | regex_replace('[🌀-🫿☀-➿⬀-⯿️‼❗❓]\uFE0F?', '') | regex_replace('^[，,、\s]+', '') | regex_replace('[，,、]+(?=。|$)', '') | regex_replace('\s{2,}', ' ') | trim -}}
+{%- endmacro %}
+{% macro untag(t) -%}
+{{- (t | trim) | regex_replace('^[\[【][^\]】]{1,8}[\]】]\s*(?=\S)', '') -}}
+{%- endmacro %}
 {% macro clean(t) -%}
-{{- (t | trim) | regex_replace('^[\s•·\-\*]*([🌀-🫿☀-➿⬀-⯿️]\s*)*', '') | trim -}}
+{{- noemoji(untag((t | trim) | regex_replace('^[\s•·\-\*]+', ''))) -}}
 {%- endmacro %}
 {% macro bullet(t) -%}
-{{- (t | trim) | regex_replace('^[•·\-\*]+\s*', '') | trim -}}
+{{- noemoji(untag((t | trim) | regex_replace('^[•·\-\*]+\s*', ''))) -}}
 {%- endmacro %}
 
 {# 前處理：①每句（以「。」結尾）自成一行；②版本行拆成「名稱」＋「@@V@@舊@@新」兩行；網址行不拆 #}
@@ -70,26 +187,57 @@
 {# 行模型：JSON 清單，每個元素 {k: hdr|sec|ent|ver, t, icon, old, new, gap} #}
 {% macro model(lines0) -%}
 {%- set lines = prep(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[], first=true, sect='', gap=false) -%}
+{%- set ns = namespace(out=[], first=true, sect='', gap=false, insec=false, base='n', hi=0) -%}
 {%- for l in lines -%}
   {%- set t = (l | string) | trim -%}
   {%- if t == '' -%}
     {%- set ns.gap = true -%}
   {%- elif ns.first -%}
-    {%- set ns.out = ns.out + [{'k': 'hdr', 't': bullet(t)}] -%}
+    {%- set hb = bullet(t) -%}
+    {%- set ns.base = tone(hb) | trim -%}
+    {%- set hc = ca_split(hb) | from_json(['', '']) -%}
+    {%- set hcat = 'bell' if (hb | regex_search('通知$|通知。$')) else (pick(hb) | trim) -%}
+    {%- set hbal = (hb | replace('，', '，\n')) if (hb.count('，') >= 2 and not hb.endswith('，')) else balance(hb, 15 - (2 if hc[1] else 0)) -%}
+    {%- set hn = (hbal.split('\n') | map('length') | max) + (2 if hc[1] else 0) -%}
+    {%- set ns.out = ns.out + [{'k': 'hdr', 't': hb, 'tb': hbal, 'ca': hc[1], 'pre': '', 'cain': false, 'icon': (hcat if hcat else 'announce'), 'tone': tone(hb) | trim, 'hsz': ([16, (246 / ([hn, 1] | max)) | int] | min)}] -%}
     {%- set ns.first = false -%}
   {%- elif t.startswith('@@V@@') -%}
     {%- set p = t[5:].split('@@') -%}
     {%- set ns.out = ns.out + [{'k': 'ver', 'old': p[0], 'new': p[1] if p | length > 1 else ''}] -%}
+  {%- elif t.startswith('※') -%}
+    {%- set flat = t.startswith('※※') -%}
+    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if flat else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'gap': ns.gap}] -%}
+    {%- set ns.gap = false -%}
   {%- elif t | regex_search('^[【\[].+[】\]]$') -%}
     {%- set ns.sect = t -%}
     {%- set ns.out = ns.out + [{'k': 'sec', 't': t}] -%}
     {%- set ns.gap = false -%}
   {%- else -%}
-    {%- set n = pick(t) | trim -%}
-    {%- set ic = n if n else ('update' if ns.sect | regex_search('更新|版本') else 'info') -%}
-    {%- set c = clean(t) | trim -%}
-    {%- set ns.out = ns.out + [{'k': 'ent', 't': c if c else t, 'icon': ic, 'gap': ns.gap}] -%}
+    {%- set tgm = t | regex_findall('⟦([rog])⟧\\s*$') -%}
+    {%- set tg = tgm[0] if tgm | length > 0 else '' -%}
+    {%- set c = clean(t) | regex_replace('\\s*⟦[rog]⟧\\s*$', '') | trim -%}
+    {%- set body = c if c else t -%}
+    {%- set warn = is_warn(t) | trim == '1' -%}
+    {#- V4.1.6：沒有冒號但是「名稱 數值」的舊式行（例如「開始時間 2026-10-15 23:59」「目前狀態 charging」）也當成名稱／數值行 -#}
+    {%- set lv1 = (body | regex_findall('^([^：:。，,\s]{1,12})[：:]\s*(.+)$')) if not (body | regex_search('https?://')) else [] -%}
+    {%- set lv2 = (body | regex_findall('^([^\s：:。，,]{0,6}(?:時間|溫度|狀態|車輛|用時|用電量|電量|天數|數量|名稱|型號|款式|位置|模式|情境|金額|次數|版本|狀況|濕度|濃度|數值|剩餘|容量|功率|電壓|電流))\s+([^。，,]{1,40})$')) if (lv1 | length == 0 and not (body | regex_search('https?://'))) else [] -%}
+    {%- set lv = lv1 if lv1 | length > 0 else lv2 -%}
+    {%- set is_sec = body | regex_search('^[^。]{1,16}[：:]$') -%}
+    {#- V4.1.6：圖示只給「小標題行（以冒號結尾）」「名稱：數值」與「警告」行；一般句子不放圖示；顏色依重要度 -#}
+    {%- set cat = pick(body) | trim -%}
+    {%- set icon = (cat if cat else 'alarm') if warn else ((cat if cat else 'list') if is_sec else ((cat if cat else 'tag') if lv | length > 0 else '')) -%}
+    {%- if ns.gap and not is_sec -%}{%- set ns.insec = false -%}{%- endif -%}
+    {%- set sub = ns.insec and not is_sec and not warn -%}
+    {%- if is_sec -%}{%- set ns.insec = true -%}{%- endif -%}
+    {%- set ec = (ca_split(body) | from_json(['', ''])) if (lv | length == 0) else ['', ''] -%}
+    {%- set lim = (20 if sub else 15) - (2 if ec[1] else 0) -%}
+    {#- V4.1.6：同一則圖示顏色以標題為主；挑最多 2 個重點「名稱：數值」行（用電量、電量、預估、用時、狀態…）換成對比色 -#}
+    {%- set own = tg if tg else (tone(body) | trim) -%}
+    {%- set hl = (lv | length > 0) and tg == '' and (own not in ['r', 'o']) and ns.hi < 3 and (lv[0][0] | regex_search('開始時間|結束時間|用電量|電量|預估|剩餘|用時|已開啟|狀態|情境|模式|金額|次數')) -%}
+    {%- if hl -%}{%- set ns.hi = ns.hi + 1 -%}{%- endif -%}
+    {%- set acc = {'n': ['g', 'p', 'g'], 'g': ['n', 'p', 'n'], 'o': ['n', 'p', 'n'], 'r': ['n', 'p', 'n']}[ns.base if ns.base in ['n', 'g', 'o', 'r'] else 'n'] -%}
+    {%- set etone = tg if tg else own if own in ['r', 'o'] else (acc[ns.hi - 1] if hl else ns.base) -%}
+    {%- set ns.out = ns.out + [{'k': 'ent', 't': body, 'tb': (body if (lv | length > 0) else balance(body, lim)), 'ca': ec[1], 'pre': balance(ec[0], lim), 'cain': (ec[1] != '' and (body | length) <= lim), 'sub': sub, 'icon': icon, 'tone': etone, 'ttone': own, 'vt': tg, 'sec': is_sec, 'lab': (lv[0][0] if lv | length > 0 else ''), 'val': (lv[0][1] if lv | length > 0 else ''), 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- endif -%}
 {%- endfor -%}
@@ -100,16 +248,45 @@
 {% macro flex_rows(lines0, base, max_icons=5) -%}
 {%- set items = model(lines0) | from_json([]) -%}
 {%- set ns = namespace(out=[]) -%}
+{%- set b2 = base | replace('/icons/b/', '/icons/b2/') -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "md", "weight": "bold", "wrap": true, "lineSpacing": "4px", "color": "#111827"}] -%}
+    {%- set himg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": "24px", "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
+    {%- if it.ca -%}
+      {%- set htxt = {"type": "text", "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827", "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A"}]} -%}
+    {%- else -%}
+      {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
+    {%- endif -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
+  {%- elif it.k == 'note' -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('48px' if it.sub else '28px')), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
   {%- elif it.k == 'sec' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "color": "#2F80ED"}] -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "md", "margin": ('xxl' if it.gap else 'lg'), "contents": [{"type": "image", "url": base ~ it.icon ~ ".png?v=1", "size": "20px", "flex": 0, "aspectMode": "fit"}, {"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#1F2937"}]}] -%}
+    {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
+    {%- set sz = "xs" if it.sub else "sm" -%}
+    {%- if it.lab and '⟦' in it.val -%}
+      {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}] + (mspans(it.val, '#111827') | from_json([]))} -%}
+    {%- elif it.lab -%}
+      {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#DC2626", "o": "#D97706", "g": "#16A34A"}[it.vt] if it.vt else ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827"))}]} -%}
+    {%- elif it.ca -%}
+      {#- 句尾「請注意」：注意符號（無圓圈）接在同一段文字最後，換行時跟著文字走 -#}
+      {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if it.icon else "regular"), "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A", "weight": "bold"}]} -%}
+    {%- else -%}
+      {%- set txt = {"type": "text", "text": it.tb, "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
+    {%- endif -%}
+    {%- set mg = 'xl' if it.gap else ('sm' if it.sub else 'md') -%}
+    {%- set pad = '48px' if it.sub else '28px' -%}
+    {%- set ipad = '28px' if it.sub else '2px' -%}
+    {%- if it.icon -%}
+      {%- set iimg = {"type": "image", "url": b2 ~ it.icon ~ "_" ~ it.tone ~ ".png?v=1", "size": ('14px' if it.sub else '20px'), "aspectRatio": "1:1", "flex": 0, "aspectMode": "fit"} -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "6px", "alignItems": "flex-start", "margin": mg, "paddingStart": ipad, "contents": [iimg, txt]}] -%}
+    {%- else -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": mg, "paddingStart": pad, "contents": [txt]}] -%}
+    {%- endif -%}
   {%- else -%}
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "28px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "48px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
   {%- endif -%}
 {%- endfor -%}
 {{- ns.out | tojson -}}
@@ -122,12 +299,22 @@
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['**' ~ body ~ '**'] -%}
+    {%- set ns.md = ns.md + ['<img src="' ~ (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ '_' ~ it.tone ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ body ~ '**' ~ ('<span style="color:#F2994A">⚠︎</span>' if it.ca else '')] -%}
+  {%- elif it.k == 'note' -%}
+    {%- set ns.md = ns.md + [('  ' if (it.sub and not it.flat) else '') ~ '<sub style="color:#9CA3AF">' ~ mhtml(it.t) ~ '</sub>'] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.md = ns.md + ['**' ~ it.t ~ '**'] -%}
   {%- elif it.k == 'ent' -%}
     {%- set body = it.t | replace(url, '[開啟連結](' ~ url ~ ')') if url else it.t -%}
-    {%- set ns.md = ns.md + ['- <img src="' ~ base ~ it.icon ~ '.png" width="18" height="18"> ' ~ body] -%}
+    {%- set pre = ('<img src="' ~ (base | replace('/icons/b/', '/icons/b2/')) ~ it.icon ~ '_' ~ it.tone ~ '.png" width="18" height="18" style="vertical-align:middle"> ') if it.icon else '' -%}
+    {%- set ind = '  ' if it.sub else '' -%}
+    {%- set caimg = '<span style="color:#F2994A">⚠︎</span>' if it.ca else '' -%}
+    {%- if it.lab and not url -%}
+      {%- set vcol = {'r': '#DC2626', 'o': '#D97706', 'g': '#16A34A'}[it.vt] if it.vt else '' -%}
+      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ it.lab ~ '&nbsp;&nbsp;' ~ (mhtml(it.val) if '⟦' in it.val else (('<span style="color:' ~ vcol ~ '">**' ~ it.val ~ '**</span>') if vcol else ('**' ~ it.val ~ '**')))] -%}
+    {%- else -%}
+      {%- set ns.md = ns.md + [ind ~ '- ' ~ pre ~ body ~ caimg] -%}
+    {%- endif -%}
   {%- else -%}
     {%- set v = ('<code>' ~ it.old ~ '</code> → <b><code>' ~ it.new ~ '</code></b>') if it.old else ('<code>' ~ it.new ~ '</code>') -%}
     {%- if ns.md | length > 0 -%}

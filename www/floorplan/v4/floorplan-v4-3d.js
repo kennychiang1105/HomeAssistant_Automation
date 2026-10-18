@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta6) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta7) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -91,7 +91,32 @@ const TOGGLE_KINDS = ["light", "switch", "plug", "fan", "cover"];
 const tempColor = (t) => (t < 16 ? "#4f8fff" : t < 20 ? "#4fc3f7" : t < 24 ? "#4dd0b4" : t < 28 ? "#66bb6a"
   : t < 30 ? "#ffd54f" : t < 32 ? "#ffa726" : t < 35 ? "#ff7043" : "#e53935");
 const humColor = (h) => (h < 40 ? "#ffb74d" : h < 60 ? "#66bb6a" : h < 70 ? "#4fc3f7" : h < 80 ? "#5c8dff" : "#7e57c2");
+// V4.1.6: living / dining lights get the opening animation (script.light_group_on) when switched ON from the panel
+// V4.1.6: Apple Home "air quality" glyph – a dot matrix disc (centre dot + rings of smaller dots)
+const aqiSvg = (cls, px) => {
+  let d = `<circle cx="12" cy="12" r="2.1"/>`;
+  for (const [n, rad, r] of [[6, 4.9, 1.45], [12, 8.2, 1.1], [18, 11.0, 0.8]]) {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + (rad > 8 ? Math.PI / n : 0);
+      d += `<circle cx="${(12 + rad * Math.cos(a)).toFixed(2)}" cy="${(12 + rad * Math.sin(a)).toFixed(2)}" r="${r}"/>`;
+    }
+  }
+  return `<svg class="aqi-ic ${cls}" viewBox="0 0 24 24" width="${px}" height="${px}" fill="currentColor">${d}</svg>`;
+};
+const ANIM_RE = /^light\.(ke_ting_deng_zu_(quan|1_ha|2|3)|can_ting_deng_zu_1_ha|yeelink_color5_(4181|106d|fab7|8e3f|5007|2024|f21d|53ed|f618|c8d3)_light)$/;
+const switchLights = (hass, ids, wantOn) => {
+  const anim = wantOn ? ids.filter((e) => ANIM_RE.test(e)) : [];
+  const rest = ids.filter((e) => !anim.includes(e));
+  if (anim.length) hass.callService("script", "light_group_on", { entities: anim });
+  if (rest.length) hass.callService("homeassistant", wantOn ? "turn_on" : "turn_off", { entity_id: rest });
+};
 const NAME_OVERRIDE = {
+  // V4.1.6: kitchen / toilet sensors must always say which room they are in
+  "binary_sensor.kitchen_motion": "廚房人體感應",
+  "binary_sensor.e406bf25caa1_motion": "廁所人體感應",
+  "sensor.kitchenm_wen_du": "廚房溫濕計",
+  "sensor.kitchenm_shi_du": "廚房溫濕計",
+  "binary_sensor.unknown_zhan_kong": "廚房空品儀 佔用",
   "sensor.tesla_charger_homekit_status": "Tesla充電樁",
   "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "二樓門鎖",
   "cover.garage": "車庫鐵門",
@@ -120,9 +145,11 @@ const cleanName = (s, d) => {
   n = n.replace(/^(\S+)\s+\1/, "$1").replace(/\s+/g, " ").trim();
   return n || (s?.attributes?.friendly_name || d.entity);
 };
-// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique
+// the floor is already selected, so "頂樓 / 五樓 …" prefixes are dropped when that keeps names unique.
+// V4.1.6: room names (廚房 / 客廳 / 餐廳 …) are NOT stripped – one floor view shows several rooms, and "人體 動作" alone
+// could be the kitchen or the toilet sensor.
 const stripFloor = (n) => {
-  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫|廚房|客廳|餐廳)\s*(?=\S{2,})/, "");
+  const m = n.replace(/^(頂樓|一樓|二樓|三樓|四樓|五樓|車庫)\s*(?=\S{2,})/, "");
   return m.length >= 2 ? m : n;
 };
 const clip = (n, max = 8) => ([...n].length > max ? [...n].slice(0, max).join("") + "…" : n);
@@ -259,6 +286,9 @@ class FloorplanV43D extends HTMLElement {
         .sm .ic { width:26px; height:26px; --mdc-icon-size:16px; } .sm .nm { font-size:11px; } .sm .ty { font-size:9.5px; }
         .sm .tag { gap:5px; padding:2px 7px 2px 2px; } .sm .seg button { padding:7px 8px; font-size:11.5px; }
         .sm .tools button, .sm .zones button { padding:6px 8px; font-size:11px; } .sm .scn button { padding:8px 4px; font-size:12px; }
+        .phone .ic { width:26px; height:26px; --mdc-icon-size:16px; } .phone .nm { font-size:11px; } .phone .ty { font-size:9.5px; }
+        .phone .tag { gap:5px; padding:2px 7px 2px 2px; }
+        .phone .pin.floorbadge .nm { font-size:13px; } .phone .pin.floorbadge .tag { padding:3px 9px 3px 3px; }
         .nolabels .tx, .pin.compact .tx { display:none; }
         .pin.compact .tag { padding:3px; }
         .scn button, .zones button, .tools button, .seg button, .chips button {
@@ -324,6 +354,18 @@ class FloorplanV43D extends HTMLElement {
         .chips::-webkit-scrollbar { display:none; }
         .hint { position:absolute; left:10px; top:12px; right:200px; font:11px sans-serif; color:rgba(255,255,255,.5);
                 pointer-events:none; }
+        .airbk { position:absolute; inset:0; z-index:39; background:rgba(0,0,0,.28); } .airbk[hidden], .airinfo[hidden] { display:none; }
+        .airinfo { position:absolute; z-index:40; left:50%; top:50%; transform:translate(-50%,-50%); width:min(340px, calc(100% - 24px)); max-height:86%; overflow:auto;
+                   box-sizing:border-box; padding:12px 14px 12px; border-radius:18px; background:rgba(28,28,30,.97); color:#f2f2f7; box-shadow:0 8px 30px rgba(0,0,0,.5); font-family:sans-serif; }
+        .wrap.light .airinfo { background:rgba(255,255,255,.98); color:#1c1c1e; box-shadow:0 8px 30px rgba(0,0,0,.25); }
+        .airinfo .hd { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .airinfo .hd .tt { flex:1; font:700 15px sans-serif; } .airinfo .hd .x { border:0; background:rgba(120,120,128,.25); color:inherit; width:26px; height:26px; border-radius:13px; font:700 14px sans-serif; cursor:pointer; }
+        .airinfo .vd { display:inline-block; padding:2px 9px; border-radius:10px; font:700 12px sans-serif; color:#fff; }
+        .airinfo .rw { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:2px 10px; padding:6px 0; border-top:1px solid rgba(120,120,128,.25); font:13px sans-serif; }
+        .airinfo .rw .v { font-weight:700; text-align:right; } .airinfo .rw .v small { font-weight:400; opacity:.65; margin-left:2px; }
+        .airinfo .rw .g { min-width:42px; text-align:center; padding:1px 8px; border-radius:9px; font:700 11px sans-serif; color:#fff; }
+        .airinfo .sm { font:12px sans-serif; opacity:.75; margin-top:8px; line-height:1.5; }
+        .airinfo .ad { margin-top:8px; padding:8px 10px; border-radius:10px; font:600 12.5px sans-serif; line-height:1.5; background:rgba(120,120,128,.18); }
         .ver { position:absolute; right:10px; bottom:5px; font:600 10.5px sans-serif; letter-spacing:.3px;
                color:rgba(255,255,255,.45); pointer-events:none; z-index:3; }
         .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -336,7 +378,8 @@ class FloorplanV43D extends HTMLElement {
         <div class="filter"><div class="seg"><button data-p="default" title="恢復此樓層預設顯示"><ha-icon icon="mdi:restore"></ha-icon></button>${PRESETS.map(([k, n]) => `<button data-p="${k}" title="${n}"><ha-icon icon="${PRESET_ICONS[k]}"></ha-icon><span class="t${k === "custom" ? " keep" : ""}">${n}</span></button>`).join("")}</div>
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
-        <div class="ver">UI4.0-beta6</div>
+        <div class="airbk" hidden></div><div class="airinfo" hidden></div>
+        <div class="ver">UI4.0-beta7</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -357,6 +400,7 @@ class FloorplanV43D extends HTMLElement {
     if (light !== this._light) { this._light = light; this.shadowRoot.querySelector(".wrap")?.classList.toggle("light", light); }
     if (first) this._loadOverrides();
     if (!this._ready) return;
+    if (this._airInfoOpen) this._renderAirInfo();
     const now = Date.now();                       // HA pushes every state change: sync at most ~3 times a second
     if (now - (this._lastSync || 0) > 350) { this._lastSync = now; clearTimeout(this._syncT); this._sync(); }
     else { clearTimeout(this._syncT); this._syncT = setTimeout(() => { this._lastSync = Date.now(); this._sync(); }, 350); }
@@ -1731,6 +1775,12 @@ class FloorplanV43D extends HTMLElement {
     if (!this._ready) return;
     const T = this._T;
     const all = this._floor === "全棟";
+    // V4.1.6: the whole-house view shows the names (phone too) unless the user explicitly toggled the names button
+    try {
+      if (sessionStorage.getItem("floorplan_v4_labels") === null) {
+        this._labels = all || (this.shadowRoot.querySelector(".wrap")?.clientWidth || window.innerWidth) >= 768;
+      }
+    } catch (_) {}
     const names = Object.keys(this._cfg.floors).filter((n) => this._groups[n]);
     names.forEach((n, i) => {
       const g = this._groups[n].group;
@@ -1743,7 +1793,9 @@ class FloorplanV43D extends HTMLElement {
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
     this._zone = null;
     const whole = this._floor === "全棟";
-    for (const q of [".filter", ".zones", ".scn", ".tools"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    // V4.1.6: the tools row (restore default view / names) stays available in the whole-house view; only the per-floor bars are hidden
+    for (const q of [".filter", ".zones", ".scn"]) { const e = this.shadowRoot.querySelector(q); if (e) e.style.visibility = whole ? "hidden" : ""; }
+    { const e = this.shadowRoot.querySelector(".tools"); if (e) e.style.visibility = ""; }
     this._renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, whole ? 1.2 : 1.65));
     this._renderScenes();
     this._expanded = null;
@@ -1950,7 +2002,7 @@ class FloorplanV43D extends HTMLElement {
           timer = setTimeout(() => {                         // long press: all on / all off
             held = true;
             const anyOn = c.items.some((d) => this._hass?.states[d.entity]?.state === "on");
-            this._hass?.callService("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: c.items.map((d) => d.entity) });
+            if (this._hass) switchLights(this._hass, c.items.map((d) => d.entity), !anyOn);
             this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: "medium" }));
             try { navigator.vibrate?.(40); } catch (_) {}
           }, 400);
@@ -2003,6 +2055,7 @@ class FloorplanV43D extends HTMLElement {
           if (!moved) {
             this._expanded = key; this._focus = box;           // tap: zoom in and list every reading
             this._frame(); this._applyCats(); this._renderZones();
+            if (/廚房/.test(prefix)) { this._airInfoOpen = true; this._renderAirInfo(); }     // V4.1.6: indoor air-quality details
           }
         });
         host.appendChild(el);
@@ -2157,10 +2210,43 @@ class FloorplanV43D extends HTMLElement {
         sp
       });
 
-      this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
+      if (ANIM_RE.test(d.entity) && this._hass.states[d.entity]?.state !== "on") this._hass.callService("script", "light_group_on", { entities: [d.entity] });
+      else this._hass.callService("homeassistant", "toggle", { entity_id: d.entity });
     } else {
       this._moreInfo(d.entity);
     }
+  }
+  // V4.1.6: kitchen indoor air quality panel (PM1.0 / PM2.5 / PM10 + gases) with a plain-language verdict
+  _renderAirInfo() {
+    const root = this.shadowRoot, box = root.querySelector(".airinfo"), bk = root.querySelector(".airbk");
+    if (!box || !bk) return;
+    const close = () => { this._airInfoOpen = false; box.hidden = true; bk.hidden = true; };
+    if (!this._airInfoOpen || !this._hass) return close();
+    const st = this._hass.states, K = "sensor.chu_fang_chu_fang_huan_jing_gan_ce_qi_chu_fang";
+    const ROWS = [["PM1.0", "_pm1_0", "μg/m³", 15, 35, 0], ["PM2.5", "_pm2_5", "μg/m³", 15, 35, 0], ["PM10", "_pm10", "μg/m³", 54, 125, 0],
+      ["二氧化碳", "_co2", "ppm", 1000, 2000, 0], ["總揮發性有機物", "_tvoc", "ppb", 220, 600, 0], ["甲醛", "_jia_quan_ch2o", "mg/m³", 0.05, 0.08, 3], ["一氧化碳", "_yi_yang_hua_tan_co", "ppm", 9, 35, 1]];
+    const COL = ["#43a047", "#f9a825", "#e53935"], TXT = ["優良", "普通", "偏高"];
+    let worst = 0, worstP = 0, html = "";
+    for (const [name, suf, unit, a, b, dec] of ROWS) {
+      const v = parseFloat(st[K + suf]?.state);
+      if (isNaN(v)) continue;
+      const lv = v <= a ? 0 : v <= b ? 1 : 2;
+      worst = Math.max(worst, lv);
+      if (/^PM/.test(name)) worstP = Math.max(worstP, lv);
+      html += `<div class="rw"><span>${name}</span><span class="v">${dec ? v.toFixed(dec) : Math.round(v)}<small>${unit}</small></span><span class="g" style="background:${COL[lv]}">${TXT[lv]}</span></div>`;
+    }
+    const t = parseFloat(st[K + "_wen_du"]?.state), hm = parseFloat(st[K + "_shi_du"]?.state);
+    const oq = st["sensor.outdoor_air_quality"];
+    const oLv = parseInt(oq?.attributes?.level, 10) || 0;
+    const verdict = worst === 0 ? "室內空氣品質優良，不需要處理。" : worst === 1 ? "室內空氣品質普通，建議開啟空氣清淨機並適度通風。" : "室內空氣品質偏高，請開啟空氣清淨機，並確認是否有烹飪、煙霧或粉塵來源。";
+    const hint = worstP > 0 && oLv >= 3 ? "戶外空氣品質也不佳（" + oq.state + "），請先關閉門窗，再開空氣清淨機。" : "";
+    const upd = st[K + "_pm2_5"]?.last_updated ? new Date(st[K + "_pm2_5"].last_updated).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    box.innerHTML = `<div class="hd"><span class="tt">廚房室內空氣品質</span><span class="vd" style="background:${COL[worst]}">${TXT[worst]}</span><button class="x" aria-label="關閉">✕</button></div>${html || "<div class='sm'>目前沒有感測器資料</div>"}
+      <div class="ad" style="border-left:4px solid ${COL[worst]}">${verdict}${hint ? "<br>" + hint : ""}</div>
+      <div class="sm">${isNaN(t) ? "" : `溫度 ${t.toFixed(1)}°C`}${isNaN(hm) ? "" : `　濕度 ${Math.round(hm)}%`}${oq && !["unknown", "unavailable"].includes(oq.state) ? `<br>戶外：${oq.state}（AQI ${oq.attributes.aqi ?? "--"}　PM2.5 ${oq.attributes.pm25 ?? "--"}）` : ""}${upd ? `<br>更新 ${upd}` : ""}</div>`;
+    box.hidden = false; bk.hidden = false;
+    box.querySelector(".x").onclick = close;
+    bk.onclick = close;
   }
   _moreInfo(entityId) {
     if (!entityId) return;
@@ -2404,7 +2490,14 @@ class FloorplanV43D extends HTMLElement {
     const wrap = this.shadowRoot.querySelector(".wrap");
     const w = wrap.clientWidth, h = wrap.clientHeight;
     if (!w || !h) return;
-    wrap.classList.toggle("phone", w < 600);                 // phone: icon-only filter buttons
+    const isPhone = w < 600;
+    wrap.classList.toggle("phone", isPhone);                 // phone: icon-only filter buttons, smaller tags
+    if (isPhone !== this._phone) {                           // tag size changes -> forget the cached widths
+      this._phone = isPhone;
+      for (const sp of this._spots || []) { sp.tw = 0; sp.fullW = 0; }
+      for (const pr of this._persons || []) { pr.tw = 0; pr.fullW = 0; }
+      this._barDirty = true;
+    }
     const small = w < 900;                                   // e.g. iPad mini landscape: smaller labels and buttons
     if (small !== this._small) {
       this._small = small;
@@ -2415,7 +2508,7 @@ class FloorplanV43D extends HTMLElement {
     }
     try {
       if (sessionStorage.getItem("floorplan_v4_labels") === null) {
-        const wantLabels = w >= 768;
+        const wantLabels = w >= 768 || this._floor === "全棟";
         if (this._labels !== wantLabels) {
           this._labels = wantLabels;
           this._syncTools?.();
@@ -2509,9 +2602,16 @@ class FloorplanV43D extends HTMLElement {
         const boxes = col.map((it) => {
           const sp = it.sp;
           if (!sp.tw) { sp.el.classList.remove("compact"); sp.tw = sp.tag.offsetWidth || 90; sp.th = sp.tag.offsetHeight || 36; }
+          // V4.1.6: the cached width can be stale/too small (measured while hidden, or the 90px fallback) -> the right-hand tags (stair lights) stuck out past
+          // the card edge. Re-measure every pass while the tag is visible, and never place a tag where it would be clipped.
+          if (this._labels) { const ow = sp.tag.offsetWidth; if (ow >= 60) { sp.tw = ow; sp.th = sp.tag.offsetHeight || sp.th || 36; } }
           const compact = !this._labels;
           if (sp.el.classList.contains("compact") !== compact) sp.el.classList.toggle("compact", compact);
-          return { it, tw: compact ? 36 : sp.tw, th: compact ? 36 : sp.th };
+          // never let a tag be wider than its half of the card (long names get cut with an ellipsis instead of running off the edge)
+          const maxTw = Math.max(80, w / 2 - 16);
+          if (!compact && sp.tw > maxTw) { sp.tag.style.maxWidth = `${maxTw}px`; sp.tag.style.overflow = "hidden"; sp.tag.style.textOverflow = "ellipsis"; }
+          else if (sp.tag.style.maxWidth) { sp.tag.style.maxWidth = ""; sp.tag.style.overflow = ""; sp.tag.style.textOverflow = ""; }
+          return { it, tw: compact ? 36 : Math.min(sp.tw, maxTw), th: compact ? 36 : sp.th };
         });
         let y = topLimit;
         for (const b of boxes) { b.y = Math.max(y, b.it.y - b.th / 2); y = b.y + b.th + 6; }
@@ -2519,7 +2619,7 @@ class FloorplanV43D extends HTMLElement {
         if (over > 0) for (const b of boxes) b.y = Math.max(topLimit, b.y - over);
         for (const b of boxes) {
           const { it, tw, th } = b, sp = it.sp;
-          const lx = side === "L" ? 8 : w - tw - 8;
+          const lx = side === "L" ? 8 : Math.max(8, w - tw - 12);
           placed.push({ x: lx - 3, y: b.y - 3, w: tw + 6, h: th + 6 });
           sp.el.style.left = `${it.x}px`; sp.el.style.top = `${it.y}px`;
           sp.tag.style.transform = `translate(${lx - it.x}px, ${b.y - it.y}px)`;
@@ -2774,8 +2874,14 @@ class FloorplanV4Sidebar extends HTMLElement {
                        background:rgba(79,195,247,.2); color:#1f9bd6; font:700 13px sans-serif; cursor:pointer; --mdc-icon-size:20px; }
         .cams button:active { filter:brightness(1.2); scale:.97; }
         .compact.box { height:auto; padding:10px 12px 12px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px 10px; }
+        .compact.box.hasaq { grid-template-columns:1fr auto auto; }
         .compact .top, .compact .date { grid-column:1; } .compact .date { margin:0; font-size:12px; }
-        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; }
+        .compact .wx { grid-column:2; grid-row:1 / span 2; padding:6px 10px; align-self:stretch; }
+        .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:7px; padding:6px 10px; margin:0; --mdc-icon-size:30px; }
+        .compact .aq .aqi-ic.d, .compact .aq .dsk { display:none; } .compact .aq .mob { display:flex; flex-direction:column; align-items:center; text-align:center; }
+        .compact .aq .aqi-ic.m { display:block; width:26px; height:26px; }
+        .compact .aq .mob .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
+        .compact .aq .mob .c { font:700 12px sans-serif; color:var(--c); margin-top:4px; white-space:nowrap; }
         .compact .h, .compact .nav, .compact .ppl { display:none; }
         .compact .sec { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); gap:6px; }
         .compact .cams { display:contents; }
@@ -2786,8 +2892,13 @@ class FloorplanV4Sidebar extends HTMLElement {
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
-        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; max-width:72px;
-                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; white-space:nowrap; }
+        /* narrow sidebar (e.g. iPad mini landscape): day tag stays to the right of the clock, seconds a little smaller; if it still does not fit
+           _fit() steps the clock / tag down (fit1, fit2) until everything is visible on one line */
+        .narrow .top { flex-wrap:nowrap; gap:6px; } .narrow .time { white-space:nowrap; } .narrow .time .s { font-size:.74em; }
+        .narrow.fit1 .time { font-size:23px; } .narrow.fit1 .ntag { font-size:10px; padding:1px 5px; }
+        .narrow.fit2 .time { font-size:20px; } .narrow.fit2 .time .s { font-size:.66em; } .narrow.fit2 .ntag { font-size:9px; padding:1px 4px; }
+        .narrow.fit3 .time { font-size:17px; letter-spacing:0; } .narrow.fit3 .top { gap:4px; }
         .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
         .nav button { border:0; border-radius:10px; padding:9px 4px; background:rgba(120,120,128,.14);
                       color:var(--primary-text-color); font:600 14px sans-serif; cursor:pointer; }
@@ -2804,6 +2915,24 @@ class FloorplanV4Sidebar extends HTMLElement {
               cursor:pointer; --mdc-icon-size:30px; color:#ffd36b; }
         .wx .t { font:300 24px sans-serif; color:var(--primary-text-color); line-height:1; }
         .wx .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
+        /* V4.1.6: outdoor air quality (sensor.outdoor_air_quality, Taiwan PM2.5 bands) – under the weather on desktop, beside it on the phone (.compact) */
+        .aq { display:none; align-items:center; gap:10px; padding:7px 10px; margin-top:6px; border-radius:12px; cursor:pointer; --mdc-icon-size:26px; color:var(--c,#43a047);
+              background:color-mix(in srgb, var(--c,#43a047) 16%, transparent); }
+        .aq.show { display:flex; }
+        .aq .t { font:600 17px sans-serif; color:var(--c,#43a047); line-height:1; }
+        .aq .mob { display:none; } .aq .aqi-ic.m { display:none; } .aq .aqi-ic { flex:none; color:var(--c,#43a047); } .aq .c .n { color:var(--primary-text-color); font-weight:600; }
+        .aq .dsk .t .v { font:600 13px sans-serif; color:var(--primary-text-color); margin-left:6px; opacity:.85; }
+        .aq .dsk .pmr { font:12px sans-serif; color:var(--secondary-text-color); margin-top:5px; display:flex; flex-wrap:wrap; gap:2px 9px; }
+        .aq .dsk .pmr b { font-weight:600; } .aq .dsk .pmr .o b { color:#fb8c00; } .aq .dsk .pmr .r b { color:#e53935; font-weight:700; }
+        .wx .uv { font:600 11px sans-serif; margin-top:3px; display:none; } .wx .uv.show { display:block; }
+        .aq .c { font:12px sans-serif; color:var(--secondary-text-color); margin-top:4px; }
+        .narrow .aq { padding:5px 8px; gap:8px; --mdc-icon-size:22px; margin-top:5px; } .narrow .aq .t { font-size:15px; } .narrow .aq .c { font-size:10.5px; margin-top:2px; }
+        /* V4.1.6: narrow sidebar (iPad mini landscape, ~155 px): everything a little tighter so all four family members still fit under the cards */
+        .narrow .aq .aqi-ic.d { width:22px; height:22px; } .narrow .aq .dsk .t { font-size:15px; } .narrow .aq .dsk .t .v { font-size:11px; margin-left:4px; }
+        .narrow .aq .dsk .pmr { font-size:10px; gap:0 6px; flex-wrap:nowrap; white-space:nowrap; margin-top:3px; }
+        .narrow .wx .uv { margin-top:1px; font-size:10px; }
+        .narrow .ppl .row { padding:1px 2px; gap:6px; } .narrow .ppl .av { width:24px; height:24px; font-size:11px; } .narrow .ppl .nm { font-size:12px; } .narrow .ppl .lc { font-size:10px; }
+        .narrow .h { margin:5px 2px 3px; } .narrow .ppl { overflow-y:auto; scrollbar-width:none; } .narrow .ppl::-webkit-scrollbar { display:none; }
         .sec { display:flex; flex-direction:column; gap:5px; }
         .box > * { flex-shrink:0; } .box > .ppl { flex:0 1 auto; }
         .nav { margin-top:10px; }
@@ -2819,7 +2948,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         ${PEOPLE_CSS}
       </style>
       <div class="box ${cfg.compact ? "compact" : ""}"><div class="top"><div class="time"></div><span class="dtag ntag"></span></div><div class="date"></div>
-        <div class="wx"></div>
+        <div class="wx"></div><div class="aq"></div>
         <div class="h hrow">保全狀態<span class="led"></span></div><div class="sec"></div>
         <div class="nav">${floors.map((f) => `<button data-f="${f}">${f === "全棟" ? "全棟" : f}</button>`).join("")}</div>
         <div class="h">在家成員</div><div class="ppl"></div></div>`;
@@ -2846,9 +2975,42 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (box && wx) {
       const [ic, txt] = WX[wx.state] || ["mdi:weather-partly-cloudy", wx.state];
       const a = wx.attributes;
+      const uvS = h.states[this._cfg.uv || "sensor.outdoor_uv_index"];
+      const uvN = parseFloat(uvS?.state);
+      const UVC = (u) => (u < 3 ? ["#43a047", "低量"] : u < 6 ? ["#f9a825", "中量"] : u < 8 ? ["#fb8c00", "高量"] : u < 11 ? ["#e53935", "過量"] : ["#8e24aa", "危險"]);
+      const [uvCol, uvTxt] = isNaN(uvN) ? ["", ""] : UVC(uvN);
       box.innerHTML = `<ha-icon icon="${ic}"></ha-icon><div><div class="t">${a.temperature ?? "--"}°</div>
-        <div class="c">${txt} · 濕度 ${a.humidity ?? "--"}%</div></div>`;
+        <div class="c">${txt} · 濕度 ${a.humidity ?? "--"}%</div>
+        <div class="uv ${isNaN(uvN) ? "" : "show"}" style="color:${uvCol}">紫外線 ${isNaN(uvN) ? "" : uvN.toFixed(1)} ${uvTxt}</div></div>`;
       box.onclick = () => this._more(wxId);
+    }
+    const aqEl = root.querySelector(".aq");
+    if (aqEl) {
+      const aqId = this._cfg.air || "sensor.outdoor_air_quality";
+      const aq = h.states[aqId];
+      const AQ = { 1: ["#43a047", "良好"], 2: ["#f9a825", "普通"], 3: ["#fb8c00", "敏感"], 4: ["#e53935", "不健康"], 5: ["#8e24aa", "很不健康"], 6: ["#7b1f3a", "危害"] };
+      const ok = aq && !["unknown", "unavailable", ""].includes(aq.state);
+      aqEl.classList.toggle("show", !!ok);
+      root.querySelector(".box")?.classList.toggle("hasaq", !!ok);
+      if (ok) {
+        const lv = parseInt(aq.attributes.level, 10) || 2;
+        const [col, short] = AQ[lv] || AQ[2];
+        const pm = parseFloat(aq.attributes.pm25);
+        aqEl.style.setProperty("--c", col);
+        const aqi = parseFloat(aq.attributes.aqi);
+        const aqn = isNaN(aqi) ? "--" : Math.round(aqi);
+        // outdoor particulates on one line (PM2.5, and PM10 only when the source has it): orange when elevated, red when abnormal
+        const pmCell = (lab, v, o, r) => {
+          const n = parseFloat(v);
+          if (isNaN(n)) return "";
+          return `<span class="${n > r ? "r" : n > o ? "o" : ""}">${lab} <b>${Math.round(n)}</b></span>`;
+        };
+        const pmRow = [pmCell("PM2.5", aq.attributes.pm25, 15, 35), pmCell("PM10", aq.attributes.pm10, 54, 125)].join("");
+        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}<span class="v">AQI ${aqn}</span></div><div class="pmr">${pmRow}</div></div>`
+          + `${aqiSvg("m", 26)}<div class="mob"><div class="t">${aqn}</div><div class="c">${short}</div></div>`;
+        aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
+        aqEl.onclick = () => this._more(aqId);
+      }
     }
     const sec = root.querySelector(".sec");
     if (sec) {
@@ -2912,6 +3074,15 @@ class FloorplanV4Sidebar extends HTMLElement {
     const we = n.getDay() === 0 || n.getDay() === 6;
     return { text: we ? "週末" : "工作日", red: we };
   }
+  // narrow layout: make the clock + day tag fit on one line (try normal, then fit1, then fit2)
+  _fit() {
+    const box = this.shadowRoot.querySelector(".box"), top = this.shadowRoot.querySelector(".top");
+    if (!box || !top) return;
+    box.classList.remove("fit1", "fit2", "fit3");
+    if (!box.classList.contains("narrow")) return;
+    const over = () => top.scrollWidth > top.clientWidth + 1;
+    for (const c of ["fit1", "fit2", "fit3"]) { if (!over()) break; box.classList.add(c); }
+  }
   _clock() {
     const t = this.shadowRoot.querySelector(".time"), d = this.shadowRoot.querySelector(".date"), nt = this.shadowRoot.querySelector(".ntag");
     const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -2925,7 +3096,8 @@ class FloorplanV4Sidebar extends HTMLElement {
       const di = this._dayInfo(n);
       const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}">${esc(di.text)}</span>`;
       if (d.dataset.h !== dhtml) { d.innerHTML = dhtml; d.dataset.h = dhtml; }
-      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); }
+      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); this._fit(); }
+      if (n.getSeconds() === 0) this._fit();                                // re-check once a minute (digit widths change)
     };
     this._updFn = upd;
     upd();
@@ -2940,7 +3112,7 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (this.shadowRoot.querySelector(".time")) this._clock();          // HA detaches cards on view switch: restart the clock
     this._vis = () => { if (!document.hidden) this._clock(); };
     document.addEventListener("visibilitychange", this._vis);
-    this._ro = new ResizeObserver(() => this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250));
+    this._ro = new ResizeObserver(() => { this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250); this._fit(); });
     this._ro.observe(this);
   }
   disconnectedCallback() {

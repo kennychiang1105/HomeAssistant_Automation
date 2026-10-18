@@ -1,0 +1,25 @@
+# ────────────────────────────────────────────────────────
+# 00-2Q電池預估更新AI (V4.1.6)
+# 相容版本：Helpers V4.1.6（packages/v41_battery_forecast.yaml）
+# 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-17）：新增。每天 03:50 與 HA 啟動 3 分鐘後執行 scripts/battery_forecast.py，更新 sensor.battery_forecast（各裝置預估剩餘天數）。
+# ────────────────────────────────────────────────────────
+- alias: 00-2Q電池預估更新AI (V4.1.6)
+  id: ai_00_2q_battery_forecast
+  description: 每天更新電池電量預估（剩餘天數），供耗材通知與門鎖預估天數使用
+  mode: single
+  triggers:
+    - trigger: time
+      at: "03:50:00"
+    - trigger: homeassistant
+      event: start
+  actions:
+    - if: "{{ trigger.platform == 'homeassistant' }}"
+      then:
+        - delay: "00:03:00"
+    - action: shell_command.battery_forecast_run
+      continue_on_error: true
+    - delay: "00:00:05"
+    - action: homeassistant.update_entity
+      target:
+        entity_id: sensor.battery_forecast

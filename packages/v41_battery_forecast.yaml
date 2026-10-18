@@ -1,0 +1,19 @@
+# ────────────────────────────────────────────────────────
+# 電池電量預估（V4.1.6，2026-10-17）
+# scripts/battery_forecast.py 讀 HA 長期統計（1 年以上）算出各裝置的日耗電率與預估剩餘天數，寫到 /config/battery_forecast.json；
+# sensor.battery_forecast 讀這個檔（狀態＝更新時間，屬性 items＝各裝置結果，key 與 00-2C 的短代碼相同）。
+# 由 00-2Q電池預估更新AI 每天 03:50 與 HA 啟動後執行；00-2C 定期摘要、客廳門鎖預估天數都用它。
+# ────────────────────────────────────────────────────────
+shell_command:
+  battery_forecast_run: "python3 /config/scripts/battery_forecast.py > /dev/null 2>&1"
+
+command_line:
+  - sensor:
+      name: battery_forecast
+      unique_id: battery_forecast_v416
+      command: "cat /config/battery_forecast.json 2>/dev/null || echo '{}'"
+      value_template: "{{ value_json.updated | default('unknown') }}"
+      json_attributes:
+        - updated
+        - items
+      scan_interval: 1800

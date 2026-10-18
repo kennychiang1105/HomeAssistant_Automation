@@ -646,8 +646,10 @@
   mode: parallel
   max: 10
 - id: '1691820750233'
-  alias: 08-3鐵門狀態不穩通知 (V4.0.0)
-  description: ''
+  alias: 08-3鐵門狀態不穩通知 (V4.1.6)
+  description: >-
+    V4.1.6：鐵門（cover.garage）連線中斷 4 分鐘才通知；若同一時間有 UniFi 網路設備剛重開機（20 分鐘內）或不是「已連線」
+    （例如更新一樓路由器／AP），先最多等 10 分鐘讓鐵門自己恢復，仍未恢復才通知。改用統一通知（LINE 卡片），移除舊的三段純文字 LINE。
   triggers:
   - entity_id:
     - cover.garage
@@ -667,23 +669,43 @@
     trigger: state
   conditions: []
   actions:
-  - data:
-      user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【智慧保全通知】一般
-        General \U0001FAA7\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"鐵門狀態警告⚠️\\n，\U0001F697鐵門連線狀態不穩\U0001F6DC，\\n請注意。\"\n\n
-        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"⚠️鐵門連線狀態不穩\U0001F6DC。\"\n\n
-        \      }\n  ]\n"
-    enabled: true
-    action: script.send_line_to_user
+  - variables:
+      net_busy: >-
+        {% set ns = namespace(busy=false) %}
+        {% for s in states.sensor %}
+          {% if s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_uptime$') %}
+            {% set b = as_datetime(s.state, none) %}
+            {% if b is not none and (now() - b).total_seconds() < 1200 %}{% set ns.busy = true %}{% endif %}
+          {% elif s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_state$') %}
+            {% if s.state not in ['connected'] %}{% set ns.busy = true %}{% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.busy }}
+  - if:
+    - condition: template
+      value_template: '{{ net_busy }}'
+    then:
+    - wait_template: '{{ not is_state(''cover.garage'', [''unavailable'', ''unknown'']) }}'
+      timeout: '00:10:00'
+      continue_on_timeout: true
+  - condition: state
+    entity_id: cover.garage
+    state:
+    - unavailable
+    - unknown
   - data:
       level: general
-      line: false
+      line: true
       source: 08-3鐵門狀態不穩通知
-      message: 鐵門連線狀態不穩，請注意。
+      version: V4.1.6
       title: 鐵門狀態警告
+      message: |-
+        鐵門連線狀態不穩，請注意。
+        已持續中斷{{ '，網路設備近期有重啟，已等待恢復仍未連上' if net_busy else '' }}。
+        請確認鐵門電源與 Wi-Fi 連線。
     action: script.notify_dispatch
-  mode: parallel
-  max: 10
+  mode: single
+
 - id: '1692271669059'
   alias: 800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家
   description: ''
@@ -854,7 +876,7 @@
   actions:
   - service: light.toggle
     target:
-      entity_id: light.can_ting_deng_zu_1_ha
+      entity_id: light.can_ting_deng_zu_dong_hua
   - delay: '00:00:00.5'
 - id: '1692281816696'
   alias: 800-開關系列-4廚房開關2長按
@@ -899,7 +921,7 @@
   actions:
   - service: light.toggle
     target:
-      entity_id: light.ke_ting_deng_zu_quan
+      entity_id: light.ke_ting_deng_zu_quan_dong_hua
   - delay: '00:00:00.5'
 - id: '1692451967876'
   alias: 800-開關系列-6客廳主開關下2/客廳外開關下1-客廳燈部分開
@@ -919,12 +941,12 @@
   max_exceeded: silent
   conditions: []
   actions:
-  - service: light.turn_on
+  - service: script.turn_on
     target:
-      entity_id:
-      - light.ke_ting_deng_zu_1_ha
-      - light.ke_ting_deng_zu_3
-      - light.yeelink_color5_4181_light
+      entity_id: script.light_group_on
+    data:
+      variables:
+        group: living_partial
   - service: light.turn_off
     target:
       entity_id: light.ke_ting_deng_zu_2
@@ -1266,10 +1288,8 @@
   mode: single
 - id: '1692463380057'
   alias: 08-4客廳大門開啟自動開燈一段時間
-  description: >-
-    日落後到日出前（太陽在地平線下）客廳大門被打開 → 門口燈與路燈開啟（原本就開著也一樣計時）。
-    5 分鐘後檢查大門：已關上就關燈；還開著就再倒數 5 分鐘，直到大門關上才關燈。5 分鐘內再次開門會重新計時（restart）。
-    大門狀態用 binary_sensor.0x54ef4410007ac23c_door_state（on＝開、off＝關；沒有回報時視為已關上，避免燈一直不關）。
+  description: 日落後到日出前（太陽在地平線下）客廳大門被打開 → 門口燈與路燈開啟（原本就開著也一樣計時）。 5 分鐘後檢查大門：已關上就關燈；還開著就再倒數
+    5 分鐘，直到大門關上才關燈。5 分鐘內再次開門會重新計時（restart）。 大門狀態用 binary_sensor.0x54ef4410007ac23c_door_state（on＝開、off＝關；沒有回報時視為已關上，避免燈一直不關）。
   trigger:
   - platform: state
     entity_id:
@@ -1325,16 +1345,19 @@
       entity_id: switch.che_ku_zhu_deng
       state: 'off'
     - condition: template
-      value_template: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}"
+      value_template: '{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed,
+        0)) < 5 }}'
     then:
     - delay:
-        seconds: "{{ [((5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0))) | round(1, 'ceil')), 0.5] | max }}"
+        seconds: '{{ [((5.1 - (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed,
+          0))) | round(1, ''ceil'')), 0.5] | max }}'
   - action: input_text.set_value
     alias: 標記這次是按鈕手動切換（104-1 據此啟動手動關燈冷卻）
     target:
       entity_id: input_text.terncy_btn_last
     data:
-      value: switch.che_ku_zhu_deng,switch.lou_ti_deng|{{ now().timestamp() | int }}
+      value: switch.che_ku_zhu_deng,switch.lou_ti_deng|{{ now().timestamp() | int
+        }}
   - service: switch.toggle
     target:
       entity_id:
@@ -1658,7 +1681,7 @@
   alias: 09B-Homepod Sensor sync
   description: Processes temperature and humidity data from the HomePod Mini
   triggers:
-  - minutes: /2
+  - minutes: /1
     id: time
     trigger: time_pattern
   actions:
@@ -1667,12 +1690,12 @@
     target:
       entity_id: input_boolean.collection_of_homepod_sensors
   - delay: 00:00:05
-    enabled: false
+    enabled: true
   - data: {}
-    target:
-      entity_id: input_boolean.collection_of_homekit_sensors
     action: input_boolean.turn_off
-    enabled: false
+    enabled: true
+    target:
+      entity_id: input_boolean.collection_of_homepod_sensors
 - id: '1721572094764'
   alias: 08-5D頂樓坎燈自動化亮度修正V2
   description: ''
@@ -2286,7 +2309,8 @@
     trigger: device
   conditions:
   - condition: template
-    value_template: "{{ not is_state('input_boolean.emergency_triple_press_pause', 'on') }}"
+    value_template: '{{ not is_state(''input_boolean.emergency_triple_press_pause'',
+      ''on'') }}'
   - condition: template
     value_template: '{{(as_timestamp(now()) - as_timestamp(state_attr(''automation.a05ejin_ji_shi_ti_an_niu'',
       ''last_triggered'') | default(0))) > (2) }}'
@@ -2696,86 +2720,49 @@
         value_template: '{{ cube_action in [''rotate'', ''rotate_left'', ''rotate_right'']
           }}'
       sequence:
-      - choose:
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 4 }}'
-          sequence:
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.yeelink_color5_4181_light
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 3 }}'
-          sequence:
-          - action: light.turn_on
-            target:
-              entity_id:
-              - light.yeelink_color5_4181_light
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 2 }}'
-          sequence:
-          - action: light.turn_on
-            target:
-              entity_id:
-              - light.yeelink_color5_4181_light
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-          - action: light.turn_off
-            target:
-              entity_id: light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 1 }}'
-          sequence:
-          - action: light.turn_on
-            target:
-              entity_id:
-              - light.yeelink_color5_4181_light
-              - light.ke_ting_deng_zu_1_ha
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
-        - conditions:
-          - condition: template
-            value_template: '{{ [states(''light.yeelink_color5_4181_light''), states(''light.ke_ting_deng_zu_1_ha''),
-              states(''light.ke_ting_deng_zu_2''), states(''light.ke_ting_deng_zu_3'')]
-              | select(''eq'', ''on'') | list | count == 0 }}'
-          sequence:
-          - action: light.turn_on
-            target:
-              entity_id: light.yeelink_color5_4181_light
-          - action: light.turn_off
-            target:
-              entity_id:
-              - light.ke_ting_deng_zu_1_ha
-              - light.ke_ting_deng_zu_2
-              - light.ke_ting_deng_zu_3
+      - variables:
+          cube_units: >-
+            {% set u = [['living_small', 'light.yeelink_color5_4181_light'], ['living_1', 'light.ke_ting_deng_zu_1_ha'], ['living_2', 'light.ke_ting_deng_zu_2'], ['living_3', 'light.ke_ting_deng_zu_3']] %}
+            {{ u | selectattr('1', 'in', states.light | selectattr('state', 'eq', 'off') | map(attribute='entity_id') | list) | map(attribute='0') | list }}
+      - if:
+        - condition: template
+          value_template: '{{ cube_units | count == 0 }}'
+        then:
+        - action: light.turn_off
+          target:
+            entity_id:
+            - light.yeelink_color5_4181_light
+            - light.ke_ting_deng_zu_1_ha
+            - light.ke_ting_deng_zu_2
+            - light.ke_ting_deng_zu_3
+        else:
+        - action: script.turn_on
+          target:
+            entity_id: script.light_group_on
+          data:
+            variables:
+              group: '{{ cube_units[0] }}'
+              style: 快速
     - conditions:
       - condition: template
         value_template: '{{ cube_action == ''move'' }}'
       sequence:
-      - action: light.toggle
-        target:
+      - if:
+        - condition: state
           entity_id: light.can_ting_deng_zu_1_ha
+          state: 'on'
+        then:
+        - action: light.turn_off
+          target:
+            entity_id: light.can_ting_deng_zu_1_ha
+        else:
+        - action: script.turn_on
+          target:
+            entity_id: script.light_group_on
+          data:
+            variables:
+              group: dining
+              style: 滑動
     - conditions:
       - condition: template
         value_template: '{{ cube_action in [''shake'', ''shake_air'', ''shock'', ''vibration'']
@@ -2921,14 +2908,10 @@
     - event.ding_lou_lou_ti_deng_double_press
   conditions:
   - condition: template
-    value_template: >-
-      {% if trigger.to_state is defined %}
-        {{ trigger.to_state is not none
-           and trigger.to_state.state not in ['unavailable', 'unknown']
-           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
-      {% else %}
-        true
-      {% endif %}
+    value_template: "{% if trigger.to_state is defined %}\n  {{ trigger.to_state is
+      not none\n     and trigger.to_state.state not in ['unavailable', 'unknown']\n
+      \    and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5
+      }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: input_boolean.turn_on
     target:
@@ -2991,14 +2974,10 @@
     - event.ding_lou_lou_ti_deng_long_press
   conditions:
   - condition: template
-    value_template: >-
-      {% if trigger.to_state is defined %}
-        {{ trigger.to_state is not none
-           and trigger.to_state.state not in ['unavailable', 'unknown']
-           and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5 }}
-      {% else %}
-        true
-      {% endif %}
+    value_template: "{% if trigger.to_state is defined %}\n  {{ trigger.to_state is
+      not none\n     and trigger.to_state.state not in ['unavailable', 'unknown']\n
+      \    and (as_timestamp(now()) - as_timestamp(trigger.to_state.state, 0)) < 5
+      }}\n{% else %}\n  true\n{% endif %}"
   actions:
   - action: input_boolean.turn_on
     target:

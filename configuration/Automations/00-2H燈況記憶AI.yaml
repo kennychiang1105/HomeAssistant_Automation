@@ -1,13 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2H燈況記憶AI (V4.0.0)
+# 00-2H燈況記憶AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-10-18）：記錄範圍擴大到客廳 7 顆＋餐廳 3 顆＋四樓／頂樓樓梯燈（供燈組開燈動畫回到「上次狀態」）；
+#           判斷改用燈泡自己回報的 light.mode（2＝色溫）、light.color_temperature、light.brightness（HA 的 color_mode 對這些燈常顯示成 rgb，原本因此一直沒更新記憶）；開燈動畫進行中不記錄。
 # - V4.0.0：只記錄「色溫＋亮度」模式（使用者平常的設定）；顏色（RGB）模式一律不記，避免把提醒留下的顏色當成使用者設定。
 # - V4.0.0：記錄 4 盞提醒用 RGB 燈（客廳小燈、餐廳燈2、四樓/頂樓樓梯燈）「亮著時」的顏色/色溫/亮度到 input_text.mood_mem_*，
 #           供氣氛燈提醒結束後還原。觸發：燈亮起或顏色/亮度改變（延遲 8 秒等你調完）、開機後 60 秒、每 5 分鐘掃描一次。
 #           氣氛燈提醒進行中與結束後 40 秒內不記錄；琥珀橘/紅色（提醒色）不記錄。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2H燈況記憶AI (V4.0.0)
+- alias: 00-2H燈況記憶AI (V4.1.6)
   id: ai_00_2h_light_memory
   description: 記錄提醒用 RGB 燈的最後有效顏色/色溫/亮度
   mode: restart
@@ -16,10 +18,16 @@
       entity_id:
         - light.yeelink_color5_4181_light
         - light.yeelink_color5_106d_light
+        - light.yeelink_color5_fab7_light
         - light.yeelink_color5_8e3f_light
+        - light.yeelink_color5_5007_light
+        - light.yeelink_color5_2024_light
+        - light.yeelink_color5_f21d_light
+        - light.yeelink_color5_53ed_light
         - light.yeelink_color5_f618_light
         - light.yeelink_color5_0fb7_light
         - light.yeelink_color5_13b8_light
+        - light.yeelink_color5_c8d3_light
     - trigger: homeassistant
       event: start
     - trigger: time_pattern
@@ -47,10 +55,16 @@
         for_each:
           - light.yeelink_color5_4181_light
           - light.yeelink_color5_106d_light
+          - light.yeelink_color5_fab7_light
           - light.yeelink_color5_8e3f_light
+          - light.yeelink_color5_5007_light
+          - light.yeelink_color5_2024_light
+          - light.yeelink_color5_f21d_light
+          - light.yeelink_color5_53ed_light
           - light.yeelink_color5_f618_light
           - light.yeelink_color5_0fb7_light
           - light.yeelink_color5_13b8_light
+          - light.yeelink_color5_c8d3_light
         sequence:
           - if:
               - condition: template
@@ -60,9 +74,9 @@
                   {% set raw = states('input_text.mood_alert_last') %}
                   {% set ts = (raw.split('|')[0] | float(0)) if '|' in raw else 0 %}
                   {{ s is not none and s.state == 'on' and s.attributes.get('brightness') is not none
-                     and s.attributes.get('color_mode') == 'color_temp' and s.attributes.get('color_temp_kelvin') is not none
+                     and (s.attributes.get('light.mode') | int(0)) == 2 and (s.attributes.get('light.color_temperature') | int(0)) > 0
                      and (as_timestamp(now()) - ts > 40)
-                     and is_state('input_boolean.mood_alert_active', 'off') }}
+                     and is_state('input_boolean.mood_alert_active', 'off') and is_state('input_boolean.light_anim_active', 'off') }}
             then:
               - action: input_text.set_value
                 target:
@@ -70,4 +84,4 @@
                 data:
                   value: >-
                     {% set a = states[repeat.item].attributes %}
-                    {{ {'m': 'color_temp', 'b': a.get('brightness') | int(255), 'k': a.get('color_temp_kelvin') | int(2700)} | tojson }}
+                    {{ {'m': 'color_temp', 'b': ((a.get('light.brightness') | float(100)) * 2.55) | round(0) | int, 'k': a.get('light.color_temperature') | int(2700)} | tojson }}

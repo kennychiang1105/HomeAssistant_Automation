@@ -369,6 +369,14 @@ script:
           has_text: "{{ message is defined }}"
           has_json: "{{ payload is defined }}"
           valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
+          # V4.1.6：維護模式（更新路由器／系統期間）略過一般／重要級、屬連線／離線／失敗／異常類的舊格式 LINE（保全類、緊急級照常）
+          maint_text: >-
+            {% set raw = (payload | from_json([])) if (has_json and payload is string) else (payload if has_json else []) %}
+            {% if raw is sequence and raw is not string %}{{ raw | selectattr('type', 'eq', 'text') | map(attribute='text') | map('string') | join(' ') }}{% else %}{{ message | default('', true) }}{% endif %}
+          maint_skip: >-
+            {{ is_state('binary_sensor.maintenance_active', 'on')
+               and (maint_text | regex_search('離線|斷線|連線|不穩|失敗|異常|無法|逾時|未回應|不可用|unavailable|網路|網關|Wi-?Fi'))
+               and not (maint_text | regex_search('入侵|闖入|保全|警報|火災|地震|門鎖|未關|未上鎖|緊急|Urgent|Emergency')) }}
 
           # 舊格式（標題+等級+內文多泡泡）偵測到的等級，供氣氛燈提醒使用（新格式 Flex 由 notify_dispatch 負責）
           alert_level: >-
@@ -485,7 +493,7 @@ script:
                 {% set has_title = (texts | length >= 2) and ((first | trim | length) <= 60) %}
                 {% set title_raw = (first if has_title else (src_txt if src_txt else '智慧家庭')) | string %}
                 {% set ver = (title_raw ~ ' ' ~ src_txt) | regex_findall('V[0-9][0-9.]*') | first | default('', true) %}
-                {% set title_c = title_raw | replace('【', '') | replace('】', '') | regex_replace('(緊急|重要|一般) ?(Urgent|Emergency|Important|General)', '') | regex_replace(' ?\\(V[0-9][0-9.]*[^)]*\\)', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[‼⚠❗🚨🪧\\ufe0f]+', '') | trim %}
+                {% set title_c = title_raw | replace('【', '') | replace('】', '') | regex_replace('(緊急|重要|一般) ?(Urgent|Emergency|Important|General)', '') | regex_replace(' ?\\(V[0-9][0-9.]*[^)]*\\)', '') | regex_replace(' ?V[0-9][0-9.]*( ?\\(.*?\\))?', '') | regex_replace('[🌀-🫿☀-➿⬀-⯿‼❗❓\\ufe0f\\ufe0e]+', '') | regex_replace('\\s{2,}', ' ') | trim %}
                 {% set title_c = title_c if title_c else (src_txt if src_txt else '智慧家庭') %}
                 {# 4) 內文：略過標題與等級泡泡 #}
                 {% set bd = namespace(items=[]) %}
@@ -546,6 +554,14 @@ script:
               "messages": {{ flat_msgs }}
             }
             {% endif %}
+      - if: "{{ maint_skip }}"
+        then:
+          - action: logbook.log
+            data:
+              name: LINE（維護模式）
+              message: "維護期間略過舊格式 LINE：{{ maint_text[:40] }}"
+              entity_id: binary_sensor.maintenance_active
+          - stop: "maintenance mode"
       # ───── 防呆 ─────
       - choose:
           - conditions: "{{ not valid_input }}"
@@ -598,15 +614,15 @@ script:
                         data:
                           token: "{{ bot0_token }}"
                           payload: >-
+                              {% from 'notify_body.jinja' import flex_rows %}{% set q_lines = ['LINE Bot 即將切換', '目前使用 Bot' ~ current_bot ~ '，剩餘約 ' ~ remain_count ~ ' 個額度可用。', '剩餘額度低於 5 即自動切換為 Bot' ~ next_bot ~ ('（緊急 Bot）' if next_bot == 0 else '') ~ '。', '群組訊息一次可能耗約 5 個額度。'] %}
                               {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '重要｜LINE Bot 即將切換',
                               'contents': {'type': 'bubble', 'size': 'kilo',
-                              'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#F2994A', 'paddingAll': '10px',
-                              'contents': [{'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
-                              {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                              'header': {'type': 'box', 'layout': 'horizontal', 'alignItems': 'center', 'backgroundColor': '#F2994A', 'paddingAll': '10px',
+                              'contents': [{'type': 'image', 'url': 'https://family.kteam.tw:8126/local/icons/chat.png?v=2', 'size': '22px', 'aspectMode': 'fit', 'flex': 0},
+                              {'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
+                              {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                               'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                              'contents': [{'type': 'text', 'text': 'LINE Bot 即將切換', 'weight': 'bold', 'size': 'md', 'wrap': true},
-                              {'type': 'text', 'text': '目前使用 Bot' ~ current_bot ~ '，剩餘約 ' ~ remain_count ~ ' 個額度可用', 'size': 'sm', 'wrap': true},
-                              {'type': 'text', 'text': '剩餘額度低於 5 即自動切換為 Bot' ~ next_bot ~ ('（緊急 Bot）' if next_bot == 0 else '') ~ '；群組訊息一次可能耗約 5 個額度。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                              'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
                               'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                               'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                       - service: input_text.set_value
@@ -626,15 +642,15 @@ script:
                     data:
                       token: "{{ bot0_token }}"
                       payload: >-
+                        {% from 'notify_body.jinja' import flex_rows %}{% set q_lines = ['LINE Bot 額度已用盡', '所有 Bot 額度已滿（低於 5 則）或不可用。', '本則訊息未送出。', '請儘速處理（更換 Token 或等下月重置）。'] %}
                         {{ {'to': quota_notify_user, 'messages': [{'type': 'flex', 'altText': '緊急｜LINE Bot 額度已用盡',
                         'contents': {'type': 'bubble', 'size': 'kilo',
-                        'header': {'type': 'box', 'layout': 'horizontal', 'backgroundColor': '#EB5757', 'paddingAll': '10px',
-                        'contents': [{'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0},
-                        {'type': 'text', 'text': 'V4.0.0', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
+                        'header': {'type': 'box', 'layout': 'horizontal', 'alignItems': 'center', 'backgroundColor': '#EB5757', 'paddingAll': '10px',
+                        'contents': [{'type': 'image', 'url': 'https://family.kteam.tw:8126/local/icons/chat.png?v=2', 'size': '22px', 'aspectMode': 'fit', 'flex': 0},
+                        {'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
+                        {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                         'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                        'contents': [{'type': 'text', 'text': 'LINE Bot 額度已用盡', 'weight': 'bold', 'size': 'md', 'wrap': true},
-                        {'type': 'text', 'text': '所有 Bot 額度已滿（低於 5 則）或不可用', 'size': 'sm', 'wrap': true},
-                        {'type': 'text', 'text': '本則訊息未送出，請儘速處理（更換 Token 或等下月重置）。', 'size': 'xs', 'color': '#6B7280', 'wrap': true, 'margin': 'md'}]},
+                        'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
                         'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                         'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                   - service: input_boolean.turn_on

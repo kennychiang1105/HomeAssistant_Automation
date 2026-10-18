@@ -1,0 +1,44 @@
+--- a/core/devices.py	2026-10-16 10:26:10.941127801 +0800
++++ b/core/devices.py	2026-09-20 15:39:05.020849757 +0800
+@@ -1756,6 +1756,9 @@
+         BLEFloatConv("temperature", mi=18433, round=1),
+         BLEByteConv("humidity", mi=18434),
+         BLEByteConv("battery", mi=19459),
++        BLEFloatConv("temperature", "sensor", mi=19457, round=1),
++        BLEByteConv("humidity", "sensor", mi=19458),
++        BLEByteConv("battery", "sensor", mi=18435, entity=ENTITY_LAZY),
+         # MIoT spec
+         BaseConv("temperature", "sensor", mi="2.p.1001"),
+         BaseConv("humidity", "sensor", mi="2.p.1002"),
+@@ -1799,6 +1802,7 @@
+     20692: ["Linptech", "Motion Sensor 3", "HS3BB", "blt.3.1kgrbasoo4k03"],
+     # https://github.com/AlexxIT/XiaomiGateway3/pull/1118
+     13617: ["xiaomi", "Motion Sensor 2s", "XMPIRO25XS", "xiaomi.motion.pir1"],
++    19552: ["Xiaomi", "Motion Sensor 2s", "XMPIRO25XS", "xiaomi.motion.pir1g"],
+     "spec": [
+         # main sensors
+         ConstConv("motion", "binary_sensor", mi="2.e.1008", value=True),
+@@ -1887,6 +1891,7 @@
+         # Both "Down Button Press Right/Left Rotation" and "Press To Turn Right/Left" correspond to eiid: 1028
+         ConstConv("action", mi="5.e.1028", value="button_3_press_rotate"),
+         # --- Battery level support ---
++        BaseConv("battery", "sensor", mi="1.p.1"),
+         BaseConv("battery", "sensor", mi="4.p.1003"),
+     ]
+ }, {
+@@ -2284,6 +2289,7 @@
+     "spec": [
+         # main sensors
+         BLEFloatConv("temperature", "sensor", mi=18433, round=1),  # float
++        BLEFloatConv("humidity", "sensor", mi=18440, round=1),  # float
+         BLEByteConv("humidity", "sensor", mi=18434),  # uint8
+         BLEByteConv("battery", "sensor", mi=20483),  # uint8
+         MathConv("temperature", mi="2.p.1001", round=1),
+@@ -3653,6 +3659,7 @@
+         BaseConv("led", "switch", mi="5.p.1"),
+     ],
+ }, {
++    23308: ["Linptech", "Single Wall Switch T1", "linp.switch.t2dbw1"],
+     23474: ["Linptech", "Single Wall Switch T1", "linp.switch.t2dbw1"],
+     "spec": [
+         BaseConv("switch", "switch", mi="2.p.1"),

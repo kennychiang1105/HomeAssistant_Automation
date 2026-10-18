@@ -334,6 +334,9 @@ mood_alert:
         ap_sw_ok: "{{ (ap_sw_all | select('is_state', 'on') | list) if ap_on else [] }}"
         sw_entity: switch.san_lou_lou_ti_deng
         sw_prev: "{{ states('switch.san_lou_lou_ti_deng') }}"
+        # V4.1.6：車庫樓梯燈也加入通知閃燈（開關式，閃完還原成原本開／關）
+        sw2_entity: switch.lou_ti_deng
+        sw2_prev: "{{ states('switch.lou_ti_deng') }}"
         color: "{{ [255, 140, 0] if level == 'important' else [255, 0, 0] }}"
         pulses: "{{ 2 if level == 'important' else 5 }}"
         on_ms: "{{ 1500 if level == 'important' else 500 }}"
@@ -345,7 +348,7 @@ mood_alert:
         scene_id: mood_alert_snapshot
         snapshot_entities: "{{ rgb_ok + ap_rgb_ok }}"
       continue_on_error: true
-    # ── 閃爍：客廳 → 餐廳 → 三樓 → 四樓 → 頂樓樓梯（每區間隔 0.4 秒） ──
+    # ── 閃爍：客廳 → 餐廳／車庫樓梯 → 三樓 → 四樓 → 頂樓樓梯（每區間隔 0.4 秒） ──
     - parallel:
         - action: script.mood_alert_pulse
           data: {entity: light.yeelink_color5_4181_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 0 }}"}
@@ -359,6 +362,11 @@ mood_alert:
         - action: script.mood_alert_pulse
           data: {entity: light.yeelink_color5_f618_light, kind: rgb, color: "{{ color }}", pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 400 }}"}
           continue_on_error: true
+        - if: "{{ sw2_prev in ['on', 'off'] }}"
+          then:
+            - action: script.mood_alert_pulse
+              data: {entity: switch.lou_ti_deng, kind: switch, pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 400 }}"}
+              continue_on_error: true
         - action: script.mood_alert_pulse
           data: {entity: switch.san_lou_lou_ti_deng, kind: switch, pulses: "{{ pulses }}", on_ms: "{{ on_ms }}", off_ms: "{{ off_ms }}", start_ms: "{{ 0 if level == 'emergency' else 800 }}"}
           continue_on_error: true
@@ -432,6 +440,12 @@ mood_alert:
           target:
             entity_id: "{{ sw_entity }}"
           continue_on_error: true
+        - if: "{{ sw2_prev in ['on', 'off'] }}"
+          then:
+            - action: "{{ 'switch.turn_on' if sw2_prev == 'on' else 'switch.turn_off' }}"
+              target:
+                entity_id: "{{ sw2_entity }}"
+              continue_on_error: true
         # 原本是關閉的 RGB 燈：燈泡會記住最後一次的顏色/亮度，閃爍提醒會把它改成琥珀橘/紅色，
         # 這裡依「燈況記憶」把顏色/色溫/亮度寫回燈泡，再立刻關閉，下次開燈就與提醒前相同。
         - repeat:
