@@ -2946,15 +2946,14 @@ class FloorplanV4Sidebar extends HTMLElement {
         aqEl.style.setProperty("--c", col);
         const aqi = parseFloat(aq.attributes.aqi);
         const aqn = isNaN(aqi) ? "--" : Math.round(aqi);
-        // indoor (kitchen) particulates: orange when elevated, red when abnormal (PM1.0 / PM2.5 > 35, PM10 > 125 µg/m³)
-        const kp = h.states["sensor.kitchen_particulate_level"]?.attributes || {};
+        // outdoor particulates on one line (PM2.5, and PM10 only when the source has it): orange when elevated, red when abnormal
         const pmCell = (lab, v, o, r) => {
           const n = parseFloat(v);
           if (isNaN(n)) return "";
           return `<span class="${n > r ? "r" : n > o ? "o" : ""}">${lab} <b>${Math.round(n)}</b></span>`;
         };
-        const pmRow = [pmCell("PM1.0", kp.pm1, 15, 35), pmCell("PM2.5", kp.pm25, 15, 35), pmCell("PM10", kp.pm10, 54, 125)].join("");
-        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}<span class="v">AQI ${aqn}</span></div>${pmRow ? `<div class="pmr"><span>室內</span>${pmRow}</div>` : `<div class="c">PM2.5 ${isNaN(pm) ? "--" : Math.round(pm)}</div>`}</div>`
+        const pmRow = [pmCell("PM2.5", aq.attributes.pm25, 15, 35), pmCell("PM10", aq.attributes.pm10, 54, 125)].join("");
+        aqEl.innerHTML = `${aqiSvg("d", 30)}<div class="dsk"><div class="t">${short}<span class="v">AQI ${aqn}</span></div><div class="pmr">${pmRow}</div></div>`
           + `${aqiSvg("m", 26)}<div class="mob"><div class="t">${aqn}</div><div class="c">${short}</div></div>`;
         aqEl.title = `戶外空氣品質：${aq.state}（${aq.attributes.source || ""}　AQI ${isNaN(aqi) ? "--" : Math.round(aqi)}　PM2.5 ${isNaN(pm) ? "--" : pm}　PM10 ${aq.attributes.pm10 ?? "--"}）`;
         aqEl.onclick = () => this._more(aqId);
