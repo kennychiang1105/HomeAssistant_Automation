@@ -409,7 +409,7 @@
       {%- set eq_ns.s = lt | regex_replace('^.*收到以下中央氣象(?:局|署)訊息[:：]\\s*', '') | trim -%}
     {%- endif -%}
   {%- endfor -%}
-  {%- set raw_eq = eq_ns.s if eq_ns.s else (states('sensor.earthquake') | trim) -%}
+  {%- set raw_eq = eq_ns.s if eq_ns.s else ((joined | trim) if (joined | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else (states('sensor.earthquake') | trim)) -%}
   {%- set s = raw_eq if raw_eq not in ['', 'unknown', 'unavailable', 'none', 'None'] else '' -%}
   {%- set mm = s | regex_findall('^(\\d{1,2}/\\d{1,2})\\s*(\\d{1,2}:\\d{2})\\s*(.*?)發生規模\\s*([\\d.]+)\\s*(?:有感|小區域)?地震[，,]?\\s*(.*?)。?$') -%}
   {%- set mag = (mm[0][3] | float(-1)) if mm | length > 0 else -1 -%}
@@ -618,7 +618,7 @@
       {%- set eq_ns.s = lt | regex_replace('^.*收到以下中央氣象(?:局|署)訊息[:：]\\s*', '') | trim -%}
     {%- endif -%}
   {%- endfor -%}
-  {%- set raw_eq = eq_ns.s if eq_ns.s else (states('sensor.earthquake') | trim) -%}
+  {%- set raw_eq = eq_ns.s if eq_ns.s else ((joined | trim) if (joined | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else (states('sensor.earthquake') | trim)) -%}
   {%- set s = raw_eq if raw_eq not in ['', 'unknown', 'unavailable', 'none', 'None'] else '' -%}
   {%- set mm = s | regex_findall('^(\\d{1,2}/\\d{1,2})\\s*(\\d{1,2}:\\d{2})\\s*(.*?)發生規模\\s*([\\d.]+)\\s*(?:有感|小區域)?地震[，,]?\\s*(.*?)。?$') -%}
   {%- if mm | length > 0 -%}
