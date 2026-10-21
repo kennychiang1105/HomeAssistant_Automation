@@ -868,6 +868,125 @@ def supply_view(title, path, icon, autos):
     return L
 
 
+def _text_card(entity, js):
+    """通用 button-card 外殼：無邊框圓角、文字一律自動換行不溢出。"""
+    L = ["      - type: custom:button-card", f"        entity: {entity}",
+         "        show_name: false", "        show_icon: false", "        show_state: false",
+         "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+         "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0",
+         "            - white-space: normal", "            - overflow: hidden",
+         "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: minmax(0, 1fr)",
+         "          custom_fields:", "            body:", "              - width: 100%",
+         "              - min-width: 0", "              - text-align: left", "              - white-space: normal",
+         "        custom_fields:", "          body: |"]
+    for ln in js.splitlines():
+        L.append("            " + ln)
+    return L
+
+
+DISASTER_JS = r"""[[[
+  const raw = (entity && entity.state) || '';
+  const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
+  const s = bad.includes(raw) ? '' : String(raw).trim();
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
+  const lamps = { '紅色': ['#FF453A', 'rgba(255,69,58,.16)'], '橙色': ['#FF9F0A', 'rgba(255,159,10,.16)'], '黃色': ['#FFD60A', 'rgba(255,214,10,.16)'] };
+  const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
+  const items = [];
+  let m;
+  while ((m = re.exec(s)) !== null) items.push({ region: m[1].trim(), cond: m[2].trim(), lamp: m[3] });
+  let top = null;
+  for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
+  let color, bg, label, icon;
+  if (calm) { color = '#30D158'; bg = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+  else if (top) { color = lamps[top][0]; bg = `linear-gradient(135deg, ${lamps[top][1]} 0%, rgba(120,120,128,.04) 100%)`; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+  else { color = '#FF9F0A'; bg = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+  const lead = items.length ? s.split('，')[0] : '';
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  let body = '';
+  if (calm) {
+    body = `<div style="font-size:13.5px;color:var(--primary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
+  } else if (items.length) {
+    body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
+      items.map(it => {
+        const c = lamps[it.lamp];
+        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:${c[1]};border:1px solid ${c[0]}55;min-width:0;box-sizing:border-box">
+          <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:0 0 6px ${c[0]}"></span>
+          <div style="flex:1;min-width:0;${wrap}">
+            <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
+            <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
+            <div style="font-size:12px;line-height:1.45;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
+          </div></div>`;
+      }).join('') +
+      `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:12.5px;line-height:1.55;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
+  } else {
+    body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+  }
+  const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
+  const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
+  return `
+    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
+          <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
+        </div>
+        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+      </div>
+      ${body}
+      <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
+    </div>`;
+]]]"""
+
+EARTHQUAKE_JS = r"""[[[
+  const raw = (entity && entity.state) || '';
+  const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
+  const s = bad.includes(raw) ? '' : String(raw).trim();
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
+  const mag = mm ? parseFloat(mm[4]) : NaN;
+  let color = '#30D158';
+  if (!isNaN(mag)) color = mag >= 6 ? '#FF453A' : (mag >= 5 ? '#FF9F0A' : (mag >= 4 ? '#FFD60A' : '#30D158'));
+  const bg = `linear-gradient(135deg, ${color}2b 0%, rgba(120,120,128,.04) 100%)`;
+  let body = '';
+  if (mm) {
+    const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
+    const im = intens.match(/^(.*?)(\d+[弱強]?級?)$/);
+    const place = im ? im[1].trim() : intens;
+    const lvl = im ? im[2] : '';
+    const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
+    body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.1);border-radius:12px">
+      ${cell('規模', 'M ' + esc(mm[4]), true)}
+      ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
+      ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
+      ${cell('震央位置', esc(mm[3].trim() || '--'), false)}
+    </div>`;
+  } else if (s) {
+    body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+  } else {
+    body = `<div style="font-size:13.5px;color:var(--primary-text-color)">目前沒有地震速報資料。</div>`;
+  }
+  const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
+  return `
+    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
+          <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
+        </div>
+        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+      </div>
+      ${body}
+    </div>`;
+]]]"""
+
+
+def disaster_blocks():
+    return [section(heading("氣象與災害告警", "mdi:weather-hurricane") + _text_card("sensor.disaster", DISASTER_JS)),
+            section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]
+
+
 def manual_button(script, result_entity, name, icon):
     """按鈕：點一下呼叫 script；腳本結束後 15 秒內，按鈕下方顯示「✓ …已送出」或「⚠ 原因」（結果存在 result_entity：訊息|時間戳）。"""
     return ["      - type: custom:button-card", f"        entity: {result_entity}", f"        name: {name}",
@@ -1082,6 +1201,8 @@ def build(data):
             continue
         n_auto = len(autos[key]); n_set = len(settings[key])
         B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
+        if key == "emergency":
+            B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
         if autos[key]:
             rows = [(eid, fn) for fn, eid in sorted(autos[key])]
             B.extend(list_blocks(f"自動化開關（{n_auto}）", rows, "mdi:robot"))
