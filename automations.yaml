@@ -19,11 +19,10 @@
     then:
     - parallel:
       - data:
+          source: 01地震災害系統 (V4.2.0)
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-            General \U0001FAA7\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n
-            \          \"type\":\"text\",\n          \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n\n
-            \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【最新地震報告】一般
+            General\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
             states('sensor.earthquake') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
@@ -31,10 +30,9 @@
           level: emergency
           line: false
           source: 01地震災害系統
-          version: V4.0.0
-          title: 地震報告
-          message: "地震報告收到以下中央氣象局訊息: \n(同步發送至廣播與LINE)\n{{ states('sensor.earthquake')
-            }}"
+          version: V4.2.0
+          title: 最新地震報告
+          message: "{{ states('sensor.earthquake') }}"
         action: script.notify_dispatch
       - sequence:
         - data:
@@ -203,16 +201,15 @@
       level: general
       line: false
       source: 04苗栗天氣告知系統 (按鈕)
-      version: V4.0.0
-      title: 天氣告知系統
-      message: "天氣告知系統收到以下政府災害訊息: \n\n{{ states('sensor.disaster') }}"
+      version: V4.2.0
+      title: 氣象與災害告警
+      message: "{{ states('sensor.disaster') }}"
     action: script.notify_dispatch
   - data:
+      source: 04苗栗天氣告知系統 (按鈕) (V4.2.0)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】一般
-        General \U0001FAA7\\n\U0001F30D 災防報告 Disaster Prevention Report\"\n      },\n\n
-        \      {\n          \"type\":\"text\",\n          \"text\":\" 收到以下政府災害訊息:\"\n\n
-        \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【氣象與災害告警】一般
+        General\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
         states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
@@ -233,17 +230,16 @@
       level: emergency
       line: false
       source: 02地震災害系統 (按鈕)
-      version: V4.0.0
-      title: 02地震災害系統 (按鈕)
-      message: "地震災害系統收到以下中央氣象局訊息: \n\n{{ states('sensor.earthquake') }}\n\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
+      version: V4.2.0
+      title: 最新地震報告
+      message: "{{ states('sensor.earthquake') }}\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
     action: script.notify_dispatch
   - data:
-      source: 02地震災害系統 (按鈕)
+      source: 02地震災害系統 (按鈕) (V4.2.0)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
-      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急
-        Urgent ‼️\\n\U0001F30D 地震報告 Earthquake Report\"\n      },\n      {\n\n           \"type\":\"text\",\n
-        \         \"text\":\" 地震報告收到以下中央氣象局訊息:\"\n      },\n\n       {\n          \"type\":\"text\",\n
-        \         \"text\":\"{{ states('sensor.earthquake') }}\"\n      }\n  ]\n"
+      payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【最新地震報告】緊急
+        Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        states('sensor.earthquake') }}\\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.announce
@@ -1441,20 +1437,20 @@
           - media_player.ding_lou_homepod
         action: media_player.volume_set
       - data:
+          source: 03E苗栗疏散警報 (V4.2.0)
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
-            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
-            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
-            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急疏散避難警報】緊急
+            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+            states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
           level: emergency
           line: false
           source: 03E苗栗疏散警報
-          version: V4.0.0
-          title: 03E苗栗疏散警報
-          message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
+          version: V4.2.0
+          title: 緊急疏散避難警報
+          message: "{{ states('sensor.disaster') }}"
         enabled: true
         action: script.notify_dispatch
     - action: script.announce
@@ -1525,20 +1521,20 @@
           - media_player.ding_lou_homepod
           - media_player.ke_ting_homepod
       - data:
+          source: 03E苗栗疏散警報 (V4.2.0)
           user_id: C26ff4e9d30159ba5264a1676f46f8f86
-          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【災防系統通知】緊急\\nUrgent
-            ‼️\\n\U0001F30D 疏散避難警報 Evacuation Alarm\"\n      },\n      {\n\n           \"type\":\"text\",\n
-            \         \"text\":\" 政府發布疏散避難警報:\"\n      },\n\n       {\n          \"type\":\"text\",\n
-            \         \"text\":\"{{ states('sensor.disaster') }}\"\n      }\n  ]\n"
+          payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【緊急疏散避難警報】緊急
+            Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+            states('sensor.disaster') }}\"\n      }\n  ]\n"
         enabled: true
         action: script.send_line_to_user
       - data:
           level: emergency
           line: false
           source: 03E苗栗疏散警報
-          version: V4.0.0
-          title: 03E苗栗疏散警報
-          message: "政府發布疏散避難警報: \n\n{{ states('sensor.disaster') }}"
+          version: V4.2.0
+          title: 緊急疏散避難警報
+          message: "{{ states('sensor.disaster') }}"
         enabled: true
         action: script.notify_dispatch
     - action: script.announce

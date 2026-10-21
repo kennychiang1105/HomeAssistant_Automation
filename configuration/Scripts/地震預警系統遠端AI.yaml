@@ -5,10 +5,10 @@
 # - V4.0.0：地震廣播延遲優化：①廣播移到最前面（不等 LINE／緊急模式／通知）並不阻塞；②第一句改短句並預先合成快取（斷網也能播）；③拿掉廣播前的 HomePod volume_set（實測卡約 3.6 秒），音量交給統一廣播；④播報秒數扣掉處理延遲與念到數字前的約 3 秒，剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
 # 相容版本：Helpers V3.9（已確認）
 'eq99':
-  alias: 地震預警系統(遠端)AI (V4.0.0)
+  alias: 地震預警系統(遠端)AI (V4.2.0)
   description: 地震預警通知與分級廣播；4級以上觸發緊急模式。
   variables:
-    automation_version: 'V4.0.0'
+    automation_version: 'V4.2.0'
     ts0: "{{ now().timestamp() }}"
     # 修正 1：將 level_text 移至上方，讓後續的 lv 可以正確引用它
     level_text: >-
@@ -45,6 +45,7 @@
         then:
         - action: script.send_line_to_user
           data:
+            source: "地震預警系統(遠端)AI (V4.2.0)"
             user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'') }}'
             payload: >-
               {% set level_raw = states('input_text.line_eew_remote_level') %}
@@ -52,18 +53,17 @@
               {% set seconds_raw = states('input_text.line_eew_remote_seconds') %}
               {% set seconds_safe = seconds_raw if seconds_raw|trim and seconds_raw|lower not in ['unknown','unavailable','none'] else seconds_text | default('未知') %}
               {% set messages = [
-                {"type":"text","text":"【災防系統通知】重要 Important ⚠️"},
-                {"type":"text","text":"🌍地震預警系統收到訊息：預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n目前未達廣播門檻（3級）與緊急模式門檻（4級）。"},
-                {"type":"text","text":"【重要 Important ⚠️】\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達（僅通知）"}
+                {"type":"text","text":"【地震預警速報】重要 Important ⚠️"},
+                {"type":"text","text":"預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n目前未達廣播門檻（3級）與緊急模式門檻（4級）。"}
               ] %}
               {{ messages | tojson }}
       - action: script.notify_dispatch
         data:
           level: emergency
           line: false
-          source: "地震預警系統(遠端)AI (V4.0.0)"
+          source: "地震預警系統(遠端)AI (V4.2.0)"
           version: "{{ automation_version | default('', true) }}"
-          title: 地震預警系統｜重要 Important ⚠️
+          title: 地震預警速報
           message: >-
             地震預警系統收到訊息：預估地震{{ states('input_text.line_eew_remote_level') }}級，
             {{ states('input_text.line_eew_remote_seconds') }}秒後到達。
@@ -104,7 +104,7 @@
         then:
         - action: script.send_line_to_user
           data:
-            source: "地震預警系統(遠端)AI (V4.0.0)"
+            source: "地震預警系統(遠端)AI (V4.2.0)"
             user_id: '{{ line_bot_target_user_id | default(''C26ff4e9d30159ba5264a1676f46f8f86'') }}'
             payload: >-
               {% set level_raw = states('input_text.line_eew_remote_level') %}
@@ -117,9 +117,8 @@
               {% set status_text = '本次將啟動廣播提醒，但不啟動緊急模式。' %}
               {% endif %}
               {% set messages = [
-                {"type":"text","text":"【災防系統通知】緊急 Urgent ‼️"},
-                {"type":"text","text":"🌍地震預警系統收到訊息：預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n\n" ~ status_text},
-                {"type":"text","text":"【緊急 Urgent ‼️】\n地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達"}
+                {"type":"text","text":"【地震預警速報】緊急 Urgent ‼️"},
+                {"type":"text","text":"預估地震" ~ level_safe ~ "級，" ~ seconds_safe ~ "秒後到達。\n" ~ status_text}
               ] %}
               {{ messages | tojson }}
       - if:
@@ -143,9 +142,9 @@
         data:
           level: emergency
           line: false
-          source: "地震預警系統(遠端)AI (V4.0.0)"
+          source: "地震預警系統(遠端)AI (V4.2.0)"
           version: "{{ automation_version | default('', true) }}"
-          title: 地震預警系統｜緊急 Urgent ‼️
+          title: 地震預警速報
           message: >-
             地震預警系統收到訊息：預估地震{{ states('input_text.line_eew_remote_level') }}級，
             {{ states('input_text.line_eew_remote_seconds') }}秒後到達。

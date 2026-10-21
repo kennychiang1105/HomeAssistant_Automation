@@ -157,7 +157,7 @@ notify_dispatch:
             title: "{{ full_title }}"
             notification_id: "{{ src }}_{{ lv }}_{{ title_c }}"
             message: |-
-              {% from 'notify_body.jinja' import md_lines %}{{ md_lines(lines, '/local/icons/b/', url) }}
+              {% from 'notify_body.jinja' import md_lines, special_md %}{% set smd = special_md(title_c, src, lines, lv, '/local/icons/b/') | trim %}{{ smd if smd != '' else md_lines(lines, '/local/icons/b/', url) }}
 
               ---
               <sub>{{ meta.mark }} {{ meta.name }}　{{ src }}{{ '　' ~ ver if ver else '' }}　{{ stamp }}</sub>
@@ -167,7 +167,7 @@ notify_dispatch:
           data:
             user_id: "{{ user_id if user_id is defined and user_id else states('sensor.line_bot_target_user_id') }}"
             payload: >-
-              {% from 'notify_body.jinja' import flex_rows %}{{ [{
+              {% from 'notify_body.jinja' import flex_rows, special_body %}{% set sp = special_body(title_c, src, body_lines, lv, 'https://family.kteam.tw:8126/local/icons/b2/') | trim %}{{ [{
                 "type": "flex",
                 "altText": (meta.mark ~ ' ' ~ meta.name ~ ' ｜ ' ~ title_c ~ ' ' ~ head_line)[:380],
                 "contents": dict({
@@ -181,9 +181,9 @@ notify_dispatch:
                     ]},
                   "body": {
                     "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
-                    "contents": ([
+                    "contents": ((sp | from_json([])) if sp != '' else ([
                       {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}
-                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
+                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
                     "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}

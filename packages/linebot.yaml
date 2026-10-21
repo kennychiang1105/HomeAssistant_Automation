@@ -464,7 +464,7 @@ script:
           # 扁平化：多泡泡純文字（標題 + 等級 + 內文）合併為 1 則 Flex 卡片（節省額度、統一樣式）；
           # 不符合格式（含非 text 訊息、找不到等級泡泡）則原樣送出
           flat_msgs: >-
-            {% from 'notify_body.jinja' import flex_rows %}{% set ns = namespace(out=none) %}
+            {% from 'notify_body.jinja' import flex_rows, special_body %}{% set ns = namespace(out=none) %}
             {% if has_json %}
               {% set raw = (payload | from_json([])) if payload is string else payload %}
               {% if raw is sequence and raw is not string and raw | length >= 1 and (raw | map(attribute='type') | unique | list) == ['text'] %}
@@ -526,6 +526,7 @@ script:
                 {% set hero_extra = {'hero': {'type': 'image', 'url': snap_url, 'size': 'full', 'aspectRatio': '16:9', 'aspectMode': 'cover'}} if snap_url else {} %}
                 {% set cam_btns = ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟攝影機即時影像", "uri": "http://192.168.68.97:8125/local/live.html?t=" ~ live_token ~ "&openExternalBrowser=1"}}, {"type": "text", "text": "僅限連接家裡 Wi-Fi 時可開啟", "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}, {"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "在「家庭」App 查看攝影機", "uri": "https://family.kteam.tw:8126/local/home.html?openExternalBrowser=1"}}, {"type": "text", "text": "外出（外網）也可使用", "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if snap_url else []) %}
                 {% set stamp = now().strftime('%m/%d %H:%M') %}
+                {% set sp = special_body(title_c, src_txt, all_lines, lv.key, 'https://family.kteam.tw:8126/local/icons/b2/') | trim %}
                 {% set card = [{
                   "type": "flex",
                   "altText": (meta.mark ~ ' ' ~ meta.name ~ ' ｜ ' ~ title_c ~ ' ' ~ head_line)[:380],
@@ -537,7 +538,7 @@ script:
                         {"type": "text", "text": meta.mark ~ ' ' ~ meta.name, "color": "#FFFFFF", "weight": "bold", "size": "sm", "flex": 0, "margin": "sm"},
                         {"type": "text", "text": (ver if ver else ' '), "color": "#FFFFFF", "size": "xs", "align": "end"}]},
                     "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
-                      "contents": ([{"type": "text", "text": (title_c if title_c else ' '), "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}] + (flex_rows(all_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])))},
+                      "contents": ((sp | from_json([])) if sp != '' else ([{"type": "text", "text": (title_c if title_c else ' '), "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}] + (flex_rows(all_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                     "footer": {"type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
                       "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + cam_btns + [{"type": "text", "text": ((src_txt | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | trim) if src_txt else '智慧家庭') ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
                   }, **hero_extra)}] %}
