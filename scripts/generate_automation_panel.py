@@ -1066,12 +1066,13 @@ def overview_sections(autos, stale):
                  "{% for a in states.automation if a.attributes.get('last_triggered') is not none and (now() - a.attributes.get('last_triggered')).total_seconds() < 86400 %}"
                  "{% set ns.items = ns.items + [(a.name, a.attributes.get('last_triggered'))] %}{% endfor %}"
                  "{% for n, t in (ns.items | sort(attribute='1', reverse=true))[:12] %}- {{ n }}（{{ relative_time(t) }}前）\n{% endfor %}")
-    S = []                                   # 依閱讀順序：LINE Bot 額度與設定 → 說明 → 手動廣播／通知 → 常用總開關 → 網關與伺服器 → 頂樓 → 停用／最近觸發
+    S = []                                   # 依閱讀順序：LINE Bot 額度與設定 → 說明 → 手動廣播／通知 → 災防與地震 → 常用總開關 → 網關與伺服器 → 頂樓 → 停用／最近觸發
     S.append(section(quota_section()))                # LINE Bot 額度與設定放最上面
     S.append(section(quota_settings()))
     S.append(section(["      - type: markdown", "        content: " + q(intro)] + MD_CSS))
     S.append(section(manual_broadcast_section()))
     S.append(section(manual_notify_section()))
+    S.extend(disaster_blocks())
     S.append(section(heading("常用總開關", "mdi:toggle-switch-outline") + entities_card(quick)))
     S.append(section(heading("網關、伺服器與警報", "mdi:router-wireless") + entities_card(gateways)))
     S.append(section(heading("頂樓常用", "mdi:stairs-up") + entities_card(top)))

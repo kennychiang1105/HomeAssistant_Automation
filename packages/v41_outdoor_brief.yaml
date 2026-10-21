@@ -1,11 +1,64 @@
 # ────────────────────────────────────────────────────────
-# 出門前戶外狀況摘要（V4.1.6，2026-10-18）
-# sensor.leave_outdoor_brief：把戶外天氣、紫外線、空氣品質整理成通知文字與語音，異常時附提醒。
+# 出門前戶外狀況摘要（V4.2.1，2026-10-20）
+# 更新紀錄：
+# - V4.2.1（2026-10-20）：新增 sensor.outdoor_today_forecast 定時抓取今日剩餘時段預報最高／最低溫；
+#   當出門當下溫度與今日最高溫差距 ≥ 3°C（例如早上 24°C、中午 30°C）時，離家語音與通知自動附加上「最高 X 度」提示，並納入高溫／低溫提醒判斷。
+# - V4.1.6（2026-10-18）：把戶外天氣、紫外線、空氣品質整理成通知文字與語音，異常時附提醒。
 #   屬性 text＝LINE／HA 通知用（小標題＋名稱：數值＋※ 提醒行，⟦g/o/r:文字⟧ 是顏色標記）、voice＝廣播用一句話、abnormal＝是否有需要提醒的項目。
 # 提醒條件：紫外線 ≥ 6（高量以上）、空氣品質 AQI > 100（對敏感族群不健康以上）、降雨機率 ≥ 50% 或正在下雨、氣溫 ≥ 35°C 或體感 ≥ 38°C、氣溫 ≤ 12°C、風速 ≥ 40 km/h。
 # 100B自動離家AI 的離家通知（LINE／HA）與 script.scene_announce 的離家廣播使用。
 # ────────────────────────────────────────────────────────
 template:
+  - trigger:
+      - trigger: time_pattern
+        minutes: "/15"
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+      - trigger: state
+        entity_id: weather.homeweather_zhu_nan_zhen
+    action:
+      - action: weather.get_forecasts
+        target:
+          entity_id: weather.homeweather_zhu_nan_zhen
+        data:
+          type: hourly
+        response_variable: fc
+        continue_on_error: true
+    sensor:
+      - name: outdoor_today_forecast
+        unique_id: outdoor_today_forecast_v421
+        icon: mdi:thermometer-lines
+        state: >-
+          {% set fl = (fc['weather.homeweather_zhu_nan_zhen'].forecast if fc is mapping and fc.get('weather.homeweather_zhu_nan_zhen') else []) %}
+          {% set td = now().date() %}
+          {% set ct = state_attr('weather.homeweather_zhu_nan_zhen', 'temperature') | float(none) %}
+          {% set ns = namespace(t=([ct] if ct is not none else [])) %}
+          {% for f in fl %}{% set d = as_local(as_datetime(f.datetime)) %}
+          {% if d.date() == td and f.temperature is number %}{% set ns.t = ns.t + [f.temperature] %}{% endif %}
+          {% endfor %}
+          {{ (ns.t | min | round(0) | int) ~ '~' ~ (ns.t | max | round(0) | int) ~ '°C' if ns.t | count > 0 else 'unknown' }}
+        attributes:
+          today_max: >-
+            {% set fl = (fc['weather.homeweather_zhu_nan_zhen'].forecast if fc is mapping and fc.get('weather.homeweather_zhu_nan_zhen') else []) %}
+            {% set td = now().date() %}
+            {% set ct = state_attr('weather.homeweather_zhu_nan_zhen', 'temperature') | float(none) %}
+            {% set ns = namespace(t=([ct] if ct is not none else [])) %}
+            {% for f in fl %}{% set d = as_local(as_datetime(f.datetime)) %}
+            {% if d.date() == td and f.temperature is number %}{% set ns.t = ns.t + [f.temperature] %}{% endif %}
+            {% endfor %}
+            {{ ns.t | max | round(0) | int if ns.t | count > 0 else none }}
+          today_min: >-
+            {% set fl = (fc['weather.homeweather_zhu_nan_zhen'].forecast if fc is mapping and fc.get('weather.homeweather_zhu_nan_zhen') else []) %}
+            {% set td = now().date() %}
+            {% set ct = state_attr('weather.homeweather_zhu_nan_zhen', 'temperature') | float(none) %}
+            {% set ns = namespace(t=([ct] if ct is not none else [])) %}
+            {% for f in fl %}{% set d = as_local(as_datetime(f.datetime)) %}
+            {% if d.date() == td and f.temperature is number %}{% set ns.t = ns.t + [f.temperature] %}{% endif %}
+            {% endfor %}
+            {{ ns.t | min | round(0) | int if ns.t | count > 0 else none }}
+
   - sensor:
       - name: leave_outdoor_brief
         unique_id: leave_outdoor_brief_v416
@@ -20,20 +73,25 @@ template:
             {% set w = states('weather.homeweather_zhu_nan_zhen') %}
             {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
             {% set t = wa.get('temperature') | float(none) %}{% set at = wa.get('apparent_temperature') | float(none) %}{% set ws = wa.get('wind_speed') | float(0) %}
+            {% set tmax = state_attr('sensor.outdoor_today_forecast', 'today_max') | float(none) %}
+            {% set tmin = state_attr('sensor.outdoor_today_forecast', 'today_min') | float(none) %}
+            {% set hi = [t if t is not none else -99, tmax if tmax is not none else -99] | max %}
+            {% set lo = [t if t is not none else 99, tmin if tmin is not none else 99] | min %}
             {% set rp = states('sensor.homeweather_zhu_nan_zhen_forecast_precipitation_probability') | float(-1) %}
             {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
             {% set uvl = state_attr('sensor.outdoor_uv_index', 'level') or '' %}
             {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}{% set aql = states('sensor.outdoor_air_quality') %}
             {% set rain = w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] or rp >= 50 %}
             {% set ns = namespace(o=['戶外狀況：']) %}
-            {% set wc = 'o' if (rain or (t is not none and (t >= 35 or t <= 12)) or ws >= 40) else 'g' %}
-            {% set ns.o = ns.o + ['天氣：⟦' ~ wc ~ ':' ~ WX.get(w, w) ~ (' ' ~ (t | round(0) | int) ~ '°C' if t is not none else '') ~ '⟧' ~ ('　降雨機率 ' ~ (rp | round(0) | int) ~ '%' if rp >= 0 else '')] %}
+            {% set wc = 'o' if (rain or hi >= 35 or lo <= 12 or ws >= 40) else 'g' %}
+            {% set t_extra = ('（最高 ' ~ (tmax | round(0) | int) ~ '°C）') if (t is not none and tmax is not none and (tmax - t) >= 2) else (('（最低 ' ~ (tmin | round(0) | int) ~ '°C）') if (t is not none and tmin is not none and (t - tmin) >= 3) else '') %}
+            {% set ns.o = ns.o + ['天氣：⟦' ~ wc ~ ':' ~ WX.get(w, w) ~ (' ' ~ (t | round(0) | int) ~ '°C' ~ t_extra if t is not none else '') ~ '⟧' ~ ('　降雨機率 ' ~ (rp | round(0) | int) ~ '%' if rp >= 0 else '')] %}
             {% if uv >= 0 %}{% set ns.o = ns.o + ['紫外線：⟦' ~ ('g' if uv < 3 else ('o' if uv < 8 else 'r')) ~ ':' ~ uvl ~ ' ' ~ (uv | round(1)) ~ '⟧'] %}{% endif %}
             {% if aql not in ['unknown', 'unavailable'] %}{% set ns.o = ns.o + ['空氣品質：⟦' ~ ('g' if aqi <= 50 and aqi >= 0 else ('o' if aqi <= 150 else 'r')) ~ ':' ~ aql ~ (('（AQI ' ~ (aqi | round(0) | int) ~ '）') if aqi >= 0 else '') ~ '⟧'] %}{% endif %}
             {% if uv >= 6 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if uv >= 8 else 'o') ~ ':紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，出門請防曬、戴帽或撐傘⟧'] %}{% endif %}
             {% if aqi > 100 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if aqi > 150 else 'o') ~ ':空氣品質不佳，敏感族群建議戴口罩，減少戶外活動⟧'] %}{% endif %}
             {% if rain %}{% set ns.o = ns.o + ['※ ⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
-            {% if t is not none and (t >= 35 or (at is not none and at >= 38)) %}{% set ns.o = ns.o + ['※ ⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif t is not none and t <= 12 %}{% set ns.o = ns.o + ['※ ⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
+            {% if hi >= 35 or (at is not none and at >= 38) %}{% set ns.o = ns.o + ['※ ⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['※ ⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
             {% if ws >= 40 %}{% set ns.o = ns.o + ['※ ⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
             {{ ns.o | join('\n') }}
           voice: >-
@@ -41,15 +99,28 @@ template:
             {% set w = states('weather.homeweather_zhu_nan_zhen') %}
             {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
             {% set t = wa.get('temperature') | float(none) %}{% set ws = wa.get('wind_speed') | float(0) %}
+            {% set tmax = state_attr('sensor.outdoor_today_forecast', 'today_max') | float(none) %}
+            {% set tmin = state_attr('sensor.outdoor_today_forecast', 'today_min') | float(none) %}
+            {% set hi = [t if t is not none else -99, tmax if tmax is not none else -99] | max %}
+            {% set lo = [t if t is not none else 99, tmin if tmin is not none else 99] | min %}
             {% set rp = states('sensor.homeweather_zhu_nan_zhen_forecast_precipitation_probability') | float(-1) %}
             {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
             {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}
             {% set rain = w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] or rp >= 50 %}
             {% set ns = namespace(o=[]) %}
-            {% set ns.o = ns.o + ['外面' ~ WX.get(w, '天氣不明') ~ ('，' ~ (t | round(0) | int) ~ '度' if t is not none else '')] %}
+            {% if t is not none and tmax is not none and (tmax - t) >= 3 %}
+              {% set t_str = '，目前' ~ (t | round(0) | int) ~ '度，最高' ~ (tmax | round(0) | int) ~ '度' %}
+            {% elif t is not none and tmin is not none and (t - tmin) >= 3 %}
+              {% set t_str = '，目前' ~ (t | round(0) | int) ~ '度，最低' ~ (tmin | round(0) | int) ~ '度' %}
+            {% elif t is not none %}
+              {% set t_str = '，' ~ (t | round(0) | int) ~ '度' %}
+            {% else %}
+              {% set t_str = '' %}
+            {% endif %}
+            {% set ns.o = ns.o + ['外面' ~ WX.get(w, '天氣不明') ~ t_str] %}
             {% if uv >= 6 %}{% set ns.o = ns.o + ['紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，請防曬'] %}{% endif %}
             {% if aqi > 100 %}{% set ns.o = ns.o + ['空氣品質' ~ (states('sensor.outdoor_air_quality')) ~ '，建議戴口罩'] %}{% endif %}
             {% if rain %}{% set ns.o = ns.o + ['可能下雨，請帶傘'] %}{% endif %}
-            {% if t is not none and t >= 35 %}{% set ns.o = ns.o + ['天氣炎熱，請補充水分'] %}{% elif t is not none and t <= 12 %}{% set ns.o = ns.o + ['天氣偏冷，請加衣物'] %}{% endif %}
+            {% if hi >= 35 %}{% set ns.o = ns.o + ['天氣炎熱，請補充水分'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['天氣偏冷，請加衣物'] %}{% endif %}
             {% if ws >= 40 %}{% set ns.o = ns.o + ['風勢強勁'] %}{% endif %}
             {{ ns.o | join('，') }}。
