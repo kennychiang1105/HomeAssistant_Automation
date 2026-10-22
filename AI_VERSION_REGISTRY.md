@@ -100,6 +100,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.2.2 | 2026-10-22 | 新增 `packages/v41_person_main_device.yaml`：`input_select.person_main_device_kenny／iris／jerry／elay`、`input_text.person_main_device_custom_*`、`input_boolean.person_main_device_busy`（內部）、`sensor.person_*_source_device`。 |
 | V4.2.2 | 2026-10-22 | 升級 `packages/v41_outdoor_brief.yaml`：`sensor.leave_outdoor_brief` 整合近 36 小時在地災害告警（颱風、海嘯、豪雨、強風、淹水等）及白話安全提醒，清理失效的 `/browser_mod.js` 引用。 |
 | V4.2.0 | 2026-10-18 | 移除影子模式 helper：`air_ai_shadow`（空氣清淨機）、`auto_scene_shadow`（到家早安）、`intrusion_watch_shadow`（入侵偵測）；新增 `packages/v41_light_anim.yaml`（燈組動畫 helper 與 7 個動畫燈）、`v41_outdoor_air.yaml`、`v41_outdoor_brief.yaml`、`v41_kitchen_air.yaml`。 |
 | V4.1.5 | 2026-10-11 | 廚房「空氣品質危險」旗標條件：PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（原 CO2>1000）。 |
@@ -279,7 +280,7 @@
 | `configuration/Scripts/車庫錄影AI.yaml` | `車庫錄影AI (V4.0.0) / 車庫短片LINE發送AI (V4.0.0)` | `garage_video` / `garage_video_line` | `V4.0.0` |
 | `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.1.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0) / 頂樓樓梯燈套用平常亮度 (V4.0.0) / 頂樓樓梯燈實體按鈕切換 (V4.0.0)` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.1.0` / `V4.0.0` |
 
-## 本次調整（V4.2.2 - 2026-10-22：3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版）
+## 本次調整（V4.2.2 - 2026-10-22：家人主要裝置選擇與卡片、LINE 通知新格式（橫線／備註／示意條）、3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版、離家通知重複修正）
 
 - **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：
   · **全域智慧跳窗**：涵蓋智慧家庭儀表板（`/lovelace-smart/*` 所有分頁）與牆上 Kiosk（8130 埠，透過 `window.__kioskHass` 動態載入）。
@@ -293,6 +294,10 @@
   · 離家等通知中的「氣象告警」採用精簡短版：僅保留「原因・災種」與在地燈號，下一行提醒縮減為一句；紅／橙色燈號地區及安全關鍵字精準標色（紅/橘）。
   · 地震預警速報、最新地震報告、氣象告警通知採用一致的結構化卡片與視覺燈號。
 - **03苗栗天氣告知系統AI 更新**：同步更新為 `V4.2.0`（`ai_miaoli_weather_disaster_notify`），LINE 告警訊息格式優化。
+- **家人主要裝置選擇（`00-2S家人主要裝置切換AI`、`packages/v41_person_main_device.yaml`）**：自動化管理面板「系統維護」每位家人一張現代化卡片，顯示 person.* 目前參考的裝置與在家狀態，可選主要裝置（含「其他（自訂）」輸入 `device_tracker.xxx`，只有選「其他」才出現輸入欄）；Kenny 的手錶追蹤欄位 `input_text.watch_tracker_entity_kenny` 併入卡片。切換前檢查該裝置在家狀態要和 person 一致，再改寫 `persons.yaml` 並 `person.reload`。細節見下方 V4.2.0 區段的追加項目。
+- **LINE 通知新格式（`notify_body.jinja`，`PROJECT_RULES.md` SOP-15）**：標題與每個小段落上方橫線、卡片上緣留白、所有 `※` 備註小字並對齊圖示且上方有整條橫線、顏色示意條、氣象告警自成縮排小段落（一個重點一行）、紫外線最多橘色；所有 LINE 卡片（含地震／災害專用卡片標題列）共用。
+- **離家通知重複修正（`100B自動離家AI` V4.2.0）**：重新載入範本／person 造成 `at_home_*_location` 短暫 unavailable，離家計時重啟而重複發送；離家情境已開超過 3 分鐘就不再重發。
+- **V4.2.0 發布後併入本版的修正**：早安／到家廣播報室內空氣、晚安廣播報明日天氣；車庫燈手動關燈冷卻不再被離家情境逐環關燈誤判（104-1B）；04 苗栗天氣（按鈕）LINE 訊息補回 `type`；補回 `auto_scene_earliest_*` 兩個 helper（重複的 `input_datetime`）。
 
 ## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
 
