@@ -1922,7 +1922,7 @@ views:
           - entity: automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0
             name: "100A自動啟動到家早安情境AI (V4.2.0)"
           - entity: automation.ai_auto_leave_system
-            name: "100B自動離家AI (V4.1.6)"
+            name: "100B自動離家AI (V4.2.0)"
           - entity: automation.ai_100c_googlehome_scene_virtual_button_bridge
             name: "100C GoogleHome情境虛擬按鈕橋接AI (V3.0)"
           - entity: automation.wan_an_qing_jing

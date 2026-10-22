@@ -1,7 +1,9 @@
 ﻿# ────────────────────────────────────────────────────────
-# 入侵警報AI (V4.2.0)
+# 入侵警報AI (V4.2.2)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-22）：同一台實體裝置只算一個訊號：改用裝置名稱（不是 device_id）判斷「不同裝置」。車庫攝影機在 HA 裡有兩個名稱相同的裝置（UVC G6 Instant／G6 Instant），
+#   一次車庫動作就被當成兩個裝置而判定疑似入侵（2026-10-22 14:29 家人開車回家時誤報）。
 # - V4.2.0（2026-10-18）：移除 shadow 模式（正式模式直接通知、廣播、倒數與響警報），保留 real／dry／test。
 # - V4.1.6（2026-10-12）：新增。離家入侵偵測（08-7）的兩支腳本：
 #     script.intrusion_record_signal：記錄一個入侵訊號（同一個裝置只留最新一筆），回傳「視窗內不同裝置」的訊號數與清單；queued 避免同時寫入互相覆蓋。
@@ -9,7 +11,7 @@
 #       流程：冷卻檢查 → 車庫與頂樓攝影機截圖 → 緊急級 LINE／HA 通知（兩張截圖、攝影機即時影像與「家庭」App 按鈕）＋廣播 → 倒數（家人回來／切到在家或早安情境／關閉功能就取消）→ 觸發網關警報（aqara_chu_fa，由 106 同步到實體網關）。
 # ────────────────────────────────────────────────────────
 intrusion_record_signal:
-  alias: 入侵偵測記錄訊號AI (V4.2.0)
+  alias: 入侵偵測記錄訊號AI (V4.2.2)
   description: 記錄入侵訊號，回傳視窗內來自不同裝置的訊號數量
   mode: queued
   max: 30
@@ -22,12 +24,14 @@ intrusion_record_signal:
         now_ts: "{{ now().timestamp() }}"
         win_s: "{{ (states('input_number.intrusion_window_min') | float(5)) * 60 }}"
         raw: "{{ states('input_text.intrusion_recent') }}"
-        my_dev: "{{ device_id(entity_id) or entity_id }}"
+        # V4.2.2：同一台實體裝置只算一個訊號（車庫攝影機在 HA 裡有兩個名稱相同的裝置，原本一次動作就被當成兩個裝置而判定入侵），改用裝置名稱當鍵
+        my_dev: "{% macro dk(e) %}{{ (device_attr(device_id(e), 'name') if device_id(e) else '') or e }}{% endmacro %}{{ dk(entity_id) | trim }}"
         kept: >-
+          {% macro dk(e) %}{{ (device_attr(device_id(e), 'name') if device_id(e) else '') or e }}{% endmacro %}
           {% set ns = namespace(o=[]) %}
           {% for it in (raw.split(';') if raw not in ['unknown', 'unavailable', ''] else []) %}
           {% set p = it.split('@') %}
-          {% if p | length == 2 and (now_ts - (p[1] | float(0))) <= win_s and (device_id(p[0]) or p[0]) != my_dev %}
+          {% if p | length == 2 and (now_ts - (p[1] | float(0))) <= win_s and dk(p[0]) | trim != my_dev %}
           {% set ns.o = ns.o + [it] %}
           {% endif %}
           {% endfor %}
@@ -46,7 +50,7 @@ intrusion_record_signal:
       response_variable: result
 
 intrusion_alert:
-  alias: 入侵警報AI (V4.2.0)
+  alias: 入侵警報AI (V4.2.2)
   description: 疑似入侵時的通知、廣播、倒數與網關警報（mode：real／dry／test）
   mode: single
   max_exceeded: silent
@@ -58,7 +62,7 @@ intrusion_alert:
       description: real／dry／test
       required: false
   variables:
-    automation_version: V4.2.0
+    automation_version: V4.2.2
     md: "{{ mode if (mode is defined and mode) else 'real' }}"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     cd: "{{ states('input_number.intrusion_countdown_sec') | int(30) }}"
@@ -105,7 +109,7 @@ intrusion_alert:
     - action: script.notify_dispatch
       data:
         level: emergency
-        source: "08-7離家入侵偵測AI (V4.2.0)"
+        source: "08-7離家入侵偵測AI (V4.2.2)"
         version: "{{ automation_version }}"
         title: "{{ '【測試】' if md == 'test' else '' }}疑似入侵（離家中）"
         icon: "https://family.kteam.tw:8126/local/icons/shield.png?v=2"
@@ -142,7 +146,7 @@ intrusion_alert:
           data:
             level: info
             line: false
-            source: "08-7離家入侵偵測AI (V4.2.0)"
+            source: "08-7離家入侵偵測AI (V4.2.2)"
             version: "{{ automation_version }}"
             title: 疑似入侵警報已取消
             message: |-
@@ -157,7 +161,7 @@ intrusion_alert:
           data:
             level: emergency
             line: false
-            source: "08-7離家入侵偵測AI (V4.2.0)"
+            source: "08-7離家入侵偵測AI (V4.2.2)"
             version: "{{ automation_version }}"
             title: 已觸發網關警報
             message: |-
@@ -168,7 +172,7 @@ intrusion_alert:
           data:
             level: important
             line: false
-            source: "08-7離家入侵偵測AI (V4.2.0)"
+            source: "08-7離家入侵偵測AI (V4.2.2)"
             version: "{{ automation_version }}"
             title: 疑似入侵（未觸發警報）
             message: |-
