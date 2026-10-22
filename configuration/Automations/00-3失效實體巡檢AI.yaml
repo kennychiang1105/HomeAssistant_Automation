@@ -41,7 +41,11 @@
         source: 00-3失效實體巡檢AI
         version: V4.1.0
         title: 失效實體巡檢
-        message: >-
-          有 {{ stale | count }} 個實體已失效超過 7 天（unavailable＋restored）。
-          {% for k, v in by_domain.items() %}{{ k }}：{{ v }}　{% endfor %}
-          請確認後再請 Claude 清理（設定檔零引用才刪）。
+        message: |-
+          有 {{ stale | count }} 個實體已失效超過 7 天
+          {%- for k, v in by_domain.items() %}
+          {{ k }}：{{ v }}
+          {%- endfor %}
+
+          ※ 狀態為 unavailable＋restored。
+          ※ 請確認後再請 Claude 清理（設定檔零引用才刪）。

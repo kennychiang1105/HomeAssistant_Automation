@@ -298,9 +298,12 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
-                message: >-
-                  {{ vehicle_name }} 開始充電（{{ now_time }}）。
-                  手把溫度 {{ handle_temp }}°C、MCU 溫度 {{ mcu_temp }}°C、PCB 溫度 {{ pcb_temp }}°C。
+                message: |-
+                  {{ vehicle_name }} 開始充電
+                  時間：{{ now_time }}
+                  手把溫度：{{ handle_temp }}°C
+                  MCU 溫度：{{ mcu_temp }}°C
+                  PCB 溫度：{{ pcb_temp }}°C
             - choose:
                 - conditions:
                     - condition: state
@@ -359,12 +362,17 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
-                message: >-
-                  {{ vehicle_name }} 充電完成。
-                  開始時間 {{ start_time }}，結束時間 {{ now_time }}。
-                  充電用時 {{ charge_duration_text }}。
-                  用電量 {{ session_energy }} kWh（度）。
-                  手把 {{ handle_temp }}°C、MCU {{ mcu_temp }}°C、PCB {{ pcb_temp }}°C。
+                message: |-
+                  {{ vehicle_name }} 充電完成
+                  開始時間：{{ start_time }}
+                  結束時間：{{ now_time }}
+                  充電用時：{{ charge_duration_text }}
+                  用電量：{{ session_energy }} kWh（度）
+
+                  溫度：
+                  手把：{{ handle_temp }}°C
+                  MCU：{{ mcu_temp }}°C
+                  PCB：{{ pcb_temp }}°C
             - choose:
                 - conditions:
                     - condition: state
@@ -422,12 +430,18 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
-                message: >-
-                  {% if charger_status | string | lower | trim in finished_states %}
-                  {{ now_time }} 離峰時段已過仍未充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限），請檢查車輛狀況。
-                  {% else %}
-                  {{ now_time }} 仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
-                  {% endif %}
+                message: |-
+                  {% if charger_status | string | lower | trim in finished_states -%}
+                  {{ now_time }} 離峰時段已過仍未充電
+                  狀態：充電器回報「充電完成」，這次連接後尚未充過電
+
+                  ※ 可能是車輛已充飽、排程充電或充電上限，請檢查車輛狀況。
+                  {%- else -%}
+                  {{ now_time }} 仍未開始充電
+                  目前狀態：{{ charger_status }}
+
+                  ※ 請檢查車輛狀況。
+                  {%- endif %}
             - choose:
                 - conditions:
                     - condition: state
@@ -470,8 +484,11 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
-                message: >-
-                  Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。
+                message: |-
+                  Tesla 充電器狀態異常
+                  狀態：error
+
+                  ※ 請儘速檢查設備與供電連線。
             - choose:
                 - conditions:
                     - condition: state
@@ -524,8 +541,11 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
-                message: >-
-                  已連接超過 6 小時仍未開始充電，請檢查車輛狀況（目前狀態：{{ charger_status }}）。
+                message: |-
+                  已連接超過 6 小時仍未開始充電
+                  目前狀態：{{ charger_status }}
+
+                  ※ 請檢查車輛狀況。
             - choose:
                 - conditions:
                     - condition: state
@@ -581,8 +601,11 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】重要 Important ⚠️"
-                message: >-
-                  車輛已插槍但沒有在充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限）。
+                message: |-
+                  車輛已插槍但沒有在充電
+                  狀態：充電器回報「充電完成」，這次連接後尚未充過電
+
+                  ※ 可能是車輛已充飽、排程充電或充電上限。
             - choose:
                 - conditions:
                     - condition: state
@@ -614,9 +637,11 @@
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
-                message: >-
-                  這是充電樁通知測試訊息（{{ now_time }}）。
-                  目前判定車輛 {{ vehicle_name }}，狀態 {{ charger_status }}。
+                message: |-
+                  這是充電樁通知測試訊息
+                  時間：{{ now_time }}
+                  車輛：{{ vehicle_name }}
+                  狀態：{{ charger_status }}
             - choose:
                 - conditions:
                     - condition: state

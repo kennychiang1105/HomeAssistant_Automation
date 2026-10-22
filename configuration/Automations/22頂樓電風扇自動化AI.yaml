@@ -333,7 +333,10 @@
                     source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "已偵測手動關機（含 HomeKit）→ 啟用手動關機防護罩"
-                    message: "🙋‍♂️ 已啟用 3 小時手動關機防護罩，並清除回溫/保留/調速暫停記憶。"
+                    message: |-
+                      已啟用手動關機防護罩
+                      時間：3 小時
+                      已清除：回溫、保留、調速暫停記憶
 
     # 0.1) 手動保留期間關機 → 直接解除保留
     - choose:
@@ -376,8 +379,13 @@
             source: "22頂樓電風扇自動化AI (V4.1.5)"
             version: "{{ automation_version | default('', true) }}"
             title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
-            message: >
-              ⚠️ hp_raw_temp={{ hp_raw_temp }}, hp_raw_humidity={{ hp_raw_humidity }}；15 分內不依溫/濕度做關/開與調速，避免誤判。
+            message: |-
+              HomePod 溫濕度暫時失效，已凍結溫控
+              溫度讀數：{{ hp_raw_temp }}
+              濕度讀數：{{ hp_raw_humidity }}
+              凍結時間：15 分鐘
+
+              ※ 15 分內不依溫濕度做關／開與調速，避免誤判。
 
     # 0.2) 風扇下次開機 → 解除手動調速防護罩
     - choose:
@@ -539,8 +547,12 @@
                     source: "22頂樓電風扇自動化AI (V4.1.5)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動開啟 — 已啟用保留 1 小時"
-                    message: >
-                      🙋‍♂️ t_eff={{ '%.1f'|format(t_eff_num|float(0)) }}°C 低於 {{ night_cold_off_c }}°C；為避免立即自動關閉，已暫時保留 1 小時。
+                    message: |-
+                      手動開啟，已保留 1 小時
+                      有效溫度：{{ '%.1f'|format(t_eff_num|float(0)) }}°C
+                      過冷門檻：{{ night_cold_off_c }}°C
+
+                      ※ 為避免立即自動關閉，暫時保留 1 小時。
 
     # 3) 任意時段「過冷關機」：需 t_eff 有效；執行後本輪 stop 防回彈
     - choose:

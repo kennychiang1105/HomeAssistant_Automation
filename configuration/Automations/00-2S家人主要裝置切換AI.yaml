@@ -142,8 +142,15 @@
                         source: "00-2S家人主要裝置切換AI (V4.2.0)"
                         version: "{{ automation_version }}"
                         title: "{{ pname[pid] }} 的主要裝置"
-                        message: >-
-                          {% if now_src == ent %}已改為「{{ label if label != other_label else ent }}」，person.{{ pid }} 現在參考 {{ ent }}。{% else %}已改寫設定，但 person.{{ pid }} 目前參考的是 {{ now_src }}，請檢查 persons.yaml。{% endif %}
+                        message: |-
+                          {% if now_src == ent -%}
+                          已改為「{{ label if label != other_label else ent }}」
+                          目前參考：{{ ent }}
+                          {%- else -%}
+                          已改寫設定，但 person.{{ pid }} 目前參考的是 {{ now_src }}
+
+                          ※ 請檢查 persons.yaml。
+                          {%- endif %}
                   else:
                     - choose:
                         - conditions:
@@ -193,10 +200,25 @@
                 source: "00-2S家人主要裝置切換AI (V4.2.0)"
                 version: "{{ automation_version }}"
                 title: "{{ pname[pid] }} 的主要裝置沒有切換"
-                message: >-
-                  {% if label == other_label and not custom_ok %}請先在「{{ pname[pid] }} 的自訂裝置」欄位輸入有效的 device_tracker.xxx（小寫英數底線），再選「其他」。已退回原設定。
-                  {% elif c_state in ['unknown', 'unavailable'] %}找不到裝置 {{ ent }} 的狀態（不存在或離線），已退回原設定。
-                  {% else %}「{{ label if label != other_label else ent }}」目前{{ '不在家' if c_state != 'home' else '在家' }}，但 {{ pname[pid] }} 目前{{ '在家' if p_state == 'home' else '不在家' }}。為避免切換後在家狀態突然改變、誤觸發離家／到家情境，已退回原設定。請等該裝置的在家狀態和 {{ pname[pid] }} 一致再切換。{% endif %}
+                message: |-
+                  {% if label == other_label and not custom_ok -%}
+                  自訂裝置欄位沒有有效值
+                  請先輸入：device_tracker.xxx（小寫英數底線），再選「其他」
+
+                  ※ 已退回原設定。
+                  {%- elif c_state in ['unknown', 'unavailable'] -%}
+                  找不到裝置 {{ ent }} 的狀態
+                  原因：裝置不存在或離線
+
+                  ※ 已退回原設定。
+                  {%- else -%}
+                  「{{ label if label != other_label else ent }}」與 {{ pname[pid] }} 的在家狀態不一致
+                  裝置：{{ '不在家' if c_state != 'home' else '在家' }}
+                  {{ pname[pid] }}：{{ '在家' if p_state == 'home' else '不在家' }}
+
+                  ※ 為避免切換後在家狀態突然改變、誤觸發離家／到家情境，已退回原設定。
+                  ※ 請等該裝置的在家狀態和 {{ pname[pid] }} 一致再切換。
+                  {%- endif %}
         - delay: "00:00:02"
         - action: input_boolean.turn_off
           target:

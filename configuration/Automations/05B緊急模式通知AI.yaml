@@ -56,9 +56,13 @@
             source: "05B緊急模式通知AI (V4.0.0)"
             version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
-            message: >-
-              緊急模式已啟動（所有照明開啟並關閉電源）。
-              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
+            message: |-
+              緊急模式已啟動
+              照明：全部開啟
+              電源：已關閉
+
+              ※ 請確認現場是否為真實緊急情況。
+              ※ 若為誤觸，請依情況復原電源與照明。
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -212,9 +216,13 @@
               source: "05B緊急模式通知AI (V4.0.0)"
               version: "{{ automation_version | default('', true) }}"
               title: 智慧家庭通知｜緊急 Urgent ‼️
-              message: >-
-                緊急模式已啟動（所有照明開啟並關閉電源）。
-                請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
+              message: |-
+                緊急模式已啟動
+                照明：全部開啟
+                電源：已關閉
+
+                ※ 請確認現場是否為真實緊急情況。
+                ※ 若為誤觸，請依情況復原電源與照明。
             enabled: true
             action: script.notify_dispatch
           - if:
@@ -297,9 +305,13 @@
             source: "05B緊急模式通知AI (V4.0.0)"
             version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
-            message: >-
-              緊急模式已啟動（所有照明開啟並關閉電源）。
-              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
+            message: |-
+              緊急模式已啟動
+              照明：全部開啟
+              電源：已關閉
+
+              ※ 請確認現場是否為真實緊急情況。
+              ※ 若為誤觸，請依情況復原電源與照明。
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -443,9 +455,13 @@
             source: "05B緊急模式通知AI (V4.0.0)"
             version: "{{ automation_version | default('', true) }}"
             title: 智慧家庭通知｜緊急 Urgent ‼️
-            message: >-
-              緊急模式已啟動（所有照明開啟並關閉電源）。
-              請確認現場是否為真實緊急情況，若為誤觸請依情況復原電源與照明。
+            message: |-
+              緊急模式已啟動
+              照明：全部開啟
+              電源：已關閉
+
+              ※ 請確認現場是否為真實緊急情況。
+              ※ 若為誤觸，請依情況復原電源與照明。
           enabled: true
           action: script.notify_dispatch
         - if:

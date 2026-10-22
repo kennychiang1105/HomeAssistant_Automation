@@ -173,12 +173,15 @@
                         source: "104-2車牌辨識AI (V4.0.0)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
-                        message: >-
-                          {% if lpr_opened_recently %}
-                          ✅ 近期已有 LPR 觸發紀錄，視同取得駛出憑證，將於 45 秒後評估關門。
-                          {% else %}
-                          ⏳ 開始等待駛出憑證 (6分鐘內)。一旦取得憑證即立刻進入 45 秒安全緩衝。
-                          {% endif %}
+                        message: |-
+                          鐵門已完全打開
+                          {% if lpr_opened_recently -%}
+                          憑證：近期已有 LPR 觸發紀錄，視同取得駛出憑證
+                          下一步：45 秒後評估關門
+                          {%- else -%}
+                          憑證：等待駛出憑證（6 分鐘內）
+                          下一步：取得憑證後立即進入 45 秒安全緩衝
+                          {%- endif %}
 
             # —— 階段一：防呆等待，確認車輛真的有移動/駛出 —— #
             - choose:
@@ -227,7 +230,11 @@
                                         source: "104-2車牌辨識AI (V4.0.0)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "⛔ 已取消自動關門 (車輛未駛出)"
-                                        message: "鐵門開啟後 6 分鐘內未捕捉到任何駛出憑證，為保護安全已暫停本次自動關門。"
+                                        message: |-
+                                          已取消自動關門
+                                          原因：鐵門開啟後 6 分鐘內未捕捉到駛出憑證
+
+                                          ※ 為保護安全，本次不自動關門。
                             - stop: "Canceled because no car left"
                         - conditions:
                             - condition: template
@@ -240,7 +247,12 @@
                                 source: "104-2車牌辨識AI (V4.0.0)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "✅ 已取得駛出憑證"
-                                message: "已取得駛出憑證（{{ wait.trigger.platform }}），立即進入 45 秒安全緩衝，不會繼續等待到 6 分鐘上限。"
+                                message: |-
+                                  已取得駛出憑證
+                                  來源：{{ wait.trigger.platform }}
+                                  下一步：進入 45 秒安全緩衝
+
+                                  ※ 不會繼續等待到 6 分鐘上限。
 
             # —— 階段二：確認駛出 (或 LPR 直達)，進入統一 45 秒安全緩衝 —— #
             - wait_for_trigger:

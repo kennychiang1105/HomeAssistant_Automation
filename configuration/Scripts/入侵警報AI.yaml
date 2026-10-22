@@ -150,7 +150,9 @@ intrusion_alert:
             version: "{{ automation_version }}"
             title: 疑似入侵警報已取消
             message: |-
-              倒數期間家人回到家、網關切到在家模式，或入侵偵測被關閉，已取消網關警報。
+              已取消網關警報
+              時機：倒數期間
+              原因：家人回到家、網關切到在家模式，或入侵偵測被關閉
         - stop: "已取消"
     - if: "{{ is_state('input_boolean.intrusion_watch_alarm_enable', 'on') }}"
       then:
@@ -176,5 +178,7 @@ intrusion_alert:
             version: "{{ automation_version }}"
             title: 疑似入侵（未觸發警報）
             message: |-
-              倒數結束家裡仍沒有人，但「入侵偵測觸發網關警報」開關是關閉的，沒有觸發警報。
+              倒數結束，家裡仍沒有人
+              警報：沒有觸發
+              原因：「入侵偵測觸發網關警報」開關是關閉的
 

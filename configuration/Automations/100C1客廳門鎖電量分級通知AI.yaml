@@ -108,7 +108,12 @@
                                 source: "過濾 unknown → -1 假觸發"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_alarm }}"
-                                message: "🟥 門鎖電量完全沒電（0%）！請以行動電源供電後解鎖。此時「自動離家」與「網關保護」可能異常。"
+                                message: |-
+                                  門鎖電量完全沒電
+                                  電量：0%
+
+                                  ※ 請以行動電源供電後解鎖。
+                                  ※ 此時「自動離家」與「網關保護」可能異常。
                             - if:
                                 - condition: state
                                   entity_id: input_boolean.notify_line_emergency_enable
@@ -136,7 +141,11 @@
                                 source: "過濾 unknown → -1 假觸發"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_alarm }}"
-                                message: "🟥 門鎖電量低於 5%，隨時可能完全沒電，請立即更換！"
+                                message: |-
+                                  門鎖電量低於 5%
+                                  狀態：隨時可能完全沒電
+
+                                  ※ 請立即更換電池。
                             - if:
                                 - condition: state
                                   entity_id: input_boolean.notify_line_emergency_enable
@@ -165,7 +174,11 @@
                                 source: "過濾 unknown → -1 假觸發"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_warn }}"
-                                message: "🟧 門鎖電量低於 15%，可能無法遠端或手機解鎖，請儘速更換或準備行動電源。"
+                                message: |-
+                                  門鎖電量低於 15%
+                                  狀態：可能無法遠端或手機解鎖
+
+                                  ※ 請儘速更換電池，或準備行動電源。
                             - if:
                                 - condition: state
                                   entity_id: input_boolean.notify_line_important_enable
@@ -193,7 +206,10 @@
                                 source: "過濾 unknown → -1 假觸發"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "{{ notif_title_warn }}"
-                                message: "🟨 門鎖電量 35% 以下，建議安排電池更換。"
+                                message: |-
+                                  門鎖電量低於 35%
+
+                                  ※ 建議安排電池更換。
                             - if:
                                 - condition: state
                                   entity_id: input_boolean.notify_line_important_enable
