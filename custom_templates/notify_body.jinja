@@ -388,6 +388,20 @@
   {{- {'time': res_ns.time_prefix, 'targets': res_ns.targets, 'others': res_ns.others} | tojson -}}
 {%- endmacro %}
 
+{# V4.2.2：災害訊息「在地內容簽章」：只留下影響竹南／苗栗／新竹的燈號、地區與條件，不看其他縣市與時段文字（NCDR 常常只改其他縣市就再發一版，不該重複通知） #}
+{% macro disaster_sig(msg) -%}
+{%- set s0 = (msg | string) | trim -%}
+{%- set items = s0 | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+{%- set ns = namespace(sig=[]) -%}
+{%- for reg, cond, lamp in items -%}
+  {%- set p = parse_alert_region(reg) | from_json -%}
+  {%- if p.targets | length > 0 -%}
+    {%- set ns.sig = ns.sig + [lamp ~ ':' ~ (p.targets | map(attribute='name') | sort | join('/')) ~ ':' ~ (cond | trim)] -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if ns.sig | length > 0 -%}{{ (ns.sig | sort | join('|'))[:240] }}{%- else -%}{{ (s0 | regex_replace('\\s+', ''))[:240] }}{%- endif -%}
+{%- endmacro %}
+
 {# ──────────────────────────────────────────────────────
    語音專用：只念苗栗（含竹南）、新竹縣市，保證完整句結尾、絕不硬切斷句
    ────────────────────────────────────────────────────── #}

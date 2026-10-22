@@ -50,6 +50,18 @@
     }
     return `${h1.toString(36)}${h2.toString(36)}${t.length}`;
   };
+  // V4.2.2：災害訊息的「在地內容簽章」（燈號＋竹南／苗栗／新竹地區＋條件），和 03 自動化的 disaster_sig 一致；其他縣市或時段文字變動不算新訊息
+  const disasterSig = (raw) => {
+    const s0 = String(raw ?? "").trim();
+    const re = /([^，。()（）\n]*?局部地區)有([^()（）\n]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
+    const sig = [];
+    let m;
+    while ((m = re.exec(s0)) !== null) {
+      const p = parseAlertRegion(m[1]);
+      if (p.targets.length) sig.push(`${m[3]}:${p.targets.map((t) => t.name).sort().join("/")}:${m[2].trim()}`);
+    }
+    return sig.length ? sig.sort().join("|") : s0.replace(/\s+/g, "").slice(0, 240);
+  };
   const getHass = () => window.__kioskHass || document.querySelector("home-assistant")?.hass;
   const isFresh = (age) => Number.isFinite(age) && age <= FRESH_MS && age > -5 * 60 * 1000;
   // age of the disaster notice: sensor.disaster_last_valid_update (stable across reloads), else the entity's own update time
@@ -943,7 +955,7 @@
       }
       if (disSt && disSt.state) {
         const age = disasterAgeMs(hass, disSt, now);
-        const key = `dis:${hashStr(disSt.state)}`;
+        const key = `dis:${hashStr(disasterSig(disSt.state))}`;
         if (isFresh(age) && !isSeen(key)) {
           const parsed = parseDisasterAlert(disSt.state);
           if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
@@ -982,7 +994,7 @@
     if (pendingDis) {
       if (disSt && disSt.state === pendingDis.state) {
         if (isFresh(disasterAgeMs(hass, disSt, now))) {
-          const key = `dis:${hashStr(disSt.state)}`;
+          const key = `dis:${hashStr(disasterSig(disSt.state))}`;
           pendingDis = null;
           if (!isSeen(key)) {
             const parsed = parseDisasterAlert(disSt.state);

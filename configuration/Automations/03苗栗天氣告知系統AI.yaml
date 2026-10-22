@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V4.2.0)
+# 03苗栗天氣告知系統AI (V4.2.2)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-22）：同一則災害訊息不重複發送：NCDR 常常只改其他縣市的名單或時段文字就再發一版（10/22 16:55 與 17:23 兩版只差其他縣市），原本整段文字比對所以發了兩次。
+#   改用「在地內容簽章」（notify_body.jinja 的 disaster_sig：燈號＋竹南／苗栗／新竹地區＋條件）判斷，在地內容沒變就不再通知、不廣播。
 # - V4.2.0（2026-10-22）：災害廣播在地化（苗栗竹南新竹）＋修復中途截斷問題。
 #   1. 廣播改用 disaster_voice 巨集：只念在地（苗栗縣/竹南/新竹縣市）燈號與警戒，其他縣市完全不念；若無本地區內容則不廣播。
 #   2. 移除 [:160] 硬切限制，確保語音為自然完整句結尾（補「。」），避免念到一半中斷。
@@ -24,13 +26,13 @@
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 03苗栗天氣告知系統AI (V4.2.0)
+- alias: 03苗栗天氣告知系統AI (V4.2.2)
   id: ai_miaoli_weather_disaster_notify
   description: 依內容分級通知竹南有影響的災害與天氣訊息，不重要的不通知；重要類與緊急類才廣播
   mode: queued
   max: 10
   variables:
-    automation_version: "V4.2.0"
+    automation_version: "V4.2.2"
     near_re: "頭份|後龍|三灣|造橋"
   triggers:
     - entity_id: sensor.disaster
@@ -68,7 +70,9 @@
         last_broadcast_ts: "{{ as_timestamp(states('input_datetime.last_disaster_broadcast'), 0) }}"
         last_message: "{{ states('input_text.disaster_last_message') }}"
         message_ts: "{{ as_timestamp(states.sensor.disaster.last_updated, 0) }}"
-        is_new_content: "{{ current_message[:250] != last_message }}"
+        cur_sig: "{% from 'notify_body.jinja' import disaster_sig %}{{ disaster_sig(current_message) | trim }}"
+        # V4.2.2：用「在地內容簽章」判斷是不是新訊息（燈號＋竹南／苗栗／新竹地區＋條件），其他縣市或時段文字變動不重複通知
+        is_new_content: "{{ cur_sig[:250] != last_message }}"
         level_title: >-
           {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
         voice_text: >-
@@ -95,7 +99,7 @@
                     level: "{{ send_level }}"
                     to_ha: "{{ ha_on }}"
                     line: "{{ line_on }}"
-                    source: "03苗栗天氣告知系統AI (V4.2.0)"
+                    source: "03苗栗天氣告知系統AI (V4.2.2)"
                     version: "{{ automation_version }}"
                     title: "{{ level_title }}"
                     message: |-
@@ -117,7 +121,7 @@
               target:
                 entity_id: input_text.disaster_last_message
               data:
-                value: "{{ current_message[:250] }}"
+                value: "{{ cur_sig[:250] }}"
         # ── 早晨補報：只補夜間收到、還沒廣播過的重要類／緊急類訊息（語音） ──
         - conditions:
             - condition: trigger
