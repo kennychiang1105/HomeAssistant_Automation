@@ -21,7 +21,7 @@
 - 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
 <!-- STATS:BEGIN -->
-## 數量統計（`scripts/registry_stats.py` 產生，更新於 2026-10-18）
+## 數量統計（`scripts/registry_stats.py` 產生，更新於 2026-10-22）
 
 | 項目 | 檔案數 | 數量 |
 |---|---|---|
@@ -49,7 +49,7 @@
 | `configuration/Automations/00-2P門鎖電量每日紀錄AI.yaml` | `00-2P門鎖電量每日紀錄AI (V4.0.0)` | `ai_00_2p_doorlock_battery_daily` | `V4.0.0` |
 | `configuration/Automations/00-3失效實體巡檢AI.yaml` | `00-3失效實體巡檢AI (V4.1.0)` | `ai_00_3_stale_entity_audit_v41` | `V4.1.0` |
 | `configuration/Automations/00-4手機追蹤比對AI.yaml` | `00-4手機追蹤比對AI (V4.1.0)` | `ai_00_4_phone_tracker_compare_v41` | `V4.1.0` |
-| `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V4.0.0)` | `ai_miaoli_weather_disaster_notify` | `V4.0.0` |
+| `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V4.2.0)` | `ai_miaoli_weather_disaster_notify` | `V4.2.0` |
 | `configuration/Automations/05B緊急模式通知AI.yaml` | `05B緊急模式通知AI (V4.0.1)` | `ai_05b_emergency_mode_notify_v3` | `V4.0.1` |
 | `configuration/Automations/05C按鈕自動復位AI.yaml` | `05C按鈕自動復位AI (V3.0)` | `ai_05c_emergency_button_auto_reset_v3` | `V3.0` |
 | `configuration/Automations/05D緊急模式虛擬按鈕AI.yaml` | `05D緊急模式虛擬按鈕AI (V3.0)` | `ai_05d_emergency_virtual_button_bridge_v3` | `V3.0` |
@@ -99,6 +99,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.2.2 | 2026-10-22 | 升級 `packages/v41_outdoor_brief.yaml`：`sensor.leave_outdoor_brief` 整合近 36 小時在地災害告警（颱風、海嘯、豪雨、強風、淹水等）及白話安全提醒，清理失效的 `/browser_mod.js` 引用。 |
 | V4.2.0 | 2026-10-18 | 移除影子模式 helper：`air_ai_shadow`（空氣清淨機）、`auto_scene_shadow`（到家早安）、`intrusion_watch_shadow`（入侵偵測）；新增 `packages/v41_light_anim.yaml`（燈組動畫 helper 與 7 個動畫燈）、`v41_outdoor_air.yaml`、`v41_outdoor_brief.yaml`、`v41_kitchen_air.yaml`。 |
 | V4.1.5 | 2026-10-11 | 廚房「空氣品質危險」旗標條件：PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（原 CO2>1000）。 |
 | V4.1.5 | 2026-10-11 | 新增 `packages/v41_day_label.yaml`：`sensor.tw_day_label`（今日日型標籤，供 3D 儀表板日期列使用）。 |
@@ -276,6 +277,21 @@
 | `configuration/Scripts/車庫快照AI.yaml` | `車庫快照AI (V4.0.0) / 車庫快照（條件式）AI (V4.0.0)` | `garage_snapshot` / `garage_snapshot_if` | `V4.0.0` |
 | `configuration/Scripts/車庫錄影AI.yaml` | `車庫錄影AI (V4.0.0) / 車庫短片LINE發送AI (V4.0.0)` | `garage_video` / `garage_video_line` | `V4.0.0` |
 | `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.1.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0) / 頂樓樓梯燈套用平常亮度 (V4.0.0) / 頂樓樓梯燈實體按鈕切換 (V4.0.0)` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.1.0` / `V4.0.0` |
+
+## 本次調整（V4.2.2 - 2026-10-22：3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版）
+
+- **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：
+  · **全域智慧跳窗**：涵蓋智慧家庭儀表板（`/lovelace-smart/*` 所有分頁）與牆上 Kiosk（8130 埠，透過 `window.__kioskHass` 動態載入）。
+  · **精準警報過濾**：本地橙色／紅色燈號、疏散、海嘯、土石流、颱風警報、大豪雨與國家級警報才會彈出，一般水務搶修、黃色燈號不再打擾。
+  · **逾時防干擾與全文字雜湊去重**：超過 1 小時且未讀的舊災害與地震報告不彈出；使用全文雜湊鍵（`hashStr`）取代前 120 字比對，避免同則訊息後續修訂被誤遮蔽；新地震預警直接覆蓋舊預警。
+  · **自適應防跑版與自動倒數**：30 秒倒數進度條自動關閉，支援右上 `✕`、底部「我知道了」、背景遮罩與 `Esc` 關閉；全欄位採用 `min-width:0` 與 `overflow-wrap:anywhere`。
+- **離家戶外摘要加入在地災害提醒（`packages/v41_outdoor_brief.yaml`，`sensor.leave_outdoor_brief`）**：
+  · 整合近 36 小時內影響苗栗／竹南／新竹的氣象與災防警戒（颱風、海嘯、豪雨、強風燈號、淹水等）。
+  · 自動附帶在地白話安全叮嚀（如防風、避開低窪積水等），並與戶外一般降雨／強風提醒智慧去重，避免語音與文字重複叮嚀。
+- **通知告警排版縮短與在地顏色標記（`custom_templates/notify_body.jinja` 的 `disaster_hint` 與 `special_body`）**：
+  · 離家等通知中的「氣象告警」採用精簡短版：僅保留「原因・災種」與在地燈號，下一行提醒縮減為一句；紅／橙色燈號地區及安全關鍵字精準標色（紅/橘）。
+  · 地震預警速報、最新地震報告、氣象告警通知採用一致的結構化卡片與視覺燈號。
+- **03苗栗天氣告知系統AI 更新**：同步更新為 `V4.2.0`（`ai_miaoli_weather_disaster_notify`），LINE 告警訊息格式優化。
 
 ## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
 
