@@ -412,6 +412,127 @@
 {%- endmacro %}
 
 {# ──────────────────────────────────────────────────────
+   離家戶外摘要專用：解析近 36 小時內影響苗栗／竹南／新竹的災害（颱風、海嘯、豪雨、強風燈號、淹水等）
+   回傳 JSON：{"line": 通知項目行, "note": 通知提醒行, "voice": 廣播白話提醒句, "col": "r"|"o"|""}
+   ────────────────────────────────────────────────────── #}
+{% macro disaster_hint(msg, updated_ts=0) -%}
+{%- set ts = updated_ts | float(0) -%}
+{%- set fresh = (ts <= 0) or ((now().timestamp() - ts) <= 36 * 3600) -%}
+{%- set s_raw = (msg | string) | trim if msg not in ['', 'unknown', 'unavailable', 'none', 'None', none] else '' -%}
+{%- set skip = (s_raw == '') or not fresh or (s_raw | regex_search('解除|已無警戒|降至|已降至|演練|演習|模擬')) or ((s_raw | regex_search('地震')) and not (s_raw | regex_search('海嘯'))) -%}
+{%- if skip -%}
+  {{- {"line": "", "note": "", "voice": "", "col": "", "has_rain": false, "has_wind": false} | tojson -}}
+{%- else -%}
+  {%- set s0 = s_raw | regex_replace('^(?:天氣告知系統)?收到以下政府災害訊息[:：]?\\s*', '') | regex_replace('^政府發布(?:緊急)?疏散避難警報[:：]?\\s*', '') | regex_replace('^.*Disaster Prevention Report.*$', '') | regex_replace('^.*Evacuation Alarm.*$', '') | trim -%}
+  {%- set parts = s0.split('二、注意') -%}
+  {%- set s_main = parts[0] | regex_replace('^[一1]、(?:概述)?[:：\\s]*', '') | trim -%}
+  {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- set ns = namespace(short=[], v_items=[], lamps=[], sents=[]) -%}
+  {%- if items | length > 0 -%}
+    {%- for reg, cond, lamp in items -%}
+      {%- set h_ns = namespace(hits=[]) -%}
+      {%- if '竹南' in reg -%}{%- set h_ns.hits = h_ns.hits + ['竹南'] -%}{%- endif -%}
+      {%- if '苗栗' in reg -%}
+        {%- if '苗栗縣' in reg -%}{%- set h_ns.hits = h_ns.hits + ['苗栗縣'] -%}
+        {%- elif '苗栗市' in reg -%}{%- set h_ns.hits = h_ns.hits + ['苗栗市'] -%}
+        {%- elif '竹南' not in reg -%}{%- set h_ns.hits = h_ns.hits + ['苗栗'] -%}{%- endif -%}
+      {%- endif -%}
+      {%- if '新竹市' in reg -%}{%- set h_ns.hits = h_ns.hits + ['新竹市'] -%}{%- endif -%}
+      {%- if '新竹縣' in reg -%}{%- set h_ns.hits = h_ns.hits + ['新竹縣'] -%}
+      {%- elif '新竹' in reg and '新竹市' not in reg -%}{%- set h_ns.hits = h_ns.hits + ['新竹'] -%}{%- endif -%}
+      {%- if h_ns.hits | length > 0 -%}
+        {%- set area = h_ns.hits | join('、') -%}
+        {%- set ns.lamps = ns.lamps + [lamp] -%}
+        {%- set mw = cond | regex_findall('陣風(\\d+)級') -%}
+        {%- if '陣風' in cond or '平均風' in cond -%}
+          {%- set hz = '強風' ~ (('・陣風' ~ mw[0] ~ '級以上') if mw | length > 0 else '') -%}
+          {%- set vhz = '強風燈號' -%}
+        {%- elif '超大豪雨' in cond -%}{%- set hz, vhz = '超大豪雨', '超大豪雨燈號' -%}
+        {%- elif '大豪雨' in cond -%}{%- set hz, vhz = '大豪雨', '大豪雨燈號' -%}
+        {%- elif '豪雨' in cond -%}{%- set hz, vhz = '豪雨', '豪雨燈號' -%}
+        {%- elif '大雨' in cond -%}{%- set hz, vhz = '大雨', '大雨燈號' -%}
+        {%- elif '38度' in cond or '36度' in cond or '高溫' in cond -%}{%- set hz, vhz = '高溫', '高溫燈號' -%}
+        {%- elif '10度' in cond or '6度' in cond or '低溫' in cond -%}{%- set hz, vhz = '低溫', '低溫燈號' -%}
+        {%- else -%}{%- set hz, vhz = (cond | trim), (lamp ~ '燈號') -%}{%- endif -%}
+        {%- set ns.short = ns.short + [area ~ lamp ~ '燈號（' ~ hz ~ '）'] -%}
+        {%- set ns.v_items = ns.v_items + [area ~ '為' ~ lamp ~ vhz] -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- set s_clean = s_main | replace('\r', '') -%}
+    {%- set raw_sents = (s_clean | replace('。', '。\n') | replace('；', '；\n')).split('\n') -%}
+    {%- for sent in raw_sents -%}
+      {%- set st = sent | regex_replace('^[一二三四五六七八九十\\d]+[、.：:]\\s*', '') | regex_replace('[。；;]+$', '') | trim -%}
+      {%- if st != '' and (('竹南' in st) or ('苗栗' in st) or ('新竹' in st) or (st | regex_search('國家級警報|空襲|飛彈'))) -%}
+        {%- set ns.sents = ns.sents + [st] -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- if (ns.short | length == 0) and (ns.sents | length == 0) -%}
+    {{- {"line": "", "note": "", "voice": "", "col": "", "has_rain": false, "has_wind": false} | tojson -}}
+  {%- else -%}
+    {%- if '颱風' in s_main and '東北風' in s_main -%}{%- set cause = '東北風偏強及颱風外圍環流影響' -%}
+    {%- elif '颱風外圍環流' in s_main or '外圍環流' in s_main -%}{%- set cause = '颱風外圍環流影響' -%}
+    {%- elif '颱風警報' in s_main -%}{%- set cause = '颱風警報發布中' -%}
+    {%- elif '颱風' in s_main -%}{%- set cause = '受颱風影響' -%}
+    {%- elif '東北風' in s_main or '東北季風' in s_main -%}{%- set cause = '東北季風偏強' -%}
+    {%- elif '西南氣流' in s_main or '西南風' in s_main -%}{%- set cause = '西南氣流影響' -%}
+    {%- elif '鋒面' in s_main -%}{%- set cause = '受鋒面影響' -%}
+    {%- else -%}{%- set cause = '' -%}{%- endif -%}
+    {%- set is_red = ('紅色' in ns.lamps) or (s_main | regex_search('海嘯|疏散|撤離|土石流|堰塞|超大豪雨|大豪雨|颱風警報|國家級警報|空襲|飛彈|一級淹水')) -%}
+    {%- set col = 'r' if is_red else 'o' -%}
+    {%- if '海嘯' in s_main -%}
+      {%- set adv = '目前有海嘯警報，沿海與河口可能有危險巨浪，請立即遠離海邊往高處避難' -%}
+    {%- elif s_main | regex_search('疏散|撤離|土石流|堰塞') -%}
+      {%- set adv = '目前有疏散與土石流警戒，山區與溪邊有危險，請配合指示遠離危險區域' -%}
+    {%- elif '颱風警報' in s_main -%}
+      {%- set adv = '目前有颱風警報，可能帶來強陣風與豪大雨，外出有危險請多加小心並攜帶雨具' -%}
+    {%- elif '颱風' in s_main and (s_main | regex_search('陣風|平均風|強風')) -%}
+      {%- set adv = '受颱風外圍環流影響，可能下雨且有強陣風，外出請帶傘並小心騎車與行車安全' -%}
+    {%- elif '颱風' in s_main -%}
+      {%- set adv = '受颱風影響，天氣不穩定可能下雨或刮強風，外出請帶傘並注意安全' -%}
+    {%- elif s_main | regex_search('超大豪雨|大豪雨|豪雨') -%}
+      {%- set adv = '目前有豪雨警戒，可能下大雨導致道路積水與視線不佳，請帶雨具並避開低窪路段' -%}
+    {%- elif '大雨' in s_main -%}
+      {%- set adv = '目前有大雨特報，可能會下大雨，外出請記得帶傘並注意行車視線' -%}
+    {%- elif s_main | regex_search('淹水|洩洪|放水|溢流') -%}
+      {%- set adv = '目前有淹水或水庫放水警戒，低窪處與溪邊可能有積淹水危險，行車請勿涉水' -%}
+    {%- elif s_main | regex_search('陣風|平均風|強風') -%}
+      {%- set adv = '目前有強風特報，戶外陣風強勁，騎車與開車請減速握穩，並留意路樹與掉落物' -%}
+    {%- elif s_main | regex_search('高溫|36度|38度') -%}
+      {%- set adv = '目前有高溫特報，戶外相當炎熱，外出請注意防曬並多補充水分' -%}
+    {%- elif s_main | regex_search('低溫|寒流|10度|6度') -%}
+      {%- set adv = '目前有低溫特報，氣溫明顯偏低，外出請多加保暖衣物' -%}
+    {%- elif s_main | regex_search('停水|暫停供水') -%}
+      {%- set adv = '目前有停水通知，請留意家中用水與儲水安排' -%}
+    {%- elif '停電' in s_main -%}
+      {%- set adv = '目前有停電通知，請留意電器與照明安排' -%}
+    {%- else -%}
+      {%- set adv = '目前有在地災害告警，外出請多加留意周遭環境安全' -%}
+    {%- endif -%}
+    {%- if ns.short | length > 0 -%}
+      {%- set line_body = (cause ~ '，' if cause else '') ~ (ns.short | join('、')) -%}
+      {%- set adv_tail = adv | regex_replace('^受[^，]+影響，', '') | regex_replace('^目前[^，]+，', '') -%}
+      {%- set v_out = '災害提醒：' ~ (cause ~ '，' if cause else '') ~ (ns.v_items | join('，')) ~ '，' ~ adv_tail ~ '。' -%}
+    {%- else -%}
+      {%- set sum_txt = (ns.sents[:2] | join('，')) | regex_replace('[。；;]+', '，') | regex_replace('，$', '') -%}
+      {%- set sum_voice = sum_txt | regex_replace('，[^，。]*請[^，。]*$', '') -%}
+      {%- set line_body = sum_txt[:80] -%}
+      {%- set v_out = '災害提醒：' ~ (sum_voice if sum_voice else sum_txt)[:90] ~ '，' ~ (adv | regex_replace('^目前[^，]+，', '') | regex_replace('^受[^，]+影響，', '')) ~ '。' -%}
+    {%- endif -%}
+    {{- {
+      "line": "氣象告警：⟦" ~ col ~ ":" ~ line_body ~ "⟧⟦" ~ col ~ "⟧",
+      "note": "※ ⟦" ~ col ~ ":" ~ adv ~ "⟧",
+      "voice": v_out,
+      "col": col,
+      "has_rain": ('雨' in adv or '傘' in adv),
+      "has_wind": ('風' in adv)
+    } | tojson -}}
+  {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# ──────────────────────────────────────────────────────
    V4.2.0：地震預警、最新地震報告、氣象與災害告警 專屬現代化卡片排版
    與自動化管理面板（DISASTER_JS / EARTHQUAKE_JS）視覺風格一致：
    - 頂部標題列＋右側動態色膠囊標籤（強震／中強震／有感地震／緊急避難／紅橙黃色燈號／疏散警報）

@@ -569,8 +569,6 @@ lovelace:
       type: module
     - url: /hacsfiles/Homekit-panel-card/homekit-panel-card.js
       type: module
-    - url: /browser_mod.js
-      type: module
     - url: /hacsfiles/light-popup-card/light-popup-card.js
       type: module
     - url: /community_plugin/thermostat-popup-card/thermostat-popup-card.js
@@ -586,6 +584,8 @@ lovelace:
     - url: /community_plugin/switch-popup-card/switch-popup-card.js
       type: module  
     - url: /local/floorplan/3d/card-3d-floorplan.js
+      type: module
+    - url: /local/floorplan/v4/alert-popup.js
       type: module
   dashboards:
     lovelace-smart:

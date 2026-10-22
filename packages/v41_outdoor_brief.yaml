@@ -1,6 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 出門前戶外狀況摘要（V4.2.1，2026-10-20）
+# 出門前戶外狀況摘要（V4.2.2，2026-10-22）
 # 更新紀錄：
+# - V4.2.2（2026-10-22）：離家廣播與通知整合近 36 小時內「苗栗／竹南／新竹」在地災害提醒（颱風、海嘯、豪雨、強風燈號、淹水等），
+#   透過 notify_body.jinja 的 disaster_hint 巨集附加白話安全提醒（如颱風外圍環流可能下雨或有強陣風、請帶傘與小心行車），並自動去重避免與一般降雨／強風提醒重複。
 # - V4.2.1（2026-10-20）：新增 sensor.outdoor_today_forecast 定時抓取今日剩餘時段預報最高／最低溫；
 #   當出門當下溫度與今日最高溫差距 ≥ 3°C（例如早上 24°C、中午 30°C）時，離家語音與通知自動附加上「最高 X 度」提示，並納入高溫／低溫提醒判斷。
 # - V4.1.6（2026-10-18）：把戶外天氣、紫外線、空氣品質整理成通知文字與語音，異常時附提醒。
@@ -69,6 +71,9 @@ template:
           {{ w }}｜UV {{ uv if uv >= 0 else '--' }}｜{{ states('sensor.outdoor_air_quality') }}
         attributes:
           text: >-
+            {% from 'notify_body.jinja' import disaster_hint %}
+            {% set d_ts = as_timestamp(states('sensor.disaster_last_valid_update'), as_timestamp(states.sensor.disaster.last_updated if states.sensor.disaster is not none else none, 0)) %}
+            {% set dh = disaster_hint(states('sensor.disaster'), d_ts) | from_json %}
             {% set WX = {'sunny': '晴', 'clear-night': '晴朗', 'cloudy': '多雲', 'partlycloudy': '晴時多雲', 'rainy': '雨', 'pouring': '大雨', 'lightning-rainy': '雷雨', 'lightning': '雷', 'fog': '霧', 'windy': '強風', 'snowy': '雪'} %}
             {% set w = states('weather.homeweather_zhu_nan_zhen') %}
             {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
@@ -88,13 +93,18 @@ template:
             {% set ns.o = ns.o + ['天氣：⟦' ~ wc ~ ':' ~ WX.get(w, w) ~ (' ' ~ (t | round(0) | int) ~ '°C' ~ t_extra if t is not none else '') ~ '⟧' ~ ('　降雨機率 ' ~ (rp | round(0) | int) ~ '%' if rp >= 0 else '')] %}
             {% if uv >= 0 %}{% set ns.o = ns.o + ['紫外線：⟦' ~ ('g' if uv < 3 else ('o' if uv < 8 else 'r')) ~ ':' ~ uvl ~ ' ' ~ (uv | round(1)) ~ '⟧'] %}{% endif %}
             {% if aql not in ['unknown', 'unavailable'] %}{% set ns.o = ns.o + ['空氣品質：⟦' ~ ('g' if aqi <= 50 and aqi >= 0 else ('o' if aqi <= 150 else 'r')) ~ ':' ~ aql ~ (('（AQI ' ~ (aqi | round(0) | int) ~ '）') if aqi >= 0 else '') ~ '⟧'] %}{% endif %}
+            {% if dh.line %}{% set ns.o = ns.o + [dh.line] %}{% endif %}
+            {% if dh.note %}{% set ns.o = ns.o + [dh.note] %}{% endif %}
             {% if uv >= 6 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if uv >= 8 else 'o') ~ ':紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，出門請防曬、戴帽或撐傘⟧'] %}{% endif %}
             {% if aqi > 100 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if aqi > 150 else 'o') ~ ':空氣品質不佳，敏感族群建議戴口罩，減少戶外活動⟧'] %}{% endif %}
-            {% if rain %}{% set ns.o = ns.o + ['※ ⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
+            {% if rain and not dh.has_rain %}{% set ns.o = ns.o + ['※ ⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
             {% if hi >= 35 or (at is not none and at >= 38) %}{% set ns.o = ns.o + ['※ ⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['※ ⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
-            {% if ws >= 40 %}{% set ns.o = ns.o + ['※ ⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
+            {% if ws >= 40 and not dh.has_wind %}{% set ns.o = ns.o + ['※ ⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
             {{ ns.o | join('\n') }}
           voice: >-
+            {% from 'notify_body.jinja' import disaster_hint %}
+            {% set d_ts = as_timestamp(states('sensor.disaster_last_valid_update'), as_timestamp(states.sensor.disaster.last_updated if states.sensor.disaster is not none else none, 0)) %}
+            {% set dh = disaster_hint(states('sensor.disaster'), d_ts) | from_json %}
             {% set WX = {'sunny': '晴天', 'clear-night': '晴朗', 'cloudy': '多雲', 'partlycloudy': '晴時多雲', 'rainy': '下雨', 'pouring': '大雨', 'lightning-rainy': '雷雨', 'lightning': '有雷', 'fog': '有霧', 'windy': '風大', 'snowy': '下雪'} %}
             {% set w = states('weather.homeweather_zhu_nan_zhen') %}
             {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
@@ -120,7 +130,23 @@ template:
             {% set ns.o = ns.o + ['外面' ~ WX.get(w, '天氣不明') ~ t_str] %}
             {% if uv >= 6 %}{% set ns.o = ns.o + ['紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，請防曬'] %}{% endif %}
             {% if aqi > 100 %}{% set ns.o = ns.o + ['空氣品質' ~ (states('sensor.outdoor_air_quality')) ~ '，建議戴口罩'] %}{% endif %}
-            {% if rain %}{% set ns.o = ns.o + ['可能下雨，請帶傘'] %}{% endif %}
+            {% if rain and not dh.has_rain %}{% set ns.o = ns.o + ['可能下雨，請帶傘'] %}{% endif %}
             {% if hi >= 35 %}{% set ns.o = ns.o + ['天氣炎熱，請補充水分'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['天氣偏冷，請加衣物'] %}{% endif %}
-            {% if ws >= 40 %}{% set ns.o = ns.o + ['風勢強勁'] %}{% endif %}
-            {{ ns.o | join('，') }}。
+            {% if ws >= 40 and not dh.has_wind %}{% set ns.o = ns.o + ['風勢強勁'] %}{% endif %}
+            {{ (dh.voice if dh.voice else '') ~ (ns.o | join('，')) }}。
+          abnormal: >-
+            {% from 'notify_body.jinja' import disaster_hint %}
+            {% set d_ts = as_timestamp(states('sensor.disaster_last_valid_update'), as_timestamp(states.sensor.disaster.last_updated if states.sensor.disaster is not none else none, 0)) %}
+            {% set dh = disaster_hint(states('sensor.disaster'), d_ts) | from_json %}
+            {% set w = states('weather.homeweather_zhu_nan_zhen') %}
+            {% set wa = states.weather.homeweather_zhu_nan_zhen.attributes if states.weather.homeweather_zhu_nan_zhen is not none else {} %}
+            {% set t = wa.get('temperature') | float(none) %}{% set at = wa.get('apparent_temperature') | float(none) %}{% set ws = wa.get('wind_speed') | float(0) %}
+            {% set tmax = state_attr('sensor.outdoor_today_forecast', 'today_max') | float(none) %}
+            {% set tmin = state_attr('sensor.outdoor_today_forecast', 'today_min') | float(none) %}
+            {% set hi = [t if t is not none else -99, tmax if tmax is not none else -99] | max %}
+            {% set lo = [t if t is not none else 99, tmin if tmin is not none else 99] | min %}
+            {% set rp = states('sensor.homeweather_zhu_nan_zhen_forecast_precipitation_probability') | float(-1) %}
+            {% set uv = states('sensor.outdoor_uv_index') | float(-1) %}
+            {% set aqi = states('sensor.outdoor_aqi') | float(-1) %}
+            {% set rain = w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] or rp >= 50 %}
+            {{ (dh.voice != '') or uv >= 6 or aqi > 100 or rain or hi >= 35 or (at is not none and at >= 38) or lo <= 12 or ws >= 40 }}

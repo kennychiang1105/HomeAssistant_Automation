@@ -1,3 +1,4 @@
+import("/local/floorplan/v4/alert-popup.js?t=" + Date.now()).catch((e) => console.error("alert-popup failed", e));
 import("/local/floorplan/v4/floorplan-v4-3d.js?t=" + Date.now()).catch((e) => console.error("floorplan-v4-3d failed", e));
 /* Floorplan V4.0-beta6
  * custom:floorplan-v4-card      floor tabs + pan/zoom map (pinch, wheel, drag, double-tap reset)
