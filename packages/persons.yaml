@@ -5,6 +5,7 @@
 #           換手機時只要改這裡的 device_trackers，不用改自動化（08-6 離家保全已使用）。
 # 規則：同一個人有多支手機時全部列在 device_trackers，任何一支在家就算在家；Jerry 只列主要手機（iPhone 16），Redmi 不影響在不在家。
 # ─────────────────────────────────────────────────────────────
+# V4.2.0：每位家人的主要裝置可在自動化管理面板（系統維護 > 家人裝置追蹤）選擇，選了之後由 00-2S 改寫下面的 device_trackers 並 person.reload（scripts/person_set_main.py）。
 person:
   - name: Kenny
     id: kenny

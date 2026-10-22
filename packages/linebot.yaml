@@ -537,8 +537,8 @@ script:
                         {"type": "image", "url": icon_url, "size": "22px", "aspectMode": "fit", "flex": 0},
                         {"type": "text", "text": meta.mark ~ ' ' ~ meta.name, "color": "#FFFFFF", "weight": "bold", "size": "sm", "flex": 0, "margin": "sm"},
                         {"type": "text", "text": (ver if ver else ' '), "color": "#FFFFFF", "size": "xs", "align": "end"}]},
-                    "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
-                      "contents": ((sp | from_json([])) if sp != '' else ([{"type": "text", "text": (title_c if title_c else ' '), "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}] + (flex_rows(all_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
+                    "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "paddingTop": "20px",
+                      "contents": (((sp | from_json([]))[:1] + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] + (sp | from_json([]))[1:]) if sp != '' else ([{"type": "text", "text": (title_c if title_c else ' '), "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}, {"type": "separator", "margin": "lg", "color": "#E5E7EB"}] + (flex_rows(all_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                     "footer": {"type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
                       "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + cam_btns + [{"type": "text", "text": ((src_txt | regex_replace(' ?[（(] ?V[0-9][0-9.]*[^)）]*[)）]', '') | trim) if src_txt else '智慧家庭') ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
                   }, **hero_extra)}] %}
@@ -623,7 +623,7 @@ script:
                               {'type': 'text', 'text': '▲ 重要', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
                               {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                               'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                              'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
+                              'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/', 5, true) | from_json([])},
                               'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                               'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                       - service: input_text.set_value
@@ -651,7 +651,7 @@ script:
                         {'type': 'text', 'text': '■ 緊急', 'color': '#FFFFFF', 'weight': 'bold', 'size': 'sm', 'flex': 0, 'margin': 'sm'},
                         {'type': 'text', 'text': 'V4.1.6', 'color': '#FFFFFF', 'size': 'xs', 'align': 'end'}]},
                         'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'paddingAll': '14px',
-                        'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([])},
+                        'contents': flex_rows(q_lines, 'https://family.kteam.tw:8126/local/icons/b/', 5, true) | from_json([])},
                         'footer': {'type': 'box', 'layout': 'vertical', 'paddingAll': '8px', 'backgroundColor': '#F5F6F8',
                         'contents': [{'type': 'text', 'text': 'LINE Bot 輪替 ・ ' ~ now().strftime('%m/%d %H:%M'), 'size': 'xxs', 'color': '#9CA3AF'}]}}}]} | tojson }}
                   - service: input_boolean.turn_on

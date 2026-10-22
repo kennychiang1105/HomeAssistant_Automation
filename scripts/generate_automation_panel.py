@@ -987,6 +987,100 @@ def disaster_blocks():
             section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]
 
 
+FAMILY_OTHER = "其他（自訂，在下方欄位輸入 device_tracker）"   # 必須和 scripts/gen_person_main_device.py 的 OTHER 一樣
+
+FAMILY_JS = r"""[[[
+  const k = '__K__', n = '__N__';
+  const st = (id) => (states[id] ? states[id].state : undefined);
+  const label = (s) => s === 'home' ? '在家' : (s === 'not_home' ? '離家' : (s || '--'));
+  const col = (s) => s === 'home' ? '#30D158' : (s === 'not_home' ? '#8E8E93' : '#FF9F0A');
+  const chip = (s) => `<span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${col(s)}26;color:${col(s)}">${label(s)}</span>`;
+  const ps = st('person.' + k);
+  const sn = states['sensor.person_' + k + '_source_device'];
+  const dev = sn ? sn.state : '--', ent = sn ? (sn.attributes.source_entity || '') : '', dst = sn ? sn.attributes.source_state : undefined;
+  let watch = '';
+  if (__W__) {
+    const we = st('input_text.watch_tracker_entity_kenny') || '';
+    const wo = states[we];
+    const wn = wo ? String(wo.attributes.friendly_name || we).replace(/^(.{3,}?)\s+\1$/, '$1') : (we || '未設定');
+    watch = `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,120,128,.24)">
+      <div style="font-size:12px;color:var(--secondary-text-color)">⌚ 手錶追蹤裝置</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+        <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wn}</span>${wo ? chip(wo.state) : ''}</div>
+      <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${we}</div></div>`;
+  }
+  return `
+   <div style="display:flex;align-items:center;gap:12px;text-align:left">
+     <div style="flex:none;width:46px;height:46px;border-radius:13px;background:${col(ps)}26;color:${col(ps)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">${n.slice(0, 1)}</div>
+     <div style="flex:1;min-width:0">
+       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+         <span style="font-weight:700;font-size:17px">${n}</span>${chip(ps)}
+       </div>
+       <div style="font-size:12px;color:var(--secondary-text-color);margin-top:8px">person.${k} 目前參考的裝置</div>
+       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+         <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dev}</span>${chip(dst)}
+       </div>
+       <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${ent}</div>
+       ${watch}
+     </div>
+   </div>`;
+]]]"""
+
+
+def _shift(lines, delta):
+    """把一段 YAML 行整體右移（delta>0）或左移（delta<0）。"""
+    out = []
+    for ln in lines:
+        out.append((" " * delta + ln) if delta >= 0 else ln[min(-delta, len(ln) - len(ln.lstrip())):])
+    return out
+
+
+def _ents_map(rows, indent):
+    """entities 卡片（mapping 形式，keys 位於 indent 欄），用於 vertical-stack／conditional 內。"""
+    pad = " " * indent
+    L = [f"{pad}type: entities", f"{pad}show_header_toggle: false", f"{pad}state_color: true", f"{pad}entities:"]
+    for eid, name in rows:
+        L += [f"{pad}  - entity: {eid}", f"{pad}    name: {q(name)}"]
+    L += _shift(card_mod_wrap(), indent - 8)      # card_mod_wrap 以 list-item 縮排 8 欄輸出
+    return L
+
+
+def family_tracking_blocks():
+    """系統維護 > 家人裝置追蹤：每位家人一張現代化卡片（頭像＋在家狀態＋person 目前參考的裝置），
+    下面是主要裝置選單；選到「其他」才出現自訂裝置輸入欄（00-2S／packages/v41_person_main_device.yaml）。"""
+    people = (("kenny", "Kenny"), ("iris", "Iris"), ("jerry", "Jerry"), ("elay", "Elay"))
+    L = heading("家人裝置追蹤", "mdi:account-switch-outline")
+    L += ["      - type: custom:layout-card", "        layout_type: custom:grid-layout", "        layout:",
+          "          grid-template-columns: repeat(auto-fit, minmax(290px, 1fr))", "          grid-gap: 10px", "          margin: 0", "        cards:"]
+    for k, n in people:
+        L += ["          - type: vertical-stack", "            cards:",
+              "              - type: custom:button-card",
+              f"                entity: sensor.person_{k}_source_device",
+              "                show_name: false", "                show_icon: false", "                show_state: false",
+              "                triggers_update: all",
+              "                tap_action:", "                  action: more-info",
+              "                styles:", "                  card:", "                    - cursor: pointer", "                    - height: auto",
+              "                    - padding: 14px 16px", "                    - border-radius: 18px",
+              "                    - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "                    - border: none",
+              "                  grid:", "                    - grid-template-areas: '\"body\"'", "                    - grid-template-columns: 1fr",
+              "                custom_fields:", "                  body: |"]
+        js = FAMILY_JS.replace("__K__", k).replace("__N__", n).replace("__W__", "true" if k == "kenny" else "false")
+        L += ["                    " + ln for ln in js.splitlines()]
+        rows = [(f"input_select.person_main_device_{k}", "主要裝置")]
+        if k == "kenny":
+            rows.append(("input_text.watch_tracker_entity_kenny", "手錶追蹤裝置（entity）"))
+        m1 = _ents_map(rows, 16)
+        L += ["              - " + m1[0].strip()] + m1[1:]
+        m2 = _ents_map([(f"input_text.person_main_device_custom_{k}", "自訂裝置（device_tracker.xxx）")], 18)
+        L += ["              - type: conditional", "                conditions:", "                  - condition: state",
+              f"                    entity: input_select.person_main_device_{k}", f"                    state: {q(FAMILY_OTHER)}",
+              "                card:"] + m2
+    hint = ("person.* 是 YAML 定義，在不在家都由它參考的裝置決定。選「主要裝置」會改寫 persons.yaml 並重新載入 person；"
+            "為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。"
+            "清單沒有的裝置選「其他」，再輸入 device_tracker.xxx（小寫英數底線，可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。")
+    return [section(L), section(["      - type: markdown", "        content: " + q("<sub>" + hint + "</sub>")] + MD_CSS)]
+
+
 def manual_button(script, result_entity, name, icon):
     """按鈕：點一下呼叫 script；腳本結束後 15 秒內，按鈕下方顯示「✓ …已送出」或「⚠ 原因」（結果存在 result_entity：訊息|時間戳）。"""
     return ["      - type: custom:button-card", f"        entity: {result_entity}", f"        name: {name}",
@@ -1164,6 +1258,8 @@ def build(data):
             cat = classify(HELPER_RULES, f"{eid} {fn}")
             if re.search(r"^input_(select|number|boolean|text)\.line_bot_(mode|sticky|test_mode|custom_user_enable|custom_user_id)$", eid):
                 continue   # LINE Bot 模式與設定只放在「總覽」，避免重複
+            if re.search(r"^input_select\.person_main_device_|^input_text\.person_main_device_custom_|^input_boolean\.person_main_device_busy$|^input_text\.watch_tracker_entity_kenny$", eid):
+                continue   # 家人主要裝置選單放在「系統維護」的家人裝置追蹤區，自己畫（busy 旗標不顯示）
             if INTERNAL_RE.search(eid):
                 internal[cat].append((dom, fn or eid, eid))
             else:
@@ -1202,6 +1298,8 @@ def build(data):
             continue
         n_auto = len(autos[key]); n_set = len(settings[key])
         B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
+        if key == "system":
+            B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
         if autos[key]:

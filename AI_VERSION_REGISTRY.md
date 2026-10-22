@@ -25,7 +25,7 @@
 
 | 項目 | 檔案數 | 數量 |
 |---|---|---|
-| AI 自動化（`Automations/*.yaml`，一項一個 id） | 60 | **89** |
+| AI 自動化（`Automations/*.yaml`，一項一個 id） | 61 | **90** |
 | AI 腳本（`Scripts/*.yaml`，一支一個 key） | 14 | **31** |
 
 <!-- STATS:END -->
@@ -47,6 +47,7 @@
 | `configuration/Automations/00-2L廣播快取暖機AI.yaml` | `00-2L廣播快取暖機AI (V4.0.0)` | `ai_00_2l_announce_cache_warm` | `V4.0.0` |
 | `configuration/Automations/00-2M實體引用檢查AI.yaml` | `00-2M實體引用檢查AI (V4.1.6)` | `ai_00_2m_entity_reference_check` | `V4.1.6` |
 | `configuration/Automations/00-2P門鎖電量每日紀錄AI.yaml` | `00-2P門鎖電量每日紀錄AI (V4.0.0)` | `ai_00_2p_doorlock_battery_daily` | `V4.0.0` |
+| `configuration/Automations/00-2S家人主要裝置切換AI.yaml` | `00-2S家人主要裝置切換AI (V4.2.0)` | `ai_00_2s_person_main_device` | `V4.2.0` |
 | `configuration/Automations/00-3失效實體巡檢AI.yaml` | `00-3失效實體巡檢AI (V4.1.0)` | `ai_00_3_stale_entity_audit_v41` | `V4.1.0` |
 | `configuration/Automations/00-4手機追蹤比對AI.yaml` | `00-4手機追蹤比對AI (V4.1.0)` | `ai_00_4_phone_tracker_compare_v41` | `V4.1.0` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V4.2.0)` | `ai_miaoli_weather_disaster_notify` | `V4.2.0` |
@@ -70,7 +71,7 @@
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
 | `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.2.0)` | `ai_100a_auto_arrive_morning_v41` | `V4.2.0` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.1.6)` | `ai_auto_leave_system` | `V4.1.6` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.2.0)` | `ai_auto_leave_system` | `V4.2.0` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_cycle_calibration` | `V4.0.0` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
@@ -99,6 +100,7 @@
 
 | 版本 | 日期 | 變更描述 |
 |---|---|---|
+| V4.2.2 | 2026-10-22 | 新增 `packages/v41_person_main_device.yaml`：`input_select.person_main_device_kenny／iris／jerry／elay`、`input_text.person_main_device_custom_*`、`input_boolean.person_main_device_busy`（內部）、`sensor.person_*_source_device`。 |
 | V4.2.2 | 2026-10-22 | 升級 `packages/v41_outdoor_brief.yaml`：`sensor.leave_outdoor_brief` 整合近 36 小時在地災害告警（颱風、海嘯、豪雨、強風、淹水等）及白話安全提醒，清理失效的 `/browser_mod.js` 引用。 |
 | V4.2.0 | 2026-10-18 | 移除影子模式 helper：`air_ai_shadow`（空氣清淨機）、`auto_scene_shadow`（到家早安）、`intrusion_watch_shadow`（入侵偵測）；新增 `packages/v41_light_anim.yaml`（燈組動畫 helper 與 7 個動畫燈）、`v41_outdoor_air.yaml`、`v41_outdoor_brief.yaml`、`v41_kitchen_air.yaml`。 |
 | V4.1.5 | 2026-10-11 | 廚房「空氣品質危險」旗標條件：PM2.5>35 或 CO2>1500 或 TVOC>600 ppb（原 CO2>1000）。 |
@@ -278,7 +280,7 @@
 | `configuration/Scripts/車庫錄影AI.yaml` | `車庫錄影AI (V4.0.0) / 車庫短片LINE發送AI (V4.0.0)` | `garage_video` / `garage_video_line` | `V4.0.0` |
 | `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.1.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0) / 頂樓樓梯燈套用平常亮度 (V4.0.0) / 頂樓樓梯燈實體按鈕切換 (V4.0.0)` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.1.0` / `V4.0.0` |
 
-## 本次調整（V4.2.2 - 2026-10-22：3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版）
+## 本次調整（V4.2.2 - 2026-10-22：家人主要裝置選擇與卡片、LINE 通知新格式（橫線／備註／示意條）、3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版、離家通知重複修正）
 
 - **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：
   · **全域智慧跳窗**：涵蓋智慧家庭儀表板（`/lovelace-smart/*` 所有分頁）與牆上 Kiosk（8130 埠，透過 `window.__kioskHass` 動態載入）。
@@ -292,6 +294,10 @@
   · 離家等通知中的「氣象告警」採用精簡短版：僅保留「原因・災種」與在地燈號，下一行提醒縮減為一句；紅／橙色燈號地區及安全關鍵字精準標色（紅/橘）。
   · 地震預警速報、最新地震報告、氣象告警通知採用一致的結構化卡片與視覺燈號。
 - **03苗栗天氣告知系統AI 更新**：同步更新為 `V4.2.0`（`ai_miaoli_weather_disaster_notify`），LINE 告警訊息格式優化。
+- **家人主要裝置選擇（`00-2S家人主要裝置切換AI`、`packages/v41_person_main_device.yaml`）**：自動化管理面板「系統維護」每位家人一張現代化卡片，顯示 person.* 目前參考的裝置與在家狀態，可選主要裝置（含「其他（自訂）」輸入 `device_tracker.xxx`，只有選「其他」才出現輸入欄）；Kenny 的手錶追蹤欄位 `input_text.watch_tracker_entity_kenny` 併入卡片。切換前檢查該裝置在家狀態要和 person 一致，再改寫 `persons.yaml` 並 `person.reload`。細節見下方 V4.2.0 區段的追加項目。
+- **LINE 通知新格式（`notify_body.jinja`，`PROJECT_RULES.md` SOP-15）**：標題與每個小段落上方橫線、卡片上緣留白、所有 `※` 備註小字並對齊圖示且上方有整條橫線、顏色示意條、氣象告警自成縮排小段落（一個重點一行）、紫外線最多橘色；所有 LINE 卡片（含地震／災害專用卡片標題列）共用。
+- **離家通知重複修正（`100B自動離家AI` V4.2.0）**：重新載入範本／person 造成 `at_home_*_location` 短暫 unavailable，離家計時重啟而重複發送；離家情境已開超過 3 分鐘就不再重發。
+- **V4.2.0 發布後併入本版的修正**：早安／到家廣播報室內空氣、晚安廣播報明日天氣；車庫燈手動關燈冷卻不再被離家情境逐環關燈誤判（104-1B）；04 苗栗天氣（按鈕）LINE 訊息補回 `type`；補回 `auto_scene_earliest_*` 兩個 helper（重複的 `input_datetime`）。
 
 ## 本次調整（V4.2.0 - 2026-10-18：燈組動畫與魔方、戶外空氣品質、3D 面板 UI4.0-beta7、通知排版統一、移除影子模式；含原 V4.1.6 全部內容）
 
@@ -307,9 +313,14 @@
 - **清理（冗余移除）**：①移除影子模式。07 空氣清淨機（`air_ai_shadow`）與 100A 到家早安（`auto_scene_shadow`）早在 2026-10-10 核准並關閉，程式碼分支與 helper 刪除、行為不變；入侵偵測 08-7（`intrusion_watch_shadow`）依使用者決定改為正式運作，判定成立即緊急通知、廣播、倒數後觸發網關警報，`script.intrusion_alert` 只剩 real／dry／test 三種 mode，乾跑（事件 `intrusion_signal` 加 `test: dry`）與 LINE 測試模式保留。②自動化管理面板不再列這三個開關（`scripts/generate_automation_panel.py` 的 GONE 清單）並已重新部署。③已停用的舊 07／07-1～07-4／舊 100A 在 V4.1.5 已刪除，不再保留。
 - **情境廣播（`script.scene_announce`，`Scripts/情境檢查AI.yaml`）**：早安／到家廣播加上目前室內空氣狀況（廚房 PM1.0／2.5／10、CO2、TVOC、甲醛、CO 取最差一項；良好只報良好，稍高或偏高時說明是哪一項並建議開空氣清淨機，偏高時依戶外空氣建議開窗或先不要開窗）；晚安廣播加上明天天氣（用 `weather.get_forecasts` 逐 3 小時預報算天氣、氣溫範圍、降雨機率，必要時提醒帶傘、防曬或加衣；預報讀不到就維持原句）。晚安廣播仍只在手動觸發時播報。
 - **車庫燈（`104-1B` V4.2.0）**：修正離家／晚安情境逐環關燈被當成手動關燈而啟動冷卻。2026-10-18 16:28 長按餐廳燈啟動離家情境、約 1 秒後單擊車庫主燈開燈，情境最後一環又把它關掉，因 5 秒內有 Terncy 單擊紀錄被判成手動關燈，啟動 120 秒冷卻，期間攝影機偵測到人與鐵門開啟都不重新開燈。現在離家或晚安情境開啟 90 秒內的關燈不算手動、不啟動冷卻。
-- **氣象告警通知縮短（`custom_templates/notify_body.jinja` 的 `disaster_hint`）**：離家等通知裡的「氣象告警」改成短版，只留「原因・災種」與各地區燈號（例：氣象告警：颱風外圍・強風　苗栗縣橙色燈號、新竹市、新竹縣黃色燈號），下一行提醒也縮成一句（例：可能下雨、有強陣風，外出請帶傘、小心行車）；只有紅／橙色燈號的地區與提醒裡的重點動作用橘（紅）色標示，其餘一般色。廣播用的語音文字不變。
+- **氣象告警通知縮短（`custom_templates/notify_body.jinja` 的 `disaster_hint`）**：離家等通知裡的「氣象告警」改成短版，只留「原因・災種」與各地區燈號（例：氣象告警：颱風外圍・強風　苗栗縣橙色燈號、新竹市、新竹縣黃色燈號），下一行提醒也縮成一句（例：可能下雨、有強陣風，外出請帶傘、小心行車）；只有紅／橙色燈號的地區與提醒裡的重點動作用橘（紅）色標示，其餘一般色。廣播用的語音文字不變。追加：離家等通知的氣象告警自成一個縮排的小段落放在最後，一個重點一行（「氣象告警：」小標題下，原因、紅／橙／黃色燈號的地區各一行，下面接一句提醒），只有紅／橙色燈號的地區與提醒裡的重點動作上色，其餘一般色；紫外線、空氣品質等其他提醒仍在「戶外狀況」段落內。提醒行改用新的小字標記 `※~`（`notify_body.jinja` 的 `model`／`flex_rows`：LINE 字級 xxs，縮排對齊上一行的圖示而不是文字）；紫外線讀數與提醒最多用橘色（不再用紅色）。所有 LINE 卡片（`flex_rows`）：每個小段落（小標題行或【段落】）上方加一條橫線，提醒小字（`※~`）上方加一條短橫線（連續的提醒只加第一行）；HA 通知與地震／災害專用卡片（`special_body`）沒有改。
 - **修正**：①`04苗栗天氣告知系統（按鈕）`（`automations.yaml`）的 LINE 訊息第二則缺少 `"type":"text"`，LINE 會拒收，已補上；②`packages/v41_auto_scene.yaml` 有兩個重複的 `input_datetime:`（V4.1.6 加 `scene_verify_skip_alarm_until` 時造成），後面的蓋掉前面的，`auto_scene_earliest_workday`／`auto_scene_earliest_holiday`（100A 日出時間讀不到時的備援時間）沒有建立，已合併成一個區塊，兩個 helper 恢復（預設 05:30／07:00）。
 - **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：①只對本地橙色／紅色燈號、疏散、海嘯、土石流、颱風警報、大豪雨與國家級警報跳窗，水務搶修、黃色燈號與只是提到地區的訊息不再跳；②超過 1 小時且沒讀過的災害／地震報告不彈（災害用 `sensor.disaster_last_valid_update`、地震用報告本身寫的時間，不看會在重載歸零的更新時間），感測器離線後舊訊息回來也不彈；③已讀判斷改用整段文字的雜湊（原本只比對前 120 字）；④新的地震預警直接取代畫面上的上一則；⑤牆上 Kiosk（8130）也載入彈窗：`kiosk/server.py` 的 `/api/states` 多給災害、地震報告、地震預警實體與 `last_updated`，`kiosk/web/index.html` 設 `window.__kioskHass` 後載入 `alert-popup.js`；⑥版本顯示 UI4.0-beta8（HA 與 Kiosk 一致）。
+- **家人主要裝置選擇（`00-2S家人主要裝置切換AI`、`packages/v41_person_main_device.yaml`、`scripts/person_set_main.py`、`scripts/gen_person_main_device.py`）**：自動化管理面板「系統維護」頁新增「家人裝置追蹤」：表格顯示 Kenny／Iris／Jerry／Elay 的 person.* 目前實際參考哪個裝置（`sensor.person_<id>_source_device`，取 person 的 source 屬性）與該裝置的在家狀態，下方四個選單（`input_select.person_main_device_<id>`）可選每個人的主要裝置。選擇後先檢查「選的裝置在不在家」要和 person 目前一致（不一致就退回原選項並發 HA 通知，避免切換後在家狀態突然改變而誤觸發離家／到家情境），再改寫 `packages/persons.yaml`（舊檔存 `persons.yaml.bak`）、`person.reload`、驗證並發 HA 資訊通知；HA 啟動 60 秒後選單對齊 person 實際參考的裝置。選項與裝置對照由 `gen_person_main_device.py` 產生（改候選裝置請改這支再執行）。選單最後一項「其他（自訂）」：在該家人的文字欄位（`input_text.person_main_device_custom_<id>`，只接受小寫的 `device_tracker.xxx`，HA 的 pattern 與自動化都會檢查）輸入清單以外的裝置，選「其他」之後改文字欄位也會重新套用；裝置不存在或離線、或在家狀態和 person 不一致都會退回並通知。面板每位家人一張現代化卡片（button-card：頭像、在家狀態、person 目前參考的裝置與其在家狀態），下方是主要裝置選單；自訂裝置輸入欄只有選了「其他」才出現（conditional 卡片），欄位還是空的時選單停在「其他」、不退回也不通知，輸入有效的 device_tracker 後才套用；Kenny 的卡片併入 `input_text.watch_tracker_entity_kenny`（手錶追蹤裝置：顯示名稱與在家狀態，欄位直接在卡片下修改，不再出現在一般清單）。新增 helper：`input_select.person_main_device_kenny／iris／jerry／elay`、`input_text.person_main_device_custom_kenny／iris／jerry／elay`、`input_boolean.person_main_device_busy`（內部，不顯示）。
+- **離家通知重複（`100B自動離家AI` V4.2.0）**：重新載入範本／person 時 `sensor.at_home_*_location` 會短暫 unavailable，「全員離家 4 分 10 秒」的計時重新開始，約 4 分鐘後又發一次離家通知（2026-10-22 11:36、13:01、13:08、13:19、13:45 家人群組重複收到，都是範本重新載入造成）。現在離家情境（`aqara_li_jia`）已開著超過 3 分鐘就不再重發。
+- **LINE 卡片分割線與間距**：所有 LINE 卡片標題下方加一條橫線（`notify_dispatch`、舊格式轉換卡片、地震／災害專用卡片的標題列下方；LINE Bot 額度通知因沒有標題列，改在標題句下方），卡片內容上緣由 14px 加到 20px，標題上下留白加大。
+- **LINE 新格式規定套用到全部訊息（`custom_templates/notify_body.jinja` 的 `model`／`flex_rows`、`PROJECT_RULES.md` SOP-15）**：所有 `※` 備註（不含不縮排的 `※※` 圖例說明）一律小字、縮排對齊上一列圖示、上方一條延伸到右邊的橫線；橫線原本的短線改為整條；新格式規定（標題與段落橫線、同主題重點分行縮排、備註格式、只標重點色）寫進 SOP-15。
+- **LINE 顏色示意條**：`※※ 綠色正常　黃色注意　紅色異常` 這類圖例說明改成一條淺灰圓角的小字示意條（「顏色示意　● 正常　● 注意　● 異常」），圓點顏色與卡片裡的綠 `#16A34A`／橘 `#D97706`／紅 `#DC2626` 一致（`flex_rows` 的 `※※` 圖例判斷，所有用這句的通知都套用）。
 - **發布注意**：入侵偵測沒有經過影子觀察就轉為正式，若發生誤報請在 Known Bugs 回報；`env_alert_co_dry_run`（CO 緊急乾跑）不是影子模式，維持開啟。
 
 - 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」。現在標籤固定在時間右邊、完整顯示，秒數縮小（.74em）；放不下時 `_fit()` 依序縮小時間與標籤（fit1：23px／10px、fit2：20px／9px、fit3：17px），寬度 130px 以上都能一行完整顯示（瀏覽器實測 240／200／170／150／130px）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。

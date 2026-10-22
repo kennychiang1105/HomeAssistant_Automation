@@ -206,7 +206,9 @@
     {%- set ns.out = ns.out + [{'k': 'ver', 'old': p[0], 'new': p[1] if p | length > 1 else ''}] -%}
   {%- elif t.startswith('※') -%}
     {%- set flat = t.startswith('※※') -%}
-    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if flat else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'gap': ns.gap}] -%}
+    {#- V4.2.0 新格式：除了不縮排的圖例說明（※※），所有 ※ 備註／提醒都是小字、縮排對齊上一列圖示、上方有橫線；舊的 ※~ 寫法仍相容 -#}
+    {%- set small = not flat -%}
+    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if (flat or t.startswith('※~')) else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'small': small, 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- elif t | regex_search('^[【\[].+[】\]]$') -%}
     {%- set ns.sect = t -%}
@@ -245,9 +247,10 @@
 {%- endmacro %}
 
 {# LINE Flex：回傳 JSON 字串（清單） #}
-{% macro flex_rows(lines0, base, max_icons=5) -%}
+{# V4.2.0：每個小段落（小標題行／【段落】）上方加一條橫線；提醒小字（※~）上方加一條短橫線（連續的提醒只在第一行上方加） #}
+{% macro flex_rows(lines0, base, max_icons=5, hsep=false) -%}
 {%- set items = model(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[]) -%}
+{%- set ns = namespace(out=[], last_small=false) -%}
 {%- set b2 = base | replace('/icons/b/', '/icons/b2/') -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
@@ -258,11 +261,34 @@
       {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
+    {%- if hsep -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
   {%- elif it.k == 'note' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('48px' if it.sub else '28px')), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
+    {%- if it.small and not ns.last_small -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "separator", "color": "#E5E7EB"}]}] -%}
+    {%- endif -%}
+    {%- set lg = (it.t | regex_findall('綠色\\s*(\\S+?)\\s+黃色\\s*(\\S+?)\\s+紅色\\s*(\\S+)')) if it.flat else [] -%}
+    {%- if lg | length > 0 -%}
+      {#- V4.2.0：顏色示意條：圓點顏色與卡片裡的綠／橘／紅一致，字小一點 -#}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": "lg", "paddingAll": "8px", "paddingStart": "12px", "backgroundColor": "#F3F4F6", "cornerRadius": "10px", "spacing": "lg", "alignItems": "center", "contents": [
+        {"type": "text", "text": "顏色示意", "size": "xxs", "color": "#9CA3AF", "flex": 0},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#16A34A", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][0], "color": "#6B7280"}]},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#D97706", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][1], "color": "#6B7280"}]},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#DC2626", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][2], "color": "#6B7280"}]}]}] -%}
+    {%- else -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('28px' if it.small else ('48px' if it.sub else '28px'))), "contents": [{"type": "text", "size": ("xxs" if it.small else "xs"), "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
+    {%- endif -%}
   {%- elif it.k == 'sec' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
+    {%- if ns.out | length > 0 -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
+    {%- set sepd = it.sec and (ns.out | length > 0) -%}
+    {%- if sepd -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
     {%- if it.lab and '⟦' in it.val -%}
@@ -275,7 +301,7 @@
     {%- else -%}
       {%- set txt = {"type": "text", "text": it.tb, "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
     {%- endif -%}
-    {%- set mg = 'xl' if it.gap else ('sm' if it.sub else 'md') -%}
+    {%- set mg = 'md' if sepd else ('xl' if it.gap else ('sm' if it.sub else 'md')) -%}
     {%- set pad = '48px' if it.sub else '28px' -%}
     {%- set ipad = '28px' if it.sub else '2px' -%}
     {%- if it.icon -%}
@@ -288,6 +314,7 @@
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "48px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
   {%- endif -%}
+  {%- set ns.last_small = (it.small | default(false)) if it.k == 'note' else false -%}
 {%- endfor -%}
 {{- ns.out | tojson -}}
 {%- endmacro %}
@@ -528,16 +555,23 @@
       {%- set c_s = '颱風警報' if '颱風警報' in s_main else ('颱風外圍' if '颱風' in s_main else ('東北風' if ('東北風' in s_main or '東北季風' in s_main) else ('西南氣流' if ('西南氣流' in s_main or '西南風' in s_main) else ('鋒面' if '鋒面' in s_main else '')))) -%}
       {%- set hz_t = ns.hzs | join('・') -%}
       {%- set head_t = ((c_s ~ '・') if (c_s and c_s not in hz_t) else '') ~ hz_t -%}
-      {%- set pt = namespace(o=[]) -%}
+      {#- V4.2.0：獨立一個小段落「氣象告警：」，每個重點一行（原因、各色燈號的地區），縮排顯示；只有紅／橙色燈號的地區標色 -#}
+      {%- set pt = namespace(o=['', '氣象告警：']) -%}
+      {%- if head_t -%}{%- set pt.o = pt.o + ['原因：' ~ head_t] -%}{%- endif -%}
       {%- for lp in ['紅色', '橙色', '黃色'] -%}
         {%- if ns.by.get(lp) -%}
-          {%- set seg = (ns.by[lp] | join('、')) ~ lp ~ '燈號' -%}
-          {%- set pt.o = pt.o + [('⟦' ~ ('r' if lp == '紅色' else 'o') ~ ':' ~ seg ~ '⟧') if lp != '黃色' else seg] -%}
+          {%- set areas = ns.by[lp] | join('、') -%}
+          {%- if lp == '黃色' -%}
+            {%- set pt.o = pt.o + [lp ~ '燈號：' ~ areas] -%}
+          {%- else -%}
+            {%- set lc = 'r' if lp == '紅色' else 'o' -%}
+            {%- set pt.o = pt.o + [lp ~ '燈號：⟦' ~ lc ~ ':' ~ areas ~ '⟧⟦' ~ lc ~ '⟧'] -%}
+          {%- endif -%}
         {%- endif -%}
       {%- endfor -%}
-      {%- set line_s = '氣象告警：' ~ head_t ~ '　' ~ (pt.o | join('、')) ~ '⟦' ~ col ~ '⟧' -%}
+      {%- set line_s = pt.o | join('\n') -%}
     {%- else -%}
-      {%- set line_s = '氣象告警：⟦' ~ col ~ ':' ~ line_body[:40] ~ '⟧⟦' ~ col ~ '⟧' -%}
+      {%- set line_s = '\n氣象告警：\n※ ⟦' ~ col ~ ':' ~ line_body[:40] ~ '⟧' -%}
     {%- endif -%}
     {%- set adv_map = {
       '目前有海嘯警報，沿海與河口可能有危險巨浪，請立即遠離海邊往高處避難': '沿海可能有巨浪，⟦C:請立即遠離海邊往高處避難⟧',
@@ -557,7 +591,7 @@
     {%- set note_s = (adv_map.get(adv, '⟦C:外出請留意周遭安全⟧')) | replace('C:', col ~ ':') -%}
     {{- {
       "line": line_s,
-      "note": "※ " ~ note_s,
+      "note": "※~" ~ note_s,
       "voice": v_out,
       "col": col,
       "has_rain": ('雨' in adv or '傘' in adv),
