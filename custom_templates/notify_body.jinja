@@ -633,7 +633,10 @@
 {%- set lines = (lines0 | from_json([])) if lines0 is string else (lines0 | list) -%}
 {%- set joined = lines | map('string') | join('\n') -%}
 {%- set sig = (title | string) ~ ' ' ~ (src | string) ~ ' ' ~ joined -%}
-{%- if '地震預警' in sig -%}
+{#- V4.2.2：卡片種類只看標題與來源（sig_h）和嚴格的訊息格式，不看內文裡剛好出現的字（每日更新紀錄的內文會提到地震預警、災害訊息、燈號，原本被誤認成地震預警卡片）；更新紀錄一律不套專用卡片 -#}
+{%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
+{%- set skip = '更新紀錄' in sig_h -%}
+{%- if (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
   {%- set lv_raw = (m_lv[0] | trim) if m_lv | length > 0 else states('input_text.line_eew_remote_level') -%}
@@ -696,7 +699,7 @@
       {"type": "text", "text": guide, "size": "xs", "weight": "bold", "color": "#B91C1C", "flex": 1, "wrap": true, "lineSpacing": "3px"}
     ]}] if guide else []) -%}
   {{- ([hdr_row, grid_box, act_box] + guide_box) | tojson -}}
-{%- elif ('地震報告' in sig) or ('01地震' in sig) or ('02地震' in sig) or (joined | regex_search('發生規模\\s*[\\d.]+\\s*(?:有感|小區域)?地震')) -%}
+{%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}
   {%- set eq_ns = namespace(s='') -%}
   {%- for l in lines -%}
     {%- set lt = (l | string) | trim -%}
@@ -781,7 +784,7 @@
       {"type": "text", "text": "發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", "size": "xs", "weight": "bold", "color": "#B91C1C", "flex": 1, "wrap": true, "lineSpacing": "3px"}
     ]}] if need_note else []) -%}
   {{- ([hdr_row, main_box] + note_box) | tojson -}}
-{%- elif ('天氣告知' in sig) or ('災防報告' in sig) or ('災害訊息' in sig) or ('疏散' in sig) or (joined | regex_search('[(（](紅色|橙色|黃色)燈號[)）]')) -%}
+{%- elif (not skip) and (('天氣告知' in sig_h) or ('災防報告' in sig_h) or ('災害訊息' in sig_h) or ('疏散' in sig_h) or (joined | regex_search('局部地區有[^()（）\\n]*[(（](紅色|橙色|黃色)燈號[)）]'))) -%}
   {%- set d_ns = namespace(o=[]) -%}
   {%- for l in lines -%}
     {%- set cl = (l | string) | regex_replace('^(?:天氣告知系統)?收到以下政府災害訊息[:：]?\\s*', '') | regex_replace('^政府發布(?:緊急)?疏散避難警報[:：]?\\s*', '') | regex_replace('^.*Disaster Prevention Report.*$', '') | regex_replace('^.*Evacuation Alarm.*$', '') | trim -%}
@@ -910,7 +913,10 @@
 {%- set lines = (lines0 | from_json([])) if lines0 is string else (lines0 | list) -%}
 {%- set joined = lines | map('string') | join('\n') -%}
 {%- set sig = (title | string) ~ ' ' ~ (src | string) ~ ' ' ~ joined -%}
-{%- if '地震預警' in sig -%}
+{#- V4.2.2：卡片種類只看標題與來源（sig_h）和嚴格的訊息格式，不看內文裡剛好出現的字（每日更新紀錄的內文會提到地震預警、災害訊息、燈號，原本被誤認成地震預警卡片）；更新紀錄一律不套專用卡片 -#}
+{%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
+{%- set skip = '更新紀錄' in sig_h -%}
+{%- if (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
   {%- set lv_raw = (m_lv[0] | trim) if m_lv | length > 0 else states('input_text.line_eew_remote_level') -%}
@@ -930,7 +936,7 @@
     '- 系統處置&nbsp;&nbsp;**' ~ act_t ~ '**'
   ] + (['- <img src="' ~ b2 ~ 'alarm_r.png" width="18" height="18" style="vertical-align:middle"> <span style="color:#DC2626">**請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部！**</span>'] if lv_num >= 3 else []) -%}
   {{- out | join('\n\n') -}}
-{%- elif ('地震報告' in sig) or ('01地震' in sig) or ('02地震' in sig) or (joined | regex_search('發生規模\\s*[\\d.]+\\s*(?:有感|小區域)?地震')) -%}
+{%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}
   {%- set eq_ns = namespace(s='') -%}
   {%- for l in lines -%}
     {%- set lt = (l | string) | trim -%}
@@ -956,7 +962,7 @@
     ] + (['- <img src="' ~ b2 ~ 'alarm_r.png" width="18" height="18" style="vertical-align:middle"> <span style="color:#DC2626">**發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。**</span>'] if (('請保持冷靜' in joined) or lv == 'emergency' or mag >= 5) else []) -%}
     {{- out | join('\n\n') -}}
   {%- endif -%}
-{%- elif ('天氣告知' in sig) or ('災防報告' in sig) or ('災害訊息' in sig) or ('疏散' in sig) or (joined | regex_search('[(（](紅色|橙色|黃色)燈號[)）]')) -%}
+{%- elif (not skip) and (('天氣告知' in sig_h) or ('災防報告' in sig_h) or ('災害訊息' in sig_h) or ('疏散' in sig_h) or (joined | regex_search('局部地區有[^()（）\\n]*[(（](紅色|橙色|黃色)燈號[)）]'))) -%}
   {%- set d_ns = namespace(o=[]) -%}
   {%- for l in lines -%}
     {%- set cl = (l | string) | regex_replace('^(?:天氣告知系統)?收到以下政府災害訊息[:：]?\\s*', '') | regex_replace('^政府發布(?:緊急)?疏散避難警報[:：]?\\s*', '') | regex_replace('^.*Disaster Prevention Report.*$', '') | regex_replace('^.*Evacuation Alarm.*$', '') | trim -%}
