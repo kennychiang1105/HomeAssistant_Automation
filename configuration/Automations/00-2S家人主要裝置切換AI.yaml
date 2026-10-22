@@ -4,7 +4,7 @@
 # - V4.2.0（2026-10-22）：新增。自動化管理面板可選每位家人（Kenny／Iris／Jerry／Elay）的主要裝置（person.* 參考的 device_tracker）。
 #   選單改變 → 檢查「選的裝置在不在家」要和 person 目前的在不在家一致（不一致就退回原選項並發 HA 通知，避免切換後 person 突然變離家而觸發離家情境）
 #   → 改寫 packages/persons.yaml（scripts/person_set_main.py，舊檔存 persons.yaml.bak）→ person.reload → 驗證 person 的 source 已是新裝置，發 HA 資訊通知。
-#   選單最後一項「其他（自訂）」：在該家人的文字欄位輸入 device_tracker.xxx（小寫英數底線）即可使用清單以外的裝置；選了「其他」之後改文字欄位也會重新套用。
+#   選單最後一項「其他（自訂）」：選了才會出現該家人的文字欄位，輸入 device_tracker.xxx（小寫英數底線）後套用；欄位還是空的時只停在「其他」，不退回也不通知；選了「其他」之後改文字欄位也會重新套用。
 #   HA 啟動後 60 秒把四個選單對齊 person 實際參考的裝置（不在清單內就選「其他」並把裝置填進文字欄位；只改選單，不改 persons.yaml）。
 #   選項與裝置對照由 scripts/gen_person_main_device.py 與 packages/v41_person_main_device.yaml 一起產生。
 # ──────────────────────────────────────────────
@@ -109,6 +109,9 @@
         # 文字欄位改變時，只有選單目前是「其他」才套用
         - condition: template
           value_template: "{{ trigger.id != 'custom' or label == other_label }}"
+        # 「其他」但文字欄位是空的或格式不對：先停在「其他」讓輸入欄出現，等輸入有效的 device_tracker 再套用（不退回、不通知）
+        - condition: template
+          value_template: "{{ not (label == other_label and not custom_ok) }}"
         # 選單已經是 person 目前參考的裝置（例如退回選項、重複選同一個）就不用處理
         - condition: template
           value_template: "{{ ent != state_attr('person.' ~ pid, 'source') }}"

@@ -528,16 +528,23 @@
       {%- set c_s = '颱風警報' if '颱風警報' in s_main else ('颱風外圍' if '颱風' in s_main else ('東北風' if ('東北風' in s_main or '東北季風' in s_main) else ('西南氣流' if ('西南氣流' in s_main or '西南風' in s_main) else ('鋒面' if '鋒面' in s_main else '')))) -%}
       {%- set hz_t = ns.hzs | join('・') -%}
       {%- set head_t = ((c_s ~ '・') if (c_s and c_s not in hz_t) else '') ~ hz_t -%}
-      {%- set pt = namespace(o=[]) -%}
+      {#- V4.2.0：獨立一個小段落「氣象告警：」，每個重點一行（原因、各色燈號的地區），縮排顯示；只有紅／橙色燈號的地區標色 -#}
+      {%- set pt = namespace(o=['', '氣象告警：']) -%}
+      {%- if head_t -%}{%- set pt.o = pt.o + ['原因：' ~ head_t] -%}{%- endif -%}
       {%- for lp in ['紅色', '橙色', '黃色'] -%}
         {%- if ns.by.get(lp) -%}
-          {%- set seg = (ns.by[lp] | join('、')) ~ lp ~ '燈號' -%}
-          {%- set pt.o = pt.o + [('⟦' ~ ('r' if lp == '紅色' else 'o') ~ ':' ~ seg ~ '⟧') if lp != '黃色' else seg] -%}
+          {%- set areas = ns.by[lp] | join('、') -%}
+          {%- if lp == '黃色' -%}
+            {%- set pt.o = pt.o + [lp ~ '燈號：' ~ areas] -%}
+          {%- else -%}
+            {%- set lc = 'r' if lp == '紅色' else 'o' -%}
+            {%- set pt.o = pt.o + [lp ~ '燈號：⟦' ~ lc ~ ':' ~ areas ~ '⟧⟦' ~ lc ~ '⟧'] -%}
+          {%- endif -%}
         {%- endif -%}
       {%- endfor -%}
-      {%- set line_s = '氣象告警：' ~ head_t ~ '　' ~ (pt.o | join('、')) ~ '⟦' ~ col ~ '⟧' -%}
+      {%- set line_s = pt.o | join('\n') -%}
     {%- else -%}
-      {%- set line_s = '氣象告警：⟦' ~ col ~ ':' ~ line_body[:40] ~ '⟧⟦' ~ col ~ '⟧' -%}
+      {%- set line_s = '\n氣象告警：\n※ ⟦' ~ col ~ ':' ~ line_body[:40] ~ '⟧' -%}
     {%- endif -%}
     {%- set adv_map = {
       '目前有海嘯警報，沿海與河口可能有危險巨浪，請立即遠離海邊往高處避難': '沿海可能有巨浪，⟦C:請立即遠離海邊往高處避難⟧',
