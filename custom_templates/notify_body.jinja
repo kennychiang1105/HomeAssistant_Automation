@@ -247,7 +247,7 @@
 
 {# LINE Flex：回傳 JSON 字串（清單） #}
 {# V4.2.0：每個小段落（小標題行／【段落】）上方加一條橫線；提醒小字（※~）上方加一條短橫線（連續的提醒只在第一行上方加） #}
-{% macro flex_rows(lines0, base, max_icons=5) -%}
+{% macro flex_rows(lines0, base, max_icons=5, hsep=false) -%}
 {%- set items = model(lines0) | from_json([]) -%}
 {%- set ns = namespace(out=[], last_small=false) -%}
 {%- set b2 = base | replace('/icons/b/', '/icons/b2/') -%}
@@ -260,6 +260,9 @@
       {%- set htxt = {"type": "text", "text": it.tb, "size": (it.hsz ~ "px"), "weight": "bold", "wrap": true, "flex": 1, "lineSpacing": "4px", "color": "#111827"} -%}
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
+    {%- if hsep -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
   {%- elif it.k == 'note' -%}
     {%- if it.small and not ns.last_small -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "box", "layout": "vertical", "width": "36px", "height": "1px", "backgroundColor": "#D1D5DB", "contents": [{"type": "filler"}]}]}] -%}

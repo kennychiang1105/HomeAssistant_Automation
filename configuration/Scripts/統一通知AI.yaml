@@ -180,9 +180,9 @@ notify_dispatch:
                       {"type": "text", "text": (ver if ver else " "), "color": "#FFFFFF", "size": "xs", "align": "end"}
                     ]},
                   "body": {
-                    "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px",
-                    "contents": ((sp | from_json([])) if sp != '' else ([
-                      {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}
+                    "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "paddingTop": "20px",
+                    "contents": (((sp | from_json([]))[:1] + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] + (sp | from_json([]))[1:]) if sp != '' else ([
+                      {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}, {"type": "separator", "margin": "lg", "color": "#E5E7EB"}
                     ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
