@@ -246,9 +246,10 @@
 {%- endmacro %}
 
 {# LINE Flex：回傳 JSON 字串（清單） #}
+{# V4.2.0：每個小段落（小標題行／【段落】）上方加一條橫線；提醒小字（※~）上方加一條短橫線（連續的提醒只在第一行上方加） #}
 {% macro flex_rows(lines0, base, max_icons=5) -%}
 {%- set items = model(lines0) | from_json([]) -%}
-{%- set ns = namespace(out=[]) -%}
+{%- set ns = namespace(out=[], last_small=false) -%}
 {%- set b2 = base | replace('/icons/b/', '/icons/b2/') -%}
 {%- for it in items -%}
   {%- if it.k == 'hdr' -%}
@@ -260,10 +261,20 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'note' -%}
+    {%- if it.small and not ns.last_small -%}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "box", "layout": "vertical", "width": "36px", "height": "1px", "backgroundColor": "#D1D5DB", "contents": [{"type": "filler"}]}]}] -%}
+    {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('28px' if it.small else ('48px' if it.sub else '28px'))), "contents": [{"type": "text", "size": ("xxs" if it.small else "xs"), "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
   {%- elif it.k == 'sec' -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
+    {%- if ns.out | length > 0 -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
+    {%- set sepd = it.sec and (ns.out | length > 0) -%}
+    {%- if sepd -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- endif -%}
     {%- set col = ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else ("#111827" if it.sec else "#374151")) -%}
     {%- set sz = "xs" if it.sub else "sm" -%}
     {%- if it.lab and '⟦' in it.val -%}
@@ -276,7 +287,7 @@
     {%- else -%}
       {%- set txt = {"type": "text", "text": it.tb, "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if (it.icon and not it.lab) else "regular")} -%}
     {%- endif -%}
-    {%- set mg = 'xl' if it.gap else ('sm' if it.sub else 'md') -%}
+    {%- set mg = 'md' if sepd else ('xl' if it.gap else ('sm' if it.sub else 'md')) -%}
     {%- set pad = '48px' if it.sub else '28px' -%}
     {%- set ipad = '28px' if it.sub else '2px' -%}
     {%- if it.icon -%}
@@ -289,6 +300,7 @@
     {%- set spans = ([{"type": "span", "text": it.old, "color": "#9CA3AF"}, {"type": "span", "text": "   →   ", "color": "#9CA3AF"}] if it.old else []) + [{"type": "span", "text": it.new, "weight": "bold", "color": ("#16A34A" if it.old else "#4B5563")}] -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "xs", "paddingStart": "48px", "contents": [{"type": "text", "size": "xs", "wrap": true, "contents": spans}]}] -%}
   {%- endif -%}
+  {%- set ns.last_small = (it.small | default(false)) if it.k == 'note' else false -%}
 {%- endfor -%}
 {{- ns.out | tojson -}}
 {%- endmacro %}
