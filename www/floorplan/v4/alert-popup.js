@@ -1,4 +1,4 @@
-/* Smart Home Global Alert Popup (V4.2.0)
+/* Smart Home Global Alert Popup (V4.2.0 / UI4.0-beta8)
  * Modern responsive modal for:
  *   1. Earthquake Early Warning (EEW: input_text.line_eew_remote_level / seconds)
  *   2. Local Disaster Alerts (sensor.disaster - filtered to 竹南/苗栗/新竹 or national emergency)
@@ -8,6 +8,9 @@
  *   - Color-coded region badges: 竹南 (Red), 苗栗 (Blue), 新竹 (Green) + collapsed other counties
  *   - Strict anti-overflow CSS (min-width:0, overflow-wrap:anywhere, dedicated wrapped time row)
  *   - 30s auto-close countdown progress bar + manual close (✕, button, backdrop, Esc)
+ *   - beta8: only local orange/red lamps, evacuation, tsunami, national alarms (water repair etc. no longer pop);
+ *            content older than 1 hour and unread is not shown (initial load and live changes); dedupe by hash of the full text;
+ *            a new EEW replaces the one on screen; also runs on the standalone kiosk page (window.__kioskHass)
  */
 (() => {
   if (window.__smartAlertPopupV420) return;
@@ -15,7 +18,7 @@
 
   const STORAGE_KEY = "smart_alert_popup_seen_v420";
   const AUTO_CLOSE_SEC = 30;
-  const FRESH_LOAD_WINDOW_MS = 12 * 3600 * 1000; // 12 hr on initial load for disaster/earthquake (deduped via localStorage)
+  const FRESH_MS = 3600 * 1000;                  // beta8: older than 1 hr and unread -> no popup (initial load and live changes)
   const EEW_LOAD_WINDOW_MS = 90 * 1000;          // 90 sec on initial load for EEW
 
   const loadSeen = () => {
@@ -36,7 +39,40 @@
   };
   const isSeen = (key) => !!loadSeen()[key];
 
+  // beta8: dedupe by a hash of the whole text (the old first-120-characters key hid later changes of the same message)
+  const hashStr = (str) => {
+    let h1 = 5381, h2 = 52711;
+    const t = String(str ?? "");
+    for (let i = 0; i < t.length; i++) {
+      const c = t.charCodeAt(i);
+      h1 = ((h1 * 33) ^ c) >>> 0;
+      h2 = ((h2 * 31) + c) >>> 0;
+    }
+    return `${h1.toString(36)}${h2.toString(36)}${t.length}`;
+  };
+  const getHass = () => window.__kioskHass || document.querySelector("home-assistant")?.hass;
+  const isFresh = (age) => Number.isFinite(age) && age <= FRESH_MS && age > -5 * 60 * 1000;
+  // age of the disaster notice: sensor.disaster_last_valid_update (stable across reloads), else the entity's own update time
+  const disasterAgeMs = (hass, disSt, now) => {
+    const raw = hass.states["sensor.disaster_last_valid_update"]?.state;
+    const t = raw && !["unknown", "unavailable", "none", "None"].includes(raw) ? new Date(raw).getTime() : NaN;
+    if (Number.isFinite(t)) return now - t;
+    const u = disSt?.last_updated ? new Date(disSt.last_updated).getTime() : NaN;
+    return Number.isFinite(u) ? now - u : Infinity;
+  };
+  // age of an earthquake report from the time written in the report itself (last_updated resets on every HA reload)
+  const eqReportAgeMs = (eqSt, now) => {
+    const s = String(eqSt?.state ?? "").replace(/^.*收到以下中央氣象(?:局|署)訊息[:：]\s*/, "").trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+    if (!m) return Infinity;
+    const d0 = new Date(now);
+    let t = new Date(d0.getFullYear(), parseInt(m[1], 10) - 1, parseInt(m[2], 10), parseInt(m[3], 10), parseInt(m[4], 10)).getTime();
+    if (t - now > 24 * 3600 * 1000) t = new Date(d0.getFullYear() - 1, parseInt(m[1], 10) - 1, parseInt(m[2], 10), parseInt(m[3], 10), parseInt(m[4], 10)).getTime();
+    return now - t;
+  };
+
   const isSmartDashboard = () => {
+    if (window.__kioskHass) return true;
     const p = location.pathname || "";
     if (p.startsWith("/lovelace-smart")) return true;
     return !!document.querySelector("floorplan-v4-3d, floorplan-v4-sidebar, floorplan-v4-card");
@@ -101,11 +137,15 @@
       items.push({ reg: m[1].trim(), cond: m[2].trim(), lamp: m[3].trim(), parsed });
     }
 
+    // beta8: only local orange/red lamps, evacuation, tsunami, debris flow, typhoon warning, extreme rain and national alarms pop up
+    //        (yellow lamps, water repair and other notices that merely mention the area do not)
     let hasLocal = false;
     if (items.length > 0) {
-      hasLocal = items.some((it) => it.parsed.targets.length > 0);
+      hasLocal = items.some((it) => (it.lamp === "紅色" || it.lamp === "橙色") && it.parsed.targets.length > 0);
     } else {
-      hasLocal = /竹南|苗栗|新竹|國家級警報|空襲|飛彈/.test(sMain);
+      const national = /國家級警報|空襲|飛彈/.test(sMain);
+      const severe = /疏散|撤離|海嘯|土石流|堰塞|颱風(?:海上|陸上)?警報|大豪雨|超大豪雨/.test(sMain);
+      hasLocal = national || (severe && /竹南|苗栗|新竹/.test(sMain));
     }
     if (!hasLocal) return null;
 
@@ -254,8 +294,8 @@
       if (this._current && this._current.key === item.key) return;
       if (this._queue.some((q) => q.key === item.key)) return;
       if (urgent) {
-        if (this._current && this._current.data.kind !== "eew") {
-          this._queue.unshift(this._current);
+        if (this._current) {
+          if (this._current.data.kind !== "eew") this._queue.unshift(this._current);   // an older EEW is simply replaced
           this._show(item);
           return;
         }
@@ -873,11 +913,11 @@
   let lastDisasterVal = null;
   let lastEqVal = null;
   let lastEewStamp = null;
+  let pendingDis = null;
 
   const checkStates = () => {
     if (!isSmartDashboard()) return;
-    const haEl = document.querySelector("home-assistant");
-    const hass = haEl?.hass;
+    const hass = getHass();
     if (!hass || !hass.states) return;
 
     const now = Date.now();
@@ -902,18 +942,17 @@
         }
       }
       if (disSt && disSt.state) {
-        const updRaw = hass.states["sensor.disaster_last_valid_update"]?.state || disSt.last_updated;
-        const age = updRaw ? now - new Date(updRaw).getTime() : Infinity;
-        const key = `dis:${disSt.state.slice(0, 120)}`;
-        if (age >= 0 && age <= FRESH_LOAD_WINDOW_MS && !isSeen(key)) {
+        const age = disasterAgeMs(hass, disSt, now);
+        const key = `dis:${hashStr(disSt.state)}`;
+        if (isFresh(age) && !isSeen(key)) {
           const parsed = parseDisasterAlert(disSt.state);
           if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
         }
       }
-      if (eqSt && eqSt.state && eqSt.last_updated) {
-        const age = now - new Date(eqSt.last_updated).getTime();
-        const key = `eq:${eqSt.state.slice(0, 100)}`;
-        if (age >= 0 && age <= FRESH_LOAD_WINDOW_MS && !isSeen(key)) {
+      if (eqSt && eqSt.state) {
+        const age = eqReportAgeMs(eqSt, now);
+        const key = `eq:${hashStr(eqSt.state)}`;
+        if (isFresh(age) && !isSeen(key)) {
           const parsed = parseEarthquakeReport(eqSt.state);
           if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
         }
@@ -934,21 +973,34 @@
       }
     }
 
-    // 2. Live Disaster change
+    // 2. Live Disaster change (beta8: an old notice that comes back, e.g. after the sensor was unavailable, does not pop up;
+    //    sensor.disaster_last_valid_update may lag the state by a moment, so a change is re-checked for up to 4 s)
     if (disSt && disSt.state !== lastDisasterVal) {
       lastDisasterVal = disSt.state;
-      const key = `dis:${disSt.state.slice(0, 120)}`;
-      if (!isSeen(key)) {
-        const parsed = parseDisasterAlert(disSt.state);
-        if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
+      pendingDis = { state: disSt.state, since: now };
+    }
+    if (pendingDis) {
+      if (disSt && disSt.state === pendingDis.state) {
+        if (isFresh(disasterAgeMs(hass, disSt, now))) {
+          const key = `dis:${hashStr(disSt.state)}`;
+          pendingDis = null;
+          if (!isSeen(key)) {
+            const parsed = parseDisasterAlert(disSt.state);
+            if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
+          }
+        } else if (now - pendingDis.since > 4000) {
+          pendingDis = null;
+        }
+      } else {
+        pendingDis = null;
       }
     }
 
-    // 3. Live Earthquake report change
+    // 3. Live Earthquake report change (age comes from the time written in the report)
     if (eqSt && eqSt.state !== lastEqVal) {
       lastEqVal = eqSt.state;
-      const key = `eq:${eqSt.state.slice(0, 100)}`;
-      if (!isSeen(key)) {
+      const key = `eq:${hashStr(eqSt.state)}`;
+      if (!isSeen(key) && isFresh(eqReportAgeMs(eqSt, now))) {
         const parsed = parseEarthquakeReport(eqSt.state);
         if (parsed) ensureHost()?.enqueue({ key, data: parsed }, false);
       }
@@ -959,8 +1011,7 @@
 
   // Manual preview helper for testing on any open dashboard
   window.showSmartAlertPopup = (type = "disaster", customText = null) => {
-    const haEl = document.querySelector("home-assistant");
-    const hass = haEl?.hass;
+    const hass = getHass();
     const host = ensureHost();
     if (!host) return false;
     if (type === "eew") {
