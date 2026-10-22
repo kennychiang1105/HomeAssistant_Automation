@@ -209,7 +209,7 @@
       source: 04苗栗天氣告知系統 (按鈕) (V4.2.0)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
       payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【氣象與災害告警】一般
-        General\"\n      },\n      {\n          \"text\":\"{{
+        General\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
         states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user

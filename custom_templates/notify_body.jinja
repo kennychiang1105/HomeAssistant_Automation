@@ -427,7 +427,7 @@
   {%- set parts = s0.split('二、注意') -%}
   {%- set s_main = parts[0] | regex_replace('^[一1]、(?:概述)?[:：\\s]*', '') | trim -%}
   {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
-  {%- set ns = namespace(short=[], v_items=[], lamps=[], sents=[]) -%}
+  {%- set ns = namespace(short=[], v_items=[], lamps=[], sents=[], by={}, hzs=[]) -%}
   {%- if items | length > 0 -%}
     {%- for reg, cond, lamp in items -%}
       {%- set h_ns = namespace(hits=[]) -%}
@@ -455,6 +455,9 @@
         {%- elif '10度' in cond or '6度' in cond or '低溫' in cond -%}{%- set hz, vhz = '低溫', '低溫燈號' -%}
         {%- else -%}{%- set hz, vhz = (cond | trim), (lamp ~ '燈號') -%}{%- endif -%}
         {%- set ns.short = ns.short + [area ~ lamp ~ '燈號（' ~ hz ~ '）'] -%}
+        {%- set ns.by = dict(ns.by, **{lamp: ((ns.by.get(lamp, []) + [area]) | unique | list)}) -%}
+        {%- set hz_s = hz.split('・')[0] -%}
+        {%- if hz_s not in ns.hzs -%}{%- set ns.hzs = ns.hzs + [hz_s] -%}{%- endif -%}
         {%- set ns.v_items = ns.v_items + [area ~ '為' ~ lamp ~ vhz] -%}
       {%- endif -%}
     {%- endfor -%}
@@ -520,9 +523,41 @@
       {%- set line_body = sum_txt[:80] -%}
       {%- set v_out = '災害提醒：' ~ (sum_voice if sum_voice else sum_txt)[:90] ~ '，' ~ (adv | regex_replace('^目前[^，]+，', '') | regex_replace('^受[^，]+影響，', '')) ~ '。' -%}
     {%- endif -%}
+    {#- 通知用短版：原因＋災種為一般色，只有紅／橙色燈號的地區標色；黃色燈號與其他文字一般色 -#}
+    {%- if ns.short | length > 0 -%}
+      {%- set c_s = '颱風警報' if '颱風警報' in s_main else ('颱風外圍' if '颱風' in s_main else ('東北風' if ('東北風' in s_main or '東北季風' in s_main) else ('西南氣流' if ('西南氣流' in s_main or '西南風' in s_main) else ('鋒面' if '鋒面' in s_main else '')))) -%}
+      {%- set hz_t = ns.hzs | join('・') -%}
+      {%- set head_t = ((c_s ~ '・') if (c_s and c_s not in hz_t) else '') ~ hz_t -%}
+      {%- set pt = namespace(o=[]) -%}
+      {%- for lp in ['紅色', '橙色', '黃色'] -%}
+        {%- if ns.by.get(lp) -%}
+          {%- set seg = (ns.by[lp] | join('、')) ~ lp ~ '燈號' -%}
+          {%- set pt.o = pt.o + [('⟦' ~ ('r' if lp == '紅色' else 'o') ~ ':' ~ seg ~ '⟧') if lp != '黃色' else seg] -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- set line_s = '氣象告警：' ~ head_t ~ '　' ~ (pt.o | join('、')) ~ '⟦' ~ col ~ '⟧' -%}
+    {%- else -%}
+      {%- set line_s = '氣象告警：⟦' ~ col ~ ':' ~ line_body[:40] ~ '⟧⟦' ~ col ~ '⟧' -%}
+    {%- endif -%}
+    {%- set adv_map = {
+      '目前有海嘯警報，沿海與河口可能有危險巨浪，請立即遠離海邊往高處避難': '沿海可能有巨浪，⟦C:請立即遠離海邊往高處避難⟧',
+      '目前有疏散與土石流警戒，山區與溪邊有危險，請配合指示遠離危險區域': '山區溪邊有危險，⟦C:請配合指示遠離危險區域⟧',
+      '目前有颱風警報，可能帶來強陣風與豪大雨，外出有危險請多加小心並攜帶雨具': '可能有強陣風與豪大雨，⟦C:外出請小心並帶雨具⟧',
+      '受颱風外圍環流影響，可能下雨且有強陣風，外出請帶傘並小心騎車與行車安全': '可能下雨、有強陣風，外出請⟦C:帶傘、小心行車⟧',
+      '受颱風影響，天氣不穩定可能下雨或刮強風，外出請帶傘並注意安全': '天氣不穩，外出請⟦C:帶傘、注意安全⟧',
+      '目前有豪雨警戒，可能下大雨導致道路積水與視線不佳，請帶雨具並避開低窪路段': '可能下大雨積水，請⟦C:帶雨具、避開低窪⟧',
+      '目前有大雨特報，可能會下大雨，外出請記得帶傘並注意行車視線': '可能下大雨，外出請⟦C:帶傘⟧',
+      '目前有淹水或水庫放水警戒，低窪處與溪邊可能有積淹水危險，行車請勿涉水': '低窪溪邊有淹水風險，⟦C:行車勿涉水⟧',
+      '目前有強風特報，戶外陣風強勁，騎車與開車請減速握穩，並留意路樹與掉落物': '陣風強勁，⟦C:騎車開車請減速⟧',
+      '目前有高溫特報，戶外相當炎熱，外出請注意防曬並多補充水分': '戶外炎熱，⟦C:注意防曬、補充水分⟧',
+      '目前有低溫特報，氣溫明顯偏低，外出請多加保暖衣物': '氣溫偏低，⟦C:請加衣保暖⟧',
+      '目前有停水通知，請留意家中用水與儲水安排': '⟦C:請留意用水與儲水⟧',
+      '目前有停電通知，請留意電器與照明安排': '⟦C:請留意電器與照明⟧'
+    } -%}
+    {%- set note_s = (adv_map.get(adv, '⟦C:外出請留意周遭安全⟧')) | replace('C:', col ~ ':') -%}
     {{- {
-      "line": "氣象告警：⟦" ~ col ~ ":" ~ line_body ~ "⟧⟦" ~ col ~ "⟧",
-      "note": "※ ⟦" ~ col ~ ":" ~ adv ~ "⟧",
+      "line": line_s,
+      "note": "※ " ~ note_s,
       "voice": v_out,
       "col": col,
       "has_rain": ('雨' in adv or '傘' in adv),
