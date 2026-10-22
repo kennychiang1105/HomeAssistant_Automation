@@ -185,7 +185,7 @@
             entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual
   mode: single
 - id: '1645028071536'
-  alias: 04苗栗天氣告知系統 (按鈕) (V4.0.0)
+  alias: 04苗栗天氣告知系統 (按鈕) (V4.2.0)
   description: ''
   triggers:
   - entity_id: input_button.tian_qi_jing_xun_guang_bo
@@ -209,14 +209,16 @@
       source: 04苗栗天氣告知系統 (按鈕) (V4.2.0)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
       payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【氣象與災害告警】一般
-        General\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
+        General\"\n      },\n      {\n          \"text\":\"{{
         states('sensor.disaster') }}\"\n      }\n  ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.announce
     data:
       level: general
-      message: '{{ "天氣告知系統收到以下政府災害訊息 " ~ states(''sensor.disaster'') }}'
+      message: >-
+        {% from 'notify_body.jinja' import disaster_voice %}{% set v = disaster_voice(states('sensor.disaster')) | trim %}
+        {{ ('天氣告知系統收到政府災害訊息。' ~ v) if v else '目前沒有影響苗栗、新竹的災害告警。' }}
   mode: single
 - id: '1645028120962'
   alias: 02地震災害系統 (按鈕) (V4.0.0)

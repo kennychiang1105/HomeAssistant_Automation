@@ -1,7 +1,11 @@
-﻿# ─────────────────────────────────────────────────────────────
-# 03苗栗天氣告知系統AI (V4.1.5)
+# ─────────────────────────────────────────────────────────────
+# 03苗栗天氣告知系統AI (V4.2.0)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.2.0（2026-10-22）：災害廣播在地化（苗栗竹南新竹）＋修復中途截斷問題。
+#   1. 廣播改用 disaster_voice 巨集：只念在地（苗栗縣/竹南/新竹縣市）燈號與警戒，其他縣市完全不念；若無本地區內容則不廣播。
+#   2. 移除 [:160] 硬切限制，確保語音為自然完整句結尾（補「。」），避免念到一半中斷。
+#   3. speak 與早晨補報皆增加 voice_text 不為空之檢查，無在地警報不打擾。
 # - V4.1.5（2026-10-11）：災害訊息改成「依內容分級、不重要的不通知」。
 #   問題：原本只要內文有「苗栗」就用「一般」級通知＋廣播；實際 45 天 255 則訊息裡有 114 則提到苗栗，其中 84 則是風力黃燈、109 則是各地水務搶修，幾乎都不重要。
 #   分級（msg_level）：
@@ -20,13 +24,13 @@
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 03苗栗天氣告知系統AI (V4.1.5)
+- alias: 03苗栗天氣告知系統AI (V4.2.0)
   id: ai_miaoli_weather_disaster_notify
   description: 依內容分級通知竹南有影響的災害與天氣訊息，不重要的不通知；重要類與緊急類才廣播
   mode: queued
   max: 10
   variables:
-    automation_version: "V4.1.5"
+    automation_version: "V4.2.0"
     near_re: "頭份|後龍|三灣|造橋"
   triggers:
     - entity_id: sensor.disaster
@@ -67,7 +71,9 @@
         is_new_content: "{{ current_message[:250] != last_message }}"
         level_title: >-
           {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
-        voice_text: "{{ '天氣告知系統收到以下政府災害訊息 ' ~ (current_message | replace('\n', ' '))[:160] }}"
+        voice_text: >-
+          {% from 'notify_body.jinja' import disaster_voice %}{% set v = disaster_voice(current_message) | trim %}
+          {{ ('天氣告知系統收到政府災害訊息。' ~ v) if v else '' }}
     - choose:
         # ── 即時：依類別發 HA／LINE，重要類與緊急類再廣播 ──
         - conditions:
@@ -82,7 +88,7 @@
                 send_level: "{{ {'emergency': 'important', 'important': 'general', 'info': 'info'}[lv] }}"
                 ha_on: "{{ lv == 'info' or is_state('input_boolean.notify_ha_disaster_' ~ lv ~ '_enable', 'on') }}"
                 line_on: "{{ lv != 'info' and is_state('input_boolean.notify_line_disaster_' ~ lv ~ '_enable', 'on') }}"
-                speak: "{{ lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') and is_state('input_boolean.announce_disaster_' ~ lv ~ '_enable', 'on') }}"
+                speak: "{{ (voice_text | trim != '') and lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') and is_state('input_boolean.announce_disaster_' ~ lv ~ '_enable', 'on') }}"
             - if: "{{ ha_on or line_on }}"
               then:
                 - action: script.notify_dispatch
@@ -90,7 +96,7 @@
                     level: "{{ send_level }}"
                     to_ha: "{{ ha_on }}"
                     line: "{{ line_on }}"
-                    source: "03苗栗天氣告知系統AI (V4.1.5)"
+                    source: "03苗栗天氣告知系統AI (V4.2.0)"
                     version: "{{ automation_version }}"
                     title: "{{ level_title }}"
                     message: |-
@@ -119,7 +125,8 @@
               id: morning_catch_up
             - condition: template
               value_template: >-
-                {{ (msg_level | trim) in ['important', 'emergency']
+                {{ (voice_text | trim != '')
+                   and (msg_level | trim) in ['important', 'emergency']
                    and message_ts > last_broadcast_ts
                    and (now().timestamp() - message_ts) < 9 * 3600
                    and is_state('input_boolean.announce_disaster_' ~ (msg_level | trim) ~ '_enable', 'on') }}
