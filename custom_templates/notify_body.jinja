@@ -972,7 +972,9 @@
         {%- endif -%}
         {%- set b_ns.boxes = b_ns.boxes + [{"type": "box", "layout": "vertical", "backgroundColor": gp.bg, "borderColor": gp.bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "10px", "margin": "sm", "spacing": "4px", "contents": gc}] -%}
       {%- endfor -%}
-      {%- if fp.extras | length > 0 -%}
+      {%- set ex_cnt = namespace(n=0) -%}
+      {%- for ex in fp.extras if ex.v | regex_search('竹南|苗栗|新竹') -%}{%- set ex_cnt.n = ex_cnt.n + 1 -%}{%- endfor -%}
+      {%- if ex_cnt.n > 0 -%}
         {%- set ex_ns = namespace(b=[]) -%}
         {%- for ex in fp.extras if ex.v | regex_search('竹南|苗栗|新竹') -%}
           {%- set ex_ns.b = ex_ns.b + [{"type": "text", "size": "xs", "wrap": true, "lineSpacing": "3px", "contents": [{"type": "span", "text": ex.k ~ "　", "color": "#6B7280", "size": "xxs"}] + (hl_spans(ex.v, 'bold') | from_json([]))}] -%}
