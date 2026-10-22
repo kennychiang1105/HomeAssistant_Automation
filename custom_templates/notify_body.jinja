@@ -658,7 +658,7 @@
 {% macro free_parse(txt) -%}
 {%- set lines = (txt | string).split('\n') | map('trim') | reject('eq', '') | list -%}
 {%- set main = lines[0] if lines | length > 0 else '' -%}
-{%- set ns = namespace(groups=[], tips=[], lead='', extras=[]) -%}
+{%- set ns = namespace(groups=[], tips=[], lead='', extras=[], lt='') -%}
 {%- for ln in lines[1:] -%}
   {%- set m = ln | regex_findall('^([^：:。，]{1,12})[：:]\\s*(.+?)。?$') -%}
   {%- if m | length > 0 -%}{%- set ns.extras = ns.extras + [{'k': m[0][0], 'v': m[0][1]}] -%}{%- endif -%}
@@ -672,6 +672,7 @@
       {%- set tm = rp | regex_findall('^([^宜臺台新桃基苗花南嘉雲彰高屏澎金連竹中]*)(.*)$') -%}
       {%- set tpart = (tm[0][0] | trim) if tm | length > 0 else '' -%}
       {%- set has_t = tpart != '' and (tpart | regex_search('日|晚|上午|下午|凌晨|清晨|今|明')) -%}
+      {%- if has_t -%}{%- set ns.lt = tpart -%}{%- endif -%}
       {%- set rpart = tm[0][1] if has_t else rp -%}
       {%- set regs = (rpart | replace('及', '、')).split('、') | map('trim') | reject('eq', '') | list -%}
       {%- set g_ns = namespace(local=[], other=[]) -%}
@@ -682,7 +683,7 @@
       {%- elif '大豪雨' in hz -%}{%- set sv = ['#EA580C', '#FFF7ED', '#FDBA74', '🟠'] -%}
       {%- elif '豪雨' in hz -%}{%- set sv = ['#D97706', '#FFFBEB', '#FCD34D', '🟠'] -%}
       {%- else -%}{%- set sv = ['#CA8A04', '#FEFCE8', '#FDE047', '🟡'] -%}{%- endif -%}
-      {%- set ns.groups = ns.groups + [{'time': tpart if has_t else '', 'hazard': hz, 'local': g_ns.local, 'other': g_ns.other, 'col': sv[0], 'bg': sv[1], 'bd': sv[2], 'dot': sv[3]}] -%}
+      {%- set ns.groups = ns.groups + [{'time': ns.lt, 'hazard': hz, 'local': g_ns.local, 'other': g_ns.other, 'col': sv[0], 'bg': sv[1], 'bd': sv[2], 'dot': sv[3]}] -%}
     {%- elif ns.lead == '' and ns.groups | length == 0 -%}
       {%- set ns.lead = cl -%}
     {%- else -%}
@@ -870,7 +871,7 @@
   {%- elif '海嘯' in s -%}
     {%- set card_t, badge, b_col, box_bg, box_bd, w_ic = '海嘯警報', '海嘯警報', '#FF453A', '#FEF2F2', '#FCA5A5', 'alarm_r' -%}
   {%- elif '土石流' in s or '堰塞' in s -%}
-    {%- set card_t, badge, b_col, box_bg, box_bd, w_ic = '土石流災害警戒', '土石流警戒', '#FF453A', '#FEF2F2', '#FCA5A5', 'alarm_r' -%}
+    {%- set card_t, badge, b_col, box_bg, box_bd, w_ic = '淹水災害警戒', '淹水警戒', '#FF453A', '#FEF2F2', '#FCA5A5', 'drop_o' -%}
   {%- elif '紅色' in s -%}
     {%- set card_t, badge, b_col, box_bg, box_bd, w_ic = '氣象與災害告警', '紅色燈號', '#FF453A', '#FEF2F2', '#FCA5A5', 'weather_r' -%}
   {%- elif '橙色' in s -%}
@@ -959,7 +960,7 @@
       {%- if fp.lead -%}
         {%- set b_ns.boxes = b_ns.boxes + [{"type": "text", "text": fp.lead, "size": "sm", "weight": "bold", "color": "#111827", "wrap": true, "margin": "sm", "lineSpacing": "3px"}] -%}
       {%- endif -%}
-      {%- for gp in fp.groups -%}
+      {%- for gp in fp.groups if gp.local | length > 0 -%}
         {%- set gc = [{"type": "text", "text": gp.dot ~ " " ~ gp.hazard, "size": "xs", "weight": "bold", "color": gp.col, "wrap": true}] + ([{"type": "text", "text": "⏱️ " ~ gp.time, "size": "xxs", "color": "#6B7280", "wrap": true, "margin": "xs"}] if gp.time else []) -%}
         {%- if gp.local | length > 0 -%}
           {%- set lp_ns = namespace(b=[]) -%}
@@ -969,14 +970,11 @@
           {%- endfor -%}
           {%- set gc = gc + [{"type": "box", "layout": "horizontal", "spacing": "6px", "margin": "xs", "contents": lp_ns.b}] -%}
         {%- endif -%}
-        {%- if gp.other | length > 0 -%}
-          {%- set gc = gc + [{"type": "text", "text": ("其他地區：" if gp.local | length > 0 else "涵蓋：") ~ (gp.other | join('、')), "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "xs"}] -%}
-        {%- endif -%}
         {%- set b_ns.boxes = b_ns.boxes + [{"type": "box", "layout": "vertical", "backgroundColor": gp.bg, "borderColor": gp.bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "10px", "margin": "sm", "spacing": "4px", "contents": gc}] -%}
       {%- endfor -%}
       {%- if fp.extras | length > 0 -%}
         {%- set ex_ns = namespace(b=[]) -%}
-        {%- for ex in fp.extras -%}
+        {%- for ex in fp.extras if ex.v | regex_search('竹南|苗栗|新竹') -%}
           {%- set ex_ns.b = ex_ns.b + [{"type": "text", "size": "xs", "wrap": true, "lineSpacing": "3px", "contents": [{"type": "span", "text": ex.k ~ "　", "color": "#6B7280", "size": "xxs"}] + (hl_spans(ex.v, 'bold') | from_json([]))}] -%}
         {%- endfor -%}
         {%- set b_ns.boxes = b_ns.boxes + [{"type": "box", "layout": "vertical", "backgroundColor": "#F3F4F6", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "4px", "contents": ex_ns.b}] -%}
@@ -1106,7 +1104,7 @@
     {%- endfor -%}
     {{- l_ns.md | join('\n\n') -}}
   {%- elif s_main != '' -%}
-    {%- set card_t = '緊急疏散避難警報' if ('疏散' in sig or '撤離' in s) else ('海嘯警報' if '海嘯' in s else ('土石流災害警戒' if ('土石流' in s or '堰塞' in s) else '氣象與災害告警')) -%}
+    {%- set card_t = '緊急疏散避難警報' if ('疏散' in sig or '撤離' in s) else ('海嘯警報' if '海嘯' in s else ('淹水災害警戒' if ('土石流' in s or '堰塞' in s) else '氣象與災害告警')) -%}
     {%- set loc_md = [] -%}
     {%- if '竹南' in s_main -%}{%- set loc_md = loc_md + ['<span style="color:#DC2626"><b>🔴 竹南</b></span>'] -%}{%- endif -%}
     {%- if '苗栗' in s_main -%}{%- set loc_md = loc_md + ['<span style="color:#2F80ED"><b>🔵 苗栗縣</b></span>'] -%}{%- endif -%}
@@ -1117,10 +1115,10 @@
     {%- set mp = namespace(p=[head, loc_line]) -%}
     {%- if fp.groups | length > 0 -%}
       {%- if fp.lead -%}{%- set mp.p = mp.p + ['**' ~ fp.lead ~ '**'] -%}{%- endif -%}
-      {%- for gp in fp.groups -%}
-        {%- set mp.p = mp.p + ['- ' ~ gp.dot ~ ' <span style="color:' ~ gp.col ~ '">**' ~ gp.hazard ~ '**</span>' ~ ((' ⏱️ ' ~ gp.time) if gp.time else '') ~ ((('<br>' ~ hl_html(gp.local | join('、'))) if gp.local | length > 0 else '')) ~ (('<br><sub style="color:#9CA3AF">' ~ ('其他地區：' if gp.local | length > 0 else '涵蓋：') ~ (gp.other | join('、')) ~ '</sub>') if gp.other | length > 0 else '')] -%}
+      {%- for gp in fp.groups if gp.local | length > 0 -%}
+        {%- set mp.p = mp.p + ['- ' ~ gp.dot ~ ' <span style="color:' ~ gp.col ~ '">**' ~ gp.hazard ~ '**</span>' ~ ((' ⏱️ ' ~ gp.time) if gp.time else '') ~ ((('<br>' ~ hl_html(gp.local | join('、'))) if gp.local | length > 0 else '')) ] -%}
       {%- endfor -%}
-      {%- for ex in fp.extras -%}{%- set mp.p = mp.p + ['<sub>' ~ ex.k ~ '　' ~ hl_html(ex.v) ~ '</sub>'] -%}{%- endfor -%}
+      {%- for ex in fp.extras if ex.v | regex_search('竹南|苗栗|新竹') -%}{%- set mp.p = mp.p + ['<sub>' ~ ex.k ~ '　' ~ hl_html(ex.v) ~ '</sub>'] -%}{%- endfor -%}
       {%- if fp.tips | length > 0 -%}{%- set mp.p = mp.p + ['**安全提醒**<br>' ~ (fp.tips | map('regex_replace', '^', '• ') | join('<br>'))] -%}{%- endif -%}
     {%- else -%}
       {%- set mp.p = mp.p + [hl_html(s_main | replace('\n', '<br>'))] -%}
