@@ -361,7 +361,7 @@
    災防地區解析輔助：拆分時段、重點三區標籤（竹南紅、苗栗藍、新竹綠）、其他縣市收合
    ────────────────────────────────────────────────────── #}
 {% macro parse_alert_region(reg) -%}
-  {%- set r0 = reg | regex_replace('局部地區$', '') | trim -%}
+  {%- set r0 = reg | regex_replace('[(（][^)）]*[)）]', '') | regex_replace('局部地區$', '') | trim -%}
   {%- set parts = r0.split('、') -%}
   {%- set res_ns = namespace(time_prefix='', targets=[], others=[]) -%}
   {%- for p in parts -%}
@@ -391,7 +391,7 @@
 {# V4.2.2：災害訊息「在地內容簽章」：只留下影響竹南／苗栗／新竹的燈號、地區與條件，不看其他縣市與時段文字（NCDR 常常只改其他縣市就再發一版，不該重複通知） #}
 {% macro disaster_sig(msg) -%}
 {%- set s0 = (msg | string) | trim -%}
-{%- set items = s0 | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+{%- set items = s0 | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
 {%- set ns = namespace(sig=[]) -%}
 {%- for reg, cond, lamp in items -%}
   {%- set p = parse_alert_region(reg) | from_json -%}
@@ -410,7 +410,7 @@
   {%- set s0 = (msg | string) | regex_replace('^(?:天氣告知系統)?收到以下政府災害訊息[:：]?\\s*', '') | regex_replace('^政府發布(?:緊急)?疏散避難警報[:：]?\\s*', '') | regex_replace('^.*Disaster Prevention Report.*$', '') | regex_replace('^.*Evacuation Alarm.*$', '') | trim -%}
   {%- set parts = s0.split('二、注意') -%}
   {%- set s_main = parts[0] | regex_replace('^[一1]、(?:概述)?[:：\\s]*', '') | trim -%}
-  {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- set items = s_main | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
   {%- if items | length > 0 -%}
     {%- set b_ns = namespace(blocks=[]) -%}
     {%- for reg, cond, lamp in items -%}
@@ -472,7 +472,7 @@
   {%- set s0 = s_raw | regex_replace('^(?:天氣告知系統)?收到以下政府災害訊息[:：]?\\s*', '') | regex_replace('^政府發布(?:緊急)?疏散避難警報[:：]?\\s*', '') | regex_replace('^.*Disaster Prevention Report.*$', '') | regex_replace('^.*Evacuation Alarm.*$', '') | trim -%}
   {%- set parts = s0.split('二、注意') -%}
   {%- set s_main = parts[0] | regex_replace('^[一1]、(?:概述)?[:：\\s]*', '') | trim -%}
-  {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- set items = s_main | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
   {%- set ns = namespace(short=[], v_items=[], lamps=[], sents=[], by={}, hzs=[]) -%}
   {%- if items | length > 0 -%}
     {%- for reg, cond, lamp in items -%}
@@ -860,7 +860,7 @@
   {%- set parts = s.split('二、注意') -%}
   {%- set s_main = parts[0] | regex_replace('^一、概述[：:]\\s*', '') | trim -%}
   {%- set s_note = (parts[1] | regex_replace('^[(（]警戒[)）]事項[：:\\s]*', '') | regex_replace('^事項[：:\\s]*', '') | trim) if parts | length > 1 else '' -%}
-  {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- set items = s_main | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
   {%- set lamps = {
     '紅色': {'col': '#DC2626', 'pill': '#FF453A', 'bg': '#FEF2F2', 'bd': '#FCA5A5', 'dot': '🔴'},
     '橙色': {'col': '#EA580C', 'pill': '#FF9F0A', 'bg': '#FFF7ED', 'bd': '#FDBA74', 'dot': '🟠'},
@@ -1086,7 +1086,7 @@
   {%- set s = raw_dis if raw_dis not in ['', 'unknown', 'unavailable', 'none', 'None'] else '' -%}
   {%- set parts = s.split('二、注意') -%}
   {%- set s_main = parts[0] | regex_replace('^一、概述[：:]\\s*', '') | trim -%}
-  {%- set items = s_main | regex_findall('([^，。()（）\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- set items = s_main | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
   {%- if items | length > 0 -%}
     {%- set lead = s_main.split('，')[0] | trim -%}
     {%- set l_ns = namespace(md=['<img src="' ~ b2 ~ 'weather_o.png" width="20" height="20" style="vertical-align:middle"> **氣象與災害告警**' ~ (' — ' ~ lead if lead else '')]) -%}
