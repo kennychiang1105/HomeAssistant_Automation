@@ -91,13 +91,13 @@ template:
             {% set wc = 'o' if (rain or hi >= 35 or lo <= 12 or ws >= 40) else 'g' %}
             {% set t_extra = ('（最高 ' ~ (tmax | round(0) | int) ~ '°C）') if (t is not none and tmax is not none and (tmax - t) >= 2) else (('（最低 ' ~ (tmin | round(0) | int) ~ '°C）') if (t is not none and tmin is not none and (t - tmin) >= 3) else '') %}
             {% set ns.o = ns.o + ['天氣：⟦' ~ wc ~ ':' ~ WX.get(w, w) ~ (' ' ~ (t | round(0) | int) ~ '°C' ~ t_extra if t is not none else '') ~ '⟧' ~ ('　降雨機率 ' ~ (rp | round(0) | int) ~ '%' if rp >= 0 else '')] %}
-            {% if uv >= 0 %}{% set ns.o = ns.o + ['紫外線：⟦' ~ ('g' if uv < 3 else ('o' if uv < 8 else 'r')) ~ ':' ~ uvl ~ ' ' ~ (uv | round(1)) ~ '⟧'] %}{% endif %}
+            {% if uv >= 0 %}{% set ns.o = ns.o + ['紫外線：⟦' ~ ('g' if uv < 3 else 'o') ~ ':' ~ uvl ~ ' ' ~ (uv | round(1)) ~ '⟧'] %}{% endif %}
             {% if aql not in ['unknown', 'unavailable'] %}{% set ns.o = ns.o + ['空氣品質：⟦' ~ ('g' if aqi <= 50 and aqi >= 0 else ('o' if aqi <= 150 else 'r')) ~ ':' ~ aql ~ (('（AQI ' ~ (aqi | round(0) | int) ~ '）') if aqi >= 0 else '') ~ '⟧'] %}{% endif %}
-            {% if uv >= 6 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if uv >= 8 else 'o') ~ ':紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，出門請防曬、戴帽或撐傘⟧'] %}{% endif %}
-            {% if aqi > 100 %}{% set ns.o = ns.o + ['※ ⟦' ~ ('r' if aqi > 150 else 'o') ~ ':空氣品質不佳，敏感族群建議戴口罩，減少戶外活動⟧'] %}{% endif %}
-            {% if rain and not dh.has_rain %}{% set ns.o = ns.o + ['※ ⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
-            {% if hi >= 35 or (at is not none and at >= 38) %}{% set ns.o = ns.o + ['※ ⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['※ ⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
-            {% if ws >= 40 and not dh.has_wind %}{% set ns.o = ns.o + ['※ ⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
+            {% if uv >= 6 %}{% set ns.o = ns.o + ['※~⟦o:紫外線' ~ ('很強' if uv >= 8 else '偏強') ~ '，出門請防曬、戴帽或撐傘⟧'] %}{% endif %}
+            {% if aqi > 100 %}{% set ns.o = ns.o + ['※~⟦' ~ ('r' if aqi > 150 else 'o') ~ ':空氣品質不佳，敏感族群建議戴口罩，減少戶外活動⟧'] %}{% endif %}
+            {% if rain and not dh.has_rain %}{% set ns.o = ns.o + ['※~⟦o:' ~ ('正在下雨' if w in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else '降雨機率偏高') ~ '，請帶傘⟧'] %}{% endif %}
+            {% if hi >= 35 or (at is not none and at >= 38) %}{% set ns.o = ns.o + ['※~⟦r:天氣炎熱，注意防曬與補充水分⟧'] %}{% elif lo <= 12 %}{% set ns.o = ns.o + ['※~⟦o:天氣偏冷，請多加衣物⟧'] %}{% endif %}
+            {% if ws >= 40 and not dh.has_wind %}{% set ns.o = ns.o + ['※~⟦o:風勢強勁，出門留意安全⟧'] %}{% endif %}
             {#- V4.2.0：氣象告警放最後，自成一個縮排的小段落（原因、各色燈號、提醒各一行） #}
             {% if dh.line %}{% set ns.o = ns.o + [dh.line] %}{% endif %}
             {% if dh.note %}{% set ns.o = ns.o + [dh.note] %}{% endif %}

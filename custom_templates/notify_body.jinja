@@ -206,7 +206,8 @@
     {%- set ns.out = ns.out + [{'k': 'ver', 'old': p[0], 'new': p[1] if p | length > 1 else ''}] -%}
   {%- elif t.startswith('※') -%}
     {%- set flat = t.startswith('※※') -%}
-    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if flat else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'gap': ns.gap}] -%}
+    {%- set small = t.startswith('※~') -%}
+    {%- set ns.out = ns.out + [{'k': 'note', 't': (t[2:] if (flat or small) else t[1:]) | trim, 'sub': ns.insec and not flat, 'flat': flat, 'small': small, 'gap': ns.gap}] -%}
     {%- set ns.gap = false -%}
   {%- elif t | regex_search('^[【\[].+[】\]]$') -%}
     {%- set ns.sect = t -%}
@@ -259,7 +260,7 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "spacing": "4px", "alignItems": "flex-start", "contents": [himg, htxt]}] -%}
   {%- elif it.k == 'note' -%}
-    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('48px' if it.sub else '28px')), "contents": [{"type": "text", "size": "xs", "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
+    {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('28px' if it.small else ('48px' if it.sub else '28px'))), "contents": [{"type": "text", "size": ("xxs" if it.small else "xs"), "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
   {%- elif it.k == 'sec' -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": "xxl", "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
@@ -564,7 +565,7 @@
     {%- set note_s = (adv_map.get(adv, '⟦C:外出請留意周遭安全⟧')) | replace('C:', col ~ ':') -%}
     {{- {
       "line": line_s,
-      "note": "※ " ~ note_s,
+      "note": "※~" ~ note_s,
       "voice": v_out,
       "col": col,
       "has_rain": ('雨' in adv or '傘' in adv),
