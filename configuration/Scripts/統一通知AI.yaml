@@ -141,7 +141,7 @@ notify_dispatch:
     lk_auto: "{{ (title_c ~ ' ' ~ head_line) | regex_search('保全|鐵門|未關|忘記關|沒關|家電') and not (link_url is defined and link_url) }}"
     lk_url: "{{ link_url if (link_url is defined and link_url) else ('https://family.kteam.tw:8130/' if lk_auto else '') }}"
     lk_label: "{{ link_label if (link_label is defined and link_label) else ('開啟家庭控制' if lk_auto else '') }}"
-    lk_note: "{{ link_note if (link_note is defined and link_note) else ('帳號:kiosk\n密碼:kiosk1105@\nPIN:477924\n(僅外網需要)' if lk_auto else '') }}"
+    lk_note: "{{ link_note if (link_note is defined and link_note) else ('帳號:kiosk　密碼:KIOSK1105@\nPIN:477924　(僅外網需要)' if lk_auto else '') }}"
   sequence:
     - if: "{{ maint_skip }}"
       then:

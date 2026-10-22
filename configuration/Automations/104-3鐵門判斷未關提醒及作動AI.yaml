@@ -274,8 +274,6 @@
                   觀察期：無人車移動
                   車庫主燈：狀態未變化
                   車庫 AP：判定無人
-
-                  ※ 已執行自動化 automation.tie_men_kai_guan。
           else:
             - if:
                 - condition: state
