@@ -268,7 +268,17 @@
     {%- if it.small and not ns.last_small -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "separator", "color": "#E5E7EB"}]}] -%}
     {%- endif -%}
+    {%- set lg = (it.t | regex_findall('綠色\\s*(\\S+?)\\s+黃色\\s*(\\S+?)\\s+紅色\\s*(\\S+)')) if it.flat else [] -%}
+    {%- if lg | length > 0 -%}
+      {#- V4.2.0：顏色示意條：圓點顏色與卡片裡的綠／橘／紅一致，字小一點 -#}
+      {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": "lg", "paddingAll": "8px", "paddingStart": "12px", "backgroundColor": "#F3F4F6", "cornerRadius": "10px", "spacing": "lg", "alignItems": "center", "contents": [
+        {"type": "text", "text": "顏色示意", "size": "xxs", "color": "#9CA3AF", "flex": 0},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#16A34A", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][0], "color": "#6B7280"}]},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#D97706", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][1], "color": "#6B7280"}]},
+        {"type": "text", "size": "xxs", "flex": 0, "contents": [{"type": "span", "text": "●", "color": "#DC2626", "size": "xs"}, {"type": "span", "text": " " ~ lg[0][2], "color": "#6B7280"}]}]}] -%}
+    {%- else -%}
     {%- set ns.out = ns.out + [{"type": "box", "layout": "horizontal", "margin": ('xl' if it.gap else 'xs'), "paddingStart": ('0px' if it.flat else ('28px' if it.small else ('48px' if it.sub else '28px'))), "contents": [{"type": "text", "size": ("xxs" if it.small else "xs"), "wrap": true, "flex": 1, "color": "#9CA3AF", "contents": (mspans(it.t, '#9CA3AF') | from_json([]))}]}] -%}
+    {%- endif -%}
   {%- elif it.k == 'sec' -%}
     {%- if ns.out | length > 0 -%}
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
