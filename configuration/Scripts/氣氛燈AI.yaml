@@ -2,6 +2,7 @@
 # 情境與狀況氣氛燈AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-22）：修正提醒閃燈結束後機台 LED 停在提醒色：UniFi 機台 LED／網關夜燈不回報 RGB，快照只能還原成「開」，橘／紅提醒色會留到下一次情境；現在 mood_alert 結束時依 input_text.ambient_scene_state 把機台改回目前情境色（script.ambient_scene）。
 # - V4.1.5（2026-10-11）：重要級（橘色）每次閃爍亮 0.8 秒→1.5 秒、熄滅 0.4 秒→0.8 秒（燈泡反應有延遲，原本橘色太短幾乎看不到，只看到收尾還原時的白光）；緊急級（紅色）不變。
 # - V4.1.5（2026-10-11）：修補版（僅 mood_alert）。通知同時呼叫兩次（notify_dispatch 與 announce 各一次）時，第二次排隊到第一次跑完才開始，已超過 8 秒去重窗口，會再跑一輪；
 #           且第一輪收尾的 mood_alert_restore_off 還在暫時開燈（約 3 秒）時就拍快照，還原時把原本關著的客廳燈留成亮著（橘色）。
@@ -465,6 +466,22 @@ mood_alert:
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.mood_alert_active
+    # V4.2.2：提醒結束後把機台（UniFi AP LED、網關夜燈）改回「目前情境色」。
+    # 機台 LED 沒有回報 RGB，scene.mood_alert_snapshot 只能還原成「開」而不能還原顏色，提醒色（橘／紅）會一直留著，
+    # 要等下一次按情境才變回來（2026-10-22 21:34 車庫回家通知閃燈後，車庫機台停在紅色，在家模式卻一直是紅燈，重按到家才變綠）。
+    - variables:
+        amb_state: "{{ states('input_text.ambient_scene_state') }}"
+        amb_scene: "{{ amb_state.split('|')[0] if '|' in amb_state else '' }}"
+    - if: "{{ amb_scene in ['leave', 'goodnight', 'morning', 'arrive'] and (ap_rgb_ok | length > 0) and not em_now }}"
+      then:
+        - delay: "00:00:01"
+        - action: script.turn_on
+          target:
+            entity_id: script.ambient_scene
+          data:
+            variables:
+              scene: "{{ amb_scene }}"
+          continue_on_error: true
     # V4.1.5：以「結束時間」重寫去重紀錄，排隊中的重複呼叫（8 秒內）會被略過
     - action: input_text.set_value
       target:

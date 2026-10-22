@@ -1,0 +1,847 @@
+# 智慧家庭（橫向＋直向合併版，UI4.0-beta6）：「家」頁依螢幕方向切換（橫向＝左側選單＋3D 地圖；直向＝直向地圖＋人員＋按鈕），
+# 其餘頁面兩種方向內容相同。由 scripts/merge_dashboards.py 依 new-ui.yaml 與 new-ui-portrait.yaml 產生；之後調整仍可分別改原檔再重新產生。
+button_card_templates: !include 'floorplan_v4/ios_templates.yaml'
+title: 智慧家庭
+views:
+- title: 家
+  path: home
+  icon: mdi:cube-scan
+  type: custom:grid-layout
+  layout:
+    grid-template-columns: minmax(0, 1fr)
+    grid-gap: 0px
+    margin: 0 auto
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: conditional
+      conditions:
+      - condition: screen
+        media_query: '(orientation: landscape)'
+      card:
+        type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 290px minmax(0, 1fr)
+          grid-template-areas: '"nav map"'
+          grid-gap: 12px
+          margin: 0 auto
+          mediaquery:
+            '(max-width: 1150px)':
+              grid-template-columns: 190px minmax(0, 1fr)
+              grid-gap: 8px
+        cards:
+        - type: vertical-stack
+          view_layout:
+            grid-area: nav
+          cards:
+          - type: custom:floorplan-v4-sidebar
+        - type: vertical-stack
+          view_layout:
+            grid-area: map
+          cards:
+          - !include 'floorplan_v4/map3d_landscape.yaml'
+    - type: conditional
+      conditions:
+      - condition: screen
+        media_query: '(orientation: portrait)'
+      card:
+        type: vertical-stack
+        cards:
+        - !include 'floorplan_v4/map3d_portrait.yaml'
+        - type: custom:floorplan-v4-people
+        - type: custom:floorplan-v4-sidebar
+          compact: true
+        - type: grid
+          columns: 2
+          square: false
+          cards:
+          - type: custom:button-card
+            template: ios_alarm_card
+            entity: alarm_control_panel.54ef44cf58f9_alarm
+            name: 保全系統
+            icon: mdi:shield-home
+          - type: custom:button-card
+            template: ios_lock_card
+            entity: lock.er_lou_men_suo
+            name: 二樓門鎖
+            icon: mdi:lock
+          - type: custom:button-card
+            template: ios_cover_card
+            entity: cover.garage
+            name: 車庫鐵門
+            icon: mdi:garage-variant
+          - type: custom:button-card
+            template: ios_device_card
+            entity: input_boolean.5f_security_temp_disable
+            name: 五樓保全暫解
+            icon: mdi:shield-off
+        - !include 'floorplan_v4/controls_card.yaml'
+- title: 情境
+  path: scenes
+  icon: mdi:palette
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 主要情境  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_zao_an_trigger
+        name: 早安
+        icon: mdi:weather-sunny
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_dao_jia_trigger
+        name: 到家
+        icon: mdi:home-import-outline
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_wan_an_trigger
+        name: 晚安
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_chu_men_trigger
+        name: 出門
+        icon: mdi:car-back
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 頂樓情境  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_shang_lou_qing_jing
+        name: 頂樓上樓
+        icon: mdi:stairs-up
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_xia_lou_qing_jing
+        name: 頂樓下樓
+        icon: mdi:stairs-down
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_ye_deng_qing_jing
+        name: 夜燈
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_yue_du_qing_jing
+        name: 閱讀
+        icon: mdi:book-open-page-variant
+- title: 全部裝置
+  path: all
+  icon: mdi:home
+  cards:
+  - type: picture-entity
+    entity: camera.g6_instant_high_resolution_channel
+    name: 車庫攝影機
+    show_name: true
+    show_state: false
+    camera_view: live
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 情境
+    - type: grid
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_zao_an_trigger
+        name: 早安
+        icon: mdi:weather-sunny
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_dao_jia_trigger
+        name: 到家
+        icon: mdi:home-import-outline
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_wan_an_trigger
+        name: 晚安
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_chu_men_trigger
+        name: 出門
+        icon: mdi:car-back
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 車庫  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_cover_card
+        entity: cover.garage
+        name: 鐵門
+        icon: mdi:garage-variant
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.che_ku_zhu_deng
+        name: 車庫主燈
+        icon: mdi:ceiling-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lou_ti_deng
+        name: 車庫樓梯燈
+        icon: mdi:coach-lamp
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 客廳  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_alarm_card
+        entity: alarm_control_panel.54ef44cf58f9_alarm
+        name: 保全系統
+        icon: mdi:shield-home
+      - type: custom:button-card
+        template: ios_lock_card
+        entity: lock.er_lou_men_suo
+        name: 二樓門鎖
+        icon: mdi:lock
+      - type: custom:button-card
+        template: ios_light_card
+        entity: switch.ke_ting_bi_deng
+        name: 客廳小燈
+        icon: mdi:wall-sconce-flat
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_1_ha
+        name: 客廳燈組一
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_2
+        name: 客廳燈組二
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_3
+        name: 客廳燈組三
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_dian_shi
+        name: 客廳電視
+        icon: mdi:television
+      - type: custom:button-card
+        template: ios_device_card
+        entity: fan.kong_qi_qing_jing_ji
+        name: 空氣清淨機
+        icon: mdi:air-purifier
+        tap_action:
+          action: more-info
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_kan_deng
+        name: 門口燈
+        icon: mdi:coach-lamp
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lu_deng
+        name: 路燈
+        icon: mdi:outdoor-lamp
+    - type: custom:button-card
+      template: ios_media_card
+      entity: media_player.ke_ting_homepod
+      name: 客廳 HomePod
+      icon: mdi:speaker
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 餐廳  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.can_ting_deng_zu_1_ha
+        name: 餐廳燈
+        icon: mdi:chandelier
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.chu_fang_deng
+        name: 廚房燈
+        icon: mdi:stove
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ce_suo_deng
+        name: 廁所燈
+        icon: mdi:toilet
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.can_ting_kan_deng
+        name: 壁燈
+        icon: mdi:wall-sconce
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.0x00158d0003923796_plug
+        name: 廚房插座
+        icon: mdi:power-socket-eu
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 樓梯間  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.er_san_lou_lou_ti_deng
+        name: 二三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_lou_lou_ti_deng
+        name: 三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_si_lou_lou_ti_deng
+        name: 三四樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.si_lou_lou_ti_deng
+        name: 四樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.shu_fang_deng
+        name: 書房燈
+        icon: mdi:bookshelf
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 家庭其他裝置  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.jie_chu_wang_guan_jing_bao
+        name: 解除網關警報
+        icon: mdi:bell-off
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.5f_security_temp_disable
+        name: 五樓保全暫解
+        icon: mdi:shield-off
+- title: 1F 車庫
+  path: floor-1f
+  icon: mdi:garage
+  cards:
+  - type: picture-entity
+    entity: camera.g6_instant_high_resolution_channel
+    name: 車庫攝影機
+    show_name: true
+    camera_view: live
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 車庫裝置  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_cover_card
+        entity: cover.garage
+        name: 鐵門
+        icon: mdi:garage-variant
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.che_ku_zhu_deng
+        name: 車庫主燈
+        icon: mdi:ceiling-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lou_ti_deng
+        name: 車庫樓梯燈
+        icon: mdi:coach-lamp
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_kan_deng
+        name: 門口燈
+        icon: mdi:coach-lamp
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lu_deng
+        name: 路燈
+        icon: mdi:outdoor-lamp
+- title: 2F 客廳
+  path: floor-2f
+  icon: mdi:sofa
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 客廳  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_alarm_card
+        entity: alarm_control_panel.54ef44cf58f9_alarm
+        name: 保全系統
+        icon: mdi:shield-home
+      - type: custom:button-card
+        template: ios_lock_card
+        entity: lock.er_lou_men_suo
+        name: 二樓門鎖
+        icon: mdi:lock
+      - type: custom:button-card
+        template: ios_light_card
+        entity: switch.ke_ting_bi_deng
+        name: 客廳小燈
+        icon: mdi:wall-sconce-flat
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_1_ha
+        name: 客廳燈組一
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_2
+        name: 客廳燈組二
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_3
+        name: 客廳燈組三
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_dian_shi
+        name: 客廳電視
+        icon: mdi:television
+      - type: custom:button-card
+        template: ios_device_card
+        entity: fan.kong_qi_qing_jing_ji
+        name: 空氣清淨機
+        icon: mdi:air-purifier
+        tap_action:
+          action: more-info
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_kan_deng
+        name: 門口燈
+        icon: mdi:coach-lamp
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lu_deng
+        name: 路燈
+        icon: mdi:outdoor-lamp
+    - type: custom:button-card
+      template: ios_media_card
+      entity: media_player.ke_ting_homepod
+      name: 客廳 HomePod
+      icon: mdi:speaker
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 餐廳 / 廚房  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.can_ting_deng_zu_1_ha
+        name: 餐廳燈
+        icon: mdi:chandelier
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.chu_fang_deng
+        name: 廚房燈
+        icon: mdi:stove
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ce_suo_deng
+        name: 廁所燈
+        icon: mdi:toilet
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.can_ting_kan_deng
+        name: 壁燈
+        icon: mdi:wall-sconce
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.0x00158d0003923796_plug
+        name: 廚房插座
+        icon: mdi:power-socket-eu
+- title: 樓梯/書房
+  path: floor-stairs
+  icon: mdi:stairs
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 樓梯間  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.er_san_lou_lou_ti_deng
+        name: 二三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_lou_lou_ti_deng
+        name: 三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_si_lou_lou_ti_deng
+        name: 三四樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.si_lou_lou_ti_deng
+        name: 四樓梯燈
+        icon: mdi:stairs
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 書房  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.shu_fang_deng
+        name: 書房燈
+        icon: mdi:bookshelf
+- title: 系統
+  path: system
+  icon: mdi:cog-sync
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 自動化開關  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.living_room_fan_auto_speed_mode
+        name: 客廳風扇自動
+        icon: mdi:fan-auto
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.top_floor_fan_auto_mode
+        name: 頂樓風扇自動
+        icon: mdi:fan-auto
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.summer_mode
+        name: 夏日模式
+        icon: mdi:weather-sunny-alert
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.notify_line_general_enable
+        name: LINE 一般通知
+        icon: mdi:message-text
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.notify_line_important_enable
+        name: LINE 重要通知
+        icon: mdi:message-alert
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.notify_line_emergency_enable
+        name: LINE 緊急通知
+        icon: mdi:message-badge
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 伺服器與網路  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.asusworkstationcha_zuo
+        name: ASUS工作站
+        icon: mdi:desktop-tower
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.unifi_network_asusworkstation_remote
+        name: ASUS遠端
+        icon: mdi:remote-desktop
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.smartpower_strip_2f_tbcwang_lu_he
+        name: TBC網路盒
+        icon: mdi:router-network
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.smartpower_strip_2f_udmse
+        name: UDM-SE
+        icon: mdi:router-wireless
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.smartpower_strip_2f_asussi_fu_qi
+        name: ASUS伺服器
+        icon: mdi:server
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.xiao_yan_wang_guan_cha_zuo
+        name: 小燕網關插座
+        icon: mdi:power-socket-eu
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 即時通知  ›
+    - type: custom:button-card
+      entity: sensor.disaster
+      show_name: false
+      show_icon: false
+      show_state: false
+      tap_action:
+        action: more-info
+      styles:
+        card:
+          - border-radius: 18px
+          - border: none
+          - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+          - padding: 0
+          - white-space: normal
+          - overflow: hidden
+        grid:
+          - grid-template-areas: '"body"'
+          - grid-template-columns: minmax(0, 1fr)
+        custom_fields:
+          body:
+            - width: 100%
+            - min-width: 0
+            - text-align: left
+            - white-space: normal
+      custom_fields:
+        body: |
+          [[[
+            const raw = (entity && entity.state) || '';
+            const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
+            const s = bad.includes(raw) ? '' : String(raw).trim();
+            const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
+            const lamps = { '紅色': ['#FF453A', 'rgba(255,69,58,.16)'], '橙色': ['#FF9F0A', 'rgba(255,159,10,.16)'], '黃色': ['#FFD60A', 'rgba(255,214,10,.16)'] };
+            const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
+            const items = [];
+            let m;
+            while ((m = re.exec(s)) !== null) items.push({ region: m[1].trim(), cond: m[2].trim(), lamp: m[3] });
+            let top = null;
+            for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
+            let color, bg, label, icon;
+            if (calm) { color = '#30D158'; bg = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+            else if (top) { color = lamps[top][0]; bg = `linear-gradient(135deg, ${lamps[top][1]} 0%, rgba(120,120,128,.04) 100%)`; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+            else { color = '#FF9F0A'; bg = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+            const lead = items.length ? s.split('，')[0] : '';
+            const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+            let body = '';
+            if (calm) {
+              body = `<div style="font-size:13.5px;color:var(--primary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
+            } else if (items.length) {
+              body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
+                items.map(it => {
+                  const c = lamps[it.lamp];
+                  return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:${c[1]};border:1px solid ${c[0]}55;min-width:0;box-sizing:border-box">
+                    <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:0 0 6px ${c[0]}"></span>
+                    <div style="flex:1;min-width:0;${wrap}">
+                      <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
+                      <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
+                      <div style="font-size:12px;line-height:1.45;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
+                    </div></div>`;
+                }).join('') +
+                `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:12.5px;line-height:1.55;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
+            } else {
+              body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+            }
+            const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
+            const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
+            return `
+              <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                    <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
+                    <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
+                  </div>
+                  <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+                </div>
+                ${body}
+                <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
+              </div>`;
+          ]]]
+    - type: custom:button-card
+      entity: sensor.earthquake
+      show_name: false
+      show_icon: false
+      show_state: false
+      tap_action:
+        action: more-info
+      styles:
+        card:
+          - border-radius: 18px
+          - border: none
+          - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+          - padding: 0
+          - white-space: normal
+          - overflow: hidden
+        grid:
+          - grid-template-areas: '"body"'
+          - grid-template-columns: minmax(0, 1fr)
+        custom_fields:
+          body:
+            - width: 100%
+            - min-width: 0
+            - text-align: left
+            - white-space: normal
+      custom_fields:
+        body: |
+          [[[
+            const raw = (entity && entity.state) || '';
+            const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
+            const s = bad.includes(raw) ? '' : String(raw).trim();
+            const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+            const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
+            const mag = mm ? parseFloat(mm[4]) : NaN;
+            let color = '#30D158';
+            if (!isNaN(mag)) color = mag >= 6 ? '#FF453A' : (mag >= 5 ? '#FF9F0A' : (mag >= 4 ? '#FFD60A' : '#30D158'));
+            const bg = `linear-gradient(135deg, ${color}2b 0%, rgba(120,120,128,.04) 100%)`;
+            let body = '';
+            if (mm) {
+              const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
+              const im = intens.match(/^(.*?)(\d+[弱強]?級?)$/);
+              const place = im ? im[1].trim() : intens;
+              const lvl = im ? im[2] : '';
+              const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
+              body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.1);border-radius:12px">
+                ${cell('規模', 'M ' + esc(mm[4]), true)}
+                ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
+                ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
+                ${cell('震央位置', esc(mm[3].trim() || '--'), false)}
+              </div>`;
+            } else if (s) {
+              body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+            } else {
+              body = `<div style="font-size:13.5px;color:var(--primary-text-color)">目前沒有地震速報資料。</div>`;
+            }
+            const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
+            return `
+              <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                    <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
+                    <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
+                  </div>
+                  <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+                </div>
+                ${body}
+              </div>`;
+          ]]]
+    - type: custom:button-card
+      entity: sensor.tesla_wall_connector_status
+      show_name: false
+      show_icon: false
+      show_state: false
+      tap_action:
+        action: more-info
+      styles:
+        card:
+          - border-radius: 18px
+          - border: none
+          - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+          - padding: 0
+          - white-space: normal
+          - overflow: hidden
+        grid:
+          - grid-template-areas: '"body"'
+          - grid-template-columns: minmax(0, 1fr)
+        custom_fields:
+          body:
+            - width: 100%
+            - min-width: 0
+            - text-align: left
+            - white-space: normal
+      custom_fields:
+        body: |
+          [[[
+            const raw = (entity && entity.state) || 'unknown';
+            const map = { not_connected: ['未連接', '#8E8E93'], connected: ['已連接', '#0A84FF'], ready: ['已連接', '#0A84FF'], charging: ['充電中', '#30D158'],
+                          charging_reduced: ['降速充電', '#FF9F0A'], charging_finished: ['充電完成', '#30D158'], waiting_car: ['等待車輛', '#FF9F0A'], error: ['異常', '#FF453A'] };
+            const m = map[raw] || [raw === 'unknown' || raw === 'unavailable' ? '無資料' : raw, '#8E8E93'];
+            return `
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;min-width:0">
+                <div style="flex:none;width:36px;height:36px;border-radius:10px;background:${m[1]}26;color:${m[1]};display:flex;align-items:center;justify-content:center"><ha-icon icon="mdi:ev-station" style="--mdc-icon-size:22px"></ha-icon></div>
+                <span style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--primary-text-color)">Tesla 充電器</span>
+                <span style="flex:none;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${m[1]}26;color:${m[1]}">${m[0]}</span>
+              </div>`;
+          ]]]
+    - type: custom:button-card
+      template: ios_device_card
+      name: 清除所有通知
+      icon: mdi:notification-clear-all
+      show_state: false
+      tap_action:
+        action: perform-action
+        perform_action: persistent_notification.dismiss_all
+- title: 自動化管理
+  path: automation-link
+  icon: mdi:robot-happy-outline
+  type: custom:grid-layout
+  layout:
+    grid-template-columns: minmax(0, 1fr)
+    grid-gap: 8px
+    margin: 0 auto
+  cards:
+  - type: custom:button-card
+    name: 前往自動化管理面板
+    icon: mdi:robot-happy-outline
+    show_state: false
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace-automation/overview
