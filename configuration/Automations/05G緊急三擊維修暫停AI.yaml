@@ -47,7 +47,13 @@
                 source: "{{ src }}"
                 version: "{{ automation_version }}"
                 title: 緊急三擊已暫停（維修模式）
-                message: "🔧 已暫停「連點三下」緊急按鈕，方便維修避免誤觸。2 小時後會自動恢復；維修完請手動關閉此開關。其他緊急入口（HomeKit、地震預警等）不受影響。"
+                message: |-
+                  緊急三擊已暫停（維修模式）
+                  暫停對象：「連點三下」緊急按鈕
+                  自動恢復：2 小時後
+
+                  ※ 維修完請手動關閉此開關。
+                  ※ 其他緊急入口（HomeKit、地震預警等）不受影響。
         - conditions: "{{ trigger.id == 'pause_off' }}"
           sequence:
             # 計時還在跑＝人為關閉（到期自動關閉時計時已結束，不重複通知）
@@ -76,7 +82,11 @@
                 source: "{{ src }}"
                 version: "{{ automation_version }}"
                 title: 緊急三擊已自動恢復
-                message: "⏱️ 維修暫停已滿 2 小時，已自動恢復「連點三下」緊急按鈕。若還需要維修，請再開啟一次。"
+                message: |-
+                  緊急三擊已自動恢復
+                  原因：維修暫停已滿 2 小時
+
+                  ※ 若還需要維修，請再開啟一次。
         - conditions: "{{ trigger.id == 'ha_start' }}"
           sequence:
             - delay: "00:00:30"

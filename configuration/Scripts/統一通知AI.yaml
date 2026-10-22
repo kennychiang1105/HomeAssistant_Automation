@@ -141,7 +141,7 @@ notify_dispatch:
     lk_auto: "{{ (title_c ~ ' ' ~ head_line) | regex_search('保全|鐵門|未關|忘記關|沒關|家電') and not (link_url is defined and link_url) }}"
     lk_url: "{{ link_url if (link_url is defined and link_url) else ('https://family.kteam.tw:8130/' if lk_auto else '') }}"
     lk_label: "{{ link_label if (link_label is defined and link_label) else ('開啟家庭控制' if lk_auto else '') }}"
-    lk_note: "{{ link_note if (link_note is defined and link_note) else ('帳號:kiosk\n密碼:kiosk1105@\nPIN:477924\n(僅外網需要)' if lk_auto else '') }}"
+    lk_note: "{{ link_note if (link_note is defined and link_note) else ('帳號:kiosk　密碼:KIOSK1105@\nPIN:477924　(僅外網需要)' if lk_auto else '') }}"
   sequence:
     - if: "{{ maint_skip }}"
       then:
@@ -185,8 +185,8 @@ notify_dispatch:
                       {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}, {"type": "separator", "margin": "lg", "color": "#E5E7EB"}
                     ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                   "footer": {
-                    "type": "box", "layout": "vertical", "paddingAll": "8px", "backgroundColor": "#F5F6F8",
-                    "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": "sm"}]}
+                    "type": "box", "layout": "vertical", "paddingAll": "12px", "backgroundColor": "#F5F6F8",
+                    "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center", "margin": "sm", "lineSpacing": "3px"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + (([{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] if (url or lk_url or (link2_url is defined and link2_url)) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": ("md" if (url or lk_url or (link2_url is defined and link2_url)) else "sm")}])}
                 }, **hero_extra)
               }] | tojson }}
     - if: "{{ line_on and lv in ['important', 'emergency'] }}"

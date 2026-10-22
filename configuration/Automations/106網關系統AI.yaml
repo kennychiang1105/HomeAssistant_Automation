@@ -280,4 +280,7 @@
                     source: "分流 B - 常規同步（唯一情境）"
                     version: "{{ automation_version | default('', true) }}"
                     title: "{{ notif_title_alert }}"
-                    message: "未偵測到有效保全情境或重啟校正時無回應，已同步虛擬情境與實體網關回到在家警戒。"
+                    message: |-
+                      已同步回到在家警戒
+                      原因：未偵測到有效保全情境，或重啟校正時無回應
+                      範圍：虛擬情境與實體網關

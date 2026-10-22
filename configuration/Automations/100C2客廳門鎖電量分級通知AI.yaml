@@ -95,7 +95,8 @@
         source: "過濾 unknown/unavailable/-1 等假觸發；且前值必須 <20%"
         version: "{{ automation_version | default('', true) }}"
         title: "{{ notif_title_calib }}"
-        message: >-
-          🛠️ 門鎖換電池偵測：已自動完成校正並將通知等級重置為 OK。
-          新電池款式＝「{{ states('input_text.doorlock_batt_model_current') or '未填寫' }}」；
-          校正日耗電率＝{{ states('input_number.doorlock_batt_drop_last_cycle') }} %/日。
+        message: |-
+          門鎖換電池偵測：已自動完成校正
+          通知等級：已重置為 OK
+          新電池款式：{{ states('input_text.doorlock_batt_model_current') or '未填寫' }}
+          校正日耗電率：{{ states('input_number.doorlock_batt_drop_last_cycle') }} %/日
