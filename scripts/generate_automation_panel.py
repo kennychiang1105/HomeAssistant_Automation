@@ -998,10 +998,12 @@ def family_tracking_blocks():
         "| {{ '在家' if state_attr(sn, 'source_state') == 'home' else ('離家' if state_attr(sn, 'source_state') == 'not_home' else state_attr(sn, 'source_state')) }} |\n"
         "{% endfor %}"
         "\n<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。在下面選「主要裝置」會改寫 persons.yaml 並重新載入 person；"
-        "為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。</sub>"
+        "為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。清單沒有的裝置：選「其他」，並在自訂裝置欄位輸入 device_tracker.xxx（小寫英數底線，裝置名稱可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。</sub>"
     )
-    rows = [(f"input_select.person_main_device_{k}", f"{n} 的主要裝置") for k, n in
-            (("kenny", "Kenny"), ("iris", "Iris"), ("jerry", "Jerry"), ("elay", "Elay"))]
+    rows = []
+    for k, n in (("kenny", "Kenny"), ("iris", "Iris"), ("jerry", "Jerry"), ("elay", "Elay")):
+        rows.append((f"input_select.person_main_device_{k}", f"{n} 的主要裝置"))
+        rows.append((f"input_text.person_main_device_custom_{k}", f"{n} 自訂裝置（選「其他」時用）"))
     return [
         section(heading("家人裝置追蹤", "mdi:account-switch-outline") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS),
         section(heading("家人主要裝置選擇", "mdi:cellphone-check") + entities_card(rows)),
@@ -1185,7 +1187,7 @@ def build(data):
             cat = classify(HELPER_RULES, f"{eid} {fn}")
             if re.search(r"^input_(select|number|boolean|text)\.line_bot_(mode|sticky|test_mode|custom_user_enable|custom_user_id)$", eid):
                 continue   # LINE Bot 模式與設定只放在「總覽」，避免重複
-            if re.search(r"^input_select\.person_main_device_|^input_boolean\.person_main_device_busy$", eid):
+            if re.search(r"^input_select\.person_main_device_|^input_text\.person_main_device_custom_|^input_boolean\.person_main_device_busy$", eid):
                 continue   # 家人主要裝置選單放在「系統維護」的家人裝置追蹤區，自己畫（busy 旗標不顯示）
             if INTERNAL_RE.search(eid):
                 internal[cat].append((dom, fn or eid, eid))

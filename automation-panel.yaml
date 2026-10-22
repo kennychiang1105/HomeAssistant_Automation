@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **141** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **142** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3226,7 +3226,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 24 支、可調整項目 15 個"
+        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 25 支、可調整項目 15 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3241,10 +3241,11 @@ views:
             .container { padding: 14px 6px 4px !important; }
             .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
       - type: markdown
-        content: "{% set P = [('kenny','Kenny'),('iris','Iris'),('jerry','Jerry'),('elay','Elay')] %}| 家人 | person 狀態 | person 目前參考的裝置 | 該裝置狀態 |\n|---|---|---|---|\n{% for k, n in P %}{% set sn = 'sensor.person_' ~ k ~ '_source_device' %}| **{{ n }}** | {{ '在家' if is_state('person.' ~ k, 'home') else ('離家' if is_state('person.' ~ k, 'not_home') else states('person.' ~ k)) }} | {{ states(sn) }}<br><sub>{{ state_attr(sn, 'source_entity') }}</sub> | {{ '在家' if state_attr(sn, 'source_state') == 'home' else ('離家' if state_attr(sn, 'source_state') == 'not_home' else state_attr(sn, 'source_state')) }} |\n{% endfor %}\n<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。在下面選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。</sub>"
+        content: "{% set P = [('kenny','Kenny'),('iris','Iris'),('jerry','Jerry'),('elay','Elay')] %}| 家人 | person 狀態 | person 目前參考的裝置 | 該裝置狀態 |\n|---|---|---|---|\n{% for k, n in P %}{% set sn = 'sensor.person_' ~ k ~ '_source_device' %}| **{{ n }}** | {{ '在家' if is_state('person.' ~ k, 'home') else ('離家' if is_state('person.' ~ k, 'not_home') else states('person.' ~ k)) }} | {{ states(sn) }}<br><sub>{{ state_attr(sn, 'source_entity') }}</sub> | {{ '在家' if state_attr(sn, 'source_state') == 'home' else ('離家' if state_attr(sn, 'source_state') == 'not_home' else state_attr(sn, 'source_state')) }} |\n{% endfor %}\n<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。在下面選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。清單沒有的裝置：選「其他」，並在自訂裝置欄位輸入 device_tracker.xxx（小寫英數底線，裝置名稱可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。</sub>"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3261,18 +3262,25 @@ views:
         entities:
           - entity: input_select.person_main_device_kenny
             name: "Kenny 的主要裝置"
+          - entity: input_text.person_main_device_custom_kenny
+            name: "Kenny 自訂裝置（選「其他」時用）"
           - entity: input_select.person_main_device_iris
             name: "Iris 的主要裝置"
+          - entity: input_text.person_main_device_custom_iris
+            name: "Iris 自訂裝置（選「其他」時用）"
           - entity: input_select.person_main_device_jerry
             name: "Jerry 的主要裝置"
+          - entity: input_text.person_main_device_custom_jerry
+            name: "Jerry 自訂裝置（選「其他」時用）"
           - entity: input_select.person_main_device_elay
             name: "Elay 的主要裝置"
+          - entity: input_text.person_main_device_custom_elay
+            name: "Elay 自訂裝置（選「其他」時用）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（24）"
+        heading: "自動化開關（25）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -3299,37 +3307,8 @@ views:
             name: "00-2K頂樓參數初始化AI (V4.0.0)"
           - entity: automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0
             name: "00-2L廣播快取暖機AI (V4.0.0)"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "自動化開關（續）"
-        heading_style: title
-        icon: mdi:robot
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
           - entity: automation.00_2mshi_ti_yin_yong_jian_cha_ai_v4_0_0
             name: "00-2M實體引用檢查AI (V4.1.6)"
-          - entity: automation.00_2pmen_suo_dian_liang_mei_ri_ji_lu_ai_v4_0_0
-            name: "00-2P門鎖電量每日紀錄AI (V4.0.0)"
-          - entity: automation.00_2qdian_chi_yu_gu_geng_xin_ai_v4_1_6
-            name: "00-2Q電池預估更新AI (V4.1.6)"
-          - entity: automation.00_2rhuan_jing_bu_kong_pin_geng_xin_ai_v4_1_6
-            name: "00-2R環境部空品更新AI (V4.1.6)"
-          - entity: automation.00_3shi_xiao_shi_ti_xun_jian_ai_v4_1_0
-            name: "00-3失效實體巡檢AI (V4.1.0)"
-          - entity: automation.09a_homepodzi_dong_kai_qi_yao_kong
-            name: "09A-HomePod自動開啟遙控"
-          - entity: automation.09b_homepod_sensor_sync
-            name: "09B-Homepod Sensor sync"
-          - entity: automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6
-            name: "09C電視待機喚醒AI (V4.1.6)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -3346,8 +3325,39 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: automation.00_2pmen_suo_dian_liang_mei_ri_ji_lu_ai_v4_0_0
+            name: "00-2P門鎖電量每日紀錄AI (V4.0.0)"
+          - entity: automation.00_2qdian_chi_yu_gu_geng_xin_ai_v4_1_6
+            name: "00-2Q電池預估更新AI (V4.1.6)"
+          - entity: automation.00_2rhuan_jing_bu_kong_pin_geng_xin_ai_v4_1_6
+            name: "00-2R環境部空品更新AI (V4.1.6)"
+          - entity: automation.00_2sjia_ren_zhu_yao_zhuang_zhi_qie_huan_ai_v4_2_0
+            name: "00-2S家人主要裝置切換AI (V4.2.0)"
+          - entity: automation.00_3shi_xiao_shi_ti_xun_jian_ai_v4_1_0
+            name: "00-3失效實體巡檢AI (V4.1.0)"
+          - entity: automation.09a_homepodzi_dong_kai_qi_yao_kong
+            name: "09A-HomePod自動開啟遙控"
+          - entity: automation.09b_homepod_sensor_sync
+            name: "09B-Homepod Sensor sync"
+          - entity: automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6
+            name: "09C電視待機喚醒AI (V4.1.6)"
           - entity: automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6
             name: "09C電視紅外線開關自動復位AI (V4.1.6)"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "自動化開關（續）"
+        heading_style: title
+        icon: mdi:robot
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
           - entity: automation.106_2_mai_ke_feng
             name: "106-2 五樓攝影機麥克風同步"
           - entity: automation.106dwang_guan_qie_huan_tong_bu_aqarakai_guan_ai_v4_1_6

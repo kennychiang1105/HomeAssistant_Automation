@@ -3,6 +3,7 @@
 # person.kenny／iris／jerry／elay 是 YAML 定義（packages/persons.yaml），在不在家都由它的 device_trackers 決定，at_home_* 等判斷也都讀它。
 # 這裡讓「自動化管理面板」可以選每個人的主要裝置：選單改變 → 00-2S家人主要裝置切換AI 先檢查（選的裝置在不在家要和 person 目前一致，
 # 免得切換後 person 突然變離家觸發離家情境）→ 改寫 persons.yaml（scripts/person_set_main.py，舊檔存 persons.yaml.bak）→ person.reload。
+# 選單最後一項「其他（自訂）」：到下面的文字欄位輸入 device_tracker.xxx（小寫英數底線），就能用清單以外的裝置；選「其他」後再改文字欄位也會重新套用。
 # 選項與裝置的對照在 Automations/00-2S 的 variables（兩邊由 scripts/gen_person_main_device.py 一起產生，不要手改）。
 # sensor.person_<id>_source_device：顯示 person.<id> 目前實際參考的裝置（person 的 source 屬性）、該裝置狀態與 person 的追蹤裝置清單。
 # ────────────────────────────────────────────────────────
@@ -16,11 +17,13 @@ input_select:
       - "iPad Pro 2024（路由器）"
       - "iPad mini（App GPS）"
       - "Apple Watch Ultra 3（路由器）"
+      - "其他（自訂，在下方欄位輸入 device_tracker）"
   person_main_device_iris:
     name: "Iris 的主要裝置（person.iris 參考）"
     icon: mdi:cellphone-check
     options:
       - "iPhone 13 Pro Max（路由器）"
+      - "其他（自訂，在下方欄位輸入 device_tracker）"
   person_main_device_jerry:
     name: "Jerry 的主要裝置（person.jerry 參考）"
     icon: mdi:cellphone-check
@@ -29,6 +32,7 @@ input_select:
       - "Redmi Note 11 Pro 5G（路由器）"
       - "iPhone Xr（路由器）"
       - "iPad Pro 2021（路由器）"
+      - "其他（自訂，在下方欄位輸入 device_tracker）"
   person_main_device_elay:
     name: "Elay 的主要裝置（person.elay 參考）"
     icon: mdi:cellphone-check
@@ -36,13 +40,39 @@ input_select:
       - "iPhone 16 Pro Max（路由器）"
       - "iPhone 13 Pro（路由器）"
       - "iPad Air 5（路由器）"
+      - "其他（自訂，在下方欄位輸入 device_tracker）"
+input_text:
+  person_main_device_custom_kenny:
+    name: "Kenny 的自訂裝置（選「其他」時使用，例：device_tracker.xxx）"
+    icon: mdi:cellphone-edit
+    max: 100
+    pattern: "^(device_tracker[.][a-z0-9_]+)?$"
+    initial: ""
+  person_main_device_custom_iris:
+    name: "Iris 的自訂裝置（選「其他」時使用，例：device_tracker.xxx）"
+    icon: mdi:cellphone-edit
+    max: 100
+    pattern: "^(device_tracker[.][a-z0-9_]+)?$"
+    initial: ""
+  person_main_device_custom_jerry:
+    name: "Jerry 的自訂裝置（選「其他」時使用，例：device_tracker.xxx）"
+    icon: mdi:cellphone-edit
+    max: 100
+    pattern: "^(device_tracker[.][a-z0-9_]+)?$"
+    initial: ""
+  person_main_device_custom_elay:
+    name: "Elay 的自訂裝置（選「其他」時使用，例：device_tracker.xxx）"
+    icon: mdi:cellphone-edit
+    max: 100
+    pattern: "^(device_tracker[.][a-z0-9_]+)?$"
+    initial: ""
 input_boolean:
   person_main_device_busy:
     name: 家人主要裝置切換中（內部）
     icon: mdi:progress-wrench
     initial: false
 shell_command:
-  person_set_main: "python3 /config/scripts/person_set_main.py {{ pid }} {{ entity }} '{{ label }}'"
+  person_set_main: "python3 /config/scripts/person_set_main.py '{{ pid }}' '{{ entity }}' '{{ label }}'"
 template:
   - sensor:
       - name: person_kenny_source_device
