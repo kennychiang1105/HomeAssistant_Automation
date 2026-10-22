@@ -25,7 +25,7 @@
 
 | 項目 | 檔案數 | 數量 |
 |---|---|---|
-| AI 自動化（`Automations/*.yaml`，一項一個 id） | 60 | **89** |
+| AI 自動化（`Automations/*.yaml`，一項一個 id） | 61 | **90** |
 | AI 腳本（`Scripts/*.yaml`，一支一個 key） | 14 | **31** |
 
 <!-- STATS:END -->
@@ -47,6 +47,7 @@
 | `configuration/Automations/00-2L廣播快取暖機AI.yaml` | `00-2L廣播快取暖機AI (V4.0.0)` | `ai_00_2l_announce_cache_warm` | `V4.0.0` |
 | `configuration/Automations/00-2M實體引用檢查AI.yaml` | `00-2M實體引用檢查AI (V4.1.6)` | `ai_00_2m_entity_reference_check` | `V4.1.6` |
 | `configuration/Automations/00-2P門鎖電量每日紀錄AI.yaml` | `00-2P門鎖電量每日紀錄AI (V4.0.0)` | `ai_00_2p_doorlock_battery_daily` | `V4.0.0` |
+| `configuration/Automations/00-2S家人主要裝置切換AI.yaml` | `00-2S家人主要裝置切換AI (V4.2.0)` | `ai_00_2s_person_main_device` | `V4.2.0` |
 | `configuration/Automations/00-3失效實體巡檢AI.yaml` | `00-3失效實體巡檢AI (V4.1.0)` | `ai_00_3_stale_entity_audit_v41` | `V4.1.0` |
 | `configuration/Automations/00-4手機追蹤比對AI.yaml` | `00-4手機追蹤比對AI (V4.1.0)` | `ai_00_4_phone_tracker_compare_v41` | `V4.1.0` |
 | `configuration/Automations/03苗栗天氣告知系統AI.yaml` | `03苗栗天氣告知系統AI (V4.2.0)` | `ai_miaoli_weather_disaster_notify` | `V4.2.0` |
@@ -310,6 +311,7 @@
 - **氣象告警通知縮短（`custom_templates/notify_body.jinja` 的 `disaster_hint`）**：離家等通知裡的「氣象告警」改成短版，只留「原因・災種」與各地區燈號（例：氣象告警：颱風外圍・強風　苗栗縣橙色燈號、新竹市、新竹縣黃色燈號），下一行提醒也縮成一句（例：可能下雨、有強陣風，外出請帶傘、小心行車）；只有紅／橙色燈號的地區與提醒裡的重點動作用橘（紅）色標示，其餘一般色。廣播用的語音文字不變。
 - **修正**：①`04苗栗天氣告知系統（按鈕）`（`automations.yaml`）的 LINE 訊息第二則缺少 `"type":"text"`，LINE 會拒收，已補上；②`packages/v41_auto_scene.yaml` 有兩個重複的 `input_datetime:`（V4.1.6 加 `scene_verify_skip_alarm_until` 時造成），後面的蓋掉前面的，`auto_scene_earliest_workday`／`auto_scene_earliest_holiday`（100A 日出時間讀不到時的備援時間）沒有建立，已合併成一個區塊，兩個 helper 恢復（預設 05:30／07:00）。
 - **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：①只對本地橙色／紅色燈號、疏散、海嘯、土石流、颱風警報、大豪雨與國家級警報跳窗，水務搶修、黃色燈號與只是提到地區的訊息不再跳；②超過 1 小時且沒讀過的災害／地震報告不彈（災害用 `sensor.disaster_last_valid_update`、地震用報告本身寫的時間，不看會在重載歸零的更新時間），感測器離線後舊訊息回來也不彈；③已讀判斷改用整段文字的雜湊（原本只比對前 120 字）；④新的地震預警直接取代畫面上的上一則；⑤牆上 Kiosk（8130）也載入彈窗：`kiosk/server.py` 的 `/api/states` 多給災害、地震報告、地震預警實體與 `last_updated`，`kiosk/web/index.html` 設 `window.__kioskHass` 後載入 `alert-popup.js`；⑥版本顯示 UI4.0-beta8（HA 與 Kiosk 一致）。
+- **家人主要裝置選擇（`00-2S家人主要裝置切換AI`、`packages/v41_person_main_device.yaml`、`scripts/person_set_main.py`、`scripts/gen_person_main_device.py`）**：自動化管理面板「系統維護」頁新增「家人裝置追蹤」：表格顯示 Kenny／Iris／Jerry／Elay 的 person.* 目前實際參考哪個裝置（`sensor.person_<id>_source_device`，取 person 的 source 屬性）與該裝置的在家狀態，下方四個選單（`input_select.person_main_device_<id>`）可選每個人的主要裝置。選擇後先檢查「選的裝置在不在家」要和 person 目前一致（不一致就退回原選項並發 HA 通知，避免切換後在家狀態突然改變而誤觸發離家／到家情境），再改寫 `packages/persons.yaml`（舊檔存 `persons.yaml.bak`）、`person.reload`、驗證並發 HA 資訊通知；HA 啟動 60 秒後選單對齊 person 實際參考的裝置。選項與裝置對照由 `gen_person_main_device.py` 產生（改候選裝置請改這支再執行）。新增 helper：`input_select.person_main_device_kenny／iris／jerry／elay`、`input_boolean.person_main_device_busy`（內部，不顯示）。
 - **發布注意**：入侵偵測沒有經過影子觀察就轉為正式，若發生誤報請在 Known Bugs 回報；`env_alert_co_dry_run`（CO 緊急乾跑）不是影子模式，維持開啟。
 
 - 3D 儀表板側欄（`www/floorplan/v4/floorplan-v4-3d.js`）：窄版（側欄寬度 < 250px，例如 iPad mini 5 橫向）時，時間旁的日型標籤（工作日／節日名稱）被時間擠成只剩「工…」。現在標籤固定在時間右邊、完整顯示，秒數縮小（.74em）；放不下時 `_fit()` 依序縮小時間與標籤（fit1：23px／10px、fit2：20px／9px、fit3：17px），寬度 130px 以上都能一行完整顯示（瀏覽器實測 240／200／170／150／130px）。HA 與 NAS kiosk 都已更新（載入時不快取，重新整理即可）。

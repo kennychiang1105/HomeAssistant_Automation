@@ -2897,9 +2897,9 @@ views:
           - entity: automation.03emiao_li_shu_san_jing_bao
             name: "03E苗栗疏散警報 (V4.0.0)"
           - entity: automation.ai_miaoli_weather_disaster_notify
-            name: "03苗栗天氣告知系統AI (V4.1.5)"
+            name: "03苗栗天氣告知系統AI (V4.2.0)"
           - entity: automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu
-            name: "04苗栗天氣告知系統 (按鈕) (V4.0.0)"
+            name: "04苗栗天氣告知系統 (按鈕) (V4.2.0)"
           - entity: automation.jin_ji_mo_shi
             name: "05A緊急模式"
         card_mod: *cm
@@ -3233,6 +3233,45 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
+        heading: "家人裝置追蹤"
+        heading_style: title
+        icon: mdi:account-switch-outline
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: markdown
+        content: "{% set P = [('kenny','Kenny'),('iris','Iris'),('jerry','Jerry'),('elay','Elay')] %}| 家人 | person 狀態 | person 目前參考的裝置 | 該裝置狀態 |\n|---|---|---|---|\n{% for k, n in P %}{% set sn = 'sensor.person_' ~ k ~ '_source_device' %}| **{{ n }}** | {{ '在家' if is_state('person.' ~ k, 'home') else ('離家' if is_state('person.' ~ k, 'not_home') else states('person.' ~ k)) }} | {{ states(sn) }}<br><sub>{{ state_attr(sn, 'source_entity') }}</sub> | {{ '在家' if state_attr(sn, 'source_state') == 'home' else ('離家' if state_attr(sn, 'source_state') == 'not_home' else state_attr(sn, 'source_state')) }} |\n{% endfor %}\n<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。在下面選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。</sub>"
+        card_mod:
+          style: |
+            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "家人主要裝置選擇"
+        heading_style: title
+        icon: mdi:cellphone-check
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_select.person_main_device_kenny
+            name: "Kenny 的主要裝置"
+          - entity: input_select.person_main_device_iris
+            name: "Iris 的主要裝置"
+          - entity: input_select.person_main_device_jerry
+            name: "Jerry 的主要裝置"
+          - entity: input_select.person_main_device_elay
+            name: "Elay 的主要裝置"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
         heading: "自動化開關（24）"
         heading_style: title
         icon: mdi:robot
@@ -3261,7 +3300,6 @@ views:
           - entity: automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0
             name: "00-2L廣播快取暖機AI (V4.0.0)"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3293,6 +3331,7 @@ views:
           - entity: automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6
             name: "09C電視待機喚醒AI (V4.1.6)"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3324,7 +3363,6 @@ views:
           - entity: automation.ban_ben_kuai_zhao_ji_yi_qing_chu_qi
             name: "版本快照記憶清除器"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3345,6 +3383,7 @@ views:
           - entity: input_number.system_stability_restart_interval_days
             name: "系統穩定自動重啟間隔天數"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3373,7 +3412,6 @@ views:
           - entity: input_text.automation_framework_version_manual
             name: "自動化架構版本（手動）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3636,7 +3674,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "情境（16）"
+        heading: "情境（18）"
         heading_style: title
         card_mod:
           style: |
@@ -3662,6 +3700,8 @@ views:
             name: "Google 到家情境按鈕"
           - entity: input_boolean.google_scene_zao_an_trigger
             name: "Google 早安情境按鈕"
+          - entity: input_boolean.google_scene_wan_an_trigger
+            name: "Google 晚安情境按鈕"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3676,8 +3716,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_boolean.google_scene_wan_an_trigger
-            name: "Google 晚安情境按鈕"
           - entity: input_boolean.hk_scene_home
             name: "HomeKit 到家情境按鈕"
           - entity: input_boolean.hk_scene_goodmorning
@@ -3686,6 +3724,10 @@ views:
             name: "HomeKit 晚安情境按鈕"
           - entity: input_boolean.hk_scene_away
             name: "HomeKit 離家情境按鈕"
+          - entity: input_datetime.auto_scene_earliest_holiday
+            name: "自動情境最早啟動（假日）"
+          - entity: input_datetime.auto_scene_earliest_workday
+            name: "自動情境最早啟動（平日）"
           - entity: input_datetime.aqara_last_away_goodnight_triggered
             name: "離家/晚安情境最後觸發時間"
           - entity: input_text.auto_scene_last

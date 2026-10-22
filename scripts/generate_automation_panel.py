@@ -987,6 +987,27 @@ def disaster_blocks():
             section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]
 
 
+def family_tracking_blocks():
+    """系統維護 > 家人裝置追蹤：每位家人的主要裝置選單，加上 person.* 目前實際參考哪個裝置（00-2S／packages/v41_person_main_device.yaml）。"""
+    md = (
+        "{% set P = [('kenny','Kenny'),('iris','Iris'),('jerry','Jerry'),('elay','Elay')] %}"
+        "| 家人 | person 狀態 | person 目前參考的裝置 | 該裝置狀態 |\n|---|---|---|---|\n"
+        "{% for k, n in P %}{% set sn = 'sensor.person_' ~ k ~ '_source_device' %}"
+        "| **{{ n }}** | {{ '在家' if is_state('person.' ~ k, 'home') else ('離家' if is_state('person.' ~ k, 'not_home') else states('person.' ~ k)) }} "
+        "| {{ states(sn) }}<br><sub>{{ state_attr(sn, 'source_entity') }}</sub> "
+        "| {{ '在家' if state_attr(sn, 'source_state') == 'home' else ('離家' if state_attr(sn, 'source_state') == 'not_home' else state_attr(sn, 'source_state')) }} |\n"
+        "{% endfor %}"
+        "\n<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。在下面選「主要裝置」會改寫 persons.yaml 並重新載入 person；"
+        "為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。</sub>"
+    )
+    rows = [(f"input_select.person_main_device_{k}", f"{n} 的主要裝置") for k, n in
+            (("kenny", "Kenny"), ("iris", "Iris"), ("jerry", "Jerry"), ("elay", "Elay"))]
+    return [
+        section(heading("家人裝置追蹤", "mdi:account-switch-outline") + ["      - type: markdown", "        content: " + q(md)] + MD_CSS),
+        section(heading("家人主要裝置選擇", "mdi:cellphone-check") + entities_card(rows)),
+    ]
+
+
 def manual_button(script, result_entity, name, icon):
     """按鈕：點一下呼叫 script；腳本結束後 15 秒內，按鈕下方顯示「✓ …已送出」或「⚠ 原因」（結果存在 result_entity：訊息|時間戳）。"""
     return ["      - type: custom:button-card", f"        entity: {result_entity}", f"        name: {name}",
@@ -1164,6 +1185,8 @@ def build(data):
             cat = classify(HELPER_RULES, f"{eid} {fn}")
             if re.search(r"^input_(select|number|boolean|text)\.line_bot_(mode|sticky|test_mode|custom_user_enable|custom_user_id)$", eid):
                 continue   # LINE Bot 模式與設定只放在「總覽」，避免重複
+            if re.search(r"^input_select\.person_main_device_|^input_boolean\.person_main_device_busy$", eid):
+                continue   # 家人主要裝置選單放在「系統維護」的家人裝置追蹤區，自己畫（busy 旗標不顯示）
             if INTERNAL_RE.search(eid):
                 internal[cat].append((dom, fn or eid, eid))
             else:
@@ -1202,6 +1225,8 @@ def build(data):
             continue
         n_auto = len(autos[key]); n_set = len(settings[key])
         B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
+        if key == "system":
+            B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
         if autos[key]:
