@@ -265,7 +265,9 @@
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
     {%- endif -%}
   {%- elif it.k == 'note' -%}
-    {%- if it.small and not ns.last_small -%}
+    {%- if it.gap and not it.flat and (ns.out | length > 0) -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- elif it.small and not ns.last_small -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "separator", "color": "#E5E7EB"}]}] -%}
     {%- endif -%}
     {%- set lg = (it.t | regex_findall('綠色\\s*(\\S+?)\\s+黃色\\s*(\\S+?)\\s+紅色\\s*(\\S+)')) if it.flat else [] -%}
@@ -285,7 +287,7 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
-    {%- set sepd = it.sec and (ns.out | length > 0) -%}
+    {%- set sepd = (it.sec or it.gap) and (ns.out | length > 0) -%}
     {%- if sepd -%}
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
     {%- endif -%}
@@ -295,6 +297,9 @@
       {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}] + (mspans(it.val, '#111827') | from_json([]))} -%}
     {%- elif it.lab -%}
       {%- set txt = {"type": "text", "size": "sm", "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": [{"type": "span", "text": it.lab ~ "  ", "color": "#6B7280", "size": "xs"}, {"type": "span", "text": it.val, "weight": "bold", "size": sz, "color": ({"r": "#DC2626", "o": "#D97706", "g": "#16A34A"}[it.vt] if it.vt else ({"r": "#B91C1C", "o": "#B45309"}[it.ttone] if it.ttone in ["r", "o"] else "#111827"))}]} -%}
+    {%- elif '⟦' in it.tb -%}
+      {#- V4.2.0：一般句子（沒有圖示）也支援 ⟦o:重點⟧ 顏色標記，其餘一般色 -#}
+      {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "contents": (mspans(it.tb, '#111827') | from_json([]))} -%}
     {%- elif it.ca -%}
       {#- 句尾「請注意」：注意符號（無圓圈）接在同一段文字最後，換行時跟著文字走 -#}
       {%- set txt = {"type": "text", "size": sz, "wrap": true, "flex": 1, "lineSpacing": "4px", "color": col, "weight": ("bold" if it.icon else "regular"), "contents": [{"type": "span", "text": it.tb}, {"type": "span", "text": "⚠︎", "color": "#F2994A", "weight": "bold"}]} -%}

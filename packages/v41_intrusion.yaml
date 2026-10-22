@@ -62,6 +62,14 @@ input_number:
     mode: box
     initial: 5
     icon: mdi:timer-sand
+  intrusion_grace_sec:
+    name: 入侵偵測｜判定後先寬限幾秒（等家人回來，家人回到家就不發通知）
+    min: 0
+    max: 300
+    step: 5
+    unit_of_measurement: s
+    mode: box
+    initial: 45
   intrusion_countdown_sec:
     name: 入侵偵測｜通知後倒數幾秒才觸發網關警報
     min: 0

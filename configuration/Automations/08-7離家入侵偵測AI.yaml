@@ -1,6 +1,8 @@
 ﻿# ──────────────────────────────────────────────
-# 08-7離家入侵偵測AI (V4.2.0)  ／  08-7D入侵偵測感應器統計AI (V4.2.0)
+# 08-7離家入侵偵測AI (V4.2.2)  ／  08-7D入侵偵測感應器統計AI (V4.2.0)
 # 更新紀錄：
+# - V4.2.2（2026-10-22）：新增寬限 intrusion_grace_sec（預設 45 秒，面板可調 0～300）：2 個訊號成立後先等這段時間再檢查一次，家人已經回到家（手機連上 Wi-Fi 或網關切到在家）就完全不發通知；
+#   2026-10-22 14:29 家人開車回家，車庫攝影機動作先觸發緊急通知、幾秒後才被取消。同一台實體裝置也只算一個訊號（見入侵警報AI）。
 # - V4.2.0（2026-10-18）：移除影子模式（intrusion_watch_shadow 與 shadow 模式），判定成立後直接正式通知、廣播並倒數觸發網關警報；乾跑（test: dry）與 LINE 測試模式保留。
 # - V4.1.6（2026-10-12）：新增。離家入侵偵測。
 #   監控條件：總開關開、四位家人都離家滿 intrusion_arm_nobody_min（預設 10）分鐘、網關離家情境滿 intrusion_arm_away_min（預設 20）分鐘，且網關不在在家模式。
@@ -14,7 +16,7 @@
 #   按鈕觸發加 not_from（unavailable／unknown）：重新載入 helper 時按鈕實體會重新出現，不能被當成按下（2026-10-13 重新載入時誤發過一次測試通知）。
 # ──────────────────────────────────────────────
 - id: ai_08_7_intrusion_watch
-  alias: 08-7離家入侵偵測AI (V4.2.0)
+  alias: 08-7離家入侵偵測AI (V4.2.2)
   description: 離家且沒人在家時，2 個以上不同裝置的訊號 → 緊急通知、廣播，倒數後觸發網關警報。
   mode: parallel
   max: 30
@@ -54,7 +56,7 @@
               data:
                 level: info
                 line: false
-                source: "08-7離家入侵偵測AI (V4.2.0)"
+                source: "08-7離家入侵偵測AI (V4.2.2)"
                 version: "{{ automation_version }}"
                 title: 入侵偵測測試未發送
                 message: |-
@@ -103,6 +105,18 @@
     - alias: "視窗內有 2 個以上不同裝置的訊號"
       if: "{{ rec is mapping and (rec.count | int(0)) >= 2 }}"
       then:
+        # V4.2.2 寬限：2 個訊號成立後先等 intrusion_grace_sec 秒（預設 45），讓家人回家（手機連上 Wi-Fi、網關切到在家）；
+        # 等完再檢查一次監控條件，家人已經回來就不發任何通知。乾跑略過。
+        - alias: "寬限：等家人回來"
+          if: "{{ not dry }}"
+          then:
+            - delay:
+                seconds: "{{ states('input_number.intrusion_grace_sec') | float(45) }}"
+            - condition: template
+              value_template: >-
+                {{ is_state('binary_sensor.at_home_nobody_home', 'on')
+                   and is_state('input_boolean.aqara_li_jia', 'on')
+                   and is_state('input_boolean.aqara_zai_jia', 'off') }}
         - action: script.intrusion_alert
           data:
             names: >-
@@ -111,7 +125,7 @@
               {{ 'dry' if dry else 'real' }}
 
 - id: ai_08_7d_intrusion_stats
-  alias: 08-7D入侵偵測感應器統計AI (V4.2.0)
+  alias: 08-7D入侵偵測感應器統計AI (V4.2.2)
   description: 每週日 03:50（或按統計按鈕）用離家期間的紀錄統計感應器穩定度：不穩的排除、穩定的納入，並更新訊號收集自動化。
   mode: single
   triggers:
@@ -148,7 +162,7 @@
               data:
                 level: info
                 line: false
-                source: "08-7D入侵偵測感應器統計AI (V4.2.0)"
+                source: "08-7D入侵偵測感應器統計AI (V4.2.2)"
                 version: V4.1.6
                 title: 入侵偵測感應器統計
                 message: "{{ out.replace('RELOAD', '') | trim }}"
@@ -161,7 +175,7 @@
           data:
             level: info
             line: false
-            source: "08-7D入侵偵測感應器統計AI (V4.2.0)"
+            source: "08-7D入侵偵測感應器統計AI (V4.2.2)"
             version: V4.1.6
             title: 入侵偵測感應器統計失敗
             message: "{{ out[:200] if out else '沒有輸出' }}"
