@@ -72,8 +72,7 @@
         level_title: >-
           {{ {'emergency': '緊急災害訊息', 'important': '重要災害訊息', 'info': '天氣資訊'}.get(msg_level | trim, '天氣資訊') }}
         voice_text: >-
-          {% from 'notify_body.jinja' import disaster_voice %}{% set v = disaster_voice(current_message) | trim %}
-          {{ ('天氣告知系統收到政府災害訊息。' ~ v) if v else '' }}
+          {% from 'notify_body.jinja' import disaster_voice %}{% set v = disaster_voice(current_message) | trim %}{% if v %}{{ '天氣告知系統收到政府災害訊息。' ~ v }}{% elif (msg_level | trim) == 'emergency' %}{{ '天氣告知系統收到政府緊急警報，請立即查看手機通知並留意周遭環境。' }}{% endif %}
     - choose:
         # ── 即時：依類別發 HA／LINE，重要類與緊急類再廣播 ──
         - conditions:

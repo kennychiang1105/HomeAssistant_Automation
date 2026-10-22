@@ -632,8 +632,10 @@
       {%- set lc = lamps.get(lamp, lamps['黃色']) -%}
       {%- set parsed = parse_alert_region(reg) | from_json -%}
       {%- set b_contents = [
-        {"type": "text", "text": lc.dot ~ " " ~ lamp ~ "燈號" ~ ((" ⏱️ " ~ parsed.time) if parsed.time else ""), "size": "xs", "weight": "bold", "color": lc.col}
-      ] -%}
+        {"type": "text", "text": lc.dot ~ " " ~ lamp ~ "燈號", "size": "xs", "weight": "bold", "color": lc.col}
+      ] + ([
+        {"type": "text", "text": "⏱️ " ~ parsed.time, "size": "xxs", "color": "#6B7280", "wrap": true, "margin": "xs"}
+      ] if parsed.time else []) -%}
       {%- if parsed.targets | length > 0 -%}
         {%- set t_ns = namespace(tag_boxes=[]) -%}
         {%- for t in parsed.targets -%}
