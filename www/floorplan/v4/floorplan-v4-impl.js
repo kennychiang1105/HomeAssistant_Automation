@@ -226,3 +226,19 @@ import("/local/floorplan/v4/floorplan-v4-3d.js?t=" + Date.now()).catch((e) => co
   setInterval(apply, 700);
   apply();
 })();
+
+// V4.2.2: the "自動化管理" tab (/lovelace-smart/automation-link) jumps straight to the automation management panel
+(() => {
+  if (window.__autoPanelJump) return;
+  window.__autoPanelJump = true;
+  const LINK = "/lovelace-smart/automation-link", PANEL = "/lovelace-automation/overview";
+  const jump = () => {
+    if (location.pathname === LINK || location.pathname === LINK + "/") {
+      history.replaceState(null, "", PANEL);
+      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: true } }));
+    }
+  };
+  window.addEventListener("location-changed", jump);
+  window.addEventListener("popstate", jump);
+  jump();
+})();
