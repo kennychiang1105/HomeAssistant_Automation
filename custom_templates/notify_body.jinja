@@ -399,7 +399,13 @@
     {%- set ns.sig = ns.sig + [lamp ~ ':' ~ (p.targets | map(attribute='name') | sort | join('/')) ~ ':' ~ (cond | trim)] -%}
   {%- endif -%}
 {%- endfor -%}
-{%- if ns.sig | length > 0 -%}{{ (ns.sig | sort | join('|'))[:240] }}{%- else -%}{{ (s0 | regex_replace('\\s+', ''))[:240] }}{%- endif -%}
+{%- set fps = namespace(o=[]) -%}
+{%- if ns.sig | length == 0 -%}
+  {%- for gp in (free_parse(s0) | from_json).groups if gp.local | length > 0 -%}
+    {%- set fps.o = fps.o + [gp.hazard ~ ':' ~ (gp.local | sort | join('/'))] -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- if ns.sig | length > 0 -%}{{ (ns.sig | sort | join('|'))[:240] }}{%- elif fps.o | length > 0 -%}{{ (fps.o | sort | join('|'))[:240] }}{%- else -%}{{ (s0 | regex_replace('\\s+', ''))[:240] }}{%- endif -%}
 {%- endmacro %}
 
 {# ──────────────────────────────────────────────────────
@@ -432,6 +438,19 @@
       {{- '氣象署發布：' ~ (b_ns.blocks | join('；')) ~ '。' -}}
     {%- endif -%}
   {%- else -%}
+    {%- set fv = free_parse(s_main) | from_json -%}
+    {%- set lg = namespace(b=[], t='') -%}
+    {%- for gp in fv.groups if gp.local | length > 0 -%}
+      {%- if lg.t == '' and gp.time -%}{%- set lg.t = gp.time -%}{%- endif -%}
+      {%- set lg.b = lg.b + [(gp.local | join('、')) ~ '有' ~ gp.hazard] -%}
+    {%- endfor -%}
+    {%- if lg.b | length > 0 -%}
+      {%- set vo = namespace(t='氣象署發布：' ~ ((fv.lead ~ '，') if fv.lead else '') ~ ((lg.t ~ '，') if lg.t else '') ~ (lg.b | join('；'))) -%}
+      {%- for tp in fv.tips -%}
+        {%- if (vo.t ~ '，' ~ tp) | length <= 130 -%}{%- set vo.t = vo.t ~ '，' ~ tp -%}{%- endif -%}
+      {%- endfor -%}
+      {{- vo.t ~ '。' -}}
+    {%- else -%}
     {%- set s_clean = s_main | replace('\r', '') -%}
     {%- set raw_sents = (s_clean | replace('。', '。\n') | replace('；', '；\n')).split('\n') -%}
     {%- set m_ns = namespace(sents=[]) -%}
@@ -452,6 +471,7 @@
       {%- if o_ns.out != '' -%}
         {{- o_ns.out ~ ('。' if not o_ns.out.endswith(('。', '！', '!')) else '') -}}
       {%- endif -%}
+    {%- endif -%}
     {%- endif -%}
   {%- endif -%}
 {%- endif -%}
