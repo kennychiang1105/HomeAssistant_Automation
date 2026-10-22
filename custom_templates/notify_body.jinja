@@ -265,7 +265,9 @@
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
     {%- endif -%}
   {%- elif it.k == 'note' -%}
-    {%- if it.small and not ns.last_small -%}
+    {%- if it.gap and not it.flat and (ns.out | length > 0) -%}
+      {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
+    {%- elif it.small and not ns.last_small -%}
       {%- set ns.out = ns.out + [{"type": "box", "layout": "vertical", "margin": "md", "paddingStart": "28px", "contents": [{"type": "separator", "color": "#E5E7EB"}]}] -%}
     {%- endif -%}
     {%- set lg = (it.t | regex_findall('綠色\\s*(\\S+?)\\s+黃色\\s*(\\S+?)\\s+紅色\\s*(\\S+)')) if it.flat else [] -%}
@@ -285,7 +287,7 @@
     {%- endif -%}
     {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "paddingStart": "2px", "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
-    {%- set sepd = it.sec and (ns.out | length > 0) -%}
+    {%- set sepd = (it.sec or it.gap) and (ns.out | length > 0) -%}
     {%- if sepd -%}
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
     {%- endif -%}
