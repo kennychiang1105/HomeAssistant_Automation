@@ -388,9 +388,10 @@
   {{- {'time': res_ns.time_prefix, 'targets': res_ns.targets, 'others': res_ns.others} | tojson -}}
 {%- endmacro %}
 
-{# V4.2.3（SOP-21）：依廣播內容判斷音效類別：疏散／海嘯／土石流／國家級警報＝evac；其餘回傳 dflt（03 天氣用 weather，手動廣播用空字串＝依等級預設） #}
+{# V4.2.3（SOP-21）：依廣播內容判斷音效類別：只有「疏散／撤離」警告＝evac（CWBEEW，與地震預警同為最緊急的提示音）；
+   其餘（颱風、豪雨、燈號、海嘯、土石流…一般災害廣播）回傳 dflt（空字串＝依等級用普通提示音） #}
 {% macro broadcast_kind(msg, dflt='') -%}
-{%- if (msg | string) | regex_search('疏散|撤離|海嘯|土石流|堰塞|國家級警報|空襲|飛彈') -%}evac{%- else -%}{{ dflt }}{%- endif -%}
+{%- if (msg | string) | regex_search('疏散|撤離') -%}evac{%- else -%}{{ dflt }}{%- endif -%}
 {%- endmacro %}
 
 {# V4.2.2：HA 狀態上限 255 字元。REST 感測器 sensor.disaster_raw 的內文超過就會被改成 unknown（2026-10-23 颱風訊息太長，一直報錯、訊息進不來）。

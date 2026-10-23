@@ -26,10 +26,11 @@
   mode: single
   variables:
     day_type: "{{ states('sensor.tw_day_type_today') }}"
+    # V4.2.3（SOP-22）：日出改用「天氣調整後」的 sunrise_eff（陰雨天再往後延；讀不到時退回 sunrise）
     # V4.1.5：最早啟動時間改用日出時間（日出＋偏移）；開關關閉或讀不到日出時退回平日／假日固定時間
     use_sunrise: "{{ is_state('input_boolean.auto_scene_earliest_use_sunrise', 'on') }}"
     sunrise_hhmm: >-
-      {% set sr = state_attr('sensor.scene_morning_start', 'sunrise') %}
+      {% set sr = state_attr('sensor.scene_morning_start', 'sunrise_eff') or state_attr('sensor.scene_morning_start', 'sunrise') %}
       {% if sr in [none, '', 'None'] %}{% else %}{{ ((sr | as_datetime | as_local) + timedelta(minutes=(states('input_number.auto_scene_earliest_sunrise_offset_holiday_min' if day_type == 'holiday' else 'input_number.auto_scene_earliest_sunrise_offset_min') | float(30)))).strftime('%H:%M') }}{% endif %}
     earliest: >-
       {% if use_sunrise and sunrise_hhmm | string | length >= 4 %}{{ sunrise_hhmm }}{% else %}{{ states('input_datetime.auto_scene_earliest_holiday') if day_type == 'holiday' else states('input_datetime.auto_scene_earliest_workday') }}{% endif %}

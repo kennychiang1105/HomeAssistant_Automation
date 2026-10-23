@@ -1300,9 +1300,9 @@
     platform: homeassistant
     event: start
   condition:
-  - condition: state
-    entity_id: sun.sun
-    state: below_horizon
+  # V4.2.3（SOP-22）：「天黑」＝太陽仰角低於天氣門檻（晴天＝0 度＝地平線下，與原本等價；陰雨天傍晚提前、早上晚一點停用）
+  - condition: template
+    value_template: "{{ (state_attr('sun.sun', 'elevation') | float(0)) < (states('sensor.weather_dark_deg') | float(0)) }}"
   action:
   # SOP-20：HA 重啟後，路燈／門口燈還亮著就接續「大門關上 5 分鐘後關燈」。
   # 注意：巢狀區塊裡 condition 不成立只會結束該區塊（不會中止整個自動化），所以用 if + stop。
