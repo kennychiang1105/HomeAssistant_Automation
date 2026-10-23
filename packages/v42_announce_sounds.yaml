@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────
+# 廣播音效套件 (V4.2.3)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增（SOP-21）。announce_end_chime_off：打開＝整體不播廣播結束音（預設關＝有結束音，重啟不會被重設）；
+#           announce_demo_kind：script.announce_sound_demo 要試聽的類別（「全部」依序播所有類別）。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  announce_end_chime_off:
+    name: 關閉廣播結束音效
+    icon: mdi:bell-off-outline
+
+input_select:
+  announce_demo_kind:
+    name: 廣播音效試聽類別
+    icon: mdi:music-note
+    options:
+      - 全部
+      - quake
+      - quake_report
+      - evac
+      - emergency
+      - security
+      - weather
+      - visitor
+      - notice_general
+      - notice_important
+      - scene

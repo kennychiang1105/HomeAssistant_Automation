@@ -172,6 +172,7 @@
         data:
           level: emergency
           chime: true
+          kind: quake
           message: "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
       - delay:
           hours: 0
