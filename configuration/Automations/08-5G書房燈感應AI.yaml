@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5G書房燈感應AI (V4.1.5)
+# 08-5G書房燈感應AI (V4.2.2)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增「書房燈關閉AI」重啟接手（ha_start）：HA 重啟 1 分鐘後若書房燈為感應開啟且仍亮著，延遲 3 分鐘後關閉，避免重啟中斷關燈倒數。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.1.3（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac；其餘邏輯不變。
 # - V4.1.2（2026-10-10）：「書房回房間關燈」加兩道防呆（燈剛亮 10 秒內不處理；08-5J 剛判定 enter_study 10 秒內不處理）。7 天紀錄顯示 10-07 起 60 秒內的書房燈亮了又關幾乎都是此規則造成（進書房時房間側 PIR 跟著觸發）。
@@ -83,7 +84,7 @@
       target:
         entity_id: switch.shu_fang_deng
 
-- alias: 08-5G 書房燈關閉AI (V4.1.5)
+- alias: 08-5G 書房燈關閉AI (V4.2.2)
   id: ai_08_5g_study_light_off_v4
   description: 離開書房回臥室立即關；離開書房下樓保留 3 分鐘後關；再次進書房取消
   mode: restart
@@ -109,6 +110,10 @@
       event_type: topfloor_path
       event_data:
         path: enter_study
+    - id: ha_start
+      alias: "[動態重啟] HA 重新啟動接手 (ha_start)"
+      trigger: homeassistant
+      event: start
   conditions:
     - condition: state
       alias: "全域感應防護：未處於暫停模式"
@@ -116,8 +121,19 @@
       state: "off"
   actions:
     - choose:
+        - alias: "分支 0：HA 重新啟動接手，等 1 分鐘實體載入"
+          conditions: "{{ trigger.id == 'ha_start' }}"
+          sequence:
+            - delay: "00:01:00"
+            - if:
+                - condition: template
+                  value_template: >-
+                    {{ not (is_state('switch.shu_fang_deng', 'on') and is_state('input_boolean.topfloor_study_auto', 'on')) }}
+              then:
+                - stop: "書房燈未開啟或非感應開啟，結束重啟接手"
+            - delay: "00:03:00"
         - alias: "分支 1：又進書房，取消延遲關燈"
-          conditions: "{{ trigger.id == 'back' }}"
+          conditions: "{{ trigger.id == 'back' }}" 
           sequence:
             - stop: "又進書房，取消延遲關燈"
         # 回臥室：只關「感應自己開的」書房燈（手動開的不動）

@@ -1081,13 +1081,37 @@
   alias: 800-開關系列-1B客廳主開關下3-晚安離家
   description: ''
   triggers:
-  - trigger: event
+  - id: terncy
+    trigger: event
     event_type: terncy_long_press
     event_data:
       device_id: 2b1b9cbffff070f62f05d5f073a16213
+  - id: ha_start
+    trigger: homeassistant
+    event: start
   conditions: []
   actions:
-  - action: input_text.set_value
+  - choose:
+    - conditions: "{{ trigger.id == 'ha_start' }}"
+      sequence:
+      - delay: "00:01:00"
+      - if:
+        - condition: template
+          value_template: >-
+            {{ (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.aqara_li_jia', 'on'))
+               and is_state('input_boolean.topfloor_stairs_keep_on', 'off')
+               and is_state('switch.ding_lou_lou_ti_deng', 'on') }}
+        then:
+        - action: switch.turn_off
+          target:
+            entity_id: switch.ding_lou_lou_ti_deng
+        - action: logbook.log
+          data:
+            name: 樓梯燈
+            message: "重啟自癒：晚安/離家模式中頂樓樓梯燈仍開著，已自動關閉"
+          continue_on_error: true
+    default:
+    - action: input_text.set_value
     target:
       entity_id: input_text.scene_origin_device
     data:
@@ -1289,21 +1313,36 @@
   description: 日落後到日出前（太陽在地平線下）客廳大門被打開 → 門口燈與路燈開啟（原本就開著也一樣計時）。 5 分鐘後檢查大門：已關上就關燈；還開著就再倒數
     5 分鐘，直到大門關上才關燈。5 分鐘內再次開門會重新計時（restart）。 大門狀態用 binary_sensor.0x54ef4410007ac23c_door_state（on＝開、off＝關；沒有回報時視為已關上，避免燈一直不關）。
   trigger:
-  - platform: state
+  - id: door_open
+    platform: state
     entity_id:
     - sensor.0x54ef4410007ac23c_lock_event
     to: Door is open
+  - id: ha_start
+    platform: homeassistant
+    event: start
   condition:
-  - condition: state
-    entity_id: sun.sun
-    state: below_horizon
+  - condition: or
+    conditions:
+    - condition: template
+      value_template: "{{ trigger.id == 'ha_start' }}"
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
   action:
-  - service: switch.turn_on
-    data: {}
-    target:
-      entity_id:
-      - switch.lu_deng
-      - switch.men_kou_deng
+  - choose:
+    - conditions: "{{ trigger.id == 'ha_start' }}"
+      sequence:
+      - delay: "00:01:00"
+      - condition: template
+        value_template: "{{ is_state('switch.lu_deng', 'on') or is_state('switch.men_kou_deng', 'on') }}"
+    default:
+    - service: switch.turn_on
+      data: {}
+      target:
+        entity_id:
+        - switch.lu_deng
+        - switch.men_kou_deng
   - repeat:
       sequence:
       - delay:
