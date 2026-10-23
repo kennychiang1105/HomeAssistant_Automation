@@ -21,6 +21,8 @@ announce_sound_demo:
     pick: "{{ kind if (kind is defined and kind) else states('input_select.announce_demo_kind') }}"
     todo: "{{ order if pick not in order else [pick] }}"
   sequence:
+    # 連續重播時，上一輪剛還原的音量屬性要幾秒才更新；先等 5 秒再讀「原音量」，避免把試聽音量 0.3 當成原音量
+    - delay: "00:00:05"
     - variables:
         v0: "{{ state_attr(spk, 'volume_level') | float(-1) }}"
     - action: media_player.volume_set

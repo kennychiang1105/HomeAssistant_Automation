@@ -11,8 +11,8 @@
   * 一般類（一般／重要／情境／訪客／天氣／保全）＝「廣播前音樂」：機場、車站、百貨公司廣播前的短旋律＋和弦，
     鐘琴／顫音琴音色加大廳迴響，有氣勢、辨識度高；每一類旋律不同。
   * 緊急模式＝銅管重擊和弦（鏗、鏗、鏗～）。
-  * 地震＝仿日本「緊急地震速報」那種成對的刺耳雙音（三全音）快速嗶聲；
-    疏散＝防空警報式上下起伏的警笛（wail）。這兩類是外地警報常用的聲音，一聽就知道是災害。
+  * 地震預警、疏散警報＝氣象署標準音 CWBEEW.mp3（使用者指定，開始音不在本腳本產生），結束音 cwb_end 由 CWBEEW 衍生；
+    地震報告＝仿日本「緊急地震速報」的成對雙音（三全音）嗶聲短版，結束音 quake_end。
   * 結束音＝同一組旋律「反向下行、較短、較輕」，最後落在低音和弦（有收尾感）；警報類的結束音是警笛／嗶聲漸弱。
   * 想調整音色或音符：只改下面的 SPECS 表格，再重跑本腳本；其他程式不用動（announce 的長度對照表可用 --json 取得）。
 輸出：/media/<name>.mp3（44.1 kHz、立體聲）
@@ -86,18 +86,17 @@ SPECS = {
         ev(0.64, 0.22, [N["A4"], N["E5"], N["A5"]], 1.0), ev(1.00, 1.00, [N["A4"], N["E5"], N["A5"], N["E6"]], 1.0)]),
     "emergency_end": dict(timbre="brass", lufs=-15.5, tail=0.40, echo="aecho=0.8:0.78:45|95|160:0.3|0.18|0.1", events=[
         ev(0.00, 0.22, [N["D4"], N["A4"]], 0.9), ev(0.30, 0.70, [N["A3"], N["E4"]], 0.8)]),
-    # ═════ 地震：仿日本緊急地震速報的成對刺耳雙音（三全音）嗶聲 ═════
-    "quake_start": dict(timbre="chirp", lufs=-12.5, tail=0.30, echo="aecho=0.8:0.7:35|80:0.25|0.12", events=
-        [ev(0.72 * g + 0.20 * p, 0.13, [1046.5, 1480.0], 0.95) for g in range(3) for p in range(2)]),
+    # ═════ 地震預警、疏散警報：開始音沿用氣象署標準音 CWBEEW.mp3（使用者指定），結束音由它自己的聲音衍生 ═════
+    # cwb_end：取 CWBEEW 的蜂鳴音，先一段漸弱、再一段降低音高的短蜂鳴，同樣的音色，聽起來是「同一個警報在收尾」
+    "cwb_end": dict(derive=True, src="/media/CWBEEW.mp3", lufs=-24.0, tail=0.0, echo="aecho=0.8:0.7:40|90:0.2|0.1",
+                    graph="[0:a]atrim=0.12:0.72,asetpts=PTS-STARTPTS,aresample=44100,afade=t=out:st=0.42:d=0.18[a];"
+                          "[0:a]atrim=0.12:0.46,asetpts=PTS-STARTPTS,asetrate=11200,aresample=44100,afade=t=out:st=0.25:d=0.2,volume=0.7[b];"
+                          "[a]apad=pad_dur=0.14[a2];[a2][b]concat=n=2:v=0:a=1[o]"),
+    # ═════ 地震報告：仿日本緊急地震速報的成對雙音（三全音）嗶聲 ═════
     "quake_report_start": dict(timbre="chirp", lufs=-13.0, tail=0.30, echo="aecho=0.8:0.7:35|80:0.25|0.12", events=
         [ev(0.72 * g + 0.20 * p, 0.13, [1046.5, 1480.0], 0.9) for g in range(2) for p in range(2)]),
     "quake_end": dict(timbre="chirp", lufs=-16.5, tail=0.45, echo="aecho=0.8:0.78:45|95|160:0.3|0.18|0.1", events=[
         ev(0.00, 0.14, [1244.5, 880.0], 0.8), ev(0.22, 0.14, [1046.5, 740.0], 0.7), ev(0.50, 0.30, [880.0, 622.0], 0.55)]),
-    # ═════ 疏散：防空警報式警笛（wail），上下起伏 ═════
-    "evac_start": dict(timbre="siren", lufs=-12.5, tail=0.25, echo="aecho=0.8:0.75:60|130:0.3|0.16", events=[
-        ev(0.00, 0.90, 450.0, 1.0, glide=950.0), ev(0.90, 0.90, 950.0, 1.0, glide=450.0), ev(1.80, 0.90, 450.0, 1.0, glide=950.0)]),
-    "evac_end": dict(timbre="siren", lufs=-15.5, tail=0.30, echo="aecho=0.8:0.75:60|130:0.3|0.16", events=[
-        ev(0.00, 1.40, 800.0, 0.8, glide=300.0)]),
 }
 
 
@@ -155,7 +154,11 @@ def measure(path):
 def encode(name, spec):
     tmp = tempfile.mkdtemp(prefix="chime_")
     raw = os.path.join(tmp, name + ".wav")
-    write_wav(raw, synth(spec))
+    if spec.get("derive"):  # 由現有音檔衍生（例如 CWBEEW 的結束音）
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", spec["src"], "-filter_complex", spec["graph"],
+                        "-map", "[o]", "-ar", str(SR), "-ac", "1", raw], check=True, timeout=60)
+    else:
+        write_wav(raw, synth(spec))
     lufs, _ = measure(raw)
     gain = spec["lufs"] - lufs - 1.0
     out = os.path.join(OUT_DIR, name + ".mp3")

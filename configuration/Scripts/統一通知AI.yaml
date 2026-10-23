@@ -257,9 +257,9 @@ announce:
     kinds: >-
       {{ {'notice_general': {'start':'notice_general_start.mp3', 's':2.82, 'end':'notice_general_end.mp3', 'e':2.22},
           'notice_important': {'start':'notice_important_start.mp3', 's':2.89, 'end':'notice_important_end.mp3', 'e':2.31},
-          'quake': {'start':'quake_start.mp3', 's':2.16, 'end':'quake_end.mp3', 'e':1.42},
+          'quake':            {'start':'CWBEEW.mp3', 's':3.27, 'end':'cwb_end.mp3', 'e':1.32},
           'quake_report': {'start':'quake_report_start.mp3', 's':1.44, 'end':'quake_end.mp3', 'e':1.42},
-          'evac': {'start':'evac_start.mp3', 's':3.09, 'end':'evac_end.mp3', 'e':1.84},
+          'evac':             {'start':'CWBEEW.mp3', 's':3.27, 'end':'cwb_end.mp3', 'e':1.32},
           'emergency': {'start':'emergency_start.mp3', 's':2.62, 'end':'emergency_end.mp3', 'e':1.57},
           'security': {'start':'security_start.mp3', 's':2.77, 'end':'security_end.mp3', 'e':2.10},
           'weather': {'start':'weather_start.mp3', 's':2.97, 'end':'weather_end.mp3', 'e':2.29},

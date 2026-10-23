@@ -67,9 +67,9 @@ def build_list():
         for n in range(3, 61):
             items.append(("none", f"地震預警！預估{lv}級，{n}秒後到達！"))
     items.append(("none", "地震！地震！立即就地趴下，掩護，穩住！"))
-    items.append((f"{CHIME_DIR}/quake_start.mp3", "發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/quake_end.mp3"))
+    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/cwb_end.mp3"))
     # 第一句播完立即接的第二句（eq99；提示音 CWBEEW.mp3）
-    items.append((f"{CHIME_DIR}/quake_start.mp3", "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/quake_end.mp3"))
+    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/cwb_end.mp3"))
     items.append((f"{CHIME_DIR}/visitor_start.mp3", "大門有人按門鈴！請注意門外來訪客人。", f"{CHIME_DIR}/visitor_end.mp3"))
     items.append((f"{CHIME_DIR}/notice_important_start.mp3", "有人即將到家，車庫鐵門正在打開。有人即將到家，車庫鐵門正在打開。", f"{CHIME_DIR}/notice_important_end.mp3"))
     items.append((f"{CHIME_DIR}/notice_important_start.mp3", "保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！", f"{CHIME_DIR}/notice_important_end.mp3"))
