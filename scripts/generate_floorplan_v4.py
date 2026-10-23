@@ -456,7 +456,7 @@ def scene_floors():
                        "furniture": manual.get("furniture", []), "garage_door": manual.get("garage_door"),
                        "curtains": bool(manual.get("curtains")), "zones": manual.get("zones", []),
                        "scenes": manual.get("scenes", []), "doors": manual.get("doors", []),
-                       "floor_color": manual.get("floor_color"), "wall_color": manual.get("wall_color"),
+                       "floor_color": manual.get("floor_color"), "floor_tile": manual.get("floor_tile"), "wall_color": manual.get("wall_color"),
                        "window_frame": manual.get("window_frame"), "window_grille": manual.get("window_grille", []),
                        "wall_colors": manual.get("wall_colors", []), "stair_style": manual.get("stair_style"),
                        "curtain_colors": manual.get("curtain_colors", [])}
