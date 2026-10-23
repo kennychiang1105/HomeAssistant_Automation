@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta8) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta9) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -379,7 +379,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta8</div>
+        <div class="ver">UI4.0-beta9</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -734,6 +734,11 @@ class FloorplanV43D extends HTMLElement {
     const slab = new THREE.Mesh(new THREE.ExtrudeGeometry(slabShape, { depth: 4, bevelEnabled: false }), lam(fl.floor_color ? parseInt(String(fl.floor_color).replace("#", ""), 16) : 0x353b48));
     slab.position.z = -4;
     plan.add(slab);
+    if (fl.floor_tile) {                                     // V4.2.3: grout lines of square floor tiles (1F garage photo)
+      const grout = M(0xb9b6ae), t = fl.floor_tile;
+      for (let gx = t; gx < fl.width; gx += t) box(gx - 0.25, 0, 0.5, fl.height, 0, 0.12, grout, inner, false);
+      for (let gy = t; gy < fl.height; gy += t) box(0, gy - 0.25, fl.width, 0.5, 0, 0.12, grout, inner, false);
+    }
 
     // plan geometry: walls from black fills; anything inside a modelled item / stair is replaced by the model
     const inRect = (b, r, pad = 3) => b.x0 >= r.x - pad && b.x1 <= r.x + r.w + pad && b.y0 >= r.y - pad && b.y1 <= r.y + r.h + pad;
@@ -818,7 +823,8 @@ class FloorplanV43D extends HTMLElement {
     }
     this._winSpans = spans;
     // keep furniture out of the glass (and the curtain behind it) so no window is blocked, inside or out
-    const WALLMOUNT = new Set(["floor_patch", "rug", "deck", "curtain_line", "computer", "printer", "lamp", "whiteboard", "ac_unit", "wall_shelf", "mirror", "tv_wall"]);
+    const WALLMOUNT = new Set(["floor_patch", "rug", "deck", "curtain_line", "computer", "printer", "lamp", "whiteboard", "ac_unit", "wall_shelf", "mirror", "tv_wall",
+      "noren", "picture", "pendant"]);
     const clearOf = (f) => {
       if (WALLMOUNT.has(f.type) || f.x == null || f.w * f.h > 40000) return f;
       let { x, y } = f; const { w, h } = f;
@@ -892,6 +898,12 @@ class FloorplanV43D extends HTMLElement {
           add(new THREE.CylinderGeometry(0.12, 0.12, len, 4), metal, ox, 34 - len / 2, 0);
           add(new THREE.CylinderGeometry(2.6, 2.6, 7, 16, 1, true), M(0xb8bcc2), ox, 34 - len - 3.5, 0);
           add(new THREE.CylinderGeometry(2.2, 2.2, 6, 12), glow, ox, 34 - len - 3.5, 0);
+        }
+      } else if (/車庫主燈/.test(n)) {                            // 1F photo: two flat rectangular LED panels on the ceiling
+        for (const ox of [-55, 55]) {
+          add(new THREE.BoxGeometry(46, 1.2, 24), M(0xdfe2e6), ox, 33.4, 0);
+          add(new THREE.BoxGeometry(42, 0.4, 20), glow, ox, 32.7, 0);
+          add(new THREE.BoxGeometry(40, 0.3, 18), glow, ox, 34.1, 0);                     // lit face also visible from the top-down camera
         }
       } else if (/燈組|頂樓燈|主燈/.test(n)) {
         add(new THREE.CylinderGeometry(0.4, 0.4, 6, 6), metal, 0, 31, 0);
@@ -1110,14 +1122,15 @@ class FloorplanV43D extends HTMLElement {
     const cover = fl.devices.find((d) => d.kind === "cover");
     if (gd && cover) {
       const along = gd.h >= gd.w;
-      const door = new THREE.Mesh(new THREE.BoxGeometry(along ? 5 : gd.w, 34, along ? gd.h : 5), lam(0xb6bfcc));
+      const door = new THREE.Mesh(new THREE.BoxGeometry(along ? 5 : gd.w, 34, along ? gd.h : 5), lam(gd.color ? parseInt(String(gd.color).replace("#", ""), 16) : 0xb6bfcc));
       door.geometry.translate(0, -17, 0);
       door.position.set(gd.x + gd.w / 2, 34, gd.y + gd.h / 2);
       inner.add(door);
       edges(door);
-      for (let i = 1; i < 8; i++) {                         // slats
-        const s = box(gd.x + gd.w / 2 - 3, gd.y, 6, gd.h, 0, 0.5, M(0x8c96a4), door, false);
-        s.position.set(0, -i * 4.2, 0);
+      const nSlat = gd.slats || 8;
+      for (let i = 1; i < nSlat; i++) {                     // slats
+        const s = box(gd.x + gd.w / 2 - 3, gd.y, 6, gd.h, 0, 0.5, M(gd.color ? 0xc4c9d0 : 0x8c96a4), door, false);
+        s.position.set(0, -i * (34 / nSlat), 0);
       }
       box(gd.x + gd.w / 2 - 6, gd.y, 12, gd.h, 32, 5, M(0x5d6572));    // roller housing
       doors[cover.entity] = door;
@@ -1311,6 +1324,16 @@ class FloorplanV43D extends HTMLElement {
     const z = onDesk ? 19 : 0;
     const wood = M(0xa47b52), woodDark = M(0x6e4f33), white = M(0xf3f5f8), fabric = M(0x8d97a8);
     const side = (dir) => ({ N: [x, y, w, 0], S: [x, y + h, w, 0], W: [x, y, 0, h], E: [x + w, y, 0, h] }[dir]);
+    const hex = (c, d) => parseInt(String(c || d).replace("#", ""), 16);
+    const P = (a, b, c) => new THREE.Vector3(a, b, c);
+    const rod = (parent, a, b, r, mat) => {                                   // thin tube between two points (bike frames, ladders)
+      const v = new THREE.Vector3().subVectors(b, a);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, Math.max(v.length(), 0.1), 6), mat);
+      m.position.copy(a).addScaledVector(v, 0.5);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize());
+      parent.add(m);
+      return m;
+    };
     const legs = (top, t = 3) => {
       for (const [lx, ly] of [[x, y], [x + w - t, y], [x, y + h - t], [x + w - t, y + h - t]]) box(lx, ly, t, t, z, top, woodDark, inner, false);
     };
@@ -1767,6 +1790,174 @@ class FloorplanV43D extends HTMLElement {
         break;
       }
       case "mirror": box(x, y, w, h, 18, 12, new THREE.MeshStandardMaterial({ color: 0xcfe3ec, roughness: 0.05, metalness: 0.9 })); break;
+      // V4.2.3 photo details: plan units are ~49/m across but ~13/m in height, so round parts are squashed vertically
+      case "bike": {                          // 1F garage photo: bicycles parked along the wall
+        const alongX = w >= h, L = alongX ? w : h;
+        const g = new THREE.Group();
+        g.position.set(x + w / 2, 0, y + h / 2);
+        g.rotation.y = alongX ? 0 : -Math.PI / 2;
+        inner.add(g);
+        const frame = M(hex(f.color, "#2f6fb0")), dark = M(0x1b1d22), alu = M(0xb8bec6);
+        const R = L * 0.19, V = 5.2;
+        for (const s of [-1, 1]) {
+          const t = new THREE.Mesh(new THREE.TorusGeometry(1, 0.09, 6, 28), dark);
+          t.scale.set(R, V, 1); t.position.set(s * L * 0.31, V + 0.4, 0); g.add(t);
+          rod(g, P(s * L * 0.31, 0.4, -0.8), P(s * L * 0.31, 0.4 + 2 * V, -0.8), 0.15, alu);
+        }
+        const rear = P(-L * 0.31, V + 0.4, 0), front = P(L * 0.31, V + 0.4, 0), bb = P(-L * 0.04, 4, 0);
+        const seat = P(-L * 0.13, 10.5, 0), head = P(L * 0.2, 11.5, 0);
+        for (const [a, b] of [[rear, bb], [rear, seat], [seat, bb], [bb, head], [seat, head], [head, front]]) rod(g, a, b, 0.55, frame);
+        rod(g, seat, P(-L * 0.15, 12.8, 0), 0.4, alu);
+        const saddle = new THREE.Mesh(new THREE.BoxGeometry(L * 0.1, 1, 3), dark); saddle.position.set(-L * 0.16, 13.2, 0); g.add(saddle);
+        rod(g, head, P(L * 0.18, 13.6, 0), 0.4, alu);
+        rod(g, P(L * 0.18, 13.6, -6), P(L * 0.18, 13.6, 6), 0.45, dark);              // handlebar across
+        break;
+      }
+      case "shoe_rack": {                     // 1F photo: chrome wire shoe rack with shoes on every level
+        const chrome = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.3, metalness: 0.8 });
+        const H = f.height || 16, lv = 4;
+        for (const [px, py] of [[x, y], [x + w - 0.8, y], [x, y + h - 0.8], [x + w - 0.8, y + h - 0.8]]) box(px, py, 0.8, 0.8, 0, H, chrome, inner, false);
+        const along = w >= h, n = Math.max(2, Math.round((along ? w : h) / 9));
+        const shoe = [0x2b2f36, 0xd9d4ca, 0x8a5530, 0x3d5a80, 0xb33a3a, 0x6b6f76];
+        for (let k = 0; k < lv; k++) {
+          const z0 = 1 + k * (H / lv);
+          for (const t of [0.15, 0.5, 0.85]) box(along ? x : x + w * t - 0.25, along ? y + h * t - 0.25 : y, along ? w : 0.5, along ? 0.5 : h, z0, 0.3, chrome, inner, false);
+          for (let i = 0; i < n; i++) {
+            if ((i * 7 + k * 3) % 5 === 4) continue;                            // a few gaps, like the photo
+            const s = (along ? w : h) / n;
+            box(along ? x + i * s + 0.8 : x + 1, along ? y + 1 : y + i * s + 0.8, along ? s - 1.6 : w - 2, along ? h - 2 : s - 1.6, z0 + 0.3, 2.2, M(shoe[(i + k * 2) % shoe.length]), inner, false);
+          }
+        }
+        break;
+      }
+      case "boxes": {                         // stacked cartons (on top of the 1F wardrobe, on a stool, ...)
+        const z0 = f.z ?? z, cols = [0xb08a5a, 0xc49a66, 0x9c7748, 0xd8c3a0];
+        const along = w >= h, n = Math.max(1, Math.round((along ? w : h) / 22)), s = (along ? w : h) / n;
+        for (let i = 0; i < n; i++) {
+          const bh = 5 + ((i * 5) % 3) * 1.6, bx = along ? x + i * s + 0.4 : x + 0.6, by = along ? y + 0.6 : y + i * s + 0.4;
+          box(bx, by, along ? s - 0.8 : w - 1.2, along ? h - 1.2 : s - 0.8, z0, bh, M(cols[i % cols.length]));
+          if (i % 2 === 0) box(bx + 1, by + 1, along ? s * 0.6 : w * 0.6, along ? h * 0.6 : s * 0.6, z0 + bh, 3.5, M(cols[(i + 2) % cols.length]));
+          box(along ? bx + s / 2 - 0.6 : bx, along ? by : by + s / 2 - 0.6, along ? 1.2 : w - 1.2, along ? h - 1.2 : 1.2, z0 + bh, 0.1, M(0x8f7a55), inner, false);   // tape
+        }
+        break;
+      }
+      case "bucket": {                        // plastic bucket / bin (1F: blue + green buckets, orange tap bucket, red bin)
+        const r = Math.min(w, h) / 2, H = f.height || 7;
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.8, H, 20, 1, true), M(hex(f.color, "#2f7fd0")));
+        m.position.set(x + w / 2, z + H / 2, y + h / 2); inner.add(m);
+        cyl(x + w / 2, y + h / 2, r * 0.8, r * 0.8, z, 0.4, M(hex(f.color, "#2f7fd0")));
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.35, 5, 20), M(hex(f.color, "#2f7fd0")));
+        rim.rotation.x = Math.PI / 2; rim.position.set(x + w / 2, z + H, y + h / 2); inner.add(rim);
+        if (f.lid) cyl(x + w / 2, y + h / 2, r + 0.4, r + 0.4, z + H, 1, M(hex(f.lid, "#333")));
+        break;
+      }
+      case "drying_rack": {                   // back patio photo: steel clothes-drying rack with laundry hanging
+        const chrome = M(0xc4c9cf), along = w >= h, L = along ? w : h;
+        for (const e of [0, 1]) {
+          const ex = along ? x + e * (w - 1) : x, ey = along ? y : y + e * (h - 1);
+          box(ex, ey, along ? 1 : w, along ? h : 1, 0, 0.8, chrome, inner, false);
+          box(along ? ex : x + w / 2 - 0.5, along ? y + h / 2 - 0.5 : ey, 1, 1, 0, 22, chrome, inner, false);
+        }
+        for (const t of [0.2, 0.5, 0.8]) box(along ? x : x + w * t - 0.3, along ? y + h * t - 0.3 : y, along ? w : 0.6, along ? 0.6 : h, 21, 0.6, chrome, inner, false);
+        const cloth = [0xf2f2ef, 0x6f8fc4, 0xd88b8b, 0x9bbf8a, 0xe8d38a, 0x3a3f4a];
+        const n = Math.max(3, Math.round(L / 9));
+        for (let i = 0; i < n; i++) {
+          const t = (i + 0.5) / n, len = 7 + (i % 3) * 2.5, bar = [0.2, 0.5, 0.8][i % 3];
+          box(along ? x + w * t - 2.5 : x + w * bar - 0.3, along ? y + h * bar - 0.3 : y + h * t - 2.5, along ? 5 : 0.6, along ? 0.6 : 5, 21 - len, len, M(cloth[i % cloth.length]), inner, false);
+        }
+        break;
+      }
+      case "ladder": {                        // aluminium A-frame step ladder
+        const alu = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.35, metalness: 0.7 });
+        const alongX = w >= h, L = alongX ? w : h, W = alongX ? h : w;
+        const g = new THREE.Group(); g.position.set(x + w / 2, 0, y + h / 2); g.rotation.y = alongX ? 0 : -Math.PI / 2; inner.add(g);
+        const top = 24;
+        for (const s of [-1, 1]) for (const k of [-1, 1]) rod(g, P(s * L / 2, 0, k * W / 2 * 0.8), P(0, top, k * W / 2 * 0.6), 0.5, alu);
+        for (let i = 1; i < 5; i++) { const hz = (top * i) / 5, dx = (L / 2) * (1 - i / 5); rod(g, P(dx, hz, -W * 0.38), P(dx, hz, W * 0.38), 0.4, alu); }
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(4, 1, W * 0.7), M(0x3a3f47)); cap.position.set(0, top + 0.5, 0); g.add(cap);
+        break;
+      }
+      case "stool": {                         // plastic stool (1F back door: stacked with boxes)
+        const c = M(hex(f.color, "#d64541")), r = Math.min(w, h) / 2;
+        cyl(x + w / 2, y + h / 2, r, r, 10, 1.2, c);
+        for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4; box(x + w / 2 + Math.cos(a) * r * 0.7 - 0.6, y + h / 2 + Math.sin(a) * r * 0.7 - 0.6, 1.2, 1.2, 0, 10, c, inner, false); }
+        break;
+      }
+      case "noren": {                         // 1F photo: split Japanese door curtain (blue, lucky-cat print) over the bathroom doorway
+        const along = w >= h, L = along ? w : h;
+        const cloth = new THREE.MeshLambertMaterial({ color: hex(f.color, "#2f5f9e"), side: THREE.DoubleSide });
+        for (const k of [0, 1]) {
+          const a = k * (L / 2 + 0.4);
+          box(along ? x + a : x, along ? y : y + a, along ? L / 2 - 0.4 : w, along ? h : L / 2 - 0.4, 17, 15, cloth, inner, false);
+          const dot = new THREE.Mesh(new THREE.CircleGeometry(2.6, 18), M(0xf4f1e8));      // white motif on both faces
+          for (const sd of [-1, 1]) {
+            const d2 = dot.clone();
+            d2.position.set(along ? x + a + L / 4 : x + w / 2 + sd * (w / 2 + 0.05), 25, along ? y + h / 2 + sd * (h / 2 + 0.05) : y + a + L / 4);
+            d2.rotation.y = along ? (sd > 0 ? 0 : Math.PI) : (sd > 0 ? Math.PI / 2 : -Math.PI / 2);
+            inner.add(d2);
+          }
+        }
+        box(along ? x - 1 : x + w / 2 - 0.4, along ? y + h / 2 - 0.4 : y - 1, along ? L + 2 : 0.8, along ? 0.8 : L + 2, 32, 0.8, M(0x6b4f35), inner, false);   // rod
+        break;
+      }
+      case "fan": {                           // white standing fan (2F / 5F photos)
+        const wt = M(0xf4f4f2), cx = x + w / 2, cy = y + h / 2;
+        cyl(cx, cy, w / 2, h / 2, 0, 1, wt);
+        cyl(cx, cy, 0.8, 0.8, 1, 15, wt);
+        const face = f.face || "S", yaw = { S: 0, N: Math.PI, E: Math.PI / 2, W: -Math.PI / 2 }[face];
+        const g = new THREE.Group(); g.position.set(cx, 19, cy); g.rotation.y = yaw; inner.add(g);
+        const cage = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 6, 28), wt); cage.scale.set(Math.max(w, h) * 0.55, 4.5, 1); g.add(cage);
+        const grill = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshLambertMaterial({ color: 0xdfe3e8, transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
+        grill.scale.set(Math.max(w, h) * 0.55, 4.5, 1); g.add(grill);
+        const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 4, 12), wt); motor.rotation.x = Math.PI / 2; motor.position.z = -2.4; g.add(motor);
+        break;
+      }
+      case "heater": {                        // 2F photo: round kerosene heater, dark body with a glowing grille
+        const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
+        cyl(cx, cy, r, r, 0, 2, M(0x2b2f36));
+        cyl(cx, cy, r * 0.85, r * 0.85, 2, 8, new THREE.MeshBasicMaterial({ color: 0xff8a3d, transparent: true, opacity: 0.75 }));
+        cyl(cx, cy, r * 0.9, r * 0.9, 10, 1.5, M(0x3a3f47));
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(r * 0.6, 0.25, 5, 16, Math.PI), M(0x9aa0a8)); handle.position.set(cx, 11.5, cy); inner.add(handle);
+        break;
+      }
+      case "spin_bike": {                     // 2F photo: black exercise spin bike with a red flywheel
+        const alongX = w >= h, L = alongX ? w : h;
+        const g = new THREE.Group(); g.position.set(x + w / 2, 0, y + h / 2); g.rotation.y = alongX ? 0 : -Math.PI / 2; inner.add(g);
+        const blk = M(0x1e1f22), red = M(0xb3262e);
+        for (const s of [-1, 1]) { const ft = new THREE.Mesh(new THREE.BoxGeometry(2, 1, Math.max(w, h) * 0.35), blk); ft.position.set(s * L * 0.38, 0.5, 0); g.add(ft); }
+        rod(g, P(-L * 0.38, 1, 0), P(L * 0.38, 1, 0), 0.7, blk);
+        const fw = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2.2, 24), red); fw.rotation.x = Math.PI / 2; fw.scale.set(L * 0.17, 1, 4.2); fw.position.set(L * 0.25, 5.5, 0); g.add(fw);
+        rod(g, P(-L * 0.15, 1, 0), P(-L * 0.12, 12, 0), 0.8, blk);
+        rod(g, P(L * 0.1, 1, 0), P(L * 0.22, 14, 0), 0.8, blk);
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(L * 0.14, 1.2, 4), blk); seat.position.set(-L * 0.13, 12.8, 0); g.add(seat);
+        rod(g, P(L * 0.22, 14, -4), P(L * 0.22, 14, 4), 0.5, blk);
+        rod(g, P(L * 0.22, 14, 0), P(L * 0.32, 15, 0), 0.5, blk);
+        break;
+      }
+      case "pendant": {                       // 5F photo (circled): striped cylinder pendants hanging near the AC corner
+        const n = f.n || 2, metal = M(0x9aa3b0), glowM = new THREE.MeshBasicMaterial({ color: 0xffe9c2 });
+        const stripeA = M(hex(f.color, "#d9d4ca")), stripeB = M(0x3a3f47);
+        for (let i = 0; i < n; i++) {
+          const t = (i + 0.5) / n, cx = w >= h ? x + w * t : x + w / 2, cy = w >= h ? y + h / 2 : y + h * t;
+          const drop = 6 + (i % 2) * 4, r = Math.min(w / (w >= h ? n : 1), h / (w >= h ? 1 : n)) * 0.38;
+          cyl(cx, cy, 0.12, 0.12, 34 - drop, drop, metal);
+          const top = 34 - drop;
+          for (let k = 0; k < 5; k++) cyl(cx, cy, r, r, top - (k + 1) * 1.4, 1.4, k % 2 ? stripeB : stripeA);
+          cyl(cx, cy, r * 0.85, r * 0.85, top - 7.3, 0.3, glowM);
+        }
+        break;
+      }
+      case "picture": {                       // framed picture / painting on a wall (face = side it looks into)
+        const face = f.face || facing(x, y, w, h), vert = face === "E" || face === "W";
+        const z0 = f.z ?? 16, H = f.height || 10;
+        box(x, y, w, h, z0, H, M(hex(f.frame, "#3b2a1c")), inner, false);
+        const art = new THREE.Mesh(new THREE.PlaneGeometry((vert ? h : w) - 2, H - 2), M(hex(f.color, "#7d9cb0")));
+        art.position.set(x + w / 2 + (face === "E" ? w / 2 + 0.05 : face === "W" ? -w / 2 - 0.05 : 0), z0 + H / 2,
+          y + h / 2 + (face === "S" ? h / 2 + 0.05 : face === "N" ? -h / 2 - 0.05 : 0));
+        art.rotation.y = { S: 0, N: Math.PI, E: Math.PI / 2, W: -Math.PI / 2 }[face];
+        inner.add(art);
+        break;
+      }
       default: box(x, y, w, h, 0, 10, M(0x8a93a3));
     }
   }
