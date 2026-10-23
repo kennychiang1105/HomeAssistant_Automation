@@ -1091,27 +1091,28 @@
     event: start
   conditions: []
   actions:
-  - choose:
-    - conditions: "{{ trigger.id == 'ha_start' }}"
-      sequence:
-      - delay: "00:01:00"
-      - if:
-        - condition: template
-          value_template: >-
-            {{ (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.aqara_li_jia', 'on'))
-               and is_state('input_boolean.topfloor_stairs_keep_on', 'off')
-               and is_state('switch.ding_lou_lou_ti_deng', 'on') }}
-        then:
-        - action: switch.turn_off
-          target:
-            entity_id: switch.ding_lou_lou_ti_deng
-        - action: logbook.log
-          data:
-            name: 樓梯燈
-            message: "重啟自癒：晚安/離家模式中頂樓樓梯燈仍開著，已自動關閉"
-          continue_on_error: true
-    default:
-    - action: input_text.set_value
+  - if:
+    - condition: template
+      value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+    then:
+    - delay: "00:01:00"
+    - if:
+      - condition: template
+        value_template: >-
+          {{ (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.aqara_li_jia', 'on'))
+             and is_state('input_boolean.topfloor_stairs_keep_on', 'off')
+             and is_state('switch.ding_lou_lou_ti_deng', 'on') }}
+      then:
+      - action: switch.turn_off
+        target:
+          entity_id: switch.ding_lou_lou_ti_deng
+      - action: logbook.log
+        data:
+          name: 樓梯燈
+          message: "重啟自癒：晚安/離家模式中頂樓樓梯燈仍開著，已自動關閉"
+        continue_on_error: true
+    - stop: "HA 重啟接手完成，不執行按鈕情境切換"
+  - action: input_text.set_value
     target:
       entity_id: input_text.scene_origin_device
     data:
