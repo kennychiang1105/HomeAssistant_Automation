@@ -2,6 +2,7 @@
 # 手動廣播AI (V4.1.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3：呼叫 announce 帶 force_5f: true（手動勾選頂樓喇叭時，即使頂樓熟睡中也照播）。
 # - V4.1.0：結果寫入 input_text.announce_manual_result（「訊息|時間戳」），面板按鈕據此顯示 15 秒的成功／失敗提示。
 # - V4.1.0：新增。依「手動廣播」helper（內容、喇叭勾選、重要性）呼叫 script.announce 廣播；
 #           內容空白或沒勾選任何喇叭時不播，改發 HA 持續通知說明原因；不發 LINE。
@@ -45,6 +46,7 @@ announce_manual:
         kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(text, '') }}"
         message: "{{ text }}"
         player: "{{ players }}"
+        force_5f: true     # 手動勾選的喇叭就是要播，不受「頂樓熟睡」靜音影響
     - action: input_text.set_value
       target:
         entity_id: input_text.announce_manual_result

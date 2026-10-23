@@ -2,6 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-24）：頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播不在頂樓播放：頂樓 HomePod、頂樓／五樓攝影機喇叭一律剔除（群組先展開成成員），只剩頂樓喇叭就整則不播；緊急等級照常；新增 force_5f 欄位（手動廣播用）。
 # - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
 # - V4.0.0：announce 的 player 可傳「喇叭清單」同時播放（音量只調整清單內的 HomePod）；沒傳 player 仍依等級使用廣播群組。
@@ -243,6 +244,9 @@ announce:
     kind:
       description: 廣播類別（SOP-21），決定開始音與配對的結束音：quake／quake_report／evac／emergency／security／weather／visitor／notice_general／notice_important／scene；省略則依等級（一般→notice_general、重要→notice_important、緊急→emergency）
       required: false
+    force_5f:
+      description: 設 true 才會在「頂樓熟睡中」仍播到頂樓喇叭（手動廣播用）；預設 false＝熟睡中非緊急廣播不在頂樓（頂樓 HomePod、頂樓／五樓攝影機喇叭）播放
+      required: false
     end_chime:
       description: 是否在語音後播結束音（預設跟隨 chime；chime 為 false 時不播）
       required: false
@@ -272,8 +276,23 @@ announce:
     # 播放對象：player 可以是單一實體、群組，或「多個喇叭的清單」（同時播放）；沒給就依等級用預設群組
     player_list: >-
       {% if player is defined and player %}{% if player is string %}{{ [player] | tojson }}{% else %}{{ player | list | tojson }}{% endif %}{% else %}[]{% endif %}
-    target_player: "{{ player_list[0] if player_list | length > 0 else {'emergency':'media_player.guang_bo_qun_zu_all','important':'media_player.guang_bo_qun_zu_tong_zhi','general':'media_player.guang_bo_qun_zu_yi_ban'}[lv] }}"
-    target_all: "{{ player_list if player_list | length > 0 else [target_player] }}"
+    tp0: "{{ player_list[0] if player_list | length > 0 else {'emergency':'media_player.guang_bo_qun_zu_all','important':'media_player.guang_bo_qun_zu_tong_zhi','general':'media_player.guang_bo_qun_zu_yi_ban'}[lv] }}"
+    # V4.2.3：頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急廣播不在頂樓播放（頂樓 HomePod、頂樓／五樓攝影機喇叭）。
+    #   緊急等級照常全播；force_5f=true（手動廣播）才強制播頂樓。群組會展開成實際成員後再剔除頂樓喇叭。
+    mute_5f: "{{ is_state('input_boolean.sleep_silent_active', 'on') and lv != 'emergency' and (force_5f | default(false)) not in [true, 'true', 'True', 'on'] }}"
+    target_all: >-
+      {% set raw = player_list if player_list | length > 0 else [tp0] %}
+      {% if mute_5f %}
+        {% set mute = ['media_player.ding_lou_homepod', 'media_player.wu_lou_she_ying_ji_speaker', 'media_player.ding_lou_ding_lou_she_ying_ji_speaker'] %}
+        {% set ns = namespace(o=[]) %}
+        {% for t in raw %}
+          {% set mem = state_attr(t, 'entity_id') %}
+          {% set lst = mem if (mem is iterable and mem is not string) else [t] %}
+          {% for e in lst %}{% if e not in mute and e not in ns.o %}{% set ns.o = ns.o + [e] %}{% endif %}{% endfor %}
+        {% endfor %}
+        {{ ns.o | tojson }}
+      {% else %}{{ raw | tojson }}{% endif %}
+    target_player: "{{ tp0 if (not mute_5f or tp0 in target_all) else ('media_player.ke_ting_homepod' if 'media_player.ke_ting_homepod' in target_all else (target_all[0] if target_all | length > 0 else tp0)) }}"
     # 只調整「這次實際會播放」的 HomePod 音量並各自還原（不動沒播放的那台）
     hp_all: ['media_player.ke_ting_homepod', 'media_player.ding_lou_homepod']
     speakers: >-
@@ -284,7 +303,7 @@ announce:
                   'media_player.ding_lou_homepod': ['media_player.ding_lou_homepod']} %}
       {% set ns = namespace(o=[]) %}{% for t in target_all %}{% for sp in m.get(t, []) %}{% if sp not in ns.o %}{% set ns.o = ns.o + [sp] %}{% endif %}{% endfor %}{% endfor %}{{ ns.o }}
     # 群組內的客廳 HomePod（偶爾串流 TTS 失敗，需單獨檢查並重送）
-    hp_member: "{{ 'media_player.ke_ting_homepod' if target_player in ['media_player.guang_bo_qun_zu_all', 'media_player.guang_bo_qun_zu_tong_zhi', 'media_player.guang_bo_qun_zu_yi_ban'] else '' }}"
+    hp_member: "{{ 'media_player.ke_ting_homepod' if (tp0 in ['media_player.guang_bo_qun_zu_all', 'media_player.guang_bo_qun_zu_tong_zhi', 'media_player.guang_bo_qun_zu_yi_ban'] and 'media_player.ke_ting_homepod' in target_all) else '' }}"
     # 音量：由 input_number.announce_volume_* 調整（取不到或太小時退回預設值）
     vol: >-
       {% set v = states('input_number.announce_volume_' ~ lv) | float(0) %}
@@ -309,6 +328,10 @@ announce:
     mk: {}
     tts_wait: "{{ [ (message | length) * 0.3 + 3, 45 ] | min }}"
   sequence:
+    # V4.2.3：頂樓熟睡中、播放對象只剩頂樓喇叭 → 整則不播（不吵醒）
+    - if: "{{ target_all | length == 0 }}"
+      then:
+        - stop: "頂樓熟睡中，非緊急廣播不播頂樓喇叭（沒有其他播放對象）"
     # 0) 氣氛燈提醒（重要/緊急；與 LINE 同事件時由 mood_alert 去重）
     - if: "{{ lv in ['important', 'emergency'] }}"
       then:

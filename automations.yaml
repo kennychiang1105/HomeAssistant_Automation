@@ -1,5 +1,5 @@
 - id: '1644394919500'
-  alias: 01地震災害系統 (V4.0.0)
+  alias: 01地震災害系統 (V4.2.3)
   description: ''
   triggers:
   - entity_id:
@@ -27,24 +27,26 @@
         enabled: true
         action: script.send_line_to_user
       - data:
-          level: emergency
+          # V4.2.3：規模 6 以上才是緊急（熟睡中也會閃燈）；其餘重要等級（熟睡中不閃燈、不播頂樓）
+          level: >-
+            {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\\d+(?:\\.\\d+)?)') | float(0)) >= 6 else 'important' }}
           line: false
           source: 01地震災害系統
           version: V4.2.0
           title: 最新地震報告
           message: "{{ states('sensor.earthquake') }}"
         action: script.notify_dispatch
-      - sequence:
-        - data:
-            volume_level: 0.5
-          action: media_player.volume_set
-          target:
-            entity_id:
-            - media_player.ke_ting_homepod
-          enabled: true
+      # V4.2.3：地震報告是「已經發生」的資訊，不是緊急：規模 6 以上才維持緊急（不限時段）；其餘只在 07:00–22:00 廣播（改重要等級）。
+      #   頂樓熟睡中的 5F 靜音由 script.announce 處理（非緊急不播頂樓喇叭）。
+      - if:
+        - condition: template
+          value_template: >-
+            {{ (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 or 7 <= now().hour < 22 }}
+        then:
         - action: script.announce
           data:
-            level: emergency
+            level: >-
+              {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 else 'important' }}
             kind: quake_report
             message: '地震報告收到以下中央氣象局訊息: {{ states(''sensor.earthquake'') }}'
     else:

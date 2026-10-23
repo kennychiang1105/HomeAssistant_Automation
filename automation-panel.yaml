@@ -2833,7 +2833,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 12 支、可調整項目 14 個"
+        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 12 支、可調整項目 15 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3108,7 +3108,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（1）"
+        heading: "其他數值參數（2）"
         heading_style: title
         card_mod:
           style: |
@@ -3118,6 +3118,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_number.disaster_last_rank
+            name: "非急迫災害訊息｜上次發送的嚴重度（內部）"
           - entity: input_number.disaster_nonurgent_gap_min
             name: "非急迫災害訊息｜最短發送間隔（分鐘）"
         card_mod: *cm
@@ -4395,7 +4397,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "緊急與災防（16）"
+        heading: "緊急與災防（15）"
         heading_style: title
         card_mod:
           style: |
@@ -4435,8 +4437,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_number.disaster_last_rank
-            name: "非急迫災害訊息｜上次發送的嚴重度（內部）"
           - entity: input_text.line_eew_remote_seconds
             name: "LINE_EEW遠端_預估到達秒數"
           - entity: input_text.line_eew_remote_level
