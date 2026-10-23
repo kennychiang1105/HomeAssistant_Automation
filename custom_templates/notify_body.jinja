@@ -406,7 +406,14 @@
     {%- endif -%}
   {%- endfor -%}
   {%- if ns.segs | length > 0 -%}
-    {%- set ns.out = lead ~ '，' ~ (ns.segs | join('，')) ~ '，請嚴加防範。' -%}
+    {%- set rain = namespace(l=[]) -%}
+    {%- for gp in (free_parse(s0) | from_json).groups if gp.local | length > 0 -%}
+      {%- set rain.l = rain.l + [(gp.time if rain.l | length == 0 else '') ~ (gp.local | join('、')) ~ '有' ~ gp.hazard] -%}
+    {%- endfor -%}
+    {%- set ns.out = lead ~ '，' ~ (ns.segs | join('，')) ~ (('，' ~ (rain.l | join('，'))) if rain.l | length > 0 else '') ~ '，請嚴加防範。' -%}
+    {%- if ns.out | length > 255 -%}
+      {%- set ns.out = lead ~ '，' ~ (ns.segs | join('，')) ~ '，請嚴加防範。' -%}
+    {%- endif -%}
   {%- else -%}
     {%- set fp = free_parse(s0) | from_json -%}
     {%- for gp in fp.groups if gp.local | length > 0 -%}
@@ -440,12 +447,10 @@
   {%- endif -%}
 {%- endfor -%}
 {%- set fps = namespace(o=[]) -%}
-{%- if ns.sig | length == 0 -%}
-  {%- for gp in (free_parse(s0) | from_json).groups if gp.local | length > 0 -%}
-    {%- set fps.o = fps.o + [gp.hazard ~ ':' ~ (gp.local | sort | join('/'))] -%}
-  {%- endfor -%}
-{%- endif -%}
-{%- if ns.sig | length > 0 -%}{{ (ns.sig | sort | join('|'))[:240] }}{%- elif fps.o | length > 0 -%}{{ (fps.o | sort | join('|'))[:240] }}{%- else -%}{{ (s0 | regex_replace('\\s+', ''))[:240] }}{%- endif -%}
+{%- for gp in (free_parse(s0) | from_json).groups if gp.local | length > 0 -%}
+  {%- set fps.o = fps.o + [gp.hazard ~ ':' ~ (gp.local | sort | join('/'))] -%}
+{%- endfor -%}
+{%- if ns.sig | length > 0 or fps.o | length > 0 -%}{{ ((ns.sig + fps.o) | sort | join('|'))[:240] }}{%- else -%}{{ (s0 | regex_replace('\\s+', ''))[:240] }}{%- endif -%}
 {%- endmacro %}
 
 {# ──────────────────────────────────────────────────────
@@ -474,8 +479,13 @@
         {%- set b_ns.blocks = b_ns.blocks + [h_ns.hits | join('、') ~ '局部地區為' ~ lamp ~ '燈號，有' ~ (cond | trim)] -%}
       {%- endif -%}
     {%- endfor -%}
-    {%- if b_ns.blocks | length > 0 -%}
-      {{- '氣象署發布：' ~ (b_ns.blocks | join('；')) ~ '。' -}}
+    {%- set fvl = free_parse(s_main) | from_json -%}
+    {%- set rn = namespace(b=[]) -%}
+    {%- for gp in fvl.groups if gp.local | length > 0 -%}
+      {%- set rn.b = rn.b + [(gp.local | join('、')) ~ '有' ~ gp.hazard] -%}
+    {%- endfor -%}
+    {%- if b_ns.blocks | length > 0 or rn.b | length > 0 -%}
+      {{- '氣象署發布：' ~ ((b_ns.blocks + rn.b) | join('；')) ~ '。' -}}
     {%- endif -%}
   {%- else -%}
     {%- set fv = free_parse(s_main) | from_json -%}
@@ -1000,6 +1010,22 @@
         "type": "box", "layout": "vertical", "backgroundColor": lc.bg, "borderColor": lc.bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "14px", "margin": "md", "spacing": "6px",
         "contents": b_contents}] -%}
     {%- endfor -%}
+    {#- V4.2.2：燈號與降雨同時在一則訊息（颱風公報）時，降雨警戒的本地部分也要顯示 -#}
+    {%- set pcol2 = {'竹南': ['#DC2626', '#FEE2E2', '#FCA5A5'], '苗栗': ['#2F80ED', '#EFF6FF', '#BFDBFE'], '新竹': ['#16A34A', '#F0FDF4', '#BBF7D0']} -%}
+    {%- set fpl = free_parse(s_main) | from_json -%}
+    {%- for gp in fpl.groups if gp.local | length > 0 -%}
+      {%- if loop.first -%}
+        {%- set b_ns.boxes = b_ns.boxes + [{"type": "text", "text": "降雨警戒", "size": "xxs", "weight": "bold", "color": "#6B7280", "margin": "lg"}] -%}
+      {%- endif -%}
+      {%- set rc = [{"type": "text", "text": gp.dot ~ " " ~ gp.hazard, "size": "xs", "weight": "bold", "color": gp.col, "wrap": true}] + ([{"type": "text", "text": "⏱️ " ~ gp.time, "size": "xxs", "color": "#6B7280", "wrap": true, "margin": "md"}] if gp.time else []) -%}
+      {%- set rp_ns = namespace(b=[]) -%}
+      {%- for r in gp.local -%}
+        {%- set k = '竹南' if '竹南' in r else ('苗栗' if '苗栗' in r else '新竹') -%}
+        {%- set rp_ns.b = rp_ns.b + [{"type": "box", "layout": "vertical", "backgroundColor": pcol2[k][1], "borderColor": pcol2[k][2], "borderWidth": "1px", "cornerRadius": "6px", "paddingTop": "2px", "paddingBottom": "2px", "paddingStart": "8px", "paddingEnd": "8px", "flex": 0, "contents": [{"type": "text", "text": r, "size": "xs", "weight": "bold", "color": pcol2[k][0]}]}] -%}
+      {%- endfor -%}
+      {%- set rc = rc + [{"type": "box", "layout": "horizontal", "spacing": "6px", "margin": "md", "contents": rp_ns.b}] -%}
+      {%- set b_ns.boxes = b_ns.boxes + [{"type": "box", "layout": "vertical", "backgroundColor": gp.bg, "borderColor": gp.bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "14px", "margin": "md", "spacing": "6px", "contents": rc}] -%}
+    {%- endfor -%}
   {%- else -%}
     {%- set pcol = {'竹南': ['#DC2626', '#FEE2E2', '#FCA5A5'], '苗栗': ['#2F80ED', '#EFF6FF', '#BFDBFE'], '新竹': ['#16A34A', '#F0FDF4', '#BBF7D0']} -%}
     {%- set loc = namespace(tags=[]) -%}
@@ -1163,6 +1189,10 @@
       {%- else -%}
         {%- set l_ns.md = l_ns.md + ['- ' ~ dot ~ ' <span style="color:' ~ col ~ '">**' ~ lamp ~ '燈號**</span>（其他地區）：<sub style="color:#9CA3AF">' ~ (parsed.others | join('、')) ~ '</sub>'] -%}
       {%- endif -%}
+    {%- endfor -%}
+    {%- set fpl = free_parse(s_main) | from_json -%}
+    {%- for gp in fpl.groups if gp.local | length > 0 -%}
+      {%- set l_ns.md = l_ns.md + ['- ' ~ gp.dot ~ ' <span style="color:' ~ gp.col ~ '">**' ~ gp.hazard ~ '**</span>' ~ ((' ⏱️ ' ~ gp.time) if gp.time else '') ~ '<br>' ~ hl_html(gp.local | join('、'))] -%}
     {%- endfor -%}
     {{- l_ns.md | join('\n\n') -}}
   {%- elif s_main != '' -%}
