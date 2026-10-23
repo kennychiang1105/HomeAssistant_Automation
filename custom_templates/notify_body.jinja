@@ -388,6 +388,11 @@
   {{- {'time': res_ns.time_prefix, 'targets': res_ns.targets, 'others': res_ns.others} | tojson -}}
 {%- endmacro %}
 
+{# V4.2.3（SOP-21）：依廣播內容判斷音效類別：疏散／海嘯／土石流／國家級警報＝evac；其餘回傳 dflt（03 天氣用 weather，手動廣播用空字串＝依等級預設） #}
+{% macro broadcast_kind(msg, dflt='') -%}
+{%- if (msg | string) | regex_search('疏散|撤離|海嘯|土石流|堰塞|國家級警報|空襲|飛彈') -%}evac{%- else -%}{{ dflt }}{%- endif -%}
+{%- endmacro %}
+
 {# V4.2.2：HA 狀態上限 255 字元。REST 感測器 sensor.disaster_raw 的內文超過就會被改成 unknown（2026-10-23 颱風訊息太長，一直報錯、訊息進不來）。
    超長時濃縮成「只含竹南／苗栗／新竹」的版本（格式與原文相同，下游解析不用改）；255 字內原樣回傳。 #}
 {% macro disaster_digest(msg) -%}

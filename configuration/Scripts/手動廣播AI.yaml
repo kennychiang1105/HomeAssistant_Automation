@@ -42,6 +42,7 @@ announce_manual:
     - action: script.announce
       data:
         level: "{{ lv }}"
+        kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(text, '') }}"
         message: "{{ text }}"
         player: "{{ players }}"
     - action: input_text.set_value

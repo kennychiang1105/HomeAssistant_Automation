@@ -286,6 +286,7 @@
 
 ## 本次調整（V4.2.2 - 2026-10-22：家人主要裝置選擇與卡片、LINE 通知新格式（橫線／備註／示意條）、3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版、離家通知重複修正）
 
+- **廣播音效依類別區分，並補上配對的結束音（SOP-21，V4.2.3）**：原本廣播開始音只有 3 種（依等級），緊急類全都用地震預警音，也沒有任何結束音。現在 `script.announce` 依類別（kind）選開始音與配對的結束音：地震預警／疏散警報＝氣象署 CWBEEW＋由它衍生的 `cwb_end`；地震報告＝成對雙音嗶聲；緊急模式＝銅管重擊；保全＝小調叮咚；天氣、一般與重要通知、訪客門鈴、情境＝「廣播前音樂」風格的旋律＋和弦＋迴響（長度約 1.4～3.1 秒）。結束音由合成流程直接接在語音後面（`mk_announce.py` 新增選用的結束音參數，快取鍵含結束音，沒給時行為不變）；合成失敗或不合成路徑則在語音後另外播放。音效由 `scripts/make_chimes.py`（純 Python 合成，表格可調）產生；新增 `input_boolean.announce_end_chime_off`（總開關）、`script.announce_sound_demo`＋`input_select.announce_demo_kind`（只播頂樓 HomePod、音量 0.3 的試聽）、面板「廣播音效」區塊；`broadcast_kind()` 巨集供 03 天氣災害與手動廣播判斷疏散類；暖機清單同步改用新音效名稱。（`統一通知AI.yaml`、`mk_announce.py`、`warm_announce.py`、`make_chimes.py`、`notify_body.jinja`、各呼叫端的 `kind`）
 - **SOP-20 重啟接續審核後修正（fix12）**：
   · **104-3 鐵門提醒**：原本「車庫人車活動安靜滿 3 分鐘才提醒」寫在最上層，被改放進巢狀 `if/then` 的 `condition`——巢狀區塊裡 condition 不成立只會結束該區塊、不會中止整個自動化（已在 HA 實測），結果有人車活動也照樣提醒與自動關門。現在改成 `if（不安靜）＋stop`。重啟接手的固定 `delay` 改成 `wait_for_trigger`（鐵門關上就中斷）。
   · **104-3A 鐵門開啟時間記錄（新）**：原本寫在 104-3 內（沒有狀態過濾，屬性變化與 `unavailable` 都會寫入，且 single 模式會在等待期間丟掉開關門事件），拆成獨立 queued 自動化，只在 `open`／`closed` 且來源不是 `unavailable`／`unknown` 時寫入 `input_datetime.garage_gate_opened_at`。

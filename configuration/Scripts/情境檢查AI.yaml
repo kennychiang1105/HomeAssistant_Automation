@@ -252,8 +252,7 @@ scene_announce:
       data:
         level: general
         message: "{{ final_msg }}"
-        chime_media: media-source://media_source/local/scene_ding.mp3
-        chime_media_s: 0.75
+        kind: scene
         merge_audio: true
 
 stairs_delayed_off:

@@ -111,6 +111,7 @@
                 - action: script.announce
                   data:
                     level: "{{ send_level }}"
+                    kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, 'weather') }}"
                     message: "{{ voice_text }}"
                 - action: input_datetime.set_datetime
                   target:
@@ -137,6 +138,7 @@
             - action: script.announce
               data:
                 level: "{{ 'important' if (msg_level | trim) == 'emergency' else 'general' }}"
+                kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, 'weather') }}"
                 message: "{{ '早晨補報。' ~ voice_text }}"
             - action: input_datetime.set_datetime
               target:

@@ -204,6 +204,7 @@ notify_dispatch:
         - action: script.announce
           data:
             level: "{{ lv }}"
+            kind: "{{ voice_kind if (voice_kind is defined and voice_kind) else '' }}"
             message: "{{ voice }}"
 
 announce:

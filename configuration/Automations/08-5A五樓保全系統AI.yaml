@@ -204,6 +204,7 @@
             - action: script.announce
               data:
                 level: emergency
+                kind: security
                 message: "五樓保全警告，房間防區已觸發，請立即離開。"
     - wait_for_trigger:
         - id: leave_5f_by_stairs

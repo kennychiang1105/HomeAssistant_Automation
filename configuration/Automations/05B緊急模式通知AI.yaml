@@ -123,6 +123,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -134,6 +135,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
@@ -172,6 +174,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -183,6 +186,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由家庭APP手動觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
@@ -269,6 +273,7 @@
             - action: script.announce
               data:
                 level: emergency
+                kind: emergency
                 message: "智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
             - delay:
                 hours: 0
@@ -287,6 +292,7 @@
             - action: script.announce
               data:
                 level: emergency
+                kind: emergency
                 message: "智慧家庭通知 緊急模式於五分鐘前因地震,火災或其他緊急情況啟動。請確認實際狀況! 緊急情況穩定後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
             - delay:
                 hours: 0
@@ -372,6 +378,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -383,6 +390,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
@@ -421,6 +429,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -432,6 +441,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由系統手動觸發，請確認是否為測試或誤發。若為測試或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
@@ -522,6 +532,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -533,6 +544,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
@@ -571,6 +583,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               chime: false
               message: "緊急模式！緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 所有照明開啟並關閉電源!"
           - delay:
@@ -582,6 +595,7 @@
           - action: script.announce
             data:
               level: emergency
+              kind: emergency
               message: "緊急模式！緊急模式已被啟動，所有照明開啟並關閉電源! 緊急模式由實體按鈕按壓觸發，請確認是否誤觸。若為誤觸或誤發命令，請復原所有電源與照明設備狀態。於家庭APP中直接調整電源與照明or執行離家模式。緊急情況結束後，請根據情況開關電源與照明。復原方式:按「解除網關警報」可還原緊急模式前的狀態（2小時內），或於家庭APP中直接調整電源與照明or執行離家模式。"
           - delay:
               hours: 0
