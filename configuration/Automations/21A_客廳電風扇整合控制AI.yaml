@@ -1,10 +1,11 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟後 delay 15 秒重新評估環境溫濕度與兒童鎖／風速調節；保護 trigger.to_state is defined。
 # - V4.1.5（2026-10-11）：自動調速防抖。原本 t_eff 在 28.3／28.4 等門檻上下 0.1°C 抖動就會讓風量每 15～30 秒大小來回（30 小時 67 次變化、86 次快速反轉）。
 #   ① 遲滯：升級要超過門檻 +遲滯（預設 0.3°C）、降級要低於門檻 -遲滯；② 自動調速最短間隔 3 分鐘（timer.living_room_fan_speed_dwell）；
 #   ③ 濕度加成改連續線性（>50% 起每 1% +0.05°C，上限 1.5），不再在 50／60／75% 一次跳 0.5°C；④ 曲線下限 20%（風扇最低檔），不再送 10% 指令。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 導入路徑：configuration/Automations/21A_客廳電風扇整合控制AI.yaml
-- alias: 21A_客廳電風扇整合控制AI (V4.1.5)
+- alias: 21A_客廳電風扇整合控制AI (V4.2.2)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -34,9 +35,12 @@
     - platform: state
       entity_id: sensor.at_home_kenny_location
       id: location_change
+    - platform: homeassistant
+      event: start
+      id: ha_start
 
   variables:
-    automation_version: "V4.1.5"
+    automation_version: "V4.2.2"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
@@ -44,8 +48,8 @@
     snooze_active: "{{ is_state('timer.living_room_fan_light_sync_snooze', 'active') }}"
     speed_snooze_active: "{{ is_state('input_boolean.living_room_fan_manual_speed_snooze', 'on') }}"
     manual_actor_detected: >
-      {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is not none) else none %}
-      {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is not none) else none %}
+      {% set uid = trigger.to_state.context.user_id if (trigger is defined and trigger.to_state is defined and trigger.to_state is not none) else none %}
+      {% set pid = trigger.to_state.context.parent_id if (trigger is defined and trigger.to_state is defined and trigger.to_state is not none) else none %}
       {{ (uid is not none) or ((uid is none) and (pid is none)) }}
     light_is_on: "{{ is_state('light.yeelink_color5_4181_light', 'on') }}"
 
@@ -107,6 +111,11 @@
       {% endif %}
 
   action:
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:00:15"
     - choose:
         # === PRIORITY 1: 防關閉模式的兒童鎖控制 ===
         - conditions:
@@ -204,6 +213,7 @@
               id:
                 - sensor_change
                 - location_change
+                - ha_start
             - "{{ t_eff_valid }}"
           sequence:
             # Sub-Step A: 執行 V3.2.1 動態兒童鎖遲滯控制

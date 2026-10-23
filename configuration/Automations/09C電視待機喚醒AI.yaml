@@ -1,22 +1,26 @@
 # ────────────────────────────────────────────────────────
-# 09C電視待機喚醒AI (V4.1.6)
+# 09C電視待機喚醒AI (V4.2.2)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 2 分鐘後重新檢查電視是否仍斷線，仍斷線才送紅外線喚醒；復位開關加 ha_start 防呆。
 # - V4.1.6（2026-10-16）：新增。電視（Android TV 遙控與 Chromecast）都連不上 2 分鐘 → 開啟 input_boolean.tv_ir_power（Aqara 紅外線電視開關情境，
 #   由 Apple 家庭自動化觸發）→ 最多等 100 秒電視重新連上 → 用網路指令關機，讓電視停在「待機但保持連線」；
 #   連不上就發一則通知、不重送（紅外線是切換型，再送一次會把電視關掉）。維護模式期間、總開關（tv_keepalive_enable）關閉時、10 分鐘內剛執行過不動作。
 # ────────────────────────────────────────────────────────
-- alias: 09C電視待機喚醒AI (V4.1.6)
+- alias: 09C電視待機喚醒AI (V4.2.2)
   id: ai_09c_tv_keepalive
   description: 電視連不上 2 分鐘就用紅外線喚醒，連上網路後用網路指令關機，讓電視保持可連線
   mode: single
   variables:
-    automation_version: "V4.1.6"
+    automation_version: "V4.2.2"
   trigger:
     - trigger: template
       value_template: >-
         {{ is_state('remote.ke_ting_dian_shi', 'unavailable') and is_state('media_player.ke_ting_dian_shi_googlecast', 'unavailable') }}
       for: "00:02:00"
+    - id: ha_start
+      trigger: homeassistant
+      event: start
   condition:
     - condition: state
       entity_id: input_boolean.tv_keepalive_enable
@@ -28,6 +32,19 @@
       value_template: >-
         {% set lt = this.attributes.get('last_triggered') %}{{ lt is none or (now() - lt).total_seconds() > 600 }}
   action:
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:02:00"
+        - if:
+            - condition: not
+              conditions:
+                - condition: template
+                  value_template: >-
+                    {{ is_state('remote.ke_ting_dian_shi', 'unavailable') and is_state('media_player.ke_ting_dian_shi_googlecast', 'unavailable') }}
+          then:
+            - stop: "電視已在重啟後連線，略過喚醒"
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.tv_ir_power
@@ -67,7 +84,7 @@
               請確認紅外線開關情境與電視電源。
 
 # 虛擬開關自動復位（Aqara 情境觸發後 3 秒歸零；Apple 家庭自動化以「開啟」為觸發）
-- alias: 09C電視紅外線開關自動復位AI (V4.1.6)
+- alias: 09C電視紅外線開關自動復位AI (V4.2.2)
   id: ai_09c_tv_ir_reset
   description: input_boolean.tv_ir_power 開啟後 3 秒自動關閉
   mode: restart
@@ -75,8 +92,16 @@
     - trigger: state
       entity_id: input_boolean.tv_ir_power
       to: "on"
+    - id: ha_start
+      trigger: homeassistant
+      event: start
   action:
     - delay: "00:00:03"
-    - action: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.tv_ir_power
+    - if:
+        - condition: state
+          entity_id: input_boolean.tv_ir_power
+          state: "on"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.tv_ir_power

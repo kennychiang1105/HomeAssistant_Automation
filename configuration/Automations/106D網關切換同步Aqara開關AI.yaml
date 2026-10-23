@@ -1,6 +1,7 @@
 ﻿# ──────────────────────────────────────────────
-# 106D網關切換同步Aqara開關AI (V4.1.6)
+# 106D網關切換同步Aqara開關AI (V4.2.2)
 # 更新紀錄：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後檢查網關警戒模式與 Aqara 虛擬情境開關是否一致，不一致則自動同步；保護 trigger.to_state 避免模板未定義錯誤。
 # - V4.1.6（2026-10-14）：新增。在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，先關掉其他四個 Aqara 虛擬情境開關、再打開對應的開關（順序同情境自動化，避免 106 看到兩個同時開而當成異常）：
 #     在家警戒（armed_home）→ aqara_zai_jia、夜間警戒（armed_night）→ aqara_wan_an、離家警戒（armed_away）→ aqara_li_jia。
 #   原本「網關 → 虛擬開關」只靠 Apple 家庭的自動化同步（可能延遲 1 秒～數分鐘，甚至沒有同步，還可能和 106 來回震盪）。這支在網關切換後等 6 秒讓 Apple 家庭先同步，
@@ -10,18 +11,25 @@
 # - V4.1.6（2026-10-14，檢查程式碼後修正）：原本只打開對應開關、其餘留給 106 關閉，但 106 在「同時 2 個以上開關為 on」時會走異常分流（緊急通知＋重置回在家警戒），所以改成先關其他四個再打開目標。
 # ──────────────────────────────────────────────
 - id: ai_106d_gateway_to_aqara_switch
-  alias: 106D網關切換同步Aqara開關AI (V4.1.6)
+  alias: 106D網關切換同步Aqara開關AI (V4.2.2)
   description: 網關警戒模式被人為／實體切換後，補上對應的 Aqara 虛擬情境開關（其餘由 106 關閉）。
   mode: restart
   variables:
-    automation_version: V4.1.6
+    automation_version: V4.2.2
     alarm_entity: alarm_control_panel.54ef44cf58f9_alarm
     mode_map:
       armed_home: input_boolean.aqara_zai_jia
       armed_night: input_boolean.aqara_wan_an
       armed_away: input_boolean.aqara_li_jia
-    target_switch: "{{ mode_map.get(trigger.to_state.state, '') }}"
-    label: "{{ {'armed_home': '在家', 'armed_night': '晚安', 'armed_away': '離家'}.get(trigger.to_state.state, '') }}"
+    target_switch: >-
+      {% if trigger.id | default('') == 'ha_start' %}
+        {{ mode_map.get(states(alarm_entity), '') }}
+      {% else %}
+        {{ mode_map.get(trigger.to_state.state, '') if trigger.to_state is defined else '' }}
+      {% endif %}
+    label: >-
+      {% set st = states(alarm_entity) if trigger.id | default('') == 'ha_start' else (trigger.to_state.state if trigger.to_state is defined else '') %}
+      {{ {'armed_home': '在家', 'armed_night': '晚安', 'armed_away': '離家'}.get(st, '') }}
   triggers:
     - trigger: state
       id: mode
@@ -33,22 +41,35 @@
       not_from:
         - unavailable
         - unknown
+    - trigger: homeassistant
+      event: start
+      id: ha_start
   conditions:
-    - alias: "人為／實體切換（不是自動化改的）"
+    - alias: "人為／實體切換（不是自動化改的）或 HA 重啟"
       condition: template
-      value_template: "{{ trigger.to_state.context.parent_id is none }}"
+      value_template: >-
+        {{ trigger.id | default('') == 'ha_start' or (trigger.to_state is defined and trigger.to_state.context.parent_id is none) }}
     - alias: "有對應的開關"
       condition: template
       value_template: "{{ target_switch != '' }}"
   actions:
-    - alias: "先等 Apple 家庭同步（最多 6 秒）"
-      wait_template: "{{ is_state(target_switch, 'on') }}"
-      timeout: "00:00:06"
-      continue_on_timeout: true
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:01:00"
+      else:
+        - alias: "先等 Apple 家庭同步（最多 6 秒）"
+          wait_template: "{{ is_state(target_switch, 'on') }}"
+          timeout: "00:00:06"
+          continue_on_timeout: true
     - alias: "網關仍在這個模式、開關還沒對應 → 由 HA 補上"
       if:
         - condition: template
-          value_template: "{{ is_state(alarm_entity, trigger.to_state.state) and not is_state(target_switch, 'on') }}"
+          value_template: >-
+            {% set current_alarm = states(alarm_entity) %}
+            {% set target_alarm = states(alarm_entity) if trigger.id | default('') == 'ha_start' else (trigger.to_state.state if trigger.to_state is defined else '') %}
+            {{ current_alarm == target_alarm and not is_state(target_switch, 'on') }}
       then:
         # 先關掉其他四個再打開目標（和 100／101／102／103 情境同樣順序）：
         # 106 只在「剛好一個開關是 on」時才同步；同時有 2 個以上 on 會被當成異常（緊急通知，並重置回在家警戒）。

@@ -123,6 +123,7 @@ intrusion_alert:
         link2_note: 外出（外網）也可使用
         user_id: "{{ line_bot_target_user_id }}"
         voice: "{{ '' if md == 'test' else '離家期間偵測到疑似入侵，請立即確認。' }}"
+        voice_kind: security
         message: |-
           {{ '這是測試通知，不會響警報。' if md == 'test' else '離家期間偵測到疑似入侵，請立即確認！' }}
 

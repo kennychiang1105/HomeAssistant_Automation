@@ -15,12 +15,16 @@ VOICE = "zh-TW-HsiaoChenNeural"
 OUT_DIR = "/media"
 CHIME_DIR = "/media"
 
-def key_path(chime, text):
-    key = hashlib.sha1(f"{os.path.basename(chime)}|{VOICE}|{text}".encode()).hexdigest()[:16]
+def key_path(chime, text, end="none"):
+    # 與 mk_announce.py 的快取鍵規則完全相同（V4.2.3：有結束音時鍵多含結束音檔名）
+    if end != "none" and os.path.exists(end):
+        key = hashlib.sha1(f"{os.path.basename(chime)}|{os.path.basename(end)}|{VOICE}|{text}".encode()).hexdigest()[:16]
+    else:
+        key = hashlib.sha1(f"{os.path.basename(chime)}|{VOICE}|{text}".encode()).hexdigest()[:16]
     return os.path.join(OUT_DIR, f"ann_{key}.mp3")
 
-def make(chime, text):
-    out = key_path(chime, text)
+def make(chime, text, end="none"):
+    out = key_path(chime, text, end)
     if os.path.exists(out):
         os.utime(out, None)
         return "touch"
@@ -29,7 +33,18 @@ def make(chime, text):
     tts_path = f"/tmp/warm_{key}.tts.mp3"
     asyncio.run(asyncio.wait_for(edge_tts.Communicate(text, VOICE).save(tts_path), timeout=30))
     tmp = out + ".part.mp3"
-    if chime != "none" and os.path.exists(chime):
+    if end != "none" and os.path.exists(end):
+        fmt = "aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo"
+        ins, segs, k = [], [], 0
+        if chime != "none" and os.path.exists(chime):
+            ins += ["-i", chime]; segs.append(f"[{k}:a]{fmt}[a{k}]"); k += 1
+            ins += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]; segs.append(f"[{k}:a]atrim=0:0.15[a{k}]"); k += 1
+        ins += ["-i", tts_path]; segs.append(f"[{k}:a]{fmt}[a{k}]"); k += 1
+        ins += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]; segs.append(f"[{k}:a]atrim=0:0.25[a{k}]"); k += 1
+        ins += ["-i", end]; segs.append(f"[{k}:a]{fmt}[a{k}]"); k += 1
+        fc = ";".join(segs) + ";" + "".join(f"[a{i}]" for i in range(k)) + f"concat=n={k}:v=0:a=1[o]"
+        cmd = ["ffmpeg", "-y", "-loglevel", "error"] + ins + ["-filter_complex", fc, "-map", "[o]", "-b:a", "128k", tmp]
+    elif chime != "none" and os.path.exists(chime):
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", chime, "-i", tts_path,
                "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                "-filter_complex",
@@ -52,12 +67,12 @@ def build_list():
         for n in range(3, 61):
             items.append(("none", f"地震預警！預估{lv}級，{n}秒後到達！"))
     items.append(("none", "地震！地震！立即就地趴下，掩護，穩住！"))
-    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"))
+    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "發生地震，請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/cwb_end.mp3"))
     # 第一句播完立即接的第二句（eq99；提示音 CWBEEW.mp3）
-    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"))
-    items.append((f"{CHIME_DIR}/chime_doorbell.mp3", "大門有人按門鈴！請注意門外來訪客人。"))
-    items.append((f"{CHIME_DIR}/chime_important.mp3", "有人即將到家，車庫鐵門正在打開。有人即將到家，車庫鐵門正在打開。"))
-    items.append((f"{CHIME_DIR}/chime_important.mp3", "保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！"))
+    items.append((f"{CHIME_DIR}/CWBEEW.mp3", "請就地避難掩護！立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。", f"{CHIME_DIR}/cwb_end.mp3"))
+    items.append((f"{CHIME_DIR}/visitor_start.mp3", "大門有人按門鈴！請注意門外來訪客人。", f"{CHIME_DIR}/visitor_end.mp3"))
+    items.append((f"{CHIME_DIR}/notice_important_start.mp3", "有人即將到家，車庫鐵門正在打開。有人即將到家，車庫鐵門正在打開。", f"{CHIME_DIR}/notice_important_end.mp3"))
+    items.append((f"{CHIME_DIR}/notice_important_start.mp3", "保全系統通知 請注意二樓大門沒有完全關閉，目前為虛掩狀態，請注意！", f"{CHIME_DIR}/notice_important_end.mp3"))
     items.append(("none", "車庫鐵門即將開啟"))
     items.append(("none", "車庫鐵門即將關閉，請注意安全。"))
     return items

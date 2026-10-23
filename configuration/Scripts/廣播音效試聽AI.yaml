@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+# 廣播音效試聽AI (V4.2.3)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增（SOP-21）。選一個類別（或「全部」）依序播「開始音 → 範例語音 → 結束音」，只播頂樓 HomePod、音量 0.3、
+#           播完還原原音量；走真正的 script.announce（含 kind 對照表與合成流程），所以聽到的就是實際廣播的樣子。
+#           用 level: general 呼叫，不會觸發氣氛燈閃爍；不發任何 LINE 或 HA 通知。
+# ─────────────────────────────────────────────────────────────
+announce_sound_demo:
+  alias: 廣播音效試聽 (V4.2.3)
+  description: 依序播放各類別廣播的開始音、範例語音、結束音（只播頂樓 HomePod，音量 0.3）
+  mode: single
+  max_exceeded: silent
+  fields:
+    kind:
+      description: 要試聽的類別（省略：讀 input_select.announce_demo_kind；「全部」依序播所有類別）
+      required: false
+  variables:
+    spk: media_player.ding_lou_homepod
+    order: [quake, quake_report, evac, emergency, security, weather, visitor, notice_general, notice_important, scene]
+    names: {quake: 地震預警, quake_report: 地震報告, evac: 疏散警報, emergency: 緊急模式, security: 保全警告, weather: 天氣災害, visitor: 訪客門鈴, notice_general: 一般通知, notice_important: 重要通知, scene: 情境廣播}
+    pick: "{{ kind if (kind is defined and kind) else states('input_select.announce_demo_kind') }}"
+    todo: "{{ order if pick not in order else [pick] }}"
+  sequence:
+    # 連續重播時，上一輪剛還原的音量屬性要幾秒才更新；先等 5 秒再讀「原音量」，避免把試聽音量 0.3 當成原音量
+    - delay: "00:00:05"
+    - variables:
+        v0: "{{ state_attr(spk, 'volume_level') | float(-1) }}"
+    - action: media_player.volume_set
+      target:
+        entity_id: "{{ spk }}"
+      data:
+        volume_level: 0.3
+      continue_on_error: true
+    - repeat:
+        for_each: "{{ todo }}"
+        sequence:
+          - action: script.announce
+            data:
+              level: general
+              kind: "{{ repeat.item }}"
+              message: "{{ '試聽，' ~ names[repeat.item] ~ '。這是開始音、語音，與結束音。' }}"
+              player: "{{ spk }}"
+              adjust_volume: false
+          - delay: "00:00:02"
+    - if: "{{ v0 >= 0 }}"
+      then:
+        - action: media_player.volume_set
+          target:
+            entity_id: "{{ spk }}"
+          data:
+            volume_level: "{{ v0 }}"
+          continue_on_error: true

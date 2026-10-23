@@ -339,6 +339,7 @@ timer:
   living_room_fan_light_sync_snooze:
     name: 客廳風扇_燈光連動暫停
     duration: "01:00:00"
+    restore: true
 
 command_line:
   - sensor:

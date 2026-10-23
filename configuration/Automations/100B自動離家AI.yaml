@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V4.2.0)
+# 100B自動離家AI (V4.2.2)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟後 delay 4 分 10 秒重新檢查「全員不在家＋離家情境未開（或剛開過未滿 3 分鐘）」，成立才接續執行離家情境。
 # - V4.2.0（2026-10-22）：修正範本／person 重新載入後重複發離家通知：離家情境（aqara_li_jia）已經開著超過 3 分鐘就不再重發（重載時 at_home_*_location 短暫 unavailable，4 分 10 秒計時重新開始）。
 # - V4.1.6（2026-10-13）：離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。（2026-10-13 誤報原因：二樓門鎖同步開關的 on／off 設定相反，已由使用者修正。）
 # - V4.1.6（2026-10-12）：修正離家通知整個漏掉：鐵門正在關（closing）時觸發，原本兩個通知條件一個要「已關」、一個要「開著」都不成立，什麼都沒發（2026-10-12 08:09:57 觸發、08:10:05 鐵門才關好）。現在先等鐵門停下來（最多 90 秒）再判斷，並新增預設分支：兩個條件都不成立時仍發一般級離家通知。
@@ -17,7 +18,7 @@
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V4.2.0)
+- alias: 100B自動離家AI (V4.2.2)
   id: ai_auto_leave_system
   description: "AI離家 V3.4.1"
   mode: single
@@ -33,23 +34,31 @@
       for:
         minutes: 4
         seconds: 10
+    - id: ha_start
+      platform: homeassistant
+      event: start
 
   conditions:
-    # V4.2.0：離家情境已經開著超過 3 分鐘就不再重發離家通知。範本／person 重新載入時 sensor.at_home_*_location 會短暫 unavailable，
-    # 「全員離家 4 分 10 秒」的計時重新開始，4 分多鐘後又發一次（2026-10-22 重載範本後家人群組多次收到離家通知）。
-    - condition: template
-      value_template: >-
-        {{ not is_state('input_boolean.aqara_li_jia', 'on')
-           or (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() < 180 }}
-    - condition: template
-      value_template: >-
-        {{ states('sensor.at_home_kenny_location') == '離家'
-           and states('sensor.at_home_elay_location') == '離家'
-           and states('sensor.at_home_jerry_location') == '離家'
-           and states('sensor.at_home_iris_location') == '離家' }}
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+        - condition: and
+          conditions:
+            # V4.2.0：離家情境已經開著超過 3 分鐘就不再重發離家通知。
+            - condition: template
+              value_template: >-
+                {{ not is_state('input_boolean.aqara_li_jia', 'on')
+                   or (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() < 180 }}
+            - condition: template
+              value_template: >-
+                {{ states('sensor.at_home_kenny_location') == '離家'
+                   and states('sensor.at_home_elay_location') == '離家'
+                   and states('sensor.at_home_jerry_location') == '離家'
+                   and states('sensor.at_home_iris_location') == '離家' }}
 
   variables:
-    automation_version: "V4.2.0"
+    automation_version: "V4.2.2"
     helpers_compat: "Helpers V3.17"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
@@ -168,6 +177,27 @@
     title_fallback_line: "【AI離家系統 {{ automation_version }}】"
 
   actions:
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:04:10"
+        - if:
+            - condition: template
+              value_template: >-
+                {{ (not is_state('input_boolean.aqara_li_jia', 'on')
+                    or (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() < 180)
+                   and states('sensor.at_home_kenny_location') == '離家'
+                   and states('sensor.at_home_elay_location') == '離家'
+                   and states('sensor.at_home_jerry_location') == '離家'
+                   and states('sensor.at_home_iris_location') == '離家' }}
+          then:
+            - action: logbook.log
+              data:
+                name: 100B自動離家AI
+                message: "HA 重啟後接續：全員離家條件成立，接續執行離家情境"
+          else:
+            - stop: "HA 重啟接手：條件不符或離家情境已超過 3 分鐘，跳過離家執行"
     - choose:
         - conditions:
             - condition: template

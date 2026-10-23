@@ -2,6 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
 # - V4.0.0：announce 的 player 可傳「喇叭清單」同時播放（音量只調整清單內的 HomePod）；沒傳 player 仍依等級使用廣播群組。
 # - V4.0.0：修正沒傳 version 欄位時，標題與底部顯示「<function VersionExtension.version at 0x…>」（HA 內建 version() 函式與欄位同名）。
@@ -203,6 +204,7 @@ notify_dispatch:
         - action: script.announce
           data:
             level: "{{ lv }}"
+            kind: "{{ voice_kind if (voice_kind is defined and voice_kind) else '' }}"
             message: "{{ voice }}"
 
 announce:
@@ -238,12 +240,35 @@ announce:
     merge_audio:
       description: 是否把提示音與語音合成單一音檔播放（預設 true；設 false 退回即時語音）
       required: false
+    kind:
+      description: 廣播類別（SOP-21），決定開始音與配對的結束音：quake／quake_report／evac／emergency／security／weather／visitor／notice_general／notice_important／scene；省略則依等級（一般→notice_general、重要→notice_important、緊急→emergency）
+      required: false
+    end_chime:
+      description: 是否在語音後播結束音（預設跟隨 chime；chime 為 false 時不播）
+      required: false
+    end_media:
+      description: 自訂結束音（media-source 網址；省略則依類別使用配對的結束音）
+      required: false
+    end_media_s:
+      description: 自訂結束音長度（秒）
+      required: false
   variables:
     lv: "{{ level if level in ['general','important','emergency'] else 'general' }}"
+    # V4.2.3（SOP-21）：依「類別」決定開始音與配對的結束音（音效由 scripts/make_chimes.py 產生）
+    kinds: >-
+      {{ {'notice_general': {'start':'notice_general_start.mp3', 's':2.82, 'end':'notice_general_end.mp3', 'e':2.22},
+          'notice_important': {'start':'notice_important_start.mp3', 's':2.89, 'end':'notice_important_end.mp3', 'e':2.31},
+          'quake':            {'start':'CWBEEW.mp3', 's':3.27, 'end':'cwb_end.mp3', 'e':1.32},
+          'quake_report': {'start':'quake_report_start.mp3', 's':1.44, 'end':'quake_end.mp3', 'e':1.42},
+          'evac':             {'start':'CWBEEW.mp3', 's':3.27, 'end':'cwb_end.mp3', 'e':1.32},
+          'emergency': {'start':'emergency_start.mp3', 's':2.62, 'end':'emergency_end.mp3', 'e':1.57},
+          'security': {'start':'security_start.mp3', 's':2.77, 'end':'security_end.mp3', 'e':2.10},
+          'weather': {'start':'weather_start.mp3', 's':2.97, 'end':'weather_end.mp3', 'e':2.29},
+          'visitor': {'start':'visitor_start.mp3', 's':2.94, 'end':'visitor_end.mp3', 'e':1.77},
+          'scene': {'start':'scene_start.mp3', 's':2.10, 'end':'scene_end.mp3', 'e':1.41}} }}
+    kind_eff: "{{ kind if (kind is defined and kind in kinds) else {'general': 'notice_general', 'important': 'notice_important', 'emergency': 'emergency'}[lv] }}"
     cfg: >-
-      {{ {'general':   {'chime':'media-source://media_source/local/chime_general.mp3','vol':0.65,'chime_s':0.95},
-          'important': {'chime':'media-source://media_source/local/chime_important.mp3','vol':0.65,'chime_s':1.1},
-          'emergency': {'chime':'media-source://media_source/local/CWBEEW.mp3','vol':0.65,'chime_s':3.3}}[lv] }}
+      {{ {'chime': 'media-source://media_source/local/' ~ kinds[kind_eff].start, 'vol': 0.65, 'chime_s': kinds[kind_eff].s} }}
     # 播放對象：player 可以是單一實體、群組，或「多個喇叭的清單」（同時播放）；沒給就依等級用預設群組
     player_list: >-
       {% if player is defined and player %}{% if player is string %}{{ [player] | tojson }}{% else %}{{ player | list | tojson }}{% endif %}{% else %}[]{% endif %}
@@ -268,6 +293,15 @@ announce:
     chime_wait: "{{ chime_media_s | float(cfg.chime_s) if chime_media_s is defined and chime_media_s else cfg.chime_s }}"
     use_chime: "{{ (chime | default(true)) not in [false, 'false', 'off', 'no'] }}"
     adj_vol: "{{ (adjust_volume | default(true)) not in [false, 'false', 'off', 'no'] }}"
+    # 結束音：要有開始音才播；呼叫端自訂了開始音但沒指定 kind／end_media 時不播（避免開始音與結束音不配對）；總開關可關
+    end_enabled: >-
+      {{ use_chime
+         and not is_state('input_boolean.announce_end_chime_off', 'on')
+         and ((end_chime | default(true)) not in [false, 'false', 'off', 'no'])
+         and ((chime_media is not defined or not chime_media) or (kind is defined and kind in kinds) or (end_media is defined and end_media)) }}
+    end_url: "{{ end_media if (end_media is defined and end_media) else ('media-source://media_source/local/' ~ kinds[kind_eff].end) }}"
+    end_wait: "{{ end_media_s | float(kinds[kind_eff].e) if (end_media_s is defined and end_media_s) else kinds[kind_eff].e }}"
+    end_path: "{{ ('/media/' ~ end_url.split('/')[-1]) if (end_enabled and end_url.startswith('media-source://media_source/local/')) else 'none' }}"
     n_repeat: "{{ repeat_count | int(1) if repeat_count is defined else 1 }}"
     # 合成單一音檔（提示音 + 語音）播放：無空檔、客廳 HomePod 也收得到；緊急級維持原本「提示音 + 即時語音」
     merge: "{{ merge_audio | default(true) not in [false, 'false', 'False'] }}"
@@ -313,6 +347,7 @@ announce:
           data:
             chime: "{{ chime_path }}"
             b64: "{{ message | base64_encode }}"
+            end: "{{ end_path }}"
           response_variable: mk
           continue_on_error: true
     # 合成失敗（網路／Edge TTS 暫時不通）→ 重試最多 2 次（間隔 1、2 秒），仍失敗才走「只播提示音＋HA 資訊通知」，不退回即時語音
@@ -323,6 +358,7 @@ announce:
           data:
             chime: "{{ chime_path }}"
             b64: "{{ message | base64_encode }}"
+            end: "{{ end_path }}"
           response_variable: mk
           continue_on_error: true
     - if: "{{ merge and not (mk is defined and mk is mapping and mk.get('returncode') == 0 and (mk.get('stdout', '') | trim) != '') }}"
@@ -332,6 +368,7 @@ announce:
           data:
             chime: "{{ chime_path }}"
             b64: "{{ message | base64_encode }}"
+            end: "{{ end_path }}"
           response_variable: mk
           continue_on_error: true
     - variables:
@@ -382,6 +419,18 @@ announce:
                         continue_on_error: true
                       - delay:
                           seconds: "{{ chime_wait + 0.5 }}"
+                      - if: "{{ end_enabled }}"
+                        then:
+                          - action: media_player.play_media
+                            target:
+                              entity_id: "{{ target_all }}"
+                            data:
+                              media_content_id: "{{ end_url }}"
+                              media_content_type: music
+                              announce: true
+                            continue_on_error: true
+                          - delay:
+                              seconds: "{{ end_wait + 0.5 }}"
                 else:
                   # 2) 提示音：先等開始播放，再等結束；偵測不到播放狀態時改用固定秒數保底
                   - if: "{{ use_chime }}"
@@ -466,6 +515,19 @@ announce:
                         else:
                           - delay:
                               seconds: "{{ tts_wait }}"
+                  # V4.2.3：非合成路徑（merge_audio=false）語音播完後補結束音
+                  - if: "{{ end_enabled }}"
+                    then:
+                      - action: media_player.play_media
+                        target:
+                          entity_id: "{{ target_all }}"
+                        data:
+                          media_content_id: "{{ end_url }}"
+                          media_content_type: music
+                          announce: true
+                        continue_on_error: true
+                      - delay:
+                          seconds: "{{ end_wait + 0.5 }}"
           - delay: "00:00:01"
     # 4) 一定恢復原音量
     - delay: "00:00:02"

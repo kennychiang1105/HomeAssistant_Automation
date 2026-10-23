@@ -115,7 +115,7 @@ SUBGROUPS = {
         ("HA 通知開關", r"notify_ha_|garage_arrival_ha_notify|garage_away_off_ha_notify|notify_tesla_charge_extra_system"),
         ("災害訊息廣播開關", r"announce_disaster_"),
         ("手動廣播與手動通知", r"announce_manual|notify_manual"),
-        ("廣播音量與情境廣播", r"announce_volume|scene_announce"),
+        ("廣播音量與情境廣播", r"announce_volume|scene_announce|announce_end_chime|announce_demo"),
         ("氣氛燈與機台氣氛燈", r"mood_alert|ambient_"),
         ("通知測試按鈕", r"notify_test|tesla_charger_notify_test"),
     ],
@@ -1116,7 +1116,11 @@ def manual_broadcast_section():
             ("input_boolean.announce_manual_si_lou_homepod", "四樓 HomePod mini"), ("input_boolean.announce_manual_che_ku_speaker", "車庫攝影機喇叭"),
             ("input_boolean.announce_manual_wu_lou_speaker", "頂樓攝影機喇叭"), ("input_boolean.announce_manual_clear", "發送後清除內容")]
     btn = manual_button("script.announce_manual", "input_text.announce_manual_result", "發送廣播", "mdi:bullhorn")
-    return heading("手動廣播", "mdi:bullhorn-outline") + entities_card(rows) + btn
+    # V4.2.3（SOP-21）：廣播音效——結束音總開關、試聽類別與試聽按鈕（只播頂樓 HomePod、音量 0.3）
+    snd_rows = [("input_boolean.announce_end_chime_off", "關閉廣播結束音效"), ("input_select.announce_demo_kind", "音效試聽類別（只播頂樓 HomePod）")]
+    snd_btn = manual_button("script.announce_sound_demo", "input_select.announce_demo_kind", "播放廣播音效試聽", "mdi:music-note")
+    return (heading("手動廣播", "mdi:bullhorn-outline") + entities_card(rows) + btn
+            + heading("廣播音效", "mdi:music-note") + entities_card(snd_rows) + snd_btn)
 
 
 def overview_sections(autos, stale):

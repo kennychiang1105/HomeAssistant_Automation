@@ -35,6 +35,7 @@ timer:
     name: 緊急模式快照到期（2 小時）
     duration: "02:00:00"
     icon: mdi:timer-sand
+    restore: true
 template:
   - binary_sensor:
       - name: 緊急模式可還原

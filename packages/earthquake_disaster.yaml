@@ -10,7 +10,8 @@ sensor:
       - updated
     resource: https://alerts.ncdr.nat.gov.tw/JSONAtomFeed.ashx?County=%e8%8b%97%e6%a0%97%e7%b8%a3
     verify_ssl: false
-    value_template: "{{ value_json['entry'][-1]['summary']['#text'] }}"
+    # V4.2.2：HA 狀態上限 255 字元，颱風公報常超過（2026-10-23 達 1380 字）會被改成 unknown、訊息進不來；超長時濃縮成只含本地的版本
+    value_template: "{% from 'notify_body.jinja' import disaster_digest %}{{ disaster_digest(value_json['entry'][-1]['summary']['#text']) }}"
 
   - platform: rest
     name: earthquake_raw
@@ -19,7 +20,7 @@ sensor:
       - updated
     resource: https://alerts.ncdr.nat.gov.tw/JSONAtomFeed.ashx?AlertType=6
     verify_ssl: false
-    value_template: "{{ value_json['entry'][-1]['summary']['#text'] }}"
+    value_template: "{{ value_json['entry'][-1]['summary']['#text'][:255] }}"
 
 #############################################
 # Trigger-based Stable Sensor（接手舊 entity_id）

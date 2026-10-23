@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **141** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **143** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -476,6 +476,65 @@ views:
         label: |
           [[[
             if (states['script.announce_manual'] && states['script.announce_manual'].state === 'on') return '處理中…';
+            const v = (entity && entity.state) || ''; const k = v.lastIndexOf('|');
+            if (k < 0) return '';
+            const age = Date.now() / 1000 - parseInt(v.slice(k + 1), 10);
+            return age >= 0 && age < 15 ? v.slice(0, k) : '';
+          ]]]
+        styles:
+          card:
+            - border-radius: 14px
+            - border: 1.5px solid #0A84FF
+            - padding: 12px
+            - background: transparent
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: 40px 1fr
+            - text-align: left
+          icon:
+            - color: '#0A84FF'
+            - width: 26px
+          name:
+            - color: '#0A84FF'
+            - font-weight: 700
+            - font-size: 15px
+            - justify-self: start
+          label:
+            - font-size: 12px
+            - justify-self: start
+            - color: '#34C759'
+            - font-weight: 600
+      - type: heading
+        heading: "廣播音效"
+        heading_style: title
+        icon: mdi:music-note
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.announce_end_chime_off
+            name: "關閉廣播結束音效"
+          - entity: input_select.announce_demo_kind
+            name: "音效試聽類別（只播頂樓 HomePod）"
+        card_mod: *cm
+      - type: custom:button-card
+        entity: input_select.announce_demo_kind
+        name: 播放廣播音效試聽
+        icon: mdi:music-note
+        show_state: false
+        show_label: true
+        triggers_update: all
+        haptic: success
+        tap_action:
+          action: call-service
+          service: script.announce_sound_demo
+        label: |
+          [[[
+            if (states['script.announce_sound_demo'] && states['script.announce_sound_demo'].state === 'on') return '處理中…';
             const v = (entity && entity.state) || ''; const k = v.lastIndexOf('|');
             if (k < 0) return '';
             const age = Date.now() / 1000 - parseInt(v.slice(k + 1), 10);
@@ -1652,7 +1711,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。　自動化 10 支、可調整項目 41 個"
+        content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。　自動化 10 支、可調整項目 43 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -1798,7 +1857,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "廣播音量與情境廣播（4）"
+        heading: "廣播音量與情境廣播（6）"
         heading_style: title
         card_mod:
           style: |
@@ -1810,12 +1869,16 @@ views:
         entities:
           - entity: input_boolean.scene_announce_enable
             name: "情境執行廣播開關"
+          - entity: input_boolean.announce_end_chime_off
+            name: "關閉廣播結束音效"
           - entity: input_number.announce_volume_general
             name: "廣播音量_一般"
           - entity: input_number.announce_volume_emergency
             name: "廣播音量_緊急"
           - entity: input_number.announce_volume_important
             name: "廣播音量_重要"
+          - entity: input_select.announce_demo_kind
+            name: "廣播音效試聽類別"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -1918,13 +1981,13 @@ views:
         state_color: true
         entities:
           - entity: automation.ai_08_7a_auto_goodnight_scene
-            name: "08-7A自動晚安情境AI (V3.4.0)"
+            name: "08-7A自動晚安情境AI (V4.2.2)"
           - entity: automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0
             name: "100A自動啟動到家早安情境AI (V4.2.0)"
           - entity: automation.ai_auto_leave_system
-            name: "100B自動離家AI (V4.1.6)"
+            name: "100B自動離家AI (V4.2.2)"
           - entity: automation.ai_100c_googlehome_scene_virtual_button_bridge
-            name: "100C GoogleHome情境虛擬按鈕橋接AI (V3.0)"
+            name: "100C GoogleHome情境虛擬按鈕橋接AI (V4.2.2)"
           - entity: automation.wan_an_qing_jing
             name: "100晚安情境"
           - entity: automation.101zao_an_qing_jing
@@ -2066,13 +2129,13 @@ views:
           - entity: automation.800_kai_guan_xi_lie_13_aqaramo_fang_ke_can_ting_duo_gong_kai_guan
             name: "800-開關系列-13 Aqara魔方-客餐廳多工開關"
           - entity: automation.800_kai_guan_xi_lie_13_san_lou_kai_guan_xia_3_dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_0
-            name: "800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14b_san_lou_lou_ti_deng_san_lou_kai_guan_xia_1_san_lou_kai_guan_shang_3dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14c_san_si_lou_lou_ti_deng_san_lou_kai_guan_shang_1_si_lou_kai_guan_xia_3dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14d_si_lou_lou_ti_deng_si_lou_kai_guan_xia_1dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.3)"
+            name: "800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -2264,7 +2327,7 @@ views:
         state_color: true
         entities:
           - entity: automation.ai_08_5a_5f_security_webhook_guard
-            name: "08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)"
+            name: "08-5A 五樓保全系統AI Webhook精準防禦 (V4.2.2)"
           - entity: automation.ai_08_5c_topfloor_stairs_motion_light
             name: "08-5C頂樓樓梯感應燈AI (V4.0.0)"
           - entity: automation.ai_08_5c_topfloor_stairs_motion_light_auto_off
@@ -2310,7 +2373,7 @@ views:
           - entity: automation.08_5iding_lou_kong_diao_guan_bi_que_ren
             name: "08-5I頂樓空調關閉確認"
           - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
-            name: "08-5J頂樓動線推理AI (V4.1.5)"
+            name: "08-5J頂樓動線推理AI (V4.2.2)"
           - entity: automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0
             name: "08-5J頂樓感應週報 (V4.1.5)"
           - entity: automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0
@@ -2335,7 +2398,7 @@ views:
         state_color: true
         entities:
           - entity: automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0
-            name: "08-5K頂樓開機狀態自癒檢查AI (V4.0.0)"
+            name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.a107_11a_single
             name: "800-開關系列-11A 書房燈感應開關單擊"
           - entity: automation.a107_11b
@@ -2512,14 +2575,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 15 支、可調整項目 24 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 16 支、可調整項目 25 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（15）"
+        heading: "自動化開關（16）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -2539,9 +2602,9 @@ views:
           - entity: automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6
             name: "08-7C入侵偵測訊號收集AI (V4.1.6)"
           - entity: automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6
-            name: "08-7D入侵偵測感應器統計AI (V4.2.0)"
+            name: "08-7D入侵偵測感應器統計AI (V4.2.2)"
           - entity: automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6
-            name: "08-7離家入侵偵測AI (V4.2.0)"
+            name: "08-7離家入侵偵測AI (V4.2.2)"
           - entity: automation.ai_doorlock_battery_stage_notify
             name: "100C1客廳門鎖電量分級通知AI (V4.0.0)"
           - entity: automation.ai_doorlock_battery_cycle_calibration
@@ -2566,8 +2629,10 @@ views:
             name: "100C3客廳門鎖電量下降時間紀錄AI (V3.0)"
           - entity: automation.ai_lpr_recognition
             name: "104-2車牌辨識AI (V4.0.0)"
+          - entity: automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2
+            name: "104-3A鐵門開啟時間記錄AI (V4.2.2)"
           - entity: automation.ai_104_3_garage_gate_open_guard_and_autoclose
-            name: "104-3鐵門判斷未關提醒及作動AI (V4.0.0)"
+            name: "104-3鐵門判斷未關提醒及作動AI (V4.2.2)"
           - entity: automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0
             name: "104-4車庫回家通知系統AI (V4.1.5)"
           - entity: automation.tie_men_kai_guan
@@ -2581,7 +2646,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "離家入侵偵測（14）"
+        heading: "離家入侵偵測（15）"
         heading_style: title
         card_mod:
           style: |
@@ -2605,6 +2670,8 @@ views:
             name: "入侵偵測｜全員離家滿幾分鐘才開始"
           - entity: input_number.intrusion_cooldown_min
             name: "入侵偵測｜兩次通知至少間隔（分鐘）"
+          - entity: input_number.intrusion_grace_sec
+            name: "入侵偵測｜判定後先寬限幾秒（等家人回來，家人回到家就不發通知）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2897,9 +2964,9 @@ views:
           - entity: automation.03emiao_li_shu_san_jing_bao
             name: "03E苗栗疏散警報 (V4.0.0)"
           - entity: automation.ai_miaoli_weather_disaster_notify
-            name: "03苗栗天氣告知系統AI (V4.1.5)"
+            name: "03苗栗天氣告知系統AI (V4.2.2)"
           - entity: automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu
-            name: "04苗栗天氣告知系統 (按鈕) (V4.0.0)"
+            name: "04苗栗天氣告知系統 (按鈕) (V4.2.0)"
           - entity: automation.jin_ji_mo_shi
             name: "05A緊急模式"
         card_mod: *cm
@@ -2919,7 +2986,7 @@ views:
         state_color: true
         entities:
           - entity: automation.ai_05b_emergency_mode_notify_v3
-            name: "05B緊急模式通知AI (V4.0.1)"
+            name: "05B緊急模式通知AI (V4.2.2)"
           - entity: automation.ai_05c_emergency_button_auto_reset_v3
             name: "05C按鈕自動復位AI (V3.0)"
           - entity: automation.ai_05d_emergency_virtual_button_bridge_v3
@@ -3034,7 +3101,7 @@ views:
           - entity: automation.07kong_qi_qing_jing_ji_zheng_he_ai_v4_1_0
             name: "07空氣清淨機整合AI (V4.2.0)"
           - entity: automation.ai_living_room_fan_integrated_control
-            name: "21A_客廳電風扇整合控制AI (V4.1.5)"
+            name: "21A_客廳電風扇整合控制AI (V4.2.2)"
           - entity: automation.ai_living_room_fan_anomaly_alert
             name: "21B_客廳電風扇異常告警AI (V4.0.0)"
           - entity: automation.21bxia_ji_mo_shi_zi_dong_pan_duan_ai_v4_1_5
@@ -3226,14 +3293,357 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 24 支、可調整項目 15 個"
+        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 25 支、可調整項目 14 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（24）"
+        heading: "家人裝置追蹤"
+        heading_style: title
+        icon: mdi:account-switch-outline
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: repeat(auto-fit, minmax(290px, 1fr))
+          grid-gap: 10px
+          margin: 0
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: custom:button-card
+                entity: sensor.person_kenny_source_device
+                show_name: false
+                show_icon: false
+                show_state: false
+                triggers_update: all
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - cursor: pointer
+                    - height: auto
+                    - padding: 14px 16px
+                    - border-radius: 18px
+                    - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                    - border: none
+                  grid:
+                    - grid-template-areas: '"body"'
+                    - grid-template-columns: 1fr
+                custom_fields:
+                  body: |
+                    [[[
+                      const k = 'kenny', n = 'Kenny';
+                      const st = (id) => (states[id] ? states[id].state : undefined);
+                      const label = (s) => s === 'home' ? '在家' : (s === 'not_home' ? '離家' : (s || '--'));
+                      const col = (s) => s === 'home' ? '#30D158' : (s === 'not_home' ? '#8E8E93' : '#FF9F0A');
+                      const chip = (s) => `<span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${col(s)}26;color:${col(s)}">${label(s)}</span>`;
+                      const ps = st('person.' + k);
+                      const sn = states['sensor.person_' + k + '_source_device'];
+                      const dev = sn ? sn.state : '--', ent = sn ? (sn.attributes.source_entity || '') : '', dst = sn ? sn.attributes.source_state : undefined;
+                      let watch = '';
+                      if (true) {
+                        const we = st('input_text.watch_tracker_entity_kenny') || '';
+                        const wo = states[we];
+                        const wn = wo ? String(wo.attributes.friendly_name || we).replace(/^(.{3,}?)\s+\1$/, '$1') : (we || '未設定');
+                        watch = `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,120,128,.24)">
+                          <div style="font-size:12px;color:var(--secondary-text-color)">⌚ 手錶追蹤裝置</div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                            <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wn}</span>${wo ? chip(wo.state) : ''}</div>
+                          <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${we}</div></div>`;
+                      }
+                      return `
+                       <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                         <div style="flex:none;width:46px;height:46px;border-radius:13px;background:${col(ps)}26;color:${col(ps)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">${n.slice(0, 1)}</div>
+                         <div style="flex:1;min-width:0">
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                             <span style="font-weight:700;font-size:17px">${n}</span>${chip(ps)}
+                           </div>
+                           <div style="font-size:12px;color:var(--secondary-text-color);margin-top:8px">person.${k} 目前參考的裝置</div>
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                             <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dev}</span>${chip(dst)}
+                           </div>
+                           <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${ent}</div>
+                           ${watch}
+                         </div>
+                       </div>`;
+                    ]]]
+              - type: entities
+                show_header_toggle: false
+                state_color: true
+                entities:
+                  - entity: input_select.person_main_device_kenny
+                    name: "主要裝置"
+                  - entity: input_text.watch_tracker_entity_kenny
+                    name: "手錶追蹤裝置（entity）"
+                card_mod: *cm
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: input_select.person_main_device_kenny
+                    state: "其他（自訂，在下方欄位輸入 device_tracker）"
+                card:
+                  type: entities
+                  show_header_toggle: false
+                  state_color: true
+                  entities:
+                    - entity: input_text.person_main_device_custom_kenny
+                      name: "自訂裝置（device_tracker.xxx）"
+                  card_mod: *cm
+          - type: vertical-stack
+            cards:
+              - type: custom:button-card
+                entity: sensor.person_iris_source_device
+                show_name: false
+                show_icon: false
+                show_state: false
+                triggers_update: all
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - cursor: pointer
+                    - height: auto
+                    - padding: 14px 16px
+                    - border-radius: 18px
+                    - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                    - border: none
+                  grid:
+                    - grid-template-areas: '"body"'
+                    - grid-template-columns: 1fr
+                custom_fields:
+                  body: |
+                    [[[
+                      const k = 'iris', n = 'Iris';
+                      const st = (id) => (states[id] ? states[id].state : undefined);
+                      const label = (s) => s === 'home' ? '在家' : (s === 'not_home' ? '離家' : (s || '--'));
+                      const col = (s) => s === 'home' ? '#30D158' : (s === 'not_home' ? '#8E8E93' : '#FF9F0A');
+                      const chip = (s) => `<span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${col(s)}26;color:${col(s)}">${label(s)}</span>`;
+                      const ps = st('person.' + k);
+                      const sn = states['sensor.person_' + k + '_source_device'];
+                      const dev = sn ? sn.state : '--', ent = sn ? (sn.attributes.source_entity || '') : '', dst = sn ? sn.attributes.source_state : undefined;
+                      let watch = '';
+                      if (false) {
+                        const we = st('input_text.watch_tracker_entity_kenny') || '';
+                        const wo = states[we];
+                        const wn = wo ? String(wo.attributes.friendly_name || we).replace(/^(.{3,}?)\s+\1$/, '$1') : (we || '未設定');
+                        watch = `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,120,128,.24)">
+                          <div style="font-size:12px;color:var(--secondary-text-color)">⌚ 手錶追蹤裝置</div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                            <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wn}</span>${wo ? chip(wo.state) : ''}</div>
+                          <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${we}</div></div>`;
+                      }
+                      return `
+                       <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                         <div style="flex:none;width:46px;height:46px;border-radius:13px;background:${col(ps)}26;color:${col(ps)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">${n.slice(0, 1)}</div>
+                         <div style="flex:1;min-width:0">
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                             <span style="font-weight:700;font-size:17px">${n}</span>${chip(ps)}
+                           </div>
+                           <div style="font-size:12px;color:var(--secondary-text-color);margin-top:8px">person.${k} 目前參考的裝置</div>
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                             <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dev}</span>${chip(dst)}
+                           </div>
+                           <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${ent}</div>
+                           ${watch}
+                         </div>
+                       </div>`;
+                    ]]]
+              - type: entities
+                show_header_toggle: false
+                state_color: true
+                entities:
+                  - entity: input_select.person_main_device_iris
+                    name: "主要裝置"
+                card_mod: *cm
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: input_select.person_main_device_iris
+                    state: "其他（自訂，在下方欄位輸入 device_tracker）"
+                card:
+                  type: entities
+                  show_header_toggle: false
+                  state_color: true
+                  entities:
+                    - entity: input_text.person_main_device_custom_iris
+                      name: "自訂裝置（device_tracker.xxx）"
+                  card_mod: *cm
+          - type: vertical-stack
+            cards:
+              - type: custom:button-card
+                entity: sensor.person_jerry_source_device
+                show_name: false
+                show_icon: false
+                show_state: false
+                triggers_update: all
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - cursor: pointer
+                    - height: auto
+                    - padding: 14px 16px
+                    - border-radius: 18px
+                    - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                    - border: none
+                  grid:
+                    - grid-template-areas: '"body"'
+                    - grid-template-columns: 1fr
+                custom_fields:
+                  body: |
+                    [[[
+                      const k = 'jerry', n = 'Jerry';
+                      const st = (id) => (states[id] ? states[id].state : undefined);
+                      const label = (s) => s === 'home' ? '在家' : (s === 'not_home' ? '離家' : (s || '--'));
+                      const col = (s) => s === 'home' ? '#30D158' : (s === 'not_home' ? '#8E8E93' : '#FF9F0A');
+                      const chip = (s) => `<span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${col(s)}26;color:${col(s)}">${label(s)}</span>`;
+                      const ps = st('person.' + k);
+                      const sn = states['sensor.person_' + k + '_source_device'];
+                      const dev = sn ? sn.state : '--', ent = sn ? (sn.attributes.source_entity || '') : '', dst = sn ? sn.attributes.source_state : undefined;
+                      let watch = '';
+                      if (false) {
+                        const we = st('input_text.watch_tracker_entity_kenny') || '';
+                        const wo = states[we];
+                        const wn = wo ? String(wo.attributes.friendly_name || we).replace(/^(.{3,}?)\s+\1$/, '$1') : (we || '未設定');
+                        watch = `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,120,128,.24)">
+                          <div style="font-size:12px;color:var(--secondary-text-color)">⌚ 手錶追蹤裝置</div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                            <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wn}</span>${wo ? chip(wo.state) : ''}</div>
+                          <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${we}</div></div>`;
+                      }
+                      return `
+                       <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                         <div style="flex:none;width:46px;height:46px;border-radius:13px;background:${col(ps)}26;color:${col(ps)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">${n.slice(0, 1)}</div>
+                         <div style="flex:1;min-width:0">
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                             <span style="font-weight:700;font-size:17px">${n}</span>${chip(ps)}
+                           </div>
+                           <div style="font-size:12px;color:var(--secondary-text-color);margin-top:8px">person.${k} 目前參考的裝置</div>
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                             <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dev}</span>${chip(dst)}
+                           </div>
+                           <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${ent}</div>
+                           ${watch}
+                         </div>
+                       </div>`;
+                    ]]]
+              - type: entities
+                show_header_toggle: false
+                state_color: true
+                entities:
+                  - entity: input_select.person_main_device_jerry
+                    name: "主要裝置"
+                card_mod: *cm
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: input_select.person_main_device_jerry
+                    state: "其他（自訂，在下方欄位輸入 device_tracker）"
+                card:
+                  type: entities
+                  show_header_toggle: false
+                  state_color: true
+                  entities:
+                    - entity: input_text.person_main_device_custom_jerry
+                      name: "自訂裝置（device_tracker.xxx）"
+                  card_mod: *cm
+          - type: vertical-stack
+            cards:
+              - type: custom:button-card
+                entity: sensor.person_elay_source_device
+                show_name: false
+                show_icon: false
+                show_state: false
+                triggers_update: all
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - cursor: pointer
+                    - height: auto
+                    - padding: 14px 16px
+                    - border-radius: 18px
+                    - box-shadow: 0 1px 2px rgba(0,0,0,.18)
+                    - border: none
+                  grid:
+                    - grid-template-areas: '"body"'
+                    - grid-template-columns: 1fr
+                custom_fields:
+                  body: |
+                    [[[
+                      const k = 'elay', n = 'Elay';
+                      const st = (id) => (states[id] ? states[id].state : undefined);
+                      const label = (s) => s === 'home' ? '在家' : (s === 'not_home' ? '離家' : (s || '--'));
+                      const col = (s) => s === 'home' ? '#30D158' : (s === 'not_home' ? '#8E8E93' : '#FF9F0A');
+                      const chip = (s) => `<span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${col(s)}26;color:${col(s)}">${label(s)}</span>`;
+                      const ps = st('person.' + k);
+                      const sn = states['sensor.person_' + k + '_source_device'];
+                      const dev = sn ? sn.state : '--', ent = sn ? (sn.attributes.source_entity || '') : '', dst = sn ? sn.attributes.source_state : undefined;
+                      let watch = '';
+                      if (false) {
+                        const we = st('input_text.watch_tracker_entity_kenny') || '';
+                        const wo = states[we];
+                        const wn = wo ? String(wo.attributes.friendly_name || we).replace(/^(.{3,}?)\s+\1$/, '$1') : (we || '未設定');
+                        watch = `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,120,128,.24)">
+                          <div style="font-size:12px;color:var(--secondary-text-color)">⌚ 手錶追蹤裝置</div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                            <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wn}</span>${wo ? chip(wo.state) : ''}</div>
+                          <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${we}</div></div>`;
+                      }
+                      return `
+                       <div style="display:flex;align-items:center;gap:12px;text-align:left">
+                         <div style="flex:none;width:46px;height:46px;border-radius:13px;background:${col(ps)}26;color:${col(ps)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">${n.slice(0, 1)}</div>
+                         <div style="flex:1;min-width:0">
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                             <span style="font-weight:700;font-size:17px">${n}</span>${chip(ps)}
+                           </div>
+                           <div style="font-size:12px;color:var(--secondary-text-color);margin-top:8px">person.${k} 目前參考的裝置</div>
+                           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
+                             <span style="font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dev}</span>${chip(dst)}
+                           </div>
+                           <div style="font-size:11px;opacity:.65;word-break:break-all;margin-top:1px">${ent}</div>
+                           ${watch}
+                         </div>
+                       </div>`;
+                    ]]]
+              - type: entities
+                show_header_toggle: false
+                state_color: true
+                entities:
+                  - entity: input_select.person_main_device_elay
+                    name: "主要裝置"
+                card_mod: *cm
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: input_select.person_main_device_elay
+                    state: "其他（自訂，在下方欄位輸入 device_tracker）"
+                card:
+                  type: entities
+                  show_header_toggle: false
+                  state_color: true
+                  entities:
+                    - entity: input_text.person_main_device_custom_elay
+                      name: "自訂裝置（device_tracker.xxx）"
+                  card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: markdown
+        content: "<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。清單沒有的裝置選「其他」，再輸入 device_tracker.xxx（小寫英數底線，可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。</sub>"
+        card_mod:
+          style: |
+            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "自動化開關（25）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -3247,7 +3657,7 @@ views:
           - entity: automation.ai_00_01_system_stability_auto_restart
             name: "00-01系統回應穩定自動化AI (V4.0.0)"
           - entity: automation.ai_00_01_unifi_protect_watchdog
-            name: "00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V4.0.0)"
+            name: "00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V4.2.2)"
           - entity: automation.ai_00_01_xiaoyan_gateway_watchdog
             name: "00-01系統回應穩定自動化AI_小燕網關看門狗 (V4.0.0)"
           - entity: automation.00_2hdeng_kuang_ji_yi_ai_v4_0_0
@@ -3255,11 +3665,13 @@ views:
           - entity: automation.00_2ikuai_zhao_qing_li_ai_v4_0_0
             name: "00-2I快照清理AI (V4.0.0)"
           - entity: automation.00_2jqi_fen_deng_qing_jing_tong_bu_ai_v4_0_0
-            name: "00-2J氣氛燈情境同步AI (V4.1.6)"
+            name: "00-2J氣氛燈情境同步AI (V4.2.2)"
           - entity: automation.00_2kding_lou_can_shu_chu_shi_hua_ai_v4_0_0
             name: "00-2K頂樓參數初始化AI (V4.0.0)"
           - entity: automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0
             name: "00-2L廣播快取暖機AI (V4.0.0)"
+          - entity: automation.00_2mshi_ti_yin_yong_jian_cha_ai_v4_0_0
+            name: "00-2M實體引用檢查AI (V4.1.6)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -3276,14 +3688,14 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.00_2mshi_ti_yin_yong_jian_cha_ai_v4_0_0
-            name: "00-2M實體引用檢查AI (V4.1.6)"
           - entity: automation.00_2pmen_suo_dian_liang_mei_ri_ji_lu_ai_v4_0_0
             name: "00-2P門鎖電量每日紀錄AI (V4.0.0)"
           - entity: automation.00_2qdian_chi_yu_gu_geng_xin_ai_v4_1_6
             name: "00-2Q電池預估更新AI (V4.1.6)"
           - entity: automation.00_2rhuan_jing_bu_kong_pin_geng_xin_ai_v4_1_6
             name: "00-2R環境部空品更新AI (V4.1.6)"
+          - entity: automation.00_2sjia_ren_zhu_yao_zhuang_zhi_qie_huan_ai_v4_2_0
+            name: "00-2S家人主要裝置切換AI (V4.2.0)"
           - entity: automation.00_3shi_xiao_shi_ti_xun_jian_ai_v4_1_0
             name: "00-3失效實體巡檢AI (V4.1.0)"
           - entity: automation.09a_homepodzi_dong_kai_qi_yao_kong
@@ -3291,7 +3703,9 @@ views:
           - entity: automation.09b_homepod_sensor_sync
             name: "09B-Homepod Sensor sync"
           - entity: automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6
-            name: "09C電視待機喚醒AI (V4.1.6)"
+            name: "09C電視待機喚醒AI (V4.2.2)"
+          - entity: automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6
+            name: "09C電視紅外線開關自動復位AI (V4.2.2)"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3307,12 +3721,10 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6
-            name: "09C電視紅外線開關自動復位AI (V4.1.6)"
           - entity: automation.106_2_mai_ke_feng
             name: "106-2 五樓攝影機麥克風同步"
           - entity: automation.106dwang_guan_qie_huan_tong_bu_aqarakai_guan_ai_v4_1_6
-            name: "106D網關切換同步Aqara開關AI (V4.1.6)"
+            name: "106D網關切換同步Aqara開關AI (V4.2.2)"
           - entity: automation.ai_gateway_anomaly_guard
             name: "106網關系統AI (V4.1.5)"
           - entity: automation.ai_107_tesla_charger_status_notify
@@ -3372,23 +3784,6 @@ views:
             name: "自動化更新包版本（手動）"
           - entity: input_text.automation_framework_version_manual
             name: "自動化架構版本（手動）"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "家人定位追蹤（1）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_text.watch_tracker_entity_kenny
-            name: "Kenny Watch Tracker Entity"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3636,7 +4031,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "情境（16）"
+        heading: "情境（18）"
         heading_style: title
         card_mod:
           style: |
@@ -3662,6 +4057,8 @@ views:
             name: "Google 到家情境按鈕"
           - entity: input_boolean.google_scene_zao_an_trigger
             name: "Google 早安情境按鈕"
+          - entity: input_boolean.google_scene_wan_an_trigger
+            name: "Google 晚安情境按鈕"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3676,8 +4073,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_boolean.google_scene_wan_an_trigger
-            name: "Google 晚安情境按鈕"
           - entity: input_boolean.hk_scene_home
             name: "HomeKit 到家情境按鈕"
           - entity: input_boolean.hk_scene_goodmorning
@@ -3686,6 +4081,10 @@ views:
             name: "HomeKit 晚安情境按鈕"
           - entity: input_boolean.hk_scene_away
             name: "HomeKit 離家情境按鈕"
+          - entity: input_datetime.auto_scene_earliest_holiday
+            name: "自動情境最早啟動（假日）"
+          - entity: input_datetime.auto_scene_earliest_workday
+            name: "自動情境最早啟動（平日）"
           - entity: input_datetime.aqara_last_away_goodnight_triggered
             name: "離家/晚安情境最後觸發時間"
           - entity: input_text.auto_scene_last
@@ -4064,7 +4463,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他（7）"
+        heading: "其他（8）"
         heading_style: title
         card_mod:
           style: |
@@ -4088,4 +4487,6 @@ views:
             name: "熟睡鎖最早解鎖（假日醒來）"
           - entity: input_datetime.sleep_unlock_workday
             name: "熟睡鎖最早解鎖（平日醒來）"
+          - entity: input_datetime.garage_gate_opened_at
+            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
         card_mod: *cm

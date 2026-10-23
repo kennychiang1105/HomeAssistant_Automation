@@ -4,3 +4,10 @@ input_boolean:
   garage_away_off_ha_notify:
     name: 104-1C全員離家關燈_HA通知
     icon: mdi:garage-variant
+
+input_datetime:
+  garage_gate_opened_at:
+    name: 車庫鐵門開啟時間（SOP-20 重啟接續）
+    has_date: true
+    has_time: true
+    icon: mdi:garage-open

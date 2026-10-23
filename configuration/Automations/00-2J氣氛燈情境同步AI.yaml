@@ -1,7 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 00-2J氣氛燈情境同步AI (V4.0.1)
+# 00-2J氣氛燈情境同步AI (V4.2.2)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後（避開提醒閃燈）依目前情境自動同步機台氣氛燈顏色。
 # - V4.1.6（2026-10-15）：新增觸發：兩台可換色機台（一樓 mesh、四樓 extender）重開機／更新後 60 秒自動重新套用目前情境顏色（原本更新後 LED 變回預設色）。
 # - V4.1.0（2026-10-10）：早安／到家判斷可改用日出日落時間窗（input_boolean.scene_window_use_sun，預設開；關閉則退回 06:00～17:00）。
 # - V4.0.1（2026-10-10）：新增觸發：按情境（早安／到家／離家／晚安）時，即使網關模式沒變也重新套用顏色（原本只在模式改變才同步，已在家模式再按早安不會換色，手動改過的網關 LED 無法一鍵還原）。
@@ -9,7 +10,7 @@
 #           呼叫 script.ambient_scene 替 UniFi 機台 LED 換色：離家=紅、晚安=暖橘、早安（06~17 點）=綠、到家=綠。
 #           不管情境是實體開關、HomeKit、定位或手動觸發，只要網關模式改變都會同步。
 # ────────────────────────────────────────────────────────
-- alias: 00-2J氣氛燈情境同步AI (V4.1.6)
+- alias: 00-2J氣氛燈情境同步AI (V4.2.2)
   id: ai_00_2j_ambient_scene_sync
   description: 依網關模式（離家/晚安/在家）同步機台氣氛燈顏色
   mode: restart
@@ -43,8 +44,11 @@
         - automation.101li_jia_qing_jing
         - automation.wan_an_qing_jing
       attribute: last_triggered
+    - trigger: homeassistant
+      event: start
+      id: ha_start
   action:
-    - if: "{{ trigger.id | default('') == 'unifi_reboot' }}"
+    - if: "{{ trigger.id | default('') in ['unifi_reboot', 'ha_start'] }}"
       then:
         - delay: "00:01:00"
         # 氣氛燈提醒（通知閃燈）進行中就等它結束，避免和提醒顏色打架
