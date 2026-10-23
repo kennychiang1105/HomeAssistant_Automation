@@ -53,7 +53,7 @@
         - action: script.announce
           data:
             level: important
-            chime_media: media-source://media_source/local/chime_doorbell.mp3
+            kind: visitor
             chime_media_s: 2.6
             message: "大門有人按門鈴！請注意門外來訪客人。"
             player: media_player.guang_bo_qun_zu_all

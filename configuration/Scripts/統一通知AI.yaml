@@ -255,16 +255,16 @@ announce:
     lv: "{{ level if level in ['general','important','emergency'] else 'general' }}"
     # V4.2.3（SOP-21）：依「類別」決定開始音與配對的結束音（音效由 scripts/make_chimes.py 產生）
     kinds: >-
-      {{ {'notice_general':   {'start':'chime_general.mp3',      's':0.95, 'end':'notice_end_general.mp3',   'e':0.85},
-          'notice_important': {'start':'chime_important.mp3',    's':1.10, 'end':'notice_end_important.mp3', 'e':0.89},
-          'quake':            {'start':'CWBEEW.mp3',             's':3.30, 'end':'quake_end.mp3',            'e':0.83},
-          'quake_report':     {'start':'quake_report_start.mp3', 's':1.02, 'end':'quake_end.mp3',            'e':0.83},
-          'evac':             {'start':'evac_start.mp3',         's':2.03, 'end':'evac_end.mp3',             'e':1.20},
-          'emergency':        {'start':'emergency_start.mp3',    's':1.42, 'end':'emergency_end.mp3',        'e':0.97},
-          'security':         {'start':'security_start.mp3',     's':1.55, 'end':'security_end.mp3',         'e':0.78},
-          'weather':          {'start':'weather_start.mp3',      's':1.50, 'end':'weather_end.mp3',          'e':1.14},
-          'visitor':          {'start':'chime_doorbell.mp3',     's':2.60, 'end':'visitor_end.mp3',          'e':0.91},
-          'scene':            {'start':'scene_ding.mp3',         's':0.75, 'end':'scene_end.mp3',            'e':0.60}} }}
+      {{ {'notice_general': {'start':'notice_general_start.mp3', 's':2.82, 'end':'notice_general_end.mp3', 'e':2.22},
+          'notice_important': {'start':'notice_important_start.mp3', 's':2.89, 'end':'notice_important_end.mp3', 'e':2.31},
+          'quake': {'start':'quake_start.mp3', 's':2.16, 'end':'quake_end.mp3', 'e':1.42},
+          'quake_report': {'start':'quake_report_start.mp3', 's':1.44, 'end':'quake_end.mp3', 'e':1.42},
+          'evac': {'start':'evac_start.mp3', 's':3.09, 'end':'evac_end.mp3', 'e':1.84},
+          'emergency': {'start':'emergency_start.mp3', 's':2.62, 'end':'emergency_end.mp3', 'e':1.57},
+          'security': {'start':'security_start.mp3', 's':2.77, 'end':'security_end.mp3', 'e':2.10},
+          'weather': {'start':'weather_start.mp3', 's':2.97, 'end':'weather_end.mp3', 'e':2.29},
+          'visitor': {'start':'visitor_start.mp3', 's':2.94, 'end':'visitor_end.mp3', 'e':1.77},
+          'scene': {'start':'scene_start.mp3', 's':2.10, 'end':'scene_end.mp3', 'e':1.41}} }}
     kind_eff: "{{ kind if (kind is defined and kind in kinds) else {'general': 'notice_general', 'important': 'notice_important', 'emergency': 'emergency'}[lv] }}"
     cfg: >-
       {{ {'chime': 'media-source://media_source/local/' ~ kinds[kind_eff].start, 'vol': 0.65, 'chime_s': kinds[kind_eff].s} }}
