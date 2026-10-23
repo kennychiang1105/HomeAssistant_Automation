@@ -2,6 +2,7 @@
 # 00-01系統回應穩定自動化AI (V4.0.0)
 # 相容版本：Helpers V3.12.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 UnifiProtect 看門狗 HA 重啟接手（ha_start）：重啟後重新啟動 1 小時看門狗計時，保護 trigger.entity_id 避免模板未定義錯誤。
 # - V4.0.0（2026-10-11，隨 V4.1.5）：AI 4.0 版號統一（本檔三支自動化皆升為 V4.0.0）；週期重啟的 hassio.host_reboot 加 continue_on_error，避免主機關機時 dbus 斷線被記成 ERROR（主機實際有重啟）。
 # - V3.0.3：修補版。將 ai_00_01_unifi_protect_watchdog 的 mode 由 single 改為 restart，
 #   避免在家/鐵門多次觸發時 1 小時 delay 尚未完成就被封鎖並丟棄後續觸發。
@@ -97,12 +98,15 @@
         entry_id: 943e593a9b076c8f44717a2563e66182
 
 - id: ai_00_01_unifi_protect_watchdog
-  alias: 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V4.0.0)
+  alias: 00-01系統回應穩定自動化AI_UnifiProtect看門狗 (V4.2.2)
   description: 有人在家或鐵門狀態變化後，若 1 小時內攝影機相關狀態無變更則重載 Unifi Protect integration。
   mode: restart
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.2.2"
   triggers:
+    - trigger: homeassistant
+      event: start
+      id: ha_start
     - trigger: state
       entity_id:
         - binary_sensor.at_home_anyone_home
@@ -112,17 +116,19 @@
   conditions:
     - condition: or
       conditions:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
         - condition: state
           entity_id: binary_sensor.at_home_anyone_home
           state: "on"
         - condition: template
-          value_template: "{{ trigger.entity_id == 'cover.garage' }}"
+          value_template: "{{ trigger.entity_id is defined and trigger.entity_id == 'cover.garage' }}"
   actions:
     - action: logbook.log
       data:
         name: 00-01系統回應穩定自動化AI
         message: >-
-          Unifi Protect 看門狗開始觀察 1 小時（觸發來源={{ trigger.entity_id }}；from={{ trigger.from_state.state if trigger.from_state else 'n/a' }}；to={{ trigger.to_state.state if trigger.to_state else 'n/a' }}）。
+          Unifi Protect 看門狗開始觀察 1 小時（觸發來源={{ trigger.entity_id if trigger.entity_id is defined else trigger.id | default('ha_start') }}；from={{ trigger.from_state.state if (trigger.from_state is defined and trigger.from_state) else 'n/a' }}；to={{ trigger.to_state.state if (trigger.to_state is defined and trigger.to_state) else 'n/a' }}）。
     - delay: "01:00:00"
     - choose:
         - conditions:

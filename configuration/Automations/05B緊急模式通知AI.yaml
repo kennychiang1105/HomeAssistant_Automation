@@ -1,13 +1,17 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後若緊急模式仍開啟，僅發送一則 HA info 級系統通知（不發 LINE、不重複洗版）。
 # - V4.0.1（2026-10-10）：「復原方式」文字補上「按解除網關警報可還原緊急模式前的狀態（2 小時內）」。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 相容版本：Helpers V3.9（已確認）
 - id: ai_05b_emergency_mode_notify_v3
-  alias: 05B緊急模式通知AI (V4.0.1)
+  alias: 05B緊急模式通知AI (V4.2.2)
   description: 緊急模式來源辨識與通知（含地震流程去重）。
   variables:
-    automation_version: 'V4.0.1'
+    automation_version: 'V4.2.2'
   triggers:
+  - trigger: homeassistant
+    event: start
+    id: ha_start
   - trigger: state
     entity_id:
     - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
@@ -22,6 +26,31 @@
     - input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
   conditions: []
   actions:
+  - if:
+      - condition: template
+        value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+    then:
+      - delay: "00:01:00"
+      - if:
+          - condition: template
+            value_template: >-
+              {{ is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit', 'on')
+                 or is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto', 'on')
+                 or is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual', 'on')
+                 or is_state('input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu', 'on') }}
+        then:
+          - action: script.notify_dispatch
+            data:
+              level: info
+              line: false
+              source: "05B緊急模式通知AI (V4.2.2)"
+              version: "{{ automation_version }}"
+              title: 緊急模式持續中（重啟接續）
+              message: |-
+                系統重啟後偵測到緊急模式仍處於開啟狀態。
+                照明已全開，電器已關閉。
+                若要恢復狀態，可在「家庭」App 點選「早安」或「到家」，或按「解除網關警報」還原快照。
+      - stop: "HA 重啟檢查完成"
   - choose:
     - conditions:
       - condition: state

@@ -1,6 +1,7 @@
 ﻿# ──────────────────────────────────────────────
 # 08-7離家入侵偵測AI (V4.2.2)  ／  08-7D入侵偵測感應器統計AI (V4.2.0)
 # 更新紀錄：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後若仍為離家模式、無人在家且有 2 個以上感應訊號，從 45 秒寬限重新起算並評估，保護 trigger.id 避免未定義錯誤。
 # - V4.2.2（2026-10-22）：新增寬限 intrusion_grace_sec（預設 45 秒，面板可調 0～300）：2 個訊號成立後先等這段時間再檢查一次，家人已經回到家（手機連上 Wi-Fi 或網關切到在家）就完全不發通知；
 #   2026-10-22 14:29 家人開車回家，車庫攝影機動作先觸發緊急通知、幾秒後才被取消。同一台實體裝置也只算一個訊號（見入侵警報AI）。
 # - V4.2.0（2026-10-18）：移除影子模式（intrusion_watch_shadow 與 shadow 模式），判定成立後直接正式通知、廣播並倒數觸發網關警報；乾跑（test: dry）與 LINE 測試模式保留。
@@ -22,6 +23,9 @@
   max: 30
   max_exceeded: silent
   triggers:
+    - trigger: homeassistant
+      id: ha_start
+      event: start
     - trigger: event
       id: signal
       event_type: intrusion_signal
@@ -32,8 +36,8 @@
         - unavailable
         - unknown
   variables:
-    automation_version: "V4.1.6"
-    ev: "{{ trigger.event.data if trigger.id == 'signal' else {} }}"
+    automation_version: "V4.2.2"
+    ev: "{{ trigger.event.data if (trigger.id is defined and trigger.id == 'signal' and trigger.event is defined) else {} }}"
     dry: "{{ ev.get('test', '') == 'dry' }}"
     ent: "{{ ev.get('entity_id', '') }}"
     role: "{{ ev.get('role', '') }}"
@@ -68,6 +72,54 @@
 
                   ※ 送出一次後，測試模式會自動關閉。
         - stop: "測試按鈕"
+    - if: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:01:00"
+        - if:
+            - condition: template
+              value_template: >-
+                {{ is_state('input_boolean.intrusion_watch_enable', 'on')
+                   and is_state('binary_sensor.at_home_nobody_home', 'on')
+                   and is_state('input_boolean.aqara_li_jia', 'on')
+                   and is_state('input_boolean.aqara_zai_jia', 'off') }}
+          then:
+            # 檢查近期有效訊號清單中是否有 2 個以上不同裝置的訊號
+            - variables:
+                now_ts: "{{ now().timestamp() }}"
+                win_s: "{{ (states('input_number.intrusion_window_min') | float(5)) * 60 }}"
+                raw: "{{ states('input_text.intrusion_recent') }}"
+                recent_count: >-
+                  {% macro dk(e) %}{{ (device_attr(device_id(e), 'name') if device_id(e) else '') or e }}{% endmacro %}
+                  {% set ns = namespace(devs=[]) %}
+                  {% for it in (raw.split(';') if raw not in ['unknown', 'unavailable', ''] else []) %}
+                    {% set p = it.split('@') %}
+                    {% if p | length == 2 and (now_ts - (p[1] | float(0))) <= win_s %}
+                      {% set dev = dk(p[0]) | trim %}
+                      {% if dev not in ns.devs %}
+                        {% set ns.devs = ns.devs + [dev] %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.devs | count }}
+            - if:
+                - condition: template
+                  value_template: "{{ recent_count | int(0) >= 2 }}"
+              then:
+                # 重新從 45 秒寬限開始重新計算
+                - delay:
+                    seconds: "{{ states('input_number.intrusion_grace_sec') | float(45) }}"
+                - if:
+                    - condition: template
+                      value_template: >-
+                        {{ is_state('binary_sensor.at_home_nobody_home', 'on')
+                           and is_state('input_boolean.aqara_li_jia', 'on')
+                           and is_state('input_boolean.aqara_zai_jia', 'off') }}
+                  then:
+                    - action: script.intrusion_alert
+                      data:
+                        names: 重啟接續疑似入侵訊號
+                        mode: real
+        - stop: "HA 重啟接手檢查完畢" 
     - alias: "總開關"
       condition: state
       entity_id: input_boolean.intrusion_watch_enable

@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 08-5A五樓保全系統AI (V4.0.0)
-# 相容版本：Helpers V3.14（已確認）
+# 08-5A五樓保全系統AI (V4.2.2)
+# 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟時自動復位解除開關旗標，避免重啟殘留解除狀態。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V3.3.1：修補版；補強手動執行時 trigger 未定義防呆，並修復 LINE user_id unknown 時 fallback 失效。
 # - V3.3：功能版；五樓保全威脅判斷改為只使用三條跨線 Webhook 時間鏈，移除原感應器威脅觸發以避免誤報；保留手動/自動保全模式、手動解除復位與 SOP-10 LINE 防呆。
@@ -10,13 +11,13 @@
 # ─────────────────────────────────────────────────────────────
 
 - id: ai_08_5a_5f_security_webhook_guard
-  alias: 08-5A 五樓保全系統AI Webhook精準防禦 (V4.0.0)
+  alias: 08-5A 五樓保全系統AI Webhook精準防禦 (V4.2.2)
   description: >
     五樓保全 AI 管理流程：只利用 5fbedroomline / 5fstudyroomline / 5fstairsline
     的跨線時間鏈判斷是否進入房間防區，避免原感應器造成誤報；支援手動強防禦、無人在家自動盯防、手動解除復位與 LINE 分級防呆。
   mode: restart
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.2.2"
     trigger_kind: "{{ trigger.id if trigger is defined and trigger is not none else 'unknown' }}"
     now_ts: "{{ as_timestamp(now()) }}"
     last_bedroom_ts: "{{ as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) }}"
@@ -35,6 +36,9 @@
     important_line_allowed: "{{ is_state('input_boolean.notify_line_important_enable', 'on') }}"
     emergency_line_allowed: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
   triggers:
+    - id: ha_start
+      trigger: homeassistant
+      event: start
     - id: manual_clear
       trigger: state
       entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
@@ -53,10 +57,29 @@
       local_only: true
   conditions: []
   actions:
+    - if:
+        - condition: template
+          value_template: "{{ trigger_kind == 'ha_start' }}"
+      then:
+        - delay: "00:00:30"
+        - if:
+            - condition: state
+              entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+              state: "on"
+          then:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.wu_lou_bao_quan_jie_chu_kai_guan
+            - action: logbook.log
+              data:
+                name: 五樓保全
+                message: 重啟自癒：五樓保全解除開關已重置為關閉
+              continue_on_error: true
+        - stop: "HA 重啟自癒完成"
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ trigger_kind == 'manual_clear' }}"
+              value_template: "{{ trigger_kind == 'manual_clear' }}" 
           sequence:
             - action: media_player.media_stop
               target:

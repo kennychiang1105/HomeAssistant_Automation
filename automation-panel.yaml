@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **142** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **141** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -1899,14 +1899,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 15 支、可調整項目 12 個"
+        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 14 支、可調整項目 12 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（15）"
+        heading: "自動化開關（14）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -1931,8 +1931,6 @@ views:
             name: "101早安情境"
           - entity: automation.101li_jia_qing_jing
             name: "102離家情境"
-          - entity: automation.103dao_jia_qing_jing
-            name: "103到家情境"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -1949,14 +1947,14 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: automation.103dao_jia_qing_jing
+            name: "103到家情境"
           - entity: automation.107_0b_ke_ting_zhu_kai_guan_xia_3_zao_an_dao_jia
             name: "800-開關系列-0B 客廳主開關下3-早安到家"
           - entity: automation.107chu_fang_kai_guan_3zao_an_dao_jia
             name: "800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家"
           - entity: automation.800_kai_guan_xi_lie_1b_can_ting_ce_suo_kai_guan_3_li_jia_wan_an_yu_lou_ti_deng
             name: "800-開關系列-1B-餐廳廁所開關3-離家晚安與樓梯燈"
-          - entity: automation.107_1bke_ting_zhu_kai_guan_3_wan_an_li_jia
-            name: "800-開關系列-1B客廳主開關下3-晚安離家"
           - entity: automation.107_2chu_fang_kai_guan_3li_jia_wan_an
             name: "800-開關系列-1廚房開關3/車庫主開關1/客廳外開關下3-離家晚安"
           - entity: automation.aili_jia_ban_ben_tong_bu_qi_v3_0
@@ -2066,13 +2064,13 @@ views:
           - entity: automation.800_kai_guan_xi_lie_13_aqaramo_fang_ke_can_ting_duo_gong_kai_guan
             name: "800-開關系列-13 Aqara魔方-客餐廳多工開關"
           - entity: automation.800_kai_guan_xi_lie_13_san_lou_kai_guan_xia_3_dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_0
-            name: "800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14b_san_lou_lou_ti_deng_san_lou_kai_guan_xia_1_san_lou_kai_guan_shang_3dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14c_san_si_lou_lou_ti_deng_san_lou_kai_guan_shang_1_si_lou_kai_guan_xia_3dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.2)"
+            name: "800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
           - entity: automation.800_kai_guan_xi_lie_14d_si_lou_lou_ti_deng_si_lou_kai_guan_xia_1dan_ji_ding_shi_3fen_zhong_guan_deng_ai_v4_1_1
-            name: "800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.1.3)"
+            name: "800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -2302,7 +2300,7 @@ views:
           - entity: automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0
             name: "08-5G 書房燈無人檢查AI (V4.1.5)"
           - entity: automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0
-            name: "08-5G 書房燈關閉AI (V4.1.5)"
+            name: "08-5G 書房燈關閉AI (V4.2.2)"
           - entity: automation.ai_08_5h_topfloor_deep_sleep_scene_guard
             name: "08-5H頂樓深夜熟睡情境AI (V4.3.0)"
           - entity: automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0
@@ -2335,7 +2333,7 @@ views:
         state_color: true
         entities:
           - entity: automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0
-            name: "08-5K頂樓開機狀態自癒檢查AI (V4.0.0)"
+            name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.a107_11a_single
             name: "800-開關系列-11A 書房燈感應開關單擊"
           - entity: automation.a107_11b
@@ -2512,7 +2510,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 15 支、可調整項目 24 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 15 支、可調整項目 25 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2539,9 +2537,9 @@ views:
           - entity: automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6
             name: "08-7C入侵偵測訊號收集AI (V4.1.6)"
           - entity: automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6
-            name: "08-7D入侵偵測感應器統計AI (V4.2.0)"
+            name: "08-7D入侵偵測感應器統計AI (V4.2.2)"
           - entity: automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6
-            name: "08-7離家入侵偵測AI (V4.2.0)"
+            name: "08-7離家入侵偵測AI (V4.2.2)"
           - entity: automation.ai_doorlock_battery_stage_notify
             name: "100C1客廳門鎖電量分級通知AI (V4.0.0)"
           - entity: automation.ai_doorlock_battery_cycle_calibration
@@ -2581,7 +2579,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "離家入侵偵測（14）"
+        heading: "離家入侵偵測（15）"
         heading_style: title
         card_mod:
           style: |
@@ -2605,6 +2603,8 @@ views:
             name: "入侵偵測｜全員離家滿幾分鐘才開始"
           - entity: input_number.intrusion_cooldown_min
             name: "入侵偵測｜兩次通知至少間隔（分鐘）"
+          - entity: input_number.intrusion_grace_sec
+            name: "入侵偵測｜判定後先寬限幾秒（等家人回來，家人回到家就不發通知）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2897,7 +2897,7 @@ views:
           - entity: automation.03emiao_li_shu_san_jing_bao
             name: "03E苗栗疏散警報 (V4.0.0)"
           - entity: automation.ai_miaoli_weather_disaster_notify
-            name: "03苗栗天氣告知系統AI (V4.2.0)"
+            name: "03苗栗天氣告知系統AI (V4.2.2)"
           - entity: automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu
             name: "04苗栗天氣告知系統 (按鈕) (V4.2.0)"
           - entity: automation.jin_ji_mo_shi
@@ -3598,7 +3598,7 @@ views:
           - entity: automation.00_2ikuai_zhao_qing_li_ai_v4_0_0
             name: "00-2I快照清理AI (V4.0.0)"
           - entity: automation.00_2jqi_fen_deng_qing_jing_tong_bu_ai_v4_0_0
-            name: "00-2J氣氛燈情境同步AI (V4.1.6)"
+            name: "00-2J氣氛燈情境同步AI (V4.2.2)"
           - entity: automation.00_2kding_lou_can_shu_chu_shi_hua_ai_v4_0_0
             name: "00-2K頂樓參數初始化AI (V4.0.0)"
           - entity: automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0
@@ -3657,7 +3657,7 @@ views:
           - entity: automation.106_2_mai_ke_feng
             name: "106-2 五樓攝影機麥克風同步"
           - entity: automation.106dwang_guan_qie_huan_tong_bu_aqarakai_guan_ai_v4_1_6
-            name: "106D網關切換同步Aqara開關AI (V4.1.6)"
+            name: "106D網關切換同步Aqara開關AI (V4.2.2)"
           - entity: automation.ai_gateway_anomaly_guard
             name: "106網關系統AI (V4.1.5)"
           - entity: automation.ai_107_tesla_charger_status_notify

@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-3鐵門判斷未關提醒及作動AI (V4.0.0)
-# 相容版本：Helpers V3.14.1（已確認）
+# 104-3鐵門判斷未關提醒及作動AI (V4.2.2)
+# 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增開門時間戳記錄（garage_gate_opened_at）與 HA 重啟接手（ha_start）：重啟 1 分鐘後精確計算已開門時間，接續等待剩餘秒數並自動提醒/關門。
 # - V4.0.0：「鐵門開啟超過 10 分鐘」通知改為單一緊急級扁平卡片（HA + LINE），附車庫攝影機截圖與鐵門圖示。
 # - V4.0.0：外網網址改用 family.kteam.tw（截圖/圖示/轉址頁）。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -12,7 +13,7 @@
 # - V3.1：改以 automation.tie_men_kai_guan 執行關門；修正執行期變數時機；LINE 改用 line_bot_target_user_id + tojson。
 # - V3.0：由「08鐵門判斷未關提醒V2」獨立重構；新增 10 分鐘提醒後 2 分鐘關門觀察與自動關門/取消通知。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-3鐵門判斷未關提醒及作動AI (V4.0.0)
+- alias: 104-3鐵門判斷未關提醒及作動AI (V4.2.2)
   id: ai_104_3_garage_gate_open_guard_and_autoclose
   description: >
     鐵門開啟達 10 分鐘且車庫無人車活動時先提醒；接續 2 分鐘觀察期，若無人車移動且車庫主燈狀態未改變則自動關門。
@@ -20,14 +21,21 @@
   mode: single
 
   triggers:
-    - platform: state
+    - id: gate_state_change
+      platform: state
+      entity_id: cover.garage
+    - id: timed_10min
+      platform: state
       entity_id: cover.garage
       to: "open"
       for:
         minutes: 10
+    - id: ha_start
+      platform: homeassistant
+      event: start
 
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.2.2"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_important: "【智慧保全通知AI ({{ automation_version }})】重要 Important ⚠️"
     notif_title_emergency: "【智慧保全通知AI ({{ automation_version }})】緊急 Emergency 🚨"
@@ -43,19 +51,94 @@
     line_important_skip_reason: >-
       {{ 'LINE user_id 無效' if line_bot_target_user_id|trim|lower in ['unknown','unavailable','none','null',''] else '重要通知開關未開啟' }}
 
-  conditions:
-    - condition: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-      state: "off"
-      for:
-        minutes: 3
-    - condition: state
-      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-      state: "off"
-      for:
-        minutes: 3
+  conditions: []
 
   actions:
+    # 1. 鐵門開關狀態變化時，維護開啟時間戳
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'gate_state_change' }}"
+      then:
+        - if:
+            - condition: state
+              entity_id: cover.garage
+              state: "open"
+          then:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.garage_gate_opened_at
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          else:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.garage_gate_opened_at
+              data:
+                datetime: "1970-01-01 00:00:00"
+        - stop: "鐵門狀態時間戳已更新"
+
+    # 2. HA 重啟接手處理
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:01:00"
+        - if:
+            - condition: not
+              conditions:
+                - condition: state
+                  entity_id: cover.garage
+                  state: "open"
+          then:
+            - stop: "鐵門未開啟，重啟接手結束"
+        - variables:
+            opened_raw: "{{ states('input_datetime.garage_gate_opened_at') }}"
+            opened_ts: "{{ as_timestamp(opened_raw, 0) if opened_raw not in ['unknown', 'unavailable', ''] else 0 }}"
+            now_ts: "{{ as_timestamp(now()) }}"
+            calc_elapsed: "{{ (now_ts - opened_ts) | int if (opened_ts > 0 and now_ts >= opened_ts) else 0 }}"
+            remain_sec: "{{ [600 - calc_elapsed, 0] | max }}"
+        - if:
+            - condition: template
+              value_template: "{{ remain_sec > 0 }}"
+          then:
+            - delay:
+                seconds: "{{ remain_sec }}"
+        # 等待剩餘時間後，若鐵門已關或有人車活動，則結束
+        - if:
+            - condition: not
+              conditions:
+                - condition: state
+                  entity_id: cover.garage
+                  state: "open"
+          then:
+            - stop: "鐵門在等待期間已關閉"
+        - if:
+            - condition: or
+              conditions:
+                - condition: state
+                  entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+                  state: "on"
+                - condition: state
+                  entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+                  state: "on"
+          then:
+            - stop: "車庫有人車活動，略過本次接手自動提醒"
+
+    # 3. 正常定時 10 分鐘條件檢查（timed_10min 觸發時才需檢查）
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'timed_10min' }}"
+      then:
+        - condition: state
+          entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+          state: "off"
+          for:
+            minutes: 3
+        - condition: state
+          entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+          state: "off"
+          for:
+            minutes: 3
     - variables:
         light_state_before_window: "{{ states(garage_light_entity) }}"
         event_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

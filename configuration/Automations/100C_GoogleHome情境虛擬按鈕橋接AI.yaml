@@ -1,11 +1,16 @@
-# 相容版本：Helpers V3.9（已確認）
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄：
+# - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 15 秒後重置所有虛擬按鈕旗標為關閉，避免重啟卡住開關導致後續語音失效。
 - id: ai_100c_googlehome_scene_virtual_button_bridge
-  alias: 100C GoogleHome情境虛擬按鈕橋接AI (V3.0)
+  alias: 100C GoogleHome情境虛擬按鈕橋接AI (V4.2.2)
   description: Google Home 透過 helper 虛擬按鈕觸發情境自動化，避免 automation 僅被視為啟用開關。
   variables:
-    automation_version: 'V3.0'
+    automation_version: 'V4.2.2'
     reset_delay_seconds: 1
   triggers:
+    - trigger: homeassistant
+      event: start
+      id: ha_start
     - trigger: state
       entity_id: input_boolean.google_scene_zao_an_trigger
       to: 'on'
@@ -24,6 +29,19 @@
       id: chu_men
   conditions: []
   actions:
+    - if:
+        - condition: template
+          value_template: "{{ trigger.id | default('') == 'ha_start' }}"
+      then:
+        - delay: "00:00:15"
+        - action: input_boolean.turn_off
+          target:
+            entity_id:
+              - input_boolean.google_scene_zao_an_trigger
+              - input_boolean.google_scene_wan_an_trigger
+              - input_boolean.google_scene_dao_jia_trigger
+              - input_boolean.google_scene_chu_men_trigger
+        - stop: "HA 重啟重置 GoogleHome 虛擬按鈕完成"
     - choose:
         - conditions:
             - condition: trigger
@@ -63,8 +81,12 @@
                 skip_condition: true
     - delay:
         seconds: "{{ reset_delay_seconds }}"
-    - action: input_boolean.turn_off
-      data:
-        entity_id: "{{ trigger.entity_id }}"
+    - if:
+        - condition: template
+          value_template: "{{ trigger.entity_id is defined }}"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: "{{ trigger.entity_id }}" 
   mode: queued
   max: 10
