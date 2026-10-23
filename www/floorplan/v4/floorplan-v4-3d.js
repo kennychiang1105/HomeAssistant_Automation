@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta8) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta9) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -379,7 +379,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta8</div>
+        <div class="ver">UI4.0-beta9</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
