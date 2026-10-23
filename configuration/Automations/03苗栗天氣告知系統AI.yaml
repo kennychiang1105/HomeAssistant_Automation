@@ -2,6 +2,7 @@
 # 03苗栗天氣告知系統AI (V4.2.2)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-23）：①緊急類判斷改嚴：「請慎防…土石流」這類提醒字樣不再算緊急（17:15 的降雨公報因此被誤判成緊急）；只有疏散／撤離／土石流警戒／堰塞湖溢流等才是緊急。②非急迫（重要類）燈號／降雨公報加冷卻：disaster_nonurgent_gap_min（預設 180 分）內不重複發 LINE、HA 通知與廣播，除非嚴重度升級；見 packages/v42_disaster_cooldown.yaml。
 # - V4.2.2（2026-10-22）：同一則災害訊息不重複發送：NCDR 常常只改其他縣市的名單或時段文字就再發一版（10/22 16:55 與 17:23 兩版只差其他縣市），原本整段文字比對所以發了兩次。
 #   改用「在地內容簽章」（notify_body.jinja 的 disaster_sig：燈號＋竹南／苗栗／新竹地區＋條件）判斷，在地內容沒變就不再通知、不廣播。
 # - V4.2.0（2026-10-22）：災害廣播在地化（苗栗竹南新竹）＋修復中途截斷問題。
@@ -55,7 +56,7 @@
           {% elif m | regex_search('海嘯') %}{{ ('info' if cancel else 'emergency') if county else 'info' }}
           {% elif m | regex_search('地震') %}drop
           {% elif m | regex_search('國家級警報|空襲|飛彈') %}emergency
-          {% elif county and m | regex_search('疏散|撤離|土石流|堰塞') %}emergency
+          {% elif county and m | regex_search('疏散|撤離|土石流(紅色|黃色)?警戒|土石流警報|堰塞湖(溢流|潰決|警戒)') %}emergency
           {% elif county and m | regex_search('颱風警報') and not cancel %}important
           {% elif zhunan and m | regex_search('淹水|警戒') %}{{ 'info' if cancel else 'important' }}
           {% elif zhunan and m | regex_search('洩洪|放水|溢流') %}important
@@ -92,6 +93,30 @@
                 ha_on: "{{ lv == 'info' or is_state('input_boolean.notify_ha_disaster_' ~ lv ~ '_enable', 'on') }}"
                 line_on: "{{ lv != 'info' and is_state('input_boolean.notify_line_disaster_' ~ lv ~ '_enable', 'on') }}"
                 speak: "{{ (voice_text | trim != '') and lv in ['important', 'emergency'] and (is_broadcast_time or lv == 'emergency') and is_state('input_boolean.announce_disaster_' ~ lv ~ '_enable', 'on') }}"
+                # V4.2.3：非急迫（重要類）的燈號／降雨公報冷卻。嚴重度：黃燈／大雨＝1、橙燈／豪雨＝2、紅燈／大豪雨＝3、超大豪雨＝4；
+                # 在冷卻時間內只有「嚴重度比上次發送的更高」才再發。沒有燈號／降雨等級的重要訊息（竹南淹水、洩洪、停水停電）不受影響。
+                rank: >-
+                  {{ [ (4 if '超大豪雨' in cur_sig else 0), (3 if ('大豪雨' in cur_sig or '紅色' in cur_sig) else 0),
+                       (2 if ('橙色' in cur_sig or '豪雨' in cur_sig) else 0), (1 if ('黃色' in cur_sig or '大雨' in cur_sig) else 0) ] | max }}
+                since_min: "{{ (now().timestamp() - as_timestamp(states('input_datetime.disaster_last_nonurgent_sent'), 0)) / 60 }}"
+                cooling: >-
+                  {{ lv == 'important' and rank | int(0) > 0
+                     and since_min | float(99999) < (states('input_number.disaster_nonurgent_gap_min') | float(180))
+                     and rank | int(0) <= (states('input_number.disaster_last_rank') | int(0)) }}
+            # 冷卻中：不發 LINE／HA 通知／廣播，只更新「上一則」簽章（NCDR 輪流發不同版本時，A→B→A 不會一直重發）
+            - if: "{{ cooling }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 03苗栗天氣告知系統AI
+                    message: "非急迫災害訊息冷卻中（嚴重度 {{ rank }}，距上次發送 {{ since_min | round(0) }} 分鐘），略過：{{ cur_sig[:60] }}"
+                  continue_on_error: true
+                - action: input_text.set_value
+                  target:
+                    entity_id: input_text.disaster_last_message
+                  data:
+                    value: "{{ cur_sig[:250] }}"
+                - stop: "非急迫災害訊息冷卻中，略過重複通知"
             - if: "{{ ha_on or line_on }}"
               then:
                 - action: script.notify_dispatch
@@ -111,13 +136,26 @@
                 - action: script.announce
                   data:
                     level: "{{ send_level }}"
-                    kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, 'weather') }}"
+                    kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, '') }}"
                     message: "{{ voice_text }}"
                 - action: input_datetime.set_datetime
                   target:
                     entity_id: input_datetime.last_disaster_broadcast
                   data:
                     datetime: "{{ now().isoformat() }}"
+            # V4.2.3：記錄非急迫類這次發送的時間與嚴重度（冷卻用）
+            - if: "{{ lv == 'important' and rank | int(0) > 0 }}"
+              then:
+                - action: input_datetime.set_datetime
+                  target:
+                    entity_id: input_datetime.disaster_last_nonurgent_sent
+                  data:
+                    datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                - action: input_number.set_value
+                  target:
+                    entity_id: input_number.disaster_last_rank
+                  data:
+                    value: "{{ rank | int(0) }}"
             - action: input_text.set_value
               target:
                 entity_id: input_text.disaster_last_message
@@ -138,7 +176,7 @@
             - action: script.announce
               data:
                 level: "{{ 'important' if (msg_level | trim) == 'emergency' else 'general' }}"
-                kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, 'weather') }}"
+                kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(voice_text, '') }}"
                 message: "{{ '早晨補報。' ~ voice_text }}"
             - action: input_datetime.set_datetime
               target:

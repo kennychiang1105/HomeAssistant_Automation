@@ -60,7 +60,8 @@ light_group_on:
         style_eff: "{{ style if (style is defined and style) else states('input_select.light_anim_style') }}"
         # V4.1.6：氣氛色彩依「當下太陽位置」換色調，每個時段一個儀式感
         #   黎明（日出後～仰角 25°）金橘晨光；白天 天藍→淡藍→暖白；黃昏（仰角 20° 以下的日落前後）橘→玫瑰→紫；夜晚（仰角 < -6°）柔和琥珀→藕紫→靛藍，較暗、較慢
-        elev: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+        # V4.2.3（SOP-22）：陰雨天視同太陽較低（扣掉 sensor.weather_dark_deg），傍晚色調提前、早上黎明色調延長
+        elev: "{{ (state_attr('sun.sun', 'elevation') | float(0)) - (states('sensor.weather_dark_deg') | float(0)) }}"
         rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
         period: >-
           {% if elev < -6 %}night{% elif rising and elev < 25 %}dawn{% elif (not rising) and elev < 20 %}dusk{% else %}day{% endif %}

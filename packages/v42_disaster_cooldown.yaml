@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────
+# 非急迫災害訊息冷卻 (V4.2.3)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增。2026-10-23 17:15 同一個颱風的兩則公報（降雨公報、燈號公報）間隔不到 15 分鐘各發一張 LINE 卡；
+#           NCDR 會輪流發不同版本，原本只比對「上一則」，A→B→A 會一直重發。
+#   規則（03苗栗天氣告知系統AI）：重要類（非緊急）的燈號／降雨公報，在 disaster_nonurgent_gap_min 分鐘內不再發 LINE、HA 通知與廣播，
+#   除非嚴重度升級（紅色燈號、大豪雨、超大豪雨等級比上次發送的更高）。緊急類（疏散、撤離、海嘯、土石流警戒、國家級警報）不受影響；
+#   竹南的淹水、洩洪、停水停電這類沒有燈號／降雨等級的重要訊息也不受影響。
+#   disaster_last_nonurgent_sent／disaster_last_rank 由 03 自動維護（內部狀態）。
+# ─────────────────────────────────────────────────────────────
+input_number:
+  disaster_nonurgent_gap_min:
+    name: 非急迫災害訊息｜最短發送間隔（分鐘）
+    min: 10
+    max: 1440
+    step: 10
+    initial: 180
+    mode: box
+    unit_of_measurement: 分
+    icon: mdi:timer-sand
+  disaster_last_rank:
+    name: 非急迫災害訊息｜上次發送的嚴重度（內部）
+    min: 0
+    max: 5
+    step: 1
+    mode: box
+    icon: mdi:alert-decagram-outline
+input_datetime:
+  disaster_last_nonurgent_sent:
+    name: 非急迫災害訊息｜上次發送時間（內部）
+    has_date: true
+    has_time: true
+    icon: mdi:history

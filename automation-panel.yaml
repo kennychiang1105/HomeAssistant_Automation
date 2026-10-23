@@ -833,6 +833,10 @@ views:
             name: "機台氣氛燈｜停用情境色"
           - entity: input_boolean.scene_announce_enable
             name: "情境執行廣播"
+          - entity: sensor.weather_sun_shift_min
+            name: "日出日落天氣調整｜目前分鐘"
+          - entity: input_boolean.weather_sun_adjust_off
+            name: "日出日落天氣調整｜關閉"
           - entity: input_number.announce_volume_general
             name: "廣播音量｜一般"
           - entity: input_number.announce_volume_important
@@ -1962,10 +1966,57 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 15 支、可調整項目 12 個"
+        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 15 支、可調整項目 16 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "日出日落的天氣調整"
+        heading_style: title
+        icon: mdi:weather-sunset
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: markdown
+        content: "陰雨天天色提早變暗、早上更晚亮：早安起點往後延、終點往前提，100A 最早啟動、燈組動畫傍晚色調、大門開光自動開燈也一併調整。**調整分鐘＝目前天氣的級別**（陰 1、雨 2、大雨 3），天氣要持續 10 分鐘才套用、結束 20 分鐘後才取消。"
+        card_mod:
+          style: |
+            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: weather.homeweather_zhu_nan_zhen
+            name: "目前天氣"
+          - entity: sensor.weather_sun_shift_min
+            name: "目前套用的天氣調整（分鐘）"
+          - entity: sensor.weather_dark_deg
+            name: "等效太陽仰角偏移（度）"
+          - entity: binary_sensor.weather_cloudy_sustained
+            name: "陰天（持續中）"
+          - entity: binary_sensor.weather_rainy_sustained
+            name: "下雨（持續中）"
+          - entity: binary_sensor.weather_heavy_sustained
+            name: "大雨雷雨（持續中）"
+          - entity: binary_sensor.scene_morning_window
+            name: "早安時段（含天氣調整）"
+          - entity: sensor.scene_morning_start
+            name: "早安起點（含天氣調整）"
+          - entity: sensor.scene_morning_end
+            name: "早安終點（含天氣調整）"
+          - entity: input_boolean.weather_sun_adjust_off
+            name: "關閉日出日落的天氣調整"
+          - entity: input_number.weather_sun_shift_cloudy_min
+            name: "調整分鐘｜陰天"
+          - entity: input_number.weather_sun_shift_rainy_min
+            name: "調整分鐘｜下雨"
+          - entity: input_number.weather_sun_shift_heavy_min
+            name: "調整分鐘｜大雨雷雨"
+        card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2027,11 +2078,10 @@ views:
           - entity: automation.homekitqing_jing_fu_zhu_kai_guan_zi_dong_fu_wei_ai_v3_18_0
             name: "HomeKit情境輔助開關自動復位AI (V3.18.0)"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "開關（4）"
+        heading: "開關（5）"
         heading_style: title
         card_mod:
           style: |
@@ -2049,12 +2099,14 @@ views:
             name: "自動到家／早安情境（總開關）"
           - entity: input_boolean.auto_scene_earliest_use_sunrise
             name: "自動情境最早啟動改用日出時間（關閉＝用下面平日／假日固定時間）"
+          - entity: input_boolean.weather_sun_adjust_off
+            name: "關閉日出日落的天氣調整"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "數值參數（4）"
+        heading: "數值參數（7）"
         heading_style: title
         card_mod:
           style: |
@@ -2064,6 +2116,12 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_number.weather_sun_shift_rainy_min
+            name: "天氣調整｜下雨（分鐘）"
+          - entity: input_number.weather_sun_shift_heavy_min
+            name: "天氣調整｜大雨雷雨（分鐘）"
+          - entity: input_number.weather_sun_shift_cloudy_min
+            name: "天氣調整｜陰天（分鐘）"
           - entity: input_number.scene_sunset_offset_min
             name: "早安終點（日落偏移，分）"
           - entity: input_number.scene_sunrise_offset_min
@@ -2775,7 +2833,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 12 支、可調整項目 13 個"
+        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 12 支、可調整項目 14 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2970,7 +3028,6 @@ views:
           - entity: automation.jin_ji_mo_shi
             name: "05A緊急模式"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2998,6 +3055,7 @@ views:
           - entity: automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5
             name: "05G緊急三擊維修暫停AI (V4.1.5)"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3014,7 +3072,6 @@ views:
           - entity: input_boolean.emergency_triple_press_pause
             name: "緊急三擊維修暫停"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3046,6 +3103,23 @@ views:
             name: "災害訊息廣播｜重要類"
           - entity: input_boolean.emergency_restore_enable
             name: "緊急模式快照還原（總開關）"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "其他數值參數（1）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_number.disaster_nonurgent_gap_min
+            name: "非急迫災害訊息｜最短發送間隔（分鐘）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4321,7 +4395,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "緊急與災防（14）"
+        heading: "緊急與災防（16）"
         heading_style: title
         card_mod:
           style: |
@@ -4345,6 +4419,8 @@ views:
             name: "Last Disaster Broadcast"
           - entity: input_datetime.emergency_snapshot_at
             name: "緊急模式快照時間"
+          - entity: input_datetime.disaster_last_nonurgent_sent
+            name: "非急迫災害訊息｜上次發送時間（內部）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4359,6 +4435,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_number.disaster_last_rank
+            name: "非急迫災害訊息｜上次發送的嚴重度（內部）"
           - entity: input_text.line_eew_remote_seconds
             name: "LINE_EEW遠端_預估到達秒數"
           - entity: input_text.line_eew_remote_level

@@ -84,8 +84,8 @@ HELPER_RULES = [
     ("security", r"intrusion_|wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
-    ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
-    ("notify", r"notify_|announce_|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
+    ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
+    ("notify", r"notify_|announce_|disaster_nonurgent|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
     ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|collection|last_disaster"),
 ]
@@ -99,7 +99,7 @@ INTERNAL_RE = re.compile(
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
     r"|^input_text\.(intrusion_recent|emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
-    r"|^input_number\.(v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
+    r"|^input_number\.(disaster_last_rank|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate)"
 )
 
@@ -1045,6 +1045,22 @@ def _ents_map(rows, indent):
     return L
 
 
+def weather_sun_blocks():
+    """V4.2.3（SOP-22）：「早安／到家」分頁的「日出日落的天氣調整」卡片：目前天氣與套用的分鐘、早安時間窗的實際起訖、各級調整分鐘與總開關。"""
+    rows = [("weather.homeweather_zhu_nan_zhen", "目前天氣"),
+            ("sensor.weather_sun_shift_min", "目前套用的天氣調整（分鐘）"), ("sensor.weather_dark_deg", "等效太陽仰角偏移（度）"),
+            ("binary_sensor.weather_cloudy_sustained", "陰天（持續中）"), ("binary_sensor.weather_rainy_sustained", "下雨（持續中）"),
+            ("binary_sensor.weather_heavy_sustained", "大雨雷雨（持續中）"),
+            ("binary_sensor.scene_morning_window", "早安時段（含天氣調整）"),
+            ("sensor.scene_morning_start", "早安起點（含天氣調整）"), ("sensor.scene_morning_end", "早安終點（含天氣調整）"),
+            ("input_boolean.weather_sun_adjust_off", "關閉日出日落的天氣調整"),
+            ("input_number.weather_sun_shift_cloudy_min", "調整分鐘｜陰天"), ("input_number.weather_sun_shift_rainy_min", "調整分鐘｜下雨"),
+            ("input_number.weather_sun_shift_heavy_min", "調整分鐘｜大雨雷雨")]
+    md = ["      - type: markdown",
+          "        content: " + q("陰雨天天色提早變暗、早上更晚亮：早安起點往後延、終點往前提，100A 最早啟動、燈組動畫傍晚色調、大門開光自動開燈也一併調整。**調整分鐘＝目前天氣的級別**（陰 1、雨 2、大雨 3），天氣要持續 10 分鐘才套用、結束 20 分鐘後才取消。")] + MD_CSS
+    return [section(heading("日出日落的天氣調整", "mdi:weather-sunset") + md + entities_card(rows))]
+
+
 def family_tracking_blocks():
     """系統維護 > 家人裝置追蹤：每位家人一張現代化卡片（頭像＋在家狀態＋person 目前參考的裝置），
     下面是主要裝置選單；選到「其他」才出現自訂裝置輸入欄（00-2S／packages/v41_person_main_device.yaml）。"""
@@ -1141,6 +1157,7 @@ def overview_sections(autos, stale):
              ("input_boolean.mood_alert_enable", "氣氛燈提醒｜總開關"), ("input_boolean.mood_alert_important_enable", "氣氛燈提醒｜重要級"),
              ("input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級"), ("input_boolean.mood_alert_ap_off", "機台氣氛燈｜停用通知閃爍"),
              ("input_boolean.ambient_scene_off", "機台氣氛燈｜停用情境色"), ("input_boolean.scene_announce_enable", "情境執行廣播"),
+             ("sensor.weather_sun_shift_min", "日出日落天氣調整｜目前分鐘"), ("input_boolean.weather_sun_adjust_off", "日出日落天氣調整｜關閉"),
              ("input_number.announce_volume_general", "廣播音量｜一般"), ("input_number.announce_volume_important", "廣播音量｜重要"),
              ("input_number.announce_volume_emergency", "廣播音量｜緊急")]
     gateways = [("input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報"),
@@ -1304,6 +1321,8 @@ def build(data):
         B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
         if key == "system":
             B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
+        if key == "scene":
+            B.extend(weather_sun_blocks())      # 日出日落的天氣調整（SOP-22）
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
         if autos[key]:

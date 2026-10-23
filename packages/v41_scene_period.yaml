@@ -1,6 +1,7 @@
 # 早安／到家 時間窗（V4.1.0，2026-10-10；B／項目 3）
 # 早安時段 = 日出+offset（預設 -30 分）～日落+offset（預設 -60 分），再套上下限；其餘為到家時段。
 # 介面：binary_sensor.scene_morning_window（on＝早安時段），屬性含 sunrise／sunset／start／end。
+# V4.2.3（SOP-22）：起點再加上、終點再減去 sensor.weather_sun_shift_min（陰雨天早上更晚亮、傍晚更早暗；見 v42_weather_sun_adjust.yaml）。
 # 功能開關 input_boolean.scene_window_use_sun（2026-10-10 使用者核准改為預設 on）：on＝既有早安／到家規則改用本時間窗；off＝退回舊的 06:00／05:00–17:00。
 input_boolean:
   scene_window_use_sun:
@@ -48,7 +49,8 @@ template:
           {% set t = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
           {% set r = nr | as_datetime | as_local %}
           {% set r = r - timedelta(days=1) if r.date() > now().date() else r %}
-          {% set s = r + timedelta(minutes=(states('input_number.scene_sunrise_offset_min') | float(-30))) %}
+          {% set w = states('sensor.weather_sun_shift_min') | float(0) %}
+          {% set s = r + timedelta(minutes=((states('input_number.scene_sunrise_offset_min') | float(-30)) + w)) %}
           {% set e = states('input_datetime.scene_morning_earliest') %}
           {% set lo = t.replace(hour=(e[0:2] | int(5)), minute=(e[3:5] | int(0))) %}
           {{ ([s, lo] | max).isoformat() }}
@@ -57,6 +59,11 @@ template:
           sunrise: >-
             {% set nr = state_attr('sun.sun','next_rising') %}
             {% if nr is not none %}{% set r = nr | as_datetime | as_local %}{{ (r - timedelta(days=1) if r.date() > now().date() else r).isoformat() }}{% endif %}
+          # V4.2.3（SOP-22）：天氣調整後的日出（日出＋陰雨延後分鐘，不含使用者偏移）；shift_min＝目前套用的天氣分鐘
+          sunrise_eff: >-
+            {% set nr = state_attr('sun.sun','next_rising') %}
+            {% if nr is not none %}{% set r = nr | as_datetime | as_local %}{{ ((r - timedelta(days=1) if r.date() > now().date() else r) + timedelta(minutes=(states('sensor.weather_sun_shift_min') | float(0)))).isoformat() }}{% endif %}
+          shift_min: "{{ states('sensor.weather_sun_shift_min') | float(0) }}"
       - name: 早安時段終點
         unique_id: v41_scene_morning_end
         default_entity_id: sensor.scene_morning_end
@@ -68,7 +75,8 @@ template:
           {% set t = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
           {% set r = ns | as_datetime | as_local %}
           {% set r = r - timedelta(days=1) if r.date() > now().date() else r %}
-          {% set s = r + timedelta(minutes=(states('input_number.scene_sunset_offset_min') | float(-60))) %}
+          {% set w = states('sensor.weather_sun_shift_min') | float(0) %}
+          {% set s = r + timedelta(minutes=((states('input_number.scene_sunset_offset_min') | float(-60)) - w)) %}
           {% set e = states('input_datetime.scene_morning_latest_end') %}
           {% set hi = t.replace(hour=(e[0:2] | int(18)), minute=(e[3:5] | int(30))) %}
           {{ ([s, hi] | min).isoformat() }}
@@ -77,6 +85,11 @@ template:
           sunset: >-
             {% set ns = state_attr('sun.sun','next_setting') %}
             {% if ns is not none %}{% set r = ns | as_datetime | as_local %}{{ (r - timedelta(days=1) if r.date() > now().date() else r).isoformat() }}{% endif %}
+          # V4.2.3（SOP-22）：天氣調整後的日落（日落－陰雨提前分鐘，不含使用者偏移）
+          sunset_eff: >-
+            {% set ns = state_attr('sun.sun','next_setting') %}
+            {% if ns is not none %}{% set r = ns | as_datetime | as_local %}{{ ((r - timedelta(days=1) if r.date() > now().date() else r) - timedelta(minutes=(states('sensor.weather_sun_shift_min') | float(0)))).isoformat() }}{% endif %}
+          shift_min: "{{ states('sensor.weather_sun_shift_min') | float(0) }}"
   - binary_sensor:
       - name: 早安時段
         unique_id: v41_scene_morning_window
@@ -95,3 +108,4 @@ template:
           end: "{{ states('sensor.scene_morning_end') }}"
           sunrise: "{{ state_attr('sensor.scene_morning_start','sunrise') }}"
           sunset: "{{ state_attr('sensor.scene_morning_end','sunset') }}"
+          shift_min: "{{ states('sensor.weather_sun_shift_min') | float(0) }}"

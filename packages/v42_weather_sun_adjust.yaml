@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────
+# 日出日落的天氣調整層 (V4.2.3，SOP-22)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增。陰天、下雨時天色提早變暗、早上也更晚亮，所以「依日出日落」的判斷要依天氣前後調整：
+#           早上「天亮」往後延、傍晚「天黑」往前提。天氣來源 weather.homeweather_zhu_nan_zhen（HomeWeather 竹南鎮）。
+#   分級：1 級（陰）cloudy／fog／windy-variant；2 級（雨）rainy／snowy／snowy-rainy／lightning；
+#         3 級（大雨）pouring／lightning-rainy／hail／exceptional；sunny／partlycloudy／clear-night＝0。
+#   防抖動：三個「持續」感測器（陰、雨、大雨）有 delay_on／delay_off，天氣一下陰一下雨時不會讓時間來回跳；取最高的一級。
+#   輸出：sensor.weather_sun_shift_min（目前套用的分鐘）、sensor.weather_dark_deg（分鐘 × 0.25°，傍晚太陽每分鐘約降 0.25°，
+#         給用「仰角」判斷的地方用）。weather_sun_adjust_off 打開＝整體不調整（預設關＝有調整，重啟不會被重設）。
+#   使用：早安到家時間窗（v41_scene_period.yaml）、100A 自動情境最早啟動、燈組動畫氣氛色調、08-4 大門開光自動開燈。
+#   新增任何「依日出日落」的判斷時，用本檔的感測器或早安到家時間窗，不要直接讀 sun.sun（SOP-22）。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  weather_sun_adjust_off:
+    name: 關閉日出日落的天氣調整
+    icon: mdi:weather-cloudy-clock
+
+input_number:
+  weather_sun_shift_cloudy_min:
+    name: 天氣調整｜陰天（分鐘）
+    min: 0
+    max: 120
+    step: 5
+    initial: 20
+    mode: box
+    unit_of_measurement: 分
+    icon: mdi:weather-cloudy
+  weather_sun_shift_rainy_min:
+    name: 天氣調整｜下雨（分鐘）
+    min: 0
+    max: 120
+    step: 5
+    initial: 40
+    mode: box
+    unit_of_measurement: 分
+    icon: mdi:weather-rainy
+  weather_sun_shift_heavy_min:
+    name: 天氣調整｜大雨雷雨（分鐘）
+    min: 0
+    max: 180
+    step: 5
+    initial: 60
+    mode: box
+    unit_of_measurement: 分
+    icon: mdi:weather-pouring
+
+template:
+  - binary_sensor:
+      - name: 天氣陰（持續）
+        unique_id: v42_weather_cloudy_sustained
+        default_entity_id: binary_sensor.weather_cloudy_sustained
+        icon: mdi:weather-cloudy
+        state: "{{ states('weather.homeweather_zhu_nan_zhen') in ['cloudy', 'fog', 'windy-variant', 'rainy', 'snowy', 'snowy-rainy', 'lightning', 'pouring', 'lightning-rainy', 'hail', 'exceptional'] }}"
+        delay_on: "00:10:00"
+        delay_off: "00:20:00"
+      - name: 天氣雨（持續）
+        unique_id: v42_weather_rainy_sustained
+        default_entity_id: binary_sensor.weather_rainy_sustained
+        icon: mdi:weather-rainy
+        state: "{{ states('weather.homeweather_zhu_nan_zhen') in ['rainy', 'snowy', 'snowy-rainy', 'lightning', 'pouring', 'lightning-rainy', 'hail', 'exceptional'] }}"
+        delay_on: "00:10:00"
+        delay_off: "00:20:00"
+      - name: 天氣大雨（持續）
+        unique_id: v42_weather_heavy_sustained
+        default_entity_id: binary_sensor.weather_heavy_sustained
+        icon: mdi:weather-pouring
+        state: "{{ states('weather.homeweather_zhu_nan_zhen') in ['pouring', 'lightning-rainy', 'hail', 'exceptional'] }}"
+        delay_on: "00:05:00"
+        delay_off: "00:20:00"
+  - sensor:
+      - name: 天氣日照調整（分鐘）
+        unique_id: v42_weather_sun_shift_min
+        default_entity_id: sensor.weather_sun_shift_min
+        unit_of_measurement: min
+        icon: mdi:weather-sunset
+        state: >-
+          {% if is_state('input_boolean.weather_sun_adjust_off', 'on') %}0
+          {% elif is_state('binary_sensor.weather_heavy_sustained', 'on') %}{{ states('input_number.weather_sun_shift_heavy_min') | float(60) | round(0) | int }}
+          {% elif is_state('binary_sensor.weather_rainy_sustained', 'on') %}{{ states('input_number.weather_sun_shift_rainy_min') | float(40) | round(0) | int }}
+          {% elif is_state('binary_sensor.weather_cloudy_sustained', 'on') %}{{ states('input_number.weather_sun_shift_cloudy_min') | float(20) | round(0) | int }}
+          {% else %}0{% endif %}
+        attributes:
+          level: >-
+            {% if is_state('input_boolean.weather_sun_adjust_off', 'on') %}0{% elif is_state('binary_sensor.weather_heavy_sustained', 'on') %}3{% elif is_state('binary_sensor.weather_rainy_sustained', 'on') %}2{% elif is_state('binary_sensor.weather_cloudy_sustained', 'on') %}1{% else %}0{% endif %}
+          weather: "{{ states('weather.homeweather_zhu_nan_zhen') }}"
+      - name: 天氣日照調整（仰角度）
+        unique_id: v42_weather_dark_deg
+        default_entity_id: sensor.weather_dark_deg
+        unit_of_measurement: "°"
+        icon: mdi:angle-acute
+        state: "{{ (states('sensor.weather_sun_shift_min') | float(0) * 0.25) | round(1) }}"
