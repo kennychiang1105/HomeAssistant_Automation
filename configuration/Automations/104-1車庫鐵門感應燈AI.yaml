@@ -2,6 +2,8 @@
 # 104-1車庫鐵門感應燈AI (V4.2.0)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.2（2026-10-23）：修正「HA 重新啟動後車庫燈一直亮」：關燈倒數（5 分鐘）只存在記憶體，2026-10-23 11:29 HA 重啟時剛好在倒數，重啟後沒有任何動作接手，主燈與樓梯燈一直亮著
+#           （104-1C 全員離家關燈只在沒人在家時才動作）。現在 HA 啟動 1 分鐘後，若車庫主燈或樓梯燈亮著，就重新進入「鐵門關閉＋5 分鐘無人車活動」的關燈流程。
 # - V4.2.0（2026-10-18）：修正「手動開燈後立刻被離家情境關掉，卻被當成手動關燈而啟動冷卻」：2026-10-18 16:28 實體開關長按餐廳燈啟動離家情境，約 1 秒後按車庫主燈單擊開燈，情境最後一環又把車庫主燈關掉，
 #           104-1B 因為 5 秒內有 Terncy 單擊紀錄就判成手動關燈，啟動 120 秒冷卻，期間攝影機偵測到人、鐵門開啟都不重新開燈。現在離家或晚安情境開啟後 90 秒內的關燈（情境造成的）不算手動關燈、不啟動冷卻。
 # - V4.1.5（2026-10-11）：① 修正車庫主燈沒關：本自動化是 restart 模式，樓梯燈被別的自動化（例如 3 分鐘定時關燈）關掉時，「燈具關閉」觸發會重新啟動並中止鐵門關閉後的 5 分鐘關燈倒數，主燈就一直亮著。
@@ -60,7 +62,12 @@
         - switch.lou_ti_deng
       to: "on"
 
-    # 5. （V4.1.5 移除）燈具關閉觸發改由 104-1B 處理：此觸發會讓 restart 模式的本自動化重啟，中止關燈倒數，造成主燈沒關
+    # 5. HA 重新啟動：重啟會清掉等待中的關燈倒數，啟動後若燈還亮著就重新倒數
+    - id: ha_start
+      platform: homeassistant
+      event: start
+
+    # （V4.1.5 移除）燈具關閉觸發改由 104-1B 處理：此觸發會讓 restart 模式的本自動化重啟，中止關燈倒數，造成主燈沒關
 
   variables:
     automation_version: "V4.2.0"
@@ -70,8 +77,8 @@
     # V4.1：Terncy 無線按鈕單擊由 08-9 代為切換（會有 parent_id），先寫入 input_text.terncy_btn_last 標記（可為逗號分隔的多個實體，例如 800-10 雙擊切換兩盞車庫燈），5 秒內視為手動
     is_manual_action: >-
       {% set m = states('input_text.terncy_btn_last').split('|') %}
-      {{ trigger.to_state.context.parent_id is none
-         or (m | length == 2 and trigger.entity_id in m[0].split(',') and (as_timestamp(now()) - (m[1] | float(0))) < 5) }}
+      {{ trigger.to_state is defined and (trigger.to_state.context.parent_id is none
+         or (m | length == 2 and trigger.entity_id in m[0].split(',') and (as_timestamp(now()) - (m[1] | float(0))) < 5)) }}
 
   actions:
     - choose:
@@ -94,6 +101,12 @@
             - stop: "燈具已關閉，終止後續動作"
 
       default:
+        # B0. HA 啟動：等實體載入，燈沒亮就結束；燈亮著就接續下面的自動關閉序列
+        - if: "{{ trigger.id == 'ha_start' }}"
+          then:
+            - delay: "00:01:00"
+        - condition: template
+          value_template: "{{ trigger.id != 'ha_start' or is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on') }}"
         # B. 開燈與自動關閉守護流程
         # 若為感應或開門觸發，先檢驗是否處於手動關閉冷卻中
         - if:
