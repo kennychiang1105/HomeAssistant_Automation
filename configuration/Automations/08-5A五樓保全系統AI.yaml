@@ -79,7 +79,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ trigger_kind == 'manual_clear' }}" 
+              value_template: "{{ trigger_kind == 'manual_clear' }}"
           sequence:
             - action: media_player.media_stop
               target:

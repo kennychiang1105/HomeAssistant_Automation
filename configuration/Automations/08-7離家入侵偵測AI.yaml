@@ -88,7 +88,7 @@
                 now_ts: "{{ now().timestamp() }}"
                 win_s: "{{ (states('input_number.intrusion_window_min') | float(5)) * 60 }}"
                 raw: "{{ states('input_text.intrusion_recent') }}"
-                recent_count: >-
+                recent_devs: >-
                   {% macro dk(e) %}{{ (device_attr(device_id(e), 'name') if device_id(e) else '') or e }}{% endmacro %}
                   {% set ns = namespace(devs=[]) %}
                   {% for it in (raw.split(';') if raw not in ['unknown', 'unavailable', ''] else []) %}
@@ -100,7 +100,8 @@
                       {% endif %}
                     {% endif %}
                   {% endfor %}
-                  {{ ns.devs | count }}
+                  {{ ns.devs | join('、') }}
+                recent_count: "{{ recent_devs.split('、') | reject('eq', '') | list | count }}"
             - if:
                 - condition: template
                   value_template: "{{ recent_count | int(0) >= 2 }}"
@@ -117,9 +118,9 @@
                   then:
                     - action: script.intrusion_alert
                       data:
-                        names: 重啟接續疑似入侵訊號
+                        names: "{{ recent_devs }}（HA 重啟後接續判斷）"
                         mode: real
-        - stop: "HA 重啟接手檢查完畢" 
+        - stop: "HA 重啟接手檢查完畢"
     - alias: "總開關"
       condition: state
       entity_id: input_boolean.intrusion_watch_enable

@@ -70,7 +70,7 @@
               then:
                 - stop: "燈已關閉或處於常開模式，取消重啟定時關燈"
         - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
-          conditions: "{{ trigger.id == 'relay_own' }}" 
+          conditions: "{{ trigger.id == 'relay_own' }}"
           sequence:
             - delay: "00:00:01"
             - if:
@@ -167,7 +167,7 @@
               then:
                 - stop: "燈已關閉或處於常開模式，取消重啟定時關燈"
         - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
-          conditions: "{{ trigger.id == 'relay_own' }}" 
+          conditions: "{{ trigger.id == 'relay_own' }}"
           sequence:
             - delay: "00:00:01"
             - if:
@@ -273,7 +273,7 @@
               then:
                 - stop: "燈已關閉或處於常開模式，取消重啟定時關燈"
         - alias: "按鈕自己的繼電器：等 1 秒，燈沒亮（這次是關燈）就取消倒數"
-          conditions: "{{ trigger.id == 'relay_own' }}" 
+          conditions: "{{ trigger.id == 'relay_own' }}"
           sequence:
             - delay: "00:00:01"
             - if:
@@ -379,7 +379,7 @@
               then:
                 - stop: "燈已關閉或處於常開模式，取消重啟定時關燈"
         - alias: "燈泡（由 12D 切換）：事件當下燈是亮的＝這次是關燈，取消倒數"
-          conditions: "{{ trigger.id == 'bulb_toggle' }}" 
+          conditions: "{{ trigger.id == 'bulb_toggle' }}"
           sequence:
             - if:
                 - condition: template

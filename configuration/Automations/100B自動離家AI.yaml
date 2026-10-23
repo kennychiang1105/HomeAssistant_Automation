@@ -201,7 +201,7 @@
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ not debounce_ok }}" 
+              value_template: "{{ not debounce_ok }}"
           sequence:
             - stop: "防抖中（{{ debounce_sec }} 秒內重複觸發）—已跳過通知"
 

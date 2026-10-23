@@ -87,6 +87,6 @@
       then:
         - action: input_boolean.turn_off
           target:
-            entity_id: "{{ trigger.entity_id }}" 
+            entity_id: "{{ trigger.entity_id }}"
   mode: queued
   max: 10

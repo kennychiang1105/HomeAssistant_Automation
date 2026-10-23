@@ -388,6 +388,46 @@
   {{- {'time': res_ns.time_prefix, 'targets': res_ns.targets, 'others': res_ns.others} | tojson -}}
 {%- endmacro %}
 
+{# V4.2.2：HA 狀態上限 255 字元。REST 感測器 sensor.disaster_raw 的內文超過就會被改成 unknown（2026-10-23 颱風訊息太長，一直報錯、訊息進不來）。
+   超長時濃縮成「只含竹南／苗栗／新竹」的版本（格式與原文相同，下游解析不用改）；255 字內原樣回傳。 #}
+{% macro disaster_digest(msg) -%}
+{%- set s = (msg | string) | trim -%}
+{%- if s | length <= 255 -%}{{- s -}}
+{%- else -%}
+  {%- set s0 = s | regex_replace('^一、概述[：:]\\s*', '') -%}
+  {%- set ns = namespace(segs=[], out='') -%}
+  {%- set lead_m = s0 | regex_findall('((?:第[0-9]+號)?颱風及其外圍環流影響)') -%}
+  {%- set lead = (lead_m[0] if lead_m | length > 0 else (s0.split('，')[0] | trim)) -%}
+  {%- set items = s0 | regex_findall('([^，。\\n]*?局部地區)有([^()（）\\n]*?)[(（](紅色|橙色|黃色)燈號[)）]') -%}
+  {%- for reg, cond, lamp in items -%}
+    {%- set p = parse_alert_region(reg) | from_json -%}
+    {%- if p.targets | length > 0 -%}
+      {%- set ns.segs = ns.segs + [(p.time if ns.segs | length == 0 else '') ~ (p.targets | map(attribute='name') | join('、')) ~ '局部地區有' ~ (cond | trim) ~ '(' ~ lamp ~ '燈號)'] -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if ns.segs | length > 0 -%}
+    {%- set ns.out = lead ~ '，' ~ (ns.segs | join('，')) ~ '，請嚴加防範。' -%}
+  {%- else -%}
+    {%- set fp = free_parse(s0) | from_json -%}
+    {%- for gp in fp.groups if gp.local | length > 0 -%}
+      {%- set ns.segs = ns.segs + [(gp.time if ns.segs | length == 0 else '') ~ (gp.local | join('、')) ~ '有' ~ gp.hazard] -%}
+    {%- endfor -%}
+    {%- if ns.segs | length > 0 -%}
+      {%- set ns.out = ((fp.lead ~ '，') if fp.lead else '') ~ (ns.segs | join('，')) -%}
+      {%- for tp in fp.tips -%}
+        {%- if (ns.out ~ '，' ~ tp) | length <= 250 -%}{%- set ns.out = ns.out ~ '，' ~ tp -%}{%- endif -%}
+      {%- endfor -%}
+      {%- set ns.out = ns.out ~ '。' -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if ns.out == '' or ns.out | length > 255 -%}
+    {%- set cut = s0[:250] -%}
+    {%- set k = [cut.rfind('，'), cut.rfind('。')] | max -%}
+    {{- (cut[:k + 1] if k > 40 else cut) -}}
+  {%- else -%}{{- ns.out -}}{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
 {# V4.2.2：災害訊息「在地內容簽章」：只留下影響竹南／苗栗／新竹的燈號、地區與條件，不看其他縣市與時段文字（NCDR 常常只改其他縣市就再發一版，不該重複通知） #}
 {% macro disaster_sig(msg) -%}
 {%- set s0 = (msg | string) | trim -%}

@@ -61,7 +61,7 @@
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.2.2)` | `ai_08_5a_5f_security_webhook_guard` | `V4.2.2` |
 | `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` / `V4.1.5` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.0.4) / 08-5F頂樓下樓補判AI (V4.0.1)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.0.4` / `V4.0.1` |
-| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.1.3) / 08-5G 書房燈關閉AI (V4.2.2) / 08-5G 書房燈無人檢查AI (V4.1.3) / 08-5G 書房回房間關燈AI (V4.1.3)` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.2.2` |
+| `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.1.3) / 08-5G 書房燈關閉AI (V4.1.3) / 08-5G 書房燈無人檢查AI (V4.1.3) / 08-5G 書房回房間關燈AI (V4.1.3)` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.1.3` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V4.3.0) / 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` / `ai_08_5h_topfloor_sleep_lock_manager` | `V4.3.0` / `V4.2.1` |
 | `configuration/Automations/08-5J頂樓動線推理AI.yaml` | `08-5J頂樓動線推理AI (V4.2.2) / 08-5J頂樓感應週報 (V4.1.1)` | `ai_08_5j_topfloor_path_inference` / `ai_08_5j_topfloor_weekly_report` | `V4.2.2` |
 | `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0) / 08-5K頂樓開機狀態自癒檢查AI (V4.2.2)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` / `ai_08_5k_topfloor_reconcile_on_start` | `V4.2.2` |
@@ -286,6 +286,15 @@
 
 ## 本次調整（V4.2.2 - 2026-10-22：家人主要裝置選擇與卡片、LINE 通知新格式（橫線／備註／示意條）、3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版、離家通知重複修正）
 
+- **SOP-20 重啟接續審核後修正（fix12）**：
+  · **104-3 鐵門提醒**：原本「車庫人車活動安靜滿 3 分鐘才提醒」寫在最上層，被改放進巢狀 `if/then` 的 `condition`——巢狀區塊裡 condition 不成立只會結束該區塊、不會中止整個自動化（已在 HA 實測），結果有人車活動也照樣提醒與自動關門。現在改成 `if（不安靜）＋stop`。重啟接手的固定 `delay` 改成 `wait_for_trigger`（鐵門關上就中斷）。
+  · **104-3A 鐵門開啟時間記錄（新）**：原本寫在 104-3 內（沒有狀態過濾，屬性變化與 `unavailable` 都會寫入，且 single 模式會在等待期間丟掉開關門事件），拆成獨立 queued 自動化，只在 `open`／`closed` 且來源不是 `unavailable`／`unknown` 時寫入 `input_datetime.garage_gate_opened_at`。
+  · **08-4 客廳大門開燈**：重啟接手改用 `if＋stop`（原本燈沒亮也會往下走、約 6 分鐘後把路燈與門口燈關掉），並恢復「日落後」條件、緊急模式中不接手。
+  · **08-5G 書房燈關閉**：移除重啟接手（「書房燈無人檢查」每分鐘已涵蓋，原寫法可能在人還在書房時關燈），檔案還原為 V4.1.5。
+  · **800-1B 晚安／離家**：移除重啟接手（頂樓孤兒燈已由 08-5K 開機自癒處理，原寫法可能關掉有人在用的樓梯燈）。
+  · **08-7 入侵偵測接手**：警報通知帶入實際感應器名稱（原為固定文字）；重複警報由 `入侵警報AI` 既有的 30 分鐘冷卻擋住。
+  · **09C 紅外線復位**：延遲改回 3 秒（先前無故改成 5 秒）。另清除多餘的行尾空白。
+- **颱風訊息進不來（`sensor.disaster_raw` 狀態超過 255 字元）**：HA 狀態上限 255 字元，REST 感測器內文超過就被改成 `unknown`，每 1～2 分鐘報一次 ERROR，`sensor.disaster` 停在上一則。2026-10-23 的颱風公報長達 1380 字（颱風位置＋降雨＋紅橙黃燈號＋海浪），整則颱風警報因此沒進系統。新增 `disaster_digest` 巨集：超過 255 字時濃縮成只含竹南／苗栗／新竹的燈號組或降雨組（格式與原文相同，簽章與廣播詞與原文一致），255 字內原樣回傳；`earthquake_raw` 也加 255 字保護。（`notify_body.jinja`、`packages/earthquake_disaster.yaml`，REST 平台感測器需重啟 HA 才會生效）
 - **SOP-20 重啟接續（批次 3：for: 持續時間與範本觸發類自動化重啟接續）**：
   · **100B 自動離家AI**：新增 `ha_start` 觸發，HA 重啟後 delay 4 分 10 秒重新檢查「全員不在家＋離家情境未開（或剛開過未滿 3 分鐘）」，成立才接續執行離家情境；保留離家已開超過 3 分鐘跳過防重複機制。
   · **08-7A 自動晚安情境AI**：新增 `ha_start` 觸發，重啟 90 秒後重新檢查二樓無人與就寢安全區條件，符合則自動執行晚安情境；二樓有人或晚安已開則安全終止。
@@ -305,12 +314,10 @@
 
 - **SOP-20 重啟接續（批次 1：燈光類自動化重啟防呆自癒）**：
   · **800-14 樓梯燈（14、14B、14C、14D）**：新增 `ha_start` 觸發，HA 重啟 1 分鐘後若樓梯燈亮著且非常開模式，自動進入 3 分鐘定時關燈倒數，避免重啟中斷倒數導致樓梯燈常亮；保護 `trigger.to_state is defined`。
-  · **08-5G 書房燈關閉AI**：新增 `ha_start` 重啟接手，重啟 1 分鐘後若書房燈為感應開啟且仍亮著，延遲 3 分鐘後關閉（途中回書房自動取消）。
   · **08-5K 頂樓開機狀態自癒檢查AI**：重啟 30 秒後若頂樓感應暫停旗標開啟但計時器已結束（或遺失），自動解除感應暫停。
   · **00-2J 氣氛燈情境同步AI**：新增 `ha_start` 重啟接手，重啟 1 分鐘後（避開提醒閃燈）依目前情境自動同步機台氣氛燈顏色。
   · **106D 網關切換同步Aqara開關AI**：新增 `ha_start` 重啟接手，重啟 1 分鐘後檢查網關警戒模式與 Aqara 虛擬情境開關是否一致，不一致則自動同步；全變數與條件加 `trigger.to_state is defined` 保護。
   · **08-4 客廳大門開門燈**：新增 `ha_start` 接手，重啟 1 分鐘後若路燈／門口燈亮著，自動接續檢查大門狀態並在關門後 5 分鐘關燈。
-  · **800-1B 晚安/離家逐環關燈**：新增 `ha_start` 接手，重啟 1 分鐘後若處於晚安或離家模式且頂樓樓梯燈仍亮著（非常開），自動補關。
   · **盤點確認無需更動**：800-15、800-10、104-1B、21A 經稽核皆為短等待（<30s）或即時翻轉按鈕，重啟不會遺留懸掛狀態。
 
 - **3D 面板 UI4.0-beta8／全域警報彈窗（`www/floorplan/v4/alert-popup.js`）**：

@@ -96,7 +96,7 @@
       trigger: homeassistant
       event: start
   action:
-    - delay: "00:00:05"
+    - delay: "00:00:03"
     - if:
         - condition: state
           entity_id: input_boolean.tv_ir_power
