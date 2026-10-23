@@ -63,16 +63,17 @@
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.0.4) / 08-5F頂樓下樓補判AI (V4.0.1)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.0.4` / `V4.0.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.1.3) / 08-5G 書房燈關閉AI (V4.2.2) / 08-5G 書房燈無人檢查AI (V4.1.3) / 08-5G 書房回房間關燈AI (V4.1.3)` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.2.2` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V4.3.0) / 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` / `ai_08_5h_topfloor_sleep_lock_manager` | `V4.3.0` / `V4.2.1` |
-| `configuration/Automations/08-5J頂樓動線推理AI.yaml` | `08-5J頂樓動線推理AI (V4.1.1) / 08-5J頂樓感應週報 (V4.1.1)` | `ai_08_5j_topfloor_path_inference` / `ai_08_5j_topfloor_weekly_report` | `V4.1.1` |
+| `configuration/Automations/08-5J頂樓動線推理AI.yaml` | `08-5J頂樓動線推理AI (V4.2.2) / 08-5J頂樓感應週報 (V4.1.1)` | `ai_08_5j_topfloor_path_inference` / `ai_08_5j_topfloor_weekly_report` | `V4.2.2` |
 | `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0) / 08-5K頂樓開機狀態自癒檢查AI (V4.2.2)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` / `ai_08_5k_topfloor_reconcile_on_start` | `V4.2.2` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V4.0.0)` | `ai_away_security_system` | `V4.0.0` |
 | `configuration/Automations/08-7離家入侵偵測AI.yaml` | `08-7離家入侵偵測AI (V4.2.2) / 08-7D入侵偵測感應器統計AI (V4.2.2)` | `ai_08_7_intrusion_watch` / `ai_08_7d_intrusion_stats` | `V4.2.2` |
-| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V3.4.0)` | `ai_08_7a_auto_goodnight_scene` | `V3.4.0` |
+| `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V4.2.2)` | `ai_08_7a_auto_goodnight_scene` | `V4.2.2` |
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2) / 08-8A 廚房感應燈重新偵測AI (V3.3.0) / 08-8A 廚房燈無人保險關燈AI (V3.4.0)` | `ai_08_8a_kitchen_motion_light` / `ai_08_8a_kitchen_motion_retrigger` / `ai_08_8a_kitchen_idle_off` | `V3.2` / `V3.3.0` / `V3.4.0` |
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
+| `configuration/Automations/09C電視待機喚醒AI.yaml` | `09C電視待機喚醒AI (V4.2.2) / 09C電視紅外線開關自動復位AI (V4.2.2)` | `ai_09c_tv_keepalive` / `ai_09c_tv_ir_reset` | `V4.2.2` |
 | `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.2.0)` | `ai_100a_auto_arrive_morning_v41` | `V4.2.0` |
-| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.2.0)` | `ai_auto_leave_system` | `V4.2.0` |
+| `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.2.2)` | `ai_auto_leave_system` | `V4.2.2` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
 | `configuration/Automations/100C2客廳門鎖電量分級通知AI.yaml` | `100C2客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_cycle_calibration` | `V4.0.0` |
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
@@ -86,7 +87,7 @@
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.1.5)` | `ai_gateway_anomaly_guard` | `V4.1.5` |
 | `configuration/Automations/106D網關切換同步Aqara開關AI.yaml` | `106D網關切換同步Aqara開關AI (V4.2.2)` | `ai_106d_gateway_to_aqara_switch` | `V4.2.2` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.1.6)` | `ai_107_tesla_charger_status_notify` | `V4.1.6` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.1.5)` | `ai_living_room_fan_integrated_control` | `V4.1.5` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.2.2)` | `ai_living_room_fan_integrated_control` | `V4.2.2` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.1.5)` | `ai_topfloor_fan_automation` | `V4.1.5` |
 | `configuration/Automations/800-14樓梯燈單擊定時關燈AI.yaml` | `800-開關系列-14 二三樓樓梯燈（三樓開關下3單擊／客廳主開關下1雙擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2) / 800-開關系列-14B 三樓樓梯燈（三樓開關下1／三樓開關上3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2) / 800-開關系列-14C 三四樓樓梯燈（三樓開關上1／四樓開關下3單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2) / 800-開關系列-14D 四樓樓梯燈（四樓開關下1單擊）-定時3分鐘關燈、雙擊常開AI (V4.2.2)` | `ai_800_13_san_lou_xia_3_timed_off` / `ai_800_14b_san_lou_stairs_timed_off` / `ai_800_14c_san_si_lou_stairs_timed_off` / `ai_800_14d_si_lou_stairs_timed_off` | `V4.2.2` |
@@ -284,6 +285,13 @@
 | `configuration/Scripts/頂樓感應AI.yaml` | `頂樓動線事件發布 (V4.1.0) / 頂樓樓梯燈感應關燈（單盞） (V4.0.0) / 頂樓坎燈感應關燈 (V4.0.0) / 頂樓樓梯燈套用平常亮度 (V4.0.0) / 頂樓樓梯燈實體按鈕切換 (V4.0.0)` | `topfloor_publish_path` / `topfloor_stairs_off_one` / `topfloor_kandeng_off_if_auto` / `topfloor_stairs_apply_day` / `topfloor_stairs_button_toggle` | `V4.1.0` / `V4.0.0` |
 
 ## 本次調整（V4.2.2 - 2026-10-22：家人主要裝置選擇與卡片、LINE 通知新格式（橫線／備註／示意條）、3D-UI 全域警報彈窗、離家災害提醒整合在地白話指引、災防告警縮短標色排版、離家通知重複修正）
+
+- **SOP-20 重啟接續（批次 3：for: 持續時間與範本觸發類自動化重啟接續）**：
+  · **100B 自動離家AI**：新增 `ha_start` 觸發，HA 重啟後 delay 4 分 10 秒重新檢查「全員不在家＋離家情境未開（或剛開過未滿 3 分鐘）」，成立才接續執行離家情境；保留離家已開超過 3 分鐘跳過防重複機制。
+  · **08-7A 自動晚安情境AI**：新增 `ha_start` 觸發，重啟 90 秒後重新檢查二樓無人與就寢安全區條件，符合則自動執行晚安情境；二樓有人或晚安已開則安全終止。
+  · **09C 電視待機喚醒AI**：新增 `ha_start` 觸發，重啟 2 分鐘後重新檢查電視是否仍斷線，若仍斷線才送紅外線喚醒情境，已連線則自動略過；紅外線復位開關加 ha_start 5 秒自動關閉防呆。
+  · **21A 客廳電風扇整合控制AI**：新增 `ha_start` 接手，重啟 15 秒後重新評估環境溫濕度與 Kenny 位置，動態切換兒童鎖與風速調節；全域加入 `trigger.to_state is defined` 保護。
+  · **08-5J 頂樓動線推理AI**：保護 `src` 變數（手動執行與 `ha_start` 時防止 `trigger.event` 存取異常），重啟後並行推理自動歸零無殘留旗標。
 
 - **SOP-20 重啟接續（批次 2：安全相關自動化重啟接續與計時保存）**：
   · **08-7 離家入侵偵測AI**：新增 `ha_start` 重啟接手，重啟 1 分鐘後若仍為離家模式、無人在家且近期有 2 個以上感應訊號，重新從 45 秒寬限開始起算並重新評估；保護 `trigger.id` 避免模板未定義錯誤。
