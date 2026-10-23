@@ -46,7 +46,7 @@ announce_manual:
         kind: "{% from 'notify_body.jinja' import broadcast_kind %}{{ broadcast_kind(text, '') }}"
         message: "{{ text }}"
         player: "{{ players }}"
-        force_5f: true     # 手動勾選的喇叭就是要播，不受「頂樓熟睡」靜音影響
+        force: true        # 手動勾選的喇叭就是要播，不受「晚安／熟睡」靜音影響
     - action: input_text.set_value
       target:
         entity_id: input_text.announce_manual_result
