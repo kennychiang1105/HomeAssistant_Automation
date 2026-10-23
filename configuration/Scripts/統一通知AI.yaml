@@ -2,7 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
-# - V4.2.3（2026-10-24）：晚安情境（input_boolean.aqara_wan_an）或頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播所有喇叭都不播（整則略過）；緊急等級照常；force_5f 欄位（手動廣播用）可強制播。
+# - V4.2.3（2026-10-24）：晚安情境（input_boolean.aqara_wan_an）或頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播所有喇叭都不播（整則略過）；緊急等級照常；force 欄位（手動廣播用）可強制播；情境廣播（kind: scene，含晚安情境完成播報）不受影響。
 # - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
 # - V4.0.0：announce 的 player 可傳「喇叭清單」同時播放（音量只調整清單內的 HomePod）；沒傳 player 仍依等級使用廣播群組。
@@ -279,7 +279,7 @@ announce:
     target_player: "{{ player_list[0] if player_list | length > 0 else {'emergency':'media_player.guang_bo_qun_zu_all','important':'media_player.guang_bo_qun_zu_tong_zhi','general':'media_player.guang_bo_qun_zu_yi_ban'}[lv] }}"
     target_all: "{{ player_list if player_list | length > 0 else [target_player] }}"
     # V4.2.3：晚安情境或頂樓熟睡中，非緊急（一般／重要）廣播所有喇叭都不播；緊急等級照常；force_5f=true（手動廣播）才強制播
-    quiet: "{{ (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) and lv != 'emergency' and (force | default(force_5f | default(false))) not in [true, 'true', 'True', 'on'] }}"
+    quiet: "{{ (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) and lv != 'emergency' and (kind | default('')) != 'scene' and (force | default(force_5f | default(false))) not in [true, 'true', 'True', 'on'] }}"
     # 只調整「這次實際會播放」的 HomePod 音量並各自還原（不動沒播放的那台）
     hp_all: ['media_player.ke_ting_homepod', 'media_player.ding_lou_homepod']
     speakers: >-
