@@ -41,7 +41,7 @@
   variables:
     automation_version: "V4.2.0"
     other_label: "其他（自訂，在下方欄位輸入 device_tracker）"
-    pmap: {elay: {iPad Air 5（路由器）: device_tracker.ipad_air_5_elay, iPhone 13 Pro（路由器）: device_tracker.unifi_16_cc_a1_4d_4f_42_old, iPhone 16 Pro Max（路由器）: device_tracker.unifi_16_cc_a1_4d_4f_42_default}, iris: {iPhone 13 Pro Max（路由器）: device_tracker.iphone13promaxiris}, jerry: {Redmi Note 11 Pro 5G（路由器）: device_tracker.redmi_note_11_pro_5g, iPad Pro 2021（路由器）: device_tracker.ipad_pro_2021_jerry, iPhone 16（路由器）: device_tracker.iphone_16_jerry, iPhone Xr（路由器）: device_tracker.iphone_xr_jerry}, kenny: {Apple Watch Ultra 3（路由器）: device_tracker.apple_watch_ultra_3_kenny, iPad Pro 2024（路由器）: device_tracker.ipad_pro_2024_kenny, iPad mini（App GPS）: device_tracker.jiang_zi_yang_de_ipad, iPhone Duo（路由器）: device_tracker.iphone_duo_kenny}}
+    pmap: {elay: {iPad Air 5（路由器）: device_tracker.ipad_air_5_elay, iPhone 13 Pro（路由器）: device_tracker.unifi_16_cc_a1_4d_4f_42_old, iPhone 16 Pro Max（路由器）: device_tracker.unifi_16_cc_a1_4d_4f_42_default}, iris: {iPhone 13 Pro Max（路由器）: device_tracker.iphone13promaxiris}, jerry: {Redmi Note 11 Pro 5G（路由器）: device_tracker.redmi_note_11_pro_5g, iPad Pro 2021（路由器）: device_tracker.ipad_pro_2021_jerry, iPhone 16（路由器）: device_tracker.iphone_16_jerry, iPhone Xr（路由器）: device_tracker.iphone_xr_jerry}, kenny: {Apple Watch Ultra 3（路由器）: device_tracker.apple_watch_ultra_3_kenny, iPad Pro 2024（路由器）: device_tracker.ipad_pro_2024_kenny, iPad mini（App GPS）: device_tracker.jiang_zi_yang_de_ipad, iPhone Duo（App GPS）: device_tracker.iphone_duo_kenny_2, iPhone Duo（路由器）: device_tracker.iphone_duo_kenny}}
     pname: {elay: Elay, iris: Iris, jerry: Jerry, kenny: Kenny}
   actions:
     - choose:

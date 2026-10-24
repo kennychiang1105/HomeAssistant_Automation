@@ -12,6 +12,7 @@ OTHER = '其他（自訂，在下方欄位輸入 device_tracker）'
 CAND = {
     'kenny': ('Kenny', [
         ('iPhone Duo（路由器）', 'device_tracker.iphone_duo_kenny'),
+        ('iPhone Duo（App GPS）', 'device_tracker.iphone_duo_kenny_2'),
         ('iPad Pro 2024（路由器）', 'device_tracker.ipad_pro_2024_kenny'),
         ('iPad mini（App GPS）', 'device_tracker.jiang_zi_yang_de_ipad'),
         ('Apple Watch Ultra 3（路由器）', 'device_tracker.apple_watch_ultra_3_kenny'),
