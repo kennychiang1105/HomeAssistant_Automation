@@ -10,7 +10,7 @@ person:
   - name: Kenny
     id: kenny
     device_trackers:
-      - device_tracker.iphone_17_pro_max_kenny
+      - device_tracker.iphone_duo_kenny
   - name: Iris
     id: iris
     device_trackers:

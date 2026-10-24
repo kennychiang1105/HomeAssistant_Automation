@@ -2,6 +2,7 @@
 # 03苗栗天氣告知系統AI (V4.2.2)
 # 相容版本：Helpers V3.0
 # 更新紀錄（統一格式）：
+# - V4.2.3 fix2（2026-10-24）：冷卻改成「單一項目記憶」：把訊息拆成燈號／降雨等級＋在地地區的項目，最近 12 小時（disaster_item_memory_hr 可調）內通知過的項目不再重複發 LINE、HA 通知與廣播，出現新項目（升級、新增地區…）才發；解決 NCDR 輪流發風力版／降雨版／合併版造成同一內容重複通知（10/23 17:26、22:37、22:45）。見 packages/v42_disaster_cooldown.yaml
 # - V4.2.3（2026-10-23）：①緊急類判斷改嚴：「請慎防…土石流」這類提醒字樣不再算緊急（17:15 的降雨公報因此被誤判成緊急）；只有疏散／撤離／土石流警戒／堰塞湖溢流等才是緊急。②非急迫（重要類）燈號／降雨公報加冷卻：disaster_nonurgent_gap_min（預設 180 分）內不重複發 LINE、HA 通知與廣播，除非嚴重度升級；見 packages/v42_disaster_cooldown.yaml。
 # - V4.2.2（2026-10-22）：同一則災害訊息不重複發送：NCDR 常常只改其他縣市的名單或時段文字就再發一版（10/22 16:55 與 17:23 兩版只差其他縣市），原本整段文字比對所以發了兩次。
 #   改用「在地內容簽章」（notify_body.jinja 的 disaster_sig：燈號＋竹南／苗栗／新竹地區＋條件）判斷，在地內容沒變就不再通知、不廣播。
@@ -98,18 +99,29 @@
                 rank: >-
                   {{ [ (4 if '超大豪雨' in cur_sig else 0), (3 if ('大豪雨' in cur_sig or '紅色' in cur_sig) else 0),
                        (2 if ('橙色' in cur_sig or '豪雨' in cur_sig) else 0), (1 if ('黃色' in cur_sig or '大雨' in cur_sig) else 0) ] | max }}
-                since_min: "{{ (now().timestamp() - as_timestamp(states('input_datetime.disaster_last_nonurgent_sent'), 0)) / 60 }}"
-                cooling: >-
-                  {{ lv == 'important' and rank | int(0) > 0
-                     and since_min | float(99999) < (states('input_number.disaster_nonurgent_gap_min') | float(180))
-                     and rank | int(0) <= (states('input_number.disaster_last_rank') | int(0)) }}
+                # V4.2.3 fix2：以「單一項目」為單位去重。items = disaster_sig 的每一段（燈號／降雨等級＋在地地區＋條件，不含日期時段文字）；
+                # seen_keep = 記憶時間內已通知過的項目雜湊。所有項目都通知過 → 冷卻；有新項目（升級、新增地區…）就照常發。
+                mem_hr: "{{ states('input_number.disaster_item_memory_hr') | float(12) | int }}"
+                now_hr: "{{ (now().timestamp() / 3600) | int }}"
+                seen_keep: >-
+                  {% set ns = namespace(o=[]) %}
+                  {% for e in states('input_text.disaster_seen_items').split('|') if ':' in e %}
+                    {% if (e.split(':')[1] | int(0)) >= (now_hr | int) - (mem_hr | int) %}{% set ns.o = ns.o + [e] %}{% endif %}
+                  {% endfor %}
+                  {{ ns.o | join('|') }}
+                items: "{{ cur_sig.split('|') | map('trim') | reject('eq', '') | list | tojson }}"
+                new_str: >-
+                  {% set ns = namespace(o=[]) %}
+                  {% for it in items %}{% if ((it | md5)[:5] ~ ':') not in seen_keep %}{% set ns.o = ns.o + [it] %}{% endif %}{% endfor %}
+                  {{ ns.o | join('|') }}
+                cooling: "{{ lv == 'important' and items | length > 0 and new_str | trim == '' }}"
             # 冷卻中：不發 LINE／HA 通知／廣播，只更新「上一則」簽章（NCDR 輪流發不同版本時，A→B→A 不會一直重發）
             - if: "{{ cooling }}"
               then:
                 - action: logbook.log
                   data:
                     name: 03苗栗天氣告知系統AI
-                    message: "非急迫災害訊息冷卻中（嚴重度 {{ rank }}，距上次發送 {{ since_min | round(0) }} 分鐘），略過：{{ cur_sig[:60] }}"
+                    message: "非急迫災害訊息冷卻中（{{ items | length }} 個項目都已在 {{ mem_hr }} 小時內通知過），略過：{{ cur_sig[:60] }}"
                   continue_on_error: true
                 - action: input_text.set_value
                   target:
@@ -143,19 +155,19 @@
                     entity_id: input_datetime.last_disaster_broadcast
                   data:
                     datetime: "{{ now().isoformat() }}"
-            # V4.2.3：記錄非急迫類這次發送的時間與嚴重度（冷卻用）
-            - if: "{{ lv == 'important' and rank | int(0) > 0 }}"
+            # V4.2.3 fix2：把這次新通知的項目記進「已通知過」（雜湊:小時；超過 255 字就丟最舊的）
+            - if: "{{ lv == 'important' and items | length > 0 }}"
               then:
-                - action: input_datetime.set_datetime
+                - action: input_text.set_value
                   target:
-                    entity_id: input_datetime.disaster_last_nonurgent_sent
+                    entity_id: input_text.disaster_seen_items
                   data:
-                    datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-                - action: input_number.set_value
-                  target:
-                    entity_id: input_number.disaster_last_rank
-                  data:
-                    value: "{{ rank | int(0) }}"
+                    value: >-
+                      {% set add = namespace(o=[]) %}
+                      {% for it in (new_str.split('|') if new_str | trim != '' else []) %}{% set add.o = add.o + [(it | md5)[:5] ~ ':' ~ now_hr] %}{% endfor %}
+                      {% set keep = namespace(l=((seen_keep.split('|') if seen_keep | trim != '' else []) + add.o)) %}
+                      {% for i in range(40) %}{% if (keep.l | join('|')) | length > 250 %}{% set keep.l = keep.l[1:] %}{% endif %}{% endfor %}
+                      {{ keep.l | join('|') }}
             - action: input_text.set_value
               target:
                 entity_id: input_text.disaster_last_message

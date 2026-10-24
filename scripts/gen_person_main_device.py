@@ -11,8 +11,8 @@ OTHER = '其他（自訂，在下方欄位輸入 device_tracker）'
 # person id -> (display name, [(label, device_tracker entity)]); the first option is the device in packages/persons.yaml today
 CAND = {
     'kenny': ('Kenny', [
-        ('iPhone 17 Pro Max（路由器）', 'device_tracker.iphone_17_pro_max_kenny'),
-        ('iPhone 17 Pro Max（App GPS）', 'device_tracker.iphone_17_pro_max_kenny_2'),
+        ('iPhone Duo（路由器）', 'device_tracker.iphone_duo_kenny'),
+        ('iPhone Duo（App GPS）', 'device_tracker.iphone_duo_kenny_2'),
         ('iPad Pro 2024（路由器）', 'device_tracker.ipad_pro_2024_kenny'),
         ('iPad mini（App GPS）', 'device_tracker.jiang_zi_yang_de_ipad'),
         ('Apple Watch Ultra 3（路由器）', 'device_tracker.apple_watch_ultra_3_kenny'),

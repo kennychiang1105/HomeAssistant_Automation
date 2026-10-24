@@ -1,5 +1,5 @@
 - id: '1644394919500'
-  alias: 01地震災害系統 (V4.0.0)
+  alias: 01地震災害系統 (V4.2.3)
   description: ''
   triggers:
   - entity_id:
@@ -14,8 +14,18 @@
   actions:
   - if:
     - condition: template
-      value_template: '{{(as_timestamp(now()) - as_timestamp(states.script.eq99.attributes.last_triggered))
-        < (3600) }}'
+      # V4.2.3：地震預警（eq99）要和這則報告是「同一場地震」才算：預警觸發時間 − 報告內文的發生時間 落在 −5 分鐘～＋5 分鐘
+      #（預警在地震發生後幾秒到幾十秒內到，報告時間只到分鐘）。原本只看「1 小時內有預警」，04:48 的小地震預警會讓 04:58 另一場地震的報告被當成同一場。
+      #  報告文字讀不到時間時才退回舊規則。
+      value_template: >-
+        {% set e = as_timestamp(states.script.eq99.attributes.last_triggered, 0) %}
+        {% set m = states('sensor.earthquake') | regex_findall('^\\s*(\\d{1,2})/(\\d{1,2})\\s+(\\d{1,2}):(\\d{2})') %}
+        {% if m | length > 0 %}
+          {% set q = as_timestamp(now().year ~ '-' ~ '%02d' | format(m[0][0] | int) ~ '-' ~ '%02d' | format(m[0][1] | int) ~ 'T' ~ '%02d' | format(m[0][2] | int) ~ ':' ~ m[0][3] ~ ':00+08:00', 0) %}
+          {{ q > 0 and -300 <= (e - q) <= 300 }}
+        {% else %}
+          {{ (now().timestamp() - e) < 3600 }}
+        {% endif %}
     then:
     - parallel:
       - data:
@@ -27,24 +37,26 @@
         enabled: true
         action: script.send_line_to_user
       - data:
-          level: emergency
+          # V4.2.3：規模 6 以上才是緊急（熟睡中也會閃燈）；其餘重要等級（熟睡中不閃燈、不播頂樓）
+          level: >-
+            {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\\d+(?:\\.\\d+)?)') | float(0)) >= 6 else 'important' }}
           line: false
           source: 01地震災害系統
           version: V4.2.0
           title: 最新地震報告
           message: "{{ states('sensor.earthquake') }}"
         action: script.notify_dispatch
-      - sequence:
-        - data:
-            volume_level: 0.5
-          action: media_player.volume_set
-          target:
-            entity_id:
-            - media_player.ke_ting_homepod
-          enabled: true
+      # V4.2.3：地震報告是「已經發生」的資訊，不是緊急：規模 6 以上才維持緊急（不限時段）；其餘只在 07:00–22:00 廣播（改重要等級）。
+      #   晚安情境／頂樓熟睡中，非緊急廣播由 script.announce 整則略過。
+      - if:
+        - condition: template
+          value_template: >-
+            {{ (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 or 7 <= now().hour < 22 }}
+        then:
         - action: script.announce
           data:
-            level: emergency
+            level: >-
+              {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 else 'important' }}
             kind: quake_report
             message: '地震報告收到以下中央氣象局訊息: {{ states(''sensor.earthquake'') }}'
     else:
@@ -478,6 +490,7 @@
                 chime: false
                 message: 車庫鐵門即將開啟
                 player: media_player.che_ku_she_ying_ji_speaker
+                force: true
                 adjust_volume: false
           - action: tts.speak
             metadata: {}
@@ -508,6 +521,7 @@
                 chime: false
                 message: 車庫鐵門即將關閉，請注意安全。
                 player: media_player.che_ku_she_ying_ji_speaker
+                force: true
                 adjust_volume: false
           - action: tts.speak
             metadata: {}
@@ -544,6 +558,7 @@
                 chime: false
                 message: 車庫鐵門即將關閉，請注意安全。
                 player: media_player.che_ku_she_ying_ji_speaker
+                force: true
                 adjust_volume: false
           - action: tts.speak
             metadata: {}

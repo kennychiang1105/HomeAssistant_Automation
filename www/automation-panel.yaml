@@ -3016,7 +3016,7 @@ views:
         state_color: true
         entities:
           - entity: automation.di_zhen_zai_hai_xi_tong
-            name: "01地震災害系統 (V4.0.0)"
+            name: "01地震災害系統 (V4.2.3)"
           - entity: automation.di_zhen_zai_hai_xi_tong_an_niu
             name: "02地震災害系統 (按鈕) (V4.0.0)"
           - entity: automation.03emiao_li_shu_san_jing_bao
@@ -3118,8 +3118,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_number.disaster_nonurgent_gap_min
-            name: "非急迫災害訊息｜最短發送間隔（分鐘）"
+          - entity: input_number.disaster_item_memory_hr
+            name: "非急迫災害訊息｜同一項目不重複通知的時間（小時）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4435,8 +4435,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_number.disaster_last_rank
-            name: "非急迫災害訊息｜上次發送的嚴重度（內部）"
           - entity: input_text.line_eew_remote_seconds
             name: "LINE_EEW遠端_預估到達秒數"
           - entity: input_text.line_eew_remote_level
@@ -4447,6 +4445,8 @@ views:
             name: "緊急模式來源（homekit／manual／button／auto）"
           - entity: input_text.emergency_garage_prev
             name: "緊急模式前車庫鐵門狀態"
+          - entity: input_text.disaster_seen_items
+            name: "非急迫災害訊息｜已通知過的項目（內部）"
           - entity: timer.emergency_triple_press_pause
             name: "緊急三擊維修暫停（2 小時自動恢復）"
           - entity: timer.emergency_snapshot_expire

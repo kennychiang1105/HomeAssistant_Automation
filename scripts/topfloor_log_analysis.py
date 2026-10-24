@@ -109,7 +109,7 @@ print("== 08-5F 決策紀錄"); [print("   %3d %s"%(v,k)) for k,v in dec.most_co
 # others: camera visits when iPhone not on 5F AP
 aps=['70:a7:41:e4:54:1f','70:a7:41:e4:5a:bf','d0:21:f9:f2:fc:4c']
 ip=[]
-for r in rows('device_tracker.iphone_17_pro_max_kenny'):
+for r in rows('device_tracker.iphone_duo_kenny'):
     try: ap=(json.loads(r[5] or '{}').get('ap_mac') or '').lower()
     except: ap=''
     ip.append((r[1],ap in aps,r[0]))
@@ -154,7 +154,7 @@ sh=[s for s in ss if s[1]-s[0]<60]; print("== 書房燈亮不到 60 秒就關：
 dec=[(r[1],r[0]) for r in rows('input_text.topfloor_debug_last_decision')]
 aps=['70:a7:41:e4:54:1f','70:a7:41:e4:5a:bf','d0:21:f9:f2:fc:4c']
 ip=[]
-for r in rows('device_tracker.iphone_17_pro_max_kenny'):
+for r in rows('device_tracker.iphone_duo_kenny'):
     try: ap=(json.loads(r[5] or '{}').get('ap_mac') or '').lower()
     except: ap=''
     ip.append((r[1],ap in aps))
