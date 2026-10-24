@@ -12,8 +12,7 @@ input_select:
     name: "Kenny 的主要裝置（person.kenny 參考）"
     icon: mdi:cellphone-check
     options:
-      - "iPhone 17 Pro Max（路由器）"
-      - "iPhone 17 Pro Max（App GPS）"
+      - "iPhone Duo（路由器）"
       - "iPad Pro 2024（路由器）"
       - "iPad mini（App GPS）"
       - "Apple Watch Ultra 3（路由器）"
