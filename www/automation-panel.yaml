@@ -1986,7 +1986,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 15 支、可調整項目 16 個"
+        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 15 支、可調整項目 18 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2150,6 +2150,24 @@ views:
             name: "自動情境最早啟動（工作日，日出後幾分鐘）"
           - entity: input_number.auto_scene_earliest_sunrise_offset_holiday_min
             name: "自動情境最早啟動（非工作日，日出後幾分鐘）"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "日期時間（2）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_datetime.scene_morning_earliest
+            name: "早安時段最早起點"
+          - entity: input_datetime.scene_morning_latest_end
+            name: "早安時段最晚終點"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2386,7 +2404,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 32 個"
+        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 36 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2425,7 +2443,6 @@ views:
           - entity: automation.ai_08_5g_study_motion_light
             name: "08-5G 書房燈感應AI (V4.1.5)"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2461,6 +2478,7 @@ views:
           - entity: automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0
             name: "08-5K頂樓燈具使用權AI (V4.0.0)"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2496,7 +2514,6 @@ views:
           - entity: automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing
             name: "800-開關系列-12F 頂樓與四樓開關-長按下樓情境"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2527,6 +2544,7 @@ views:
           - entity: input_number.topfloor_stairs_night_kelvin
             name: "頂樓_深夜樓梯燈色溫（K）"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2555,7 +2573,6 @@ views:
           - entity: input_number.topfloor_study_leave_down_min
             name: "頂樓_離開書房下樓保留照明（分）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2590,10 +2607,11 @@ views:
           - entity: input_text.topfloor_ap_macs_5f
             name: "5F 頂樓 AP MAC 清單（逗號分隔）"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "睡眠靜默與熟睡鎖（3）"
+        heading: "睡眠靜默與熟睡鎖（8）"
         heading_style: title
         card_mod:
           style: |
@@ -2603,8 +2621,18 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_boolean.sleep_holiday_aware
+            name: "熟睡起床時間搭配國定假日（功能開關）"
           - entity: input_boolean.sleep_silent_active
             name: "頂樓深夜熟睡手動鎖"
+          - entity: input_datetime.sleep_5h_holiday
+            name: "熟睡下樓時間（假日）"
+          - entity: input_datetime.sleep_5h_workday
+            name: "熟睡下樓時間（平日）"
+          - entity: input_datetime.sleep_unlock_holiday
+            name: "熟睡鎖最早解鎖（假日醒來）"
+          - entity: input_datetime.sleep_unlock_workday
+            name: "熟睡鎖最早解鎖（平日醒來）"
           - entity: input_number.sleep_silent_end_min
             name: "靜默時段結束（分鐘；0=00:00）"
           - entity: input_number.sleep_silent_start_min
@@ -2629,7 +2657,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他開關（2）"
+        heading: "其他開關（1）"
         heading_style: title
         card_mod:
           style: |
@@ -2641,8 +2669,6 @@ views:
         entities:
           - entity: input_boolean.wu_lou_she_ying_ji_kai_guan
             name: "五樓攝影機麥克風開關"
-          - entity: input_boolean.sleep_holiday_aware
-            name: "熟睡起床時間搭配國定假日（功能開關）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2969,7 +2995,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 12 支、可調整項目 15 個"
+        content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。　自動化 13 支、可調整項目 15 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3140,7 +3166,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（12）"
+        heading: "自動化開關（13）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -3163,6 +3189,8 @@ views:
             name: "04苗栗天氣告知系統 (按鈕) (V4.2.0)"
           - entity: automation.jin_ji_mo_shi
             name: "05A緊急模式"
+          - entity: automation.ai_05b_emergency_mode_notify_v3
+            name: "05B緊急模式通知AI (V4.2.2)"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3178,8 +3206,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.ai_05b_emergency_mode_notify_v3
-            name: "05B緊急模式通知AI (V4.2.2)"
           - entity: automation.ai_05c_emergency_button_auto_reset_v3
             name: "05C按鈕自動復位AI (V3.0)"
           - entity: automation.ai_05d_emergency_virtual_button_bridge_v3
@@ -3190,6 +3216,8 @@ views:
             name: "05F緊急模式快照到期AI (V4.1.0)"
           - entity: automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5
             name: "05G緊急三擊維修暫停AI (V4.1.5)"
+          - entity: automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3
+            name: "地牛 add-on 預警接收AI (V4.2.3)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -4265,7 +4293,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "情境（18）"
+        heading: "情境（19）"
         heading_style: title
         card_mod:
           style: |
@@ -4293,6 +4321,8 @@ views:
             name: "Google 早安情境按鈕"
           - entity: input_boolean.google_scene_wan_an_trigger
             name: "Google 晚安情境按鈕"
+          - entity: input_boolean.hk_scene_home
+            name: "HomeKit 到家情境按鈕"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4307,14 +4337,14 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_boolean.hk_scene_home
-            name: "HomeKit 到家情境按鈕"
           - entity: input_boolean.hk_scene_goodmorning
             name: "HomeKit 早安情境按鈕"
           - entity: input_boolean.hk_scene_goodnight
             name: "HomeKit 晚安情境按鈕"
           - entity: input_boolean.hk_scene_away
             name: "HomeKit 離家情境按鈕"
+          - entity: input_datetime.scene_verify_skip_alarm_until
+            name: "情境檢查略過保全模式檢查到（內部）"
           - entity: input_datetime.auto_scene_earliest_holiday
             name: "自動情境最早啟動（假日）"
           - entity: input_datetime.auto_scene_earliest_workday
@@ -4532,7 +4562,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "保全與門鎖（13）"
+        heading: "保全與門鎖（15）"
         heading_style: title
         card_mod:
           style: |
@@ -4552,11 +4582,14 @@ views:
             name: "入侵偵測最近一次通知時間"
           - entity: input_datetime.gateway_sync_lock_until
             name: "網關同步鎖｜鎖到（內部）"
+          - entity: input_datetime.garage_cable_learn_last
+            name: "車庫充電線樣板｜上次學習（內部）"
           - entity: input_datetime.garage_depart_last_open
             name: "車庫出門偵測｜上次自動開門"
-          - entity: input_number.garage_ev_front
-            name: "車庫前位｜連續有車燈／位移次數（內部）"
+          - entity: input_datetime.garage_gate_opened_at
+            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4570,6 +4603,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_number.garage_ev_front
+            name: "車庫前位｜連續有車燈／位移次數（內部）"
           - entity: input_number.garage_ev_back
             name: "車庫後位｜連續有車燈／位移次數（內部）"
           - entity: input_select.lpr_last_plate
@@ -4583,7 +4618,6 @@ views:
           - entity: input_text.garage_depart_car
             name: "車庫出門偵測｜準備出門的車（內部）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4728,38 +4762,6 @@ views:
           - entity: input_text.ai_leave_version_text
             name: "AI離家版本字串"
         card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他（9）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_datetime.scene_verify_skip_alarm_until
-            name: "情境檢查略過保全模式檢查到（內部）"
-          - entity: input_datetime.scene_morning_earliest
-            name: "早安時段最早起點"
-          - entity: input_datetime.scene_morning_latest_end
-            name: "早安時段最晚終點"
-          - entity: input_datetime.sleep_5h_holiday
-            name: "熟睡下樓時間（假日）"
-          - entity: input_datetime.sleep_5h_workday
-            name: "熟睡下樓時間（平日）"
-          - entity: input_datetime.sleep_unlock_holiday
-            name: "熟睡鎖最早解鎖（假日醒來）"
-          - entity: input_datetime.sleep_unlock_workday
-            name: "熟睡鎖最早解鎖（平日醒來）"
-          - entity: input_datetime.garage_cable_learn_last
-            name: "車庫充電線樣板｜上次學習（內部）"
-          - entity: input_datetime.garage_gate_opened_at
-            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
-        card_mod: *cm
   - title: "其他"
     path: other
     icon: mdi:dots-horizontal-circle-outline
@@ -4771,14 +4773,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 2 支、可調整項目 0 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 0 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（2）"
+        heading: "自動化開關（1）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -4791,6 +4793,4 @@ views:
         entities:
           - entity: automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3
             name: "TREM 預警客戶端看門狗AI (V4.2.3)"
-          - entity: automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3
-            name: "地牛 add-on 預警接收AI (V4.2.3)"
         card_mod: *cm

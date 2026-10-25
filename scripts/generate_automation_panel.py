@@ -67,7 +67,7 @@ AUTO_RULES = [
     ("supply", r"^(00-2C|耗材|電池)"),
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7A|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
     ("topfloor", r"^(08-5[A-L]|800-開關系列-(11|12)[A-D]?)"),
-    ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
+    ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試|TREM預警|地牛 add-on)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
     ("security", r"^(08-[236]|08-7離家入侵|08-7[CD]|08鐵門|104|105大門|106B|106C|100C[123]|100C客廳|08-3)"),
@@ -81,10 +81,10 @@ HELPER_RULES = [
     ("supply", r"supply_|battery_system|doorlock_batt|line_bot_forecast"),
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
-    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
-    ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
+    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|garage_cable|garage_gate|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
+    ("topfloor", r"topfloor|sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
-    ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
+    ("scene", r"auto_scene_|scene_morning_|scene_verify|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
     ("notify", r"notify_|announce_|eew_|disaster_item_memory|line_bot|mood_|ambient_|scene_announce|notif_title|garage_arrival|garage_away"),
     ("air_fan", r"air_ai|air_pm|air_manual|env_alert|env_co|env_temp|fan|feng_shan|summer_|^input_number\.(ac_|enter_|night_cold|morning_reopen)|effective_apparent|living_room"),
     ("system", r"tv_ir_power|tv_keepalive|maintenance_until|v41_phone|tw_makeup|system_stability|ai_00_01|tesla|at_home|tracker|ai_version|ai_manual|automation_(package|framework)|homekit_framework|ai_leave_version|floorplan|collection|last_disaster"),
@@ -92,7 +92,7 @@ HELPER_RULES = [
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
-    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until)"
+    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_)"
     r"|^input_boolean\.(garage_depart_candidate|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
@@ -101,6 +101,7 @@ INTERNAL_RE = re.compile(
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|disaster_seen_items|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(garage_ev_|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate)"
+    r"|^input_datetime\.(garage_cable_learn_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
 )
 
 # 各分類內的功能小組（依序比對，先符合者先分；沒符合的依元件種類分組）
@@ -122,7 +123,7 @@ SUBGROUPS = {
     "topfloor": [
         ("感應燈與書房燈參數", r"topfloor_(evidence|line_debounce|arrive|down_4f|vacancy|study|stairs_night|stairs_day)|topfloor_motion_pause"),
         ("上下樓情境判斷參數", r"_kenny|topfloor_webhook_mode|topfloor_ap_macs"),
-        ("睡眠靜默與熟睡鎖", r"sleep_silent"),
+        ("睡眠靜默與熟睡鎖", r"sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_"),
         ("頂樓情境廣播", r"topfloor_scene_announce"),
     ],
     "air_fan": [
