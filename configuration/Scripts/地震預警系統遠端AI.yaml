@@ -125,6 +125,13 @@
       # 語音是預先合成的短句（www 快取暖機 warm_announce.py：震度 3~7 × 3~60 秒），念到數字時倒數已過去約 3 秒，
       # 所以播報秒數 = 預估秒數 - 已經過秒數 - 3；剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
       # （不再先 volume_set 兩台 HomePod：實測會卡約 3.6 秒；音量由 script.announce 依「廣播音量_緊急」設定）
+      # V4.2.3：預估 4 級以上會啟動緊急模式，先存「閃燈之前」的設備快照（原本 05A 才存，這時氣氛燈已經在閃，樓梯燈等被存成閃爍中的狀態，還原後反而變成開）
+      - if: "{{ lv >= 4 }}"
+        then:
+          - action: script.emergency_snapshot_save
+            data:
+              source: auto
+            continue_on_error: true
       - variables:
           say_sec: "{{ (sec_i - (now().timestamp() - ts0 | float) - 3) | round(0) | int }}"
           quake_msg: >-

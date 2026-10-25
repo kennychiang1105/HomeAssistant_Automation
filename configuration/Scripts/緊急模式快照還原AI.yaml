@@ -1,6 +1,7 @@
 # ────────────────────────────────────────────────────────
 # 緊急模式快照與還原AI (V4.1.0)
 # 更新紀錄：
+# - V4.2.3（2026-10-24）：①快照多涵蓋餐廳與客廳燈泡、燈組動畫、頂樓主燈 1~4（上次事件改動了但沒列在快照裡）；②鐵門改成 script.garage_close_when_clear：連續 20 秒沒有人、沒有車、沒有動作才關，最多等 10 分鐘，等不到只發 HA 通知。
 # - V4.1.0（2026-10-10）：新增 script.emergency_snapshot_save／emergency_restore。05A 啟動時先存「05A 會改動的設備」快照（scene.create），
 #   誤觸時由 106C（解除網關警報，批次 8）呼叫還原。涵蓋：12 燈、18 開關、3 風扇、3 插座、頂樓空調、警報觸發開關；車庫鐵門另存狀態，
 #   只在「快照前是關、現在是開、車庫攝影機沒偵測到人或車」時才自動關回，否則只通知；二樓門鎖無法由 HA 還原，只通知。
@@ -60,6 +61,18 @@ emergency_snapshot_save:
       - switch.san_lou_lou_ti_deng
       - switch.san_si_lou_lou_ti_deng
       - climate.ding_lou_kong_diao
+      - light.yeelink_color5_f618_light
+      - light.yeelink_color5_53ed_light
+      - light.yeelink_color5_c8d3_light
+      - light.can_ting_deng_zu_dong_hua
+      - light.yeelink_color5_106d_light
+      - light.yeelink_color5_8e3f_light
+      - light.ke_ting_deng_zu_yi_dong_hua
+      - light.ke_ting_xiao_deng_dong_hua
+      - light.ding_lou_zhu_deng_1
+      - light.ding_lou_zhu_deng_2
+      - light.94deb8fffe8d87d0_01
+      - light.ding_lou_zhu_deng_4
       - switch.54ef44cf58f9_alarm_trigger
     ents: "{{ entities if (entities is defined and entities) else default_ents }}"
     avail: >-
@@ -136,34 +149,13 @@ emergency_restore:
           target:
             entity_id: switch.54ef44cf58f9_alarm_trigger
           continue_on_error: true
-        - choose:
-            - alias: "鐵門：快照前是關、現在是開、攝影機無人車 → 自動關回"
-              conditions:
-                - condition: template
-                  value_template: "{{ garage_prev == 'closed' and states('cover.garage') in ['open', 'opening'] }}"
-                - condition: state
-                  entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-                  state: "off"
-                - condition: state
-                  entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-                  state: "off"
-              sequence:
-                - action: cover.close_cover
-                  target:
-                    entity_id: cover.garage
-            - alias: "鐵門：快照前是關、現在是開，但攝影機有人或車 → 只通知"
-              conditions:
-                - condition: template
-                  value_template: "{{ garage_prev == 'closed' and states('cover.garage') in ['open', 'opening'] }}"
-              sequence:
-                - action: script.notify_dispatch
-                  data:
-                    level: general
-                    line: false
-                    source: 緊急模式快照還原AI
-                    version: V4.1.0
-                    title: 車庫鐵門仍開著
-                    message: "緊急模式前鐵門是關閉的，但車庫攝影機偵測到人或車，未自動關閉。\n請確認安全後自行關閉。"
+        # V4.2.3：鐵門只有在「無人、無車」確認後才關：交給 script.garage_close_when_clear（不阻塞，最多等 10 分鐘）；
+        #   一次性判斷改成持續等待，原本只要當下有人或車就放棄，鐵門會一直開著
+        - if: "{{ garage_prev == 'closed' and states('cover.garage') in ['open', 'opening'] }}"
+          then:
+            - action: script.turn_on
+              target:
+                entity_id: script.garage_close_when_clear
         - action: script.notify_dispatch
           data:
             level: general
@@ -196,3 +188,52 @@ emergency_restore:
     - action: timer.cancel
       target:
         entity_id: timer.emergency_snapshot_expire
+
+garage_close_when_clear:
+  alias: 車庫鐵門等無人無車再關 (V4.2.3)
+  description: 還原緊急模式後，車庫鐵門若原本是關閉的，等攝影機與動作感測連續 20 秒沒有人、沒有車、沒有動作才關；最多等 10 分鐘，等不到只發 HA 通知。
+  mode: restart
+  variables:
+    sensors:
+      - binary_sensor.che_ku_she_ying_ji_person_detected
+      - binary_sensor.che_ku_she_ying_ji_vehicle_detected
+      - binary_sensor.g6_instant_motion
+      - binary_sensor.che_ku_che_ku_she_ying_ji_motion
+  sequence:
+    - repeat:
+        count: 40
+        sequence:
+          - if: "{{ states('cover.garage') not in ['open', 'opening'] }}"
+            then:
+              - stop: "鐵門已經不是開著，不需要處理"
+          - variables:
+              clear: >-
+                {% set ns = namespace(ok=true) %}
+                {% for s in sensors %}
+                  {% if not is_state(s, 'off') or (now() - states[s].last_changed).total_seconds() < 20 %}{% set ns.ok = false %}{% endif %}
+                {% endfor %}
+                {{ ns.ok }}
+          - if: "{{ clear }}"
+            then:
+              - action: cover.close_cover
+                target:
+                  entity_id: cover.garage
+              - delay: "00:00:45"
+              - action: script.notify_dispatch
+                data:
+                  level: general
+                  line: false
+                  source: 車庫鐵門等無人無車再關 (V4.2.3)
+                  version: V4.2.3
+                  title: 車庫鐵門已關閉
+                  message: "緊急模式還原後，確認車庫沒有人、沒有車，鐵門已自動關閉（目前：{{ states('cover.garage') }}）。"
+              - stop: "鐵門已關閉"
+          - delay: "00:00:15"
+    - action: script.notify_dispatch
+      data:
+        level: general
+        line: false
+        source: 車庫鐵門等無人無車再關 (V4.2.3)
+        version: V4.2.3
+        title: 車庫鐵門仍開著
+        message: "緊急模式前鐵門是關閉的，但 10 分鐘內車庫攝影機一直偵測到人、車或動作，未自動關閉。\n請確認安全後自行關閉。"

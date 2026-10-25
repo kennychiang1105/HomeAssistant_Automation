@@ -16,7 +16,7 @@ SECRETS = '/config/secrets.yaml'
 LOG = '/config/trem_eew.log'
 PID = '/config/.trem_eew.pid'
 HA = 'http://127.0.0.1:8125/api/webhook/'
-GAL = [(800, 7), (440, 6), (250, 6), (140, 5), (80, 5), (25, 4), (8, 3), (2.5, 2), (0.8, 1)]
+GAL = [(800, 7, '7'), (440, 6, '6強'), (250, 6, '6弱'), (140, 5, '5強'), (80, 5, '5弱'), (25, 4, '4'), (8, 3, '3'), (2.5, 2, '2'), (0.8, 1, '1')]
 
 
 def log(msg):
@@ -57,9 +57,9 @@ def estimate(eq):
     d = hav(SITE[0], SITE[1], float(eq['lat']), float(eq['lon']))
     r = max(math.hypot(d, float(eq.get('depth') or 10)), 1.0)
     pga = 1.657 * math.exp(1.533 * float(eq['mag'])) * r ** -1.607
-    lv = next((l for g, l in GAL if pga >= g), 0)
+    lv, label = next(((l, lb) for g, l, lb in GAL if pga >= g), (0, '0'))
     t0 = float(eq['time']) / 1000.0
-    return lv, t0 + r / VS, r
+    return lv, t0 + r / VS, r, label
 
 
 def alive():
@@ -78,7 +78,7 @@ def handle(items, seen):
             eid, eq = e['id'], e['eq']
             if e.get('status') == 3:
                 continue
-            lv, arrive, r = estimate(eq)
+            lv, arrive, r, label = estimate(eq)
             # 串流剛連上時可能還帶著已經過去的舊預警（發生超過 3 分鐘、或 S 波早就過了）：不通知，以免誤報
             if now - float(eq['time']) / 1000.0 > 180 or arrive < now - 20:
                 if eid not in seen:
@@ -88,7 +88,7 @@ def handle(items, seen):
             sent = seen.get(eid, -1)
             if lv >= MIN_LEVEL and lv > sent:
                 secs = max(0, int(arrive - now))
-                ok = (not os.path.exists('/config/oxwu/dry_run')) and post({'source': 'TREM', 'level': str(lv), 'seconds': str(secs), 'timestamp': str(int(arrive)),
+                ok = (not os.path.exists('/config/oxwu/dry_run')) and post({'source': 'TREM', 'level': label, 'seconds': str(secs), 'timestamp': str(int(arrive)),
                            'loc': eq.get('loc', ''), 'mag': eq.get('mag'), 'depth': eq.get('depth'), 'lat': eq.get('lat'),
                            'lon': eq.get('lon'), 'id': eid, 'serial': e.get('serial'),
                            'dry': 1 if os.path.exists('/config/oxwu/dry_run') else 0})
@@ -154,8 +154,8 @@ def run():
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--test':          # 只計算、不通知：trem_eew.py --test 緯度 經度 規模 深度
         lat, lon, mag, dep = map(float, sys.argv[2:6])
-        lv, arr, r = estimate({'lat': lat, 'lon': lon, 'mag': mag, 'depth': dep, 'time': time.time() * 1000})
-        print(json.dumps({'level': lv, 'seconds': round(arr - time.time(), 1), 'R_km': round(r, 1)}))
+        lv, arr, r, label = estimate({'lat': lat, 'lon': lon, 'mag': mag, 'depth': dep, 'time': time.time() * 1000})
+        print(json.dumps({'level': lv, 'label': label, 'seconds': round(arr - time.time(), 1), 'R_km': round(r, 1)}, ensure_ascii=False))
         sys.exit(0)
     if alive():
         sys.exit(0)

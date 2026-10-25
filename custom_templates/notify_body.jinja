@@ -785,7 +785,7 @@
   {%- set lv_s = lv_raw if (lv_raw | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else '未知' -%}
   {%- set sec_s = sec_raw if (sec_raw | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else '未知' -%}
   {%- set lv_num = (lv_s | regex_findall('\\d+') | first | default('0', true)) | int(0) -%}
-  {%- set lv_disp = lv_s if ('級' in lv_s or lv_s == '未知') else (lv_s ~ ' 級') -%}
+  {%- set lv_disp = lv_s if ('級' in lv_s or '弱' in lv_s or '強' in lv_s or lv_s == '未知') else (lv_s ~ ' 級') -%}
   {%- set sec_disp = sec_s if ('秒' in sec_s or sec_s == '未知') else (sec_s ~ ' 秒後') -%}
   {%- if lv_num >= 4 -%}
     {%- set badge, b_col, box_bg, box_bd, val_col, q_ic = '緊急避難', '#FF453A', '#FEF2F2', '#FCA5A5', '#DC2626', 'quake_r' -%}
@@ -814,13 +814,13 @@
       {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px",
        "contents": [
          {"type": "text", "text": "預估震度", "size": "xxs", "color": "#6B7280"},
-         {"type": "text", "text": lv_disp, "size": "xl", "weight": "bold", "color": val_col, "wrap": true}
+         {"type": "text", "text": lv_disp, "size": "3xl", "weight": "bold", "color": val_col, "wrap": true}
        ]},
       {"type": "separator", "color": box_bd},
       {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px", "paddingStart": "8px",
        "contents": [
          {"type": "text", "text": "預計抵達", "size": "xxs", "color": "#6B7280"},
-         {"type": "text", "text": sec_disp, "size": "xl", "weight": "bold", "color": "#111827", "wrap": true}
+         {"type": "text", "text": sec_disp, "size": "3xl", "weight": "bold", "color": "#111827", "wrap": true}
        ]}
     ]} -%}
   {%- set act_box = {
@@ -839,7 +839,62 @@
       {"type": "image", "url": b2 ~ "alarm_r.png?v=1", "size": "16px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
       {"type": "text", "text": guide, "size": "xs", "weight": "bold", "color": "#B91C1C", "flex": 1, "wrap": true, "lineSpacing": "3px"}
     ]}] if guide else []) -%}
-  {{- ([hdr_row, grid_box, act_box] + guide_box) | tojson -}}
+  {%- set m_ep = joined | regex_findall('預估震央[：:]\\s*([^\\n]+)') -%}
+  {%- set ep_box = ([{
+    "type": "box", "layout": "horizontal", "backgroundColor": "#EFF6FF", "borderColor": "#BFDBFE", "borderWidth": "1px", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "6px", "alignItems": "center",
+    "contents": [
+      {"type": "text", "text": "預估震央", "size": "xs", "color": "#6B7280", "flex": 0},
+      {"type": "text", "text": (m_ep[0] | trim), "size": "sm", "weight": "bold", "color": "#1E3A8A", "flex": 1, "wrap": true}
+    ]}] if m_ep | length > 0 else []) -%}
+  {{- ([hdr_row, grid_box] + ep_box + [act_box] + guide_box) | tojson -}}
+{%- elif (not skip) and ('緊急模式啟動' in (title | string) or '緊急模式仍在啟動' in (title | string)) -%}
+  {#- V4.2.3：緊急模式專用卡片（05B）：狀態、觸發來源、請確認、還原方式四塊，取代原本 4 個泡泡的長文字 -#}
+  {%- set m_src = joined | regex_findall('觸發來源[：:]\\s*([^\\n]+)') -%}
+  {%- set src_t = (m_src[0] | trim) if m_src | length > 0 else '系統判定' -%}
+  {%- set again = '仍在啟動' in (title | string) -%}
+  {%- set hdr_row = {
+    "type": "box", "layout": "horizontal", "alignItems": "center", "spacing": "6px",
+    "contents": [
+      {"type": "image", "url": b2 ~ "alarm_r.png?v=1", "size": "22px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+      {"type": "text", "text": ("緊急模式仍在啟動" if again else "緊急模式已啟動"), "weight": "bold", "size": "lg", "color": "#B91C1C", "flex": 1, "wrap": true},
+      {"type": "box", "layout": "vertical", "backgroundColor": "#DC2626", "cornerRadius": "99px", "paddingTop": "3px", "paddingBottom": "3px", "paddingStart": "10px", "paddingEnd": "10px", "flex": 0,
+       "contents": [{"type": "text", "text": ("已超過 5 分鐘" if again else "緊急"), "size": "xxs", "weight": "bold", "color": "#FFFFFF"}]}
+    ]} -%}
+  {%- set grid_box = {
+    "type": "box", "layout": "horizontal", "backgroundColor": "#FEF2F2", "borderColor": "#FCA5A5", "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "12px", "margin": "md", "spacing": "md", "alignItems": "center",
+    "contents": [
+      {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px",
+       "contents": [
+         {"type": "text", "text": "照明", "size": "xxs", "color": "#6B7280"},
+         {"type": "text", "text": "全部開啟", "size": "xl", "weight": "bold", "color": "#DC2626"}
+       ]},
+      {"type": "separator", "color": "#FCA5A5"},
+      {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px", "paddingStart": "8px",
+       "contents": [
+         {"type": "text", "text": "電源", "size": "xxs", "color": "#6B7280"},
+         {"type": "text", "text": "已關閉", "size": "xl", "weight": "bold", "color": "#111827"}
+       ]}
+    ]} -%}
+  {%- set src_row = {
+    "type": "box", "layout": "horizontal", "margin": "md", "spacing": "8px", "alignItems": "flex-start",
+    "contents": [
+      {"type": "text", "text": "觸發來源", "size": "xs", "color": "#6B7280", "flex": 0},
+      {"type": "text", "text": src_t, "size": "xs", "weight": "bold", "color": "#111827", "flex": 1, "wrap": true}
+    ]} -%}
+  {%- set guide_box = {
+    "type": "box", "layout": "horizontal", "backgroundColor": "#FEF3C7", "borderColor": "#FCD34D", "borderWidth": "1px", "cornerRadius": "10px", "paddingAll": "10px", "margin": "md", "spacing": "6px", "alignItems": "center",
+    "contents": [
+      {"type": "image", "url": b2 ~ "alarm_r.png?v=1", "size": "16px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+      {"type": "text", "text": "請確認現場是否為真實緊急情況", "size": "sm", "weight": "bold", "color": "#92400E", "flex": 1, "wrap": true}
+    ]} -%}
+  {%- set rec_box = {
+    "type": "box", "layout": "vertical", "backgroundColor": "#EFF6FF", "borderColor": "#BFDBFE", "borderWidth": "1px", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "4px",
+    "contents": [
+      {"type": "text", "text": "如何還原", "size": "xs", "weight": "bold", "color": "#1E3A8A"},
+      {"type": "text", "text": "① 按「解除網關警報」：還原緊急模式前的狀態（2 小時內）", "size": "xs", "color": "#1F2937", "wrap": true, "lineSpacing": "3px"},
+      {"type": "text", "text": "② 或在家庭 App 直接調整電源與照明、執行離家模式", "size": "xs", "color": "#1F2937", "wrap": true, "lineSpacing": "3px"}
+    ]} -%}
+  {{- [hdr_row, grid_box, src_row, guide_box, rec_box] | tojson -}}
 {%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}
   {%- set eq_ns = namespace(s='') -%}
   {%- for l in lines -%}
@@ -1130,7 +1185,7 @@
   {%- set lv_s = lv_raw if (lv_raw | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else '未知' -%}
   {%- set sec_s = sec_raw if (sec_raw | trim) not in ['', 'unknown', 'unavailable', 'none', 'None'] else '未知' -%}
   {%- set lv_num = (lv_s | regex_findall('\\d+') | first | default('0', true)) | int(0) -%}
-  {%- set lv_disp = lv_s if ('級' in lv_s or lv_s == '未知') else (lv_s ~ ' 級') -%}
+  {%- set lv_disp = lv_s if ('級' in lv_s or '弱' in lv_s or '強' in lv_s or lv_s == '未知') else (lv_s ~ ' 級') -%}
   {%- set sec_disp = sec_s if ('秒' in sec_s or sec_s == '未知') else (sec_s ~ ' 秒後') -%}
   {%- set col = '#DC2626' if lv_num >= 4 else ('#EA580C' if lv_num == 3 else '#D97706') -%}
   {%- set badge = '緊急避難' if lv_num >= 4 else ('有感警戒' if lv_num == 3 else '輕微有感') -%}
@@ -1142,6 +1197,18 @@
     '- 系統處置&nbsp;&nbsp;**' ~ act_t ~ '**'
   ] + (['- <img src="' ~ b2 ~ 'alarm_r.png" width="18" height="18" style="vertical-align:middle"> <span style="color:#DC2626">**請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部！**</span>'] if lv_num >= 3 else []) -%}
   {{- out | join('\n\n') -}}
+{%- elif (not skip) and ('緊急模式啟動' in (title | string) or '緊急模式仍在啟動' in (title | string)) -%}
+  {%- set m_src = joined | regex_findall('觸發來源[：:]\\s*([^\\n]+)') -%}
+  {%- set src_t = (m_src[0] | trim) if m_src | length > 0 else '系統判定' -%}
+  {%- set again = '仍在啟動' in (title | string) -%}
+  {%- set out = [
+    '<img src="' ~ b2 ~ 'alarm_r.png" width="20" height="20" style="vertical-align:middle"> **' ~ ('緊急模式仍在啟動' if again else '緊急模式已啟動') ~ '**',
+    '- 照明&nbsp;&nbsp;**全部開啟**　電源&nbsp;&nbsp;**已關閉**',
+    '- 觸發來源&nbsp;&nbsp;**' ~ src_t ~ '**',
+    '- <span style="color:#B45309">**請確認現場是否為真實緊急情況**</span>',
+    '- 還原：按「解除網關警報」還原緊急模式前的狀態（2 小時內），或在家庭 App 調整電源與照明、執行離家模式'
+  ] -%}
+  {{- out | join('\n') -}}
 {%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}
   {%- set eq_ns = namespace(s='') -%}
   {%- for l in lines -%}
