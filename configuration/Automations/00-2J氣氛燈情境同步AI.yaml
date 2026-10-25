@@ -47,6 +47,10 @@
     - trigger: homeassistant
       event: start
       id: ha_start
+  condition:
+    # V4.2.3：網關同步鎖期間（106C 解除流程）略過，106C 收尾會自己把氣氛燈改回情境色
+    - condition: template
+      value_template: "{{ trigger.id | default('') in ['unifi_reboot', 'ha_start'] or as_timestamp(now()) > as_timestamp(states('input_datetime.gateway_sync_lock_until'), 0) }}"
   action:
     - if: "{{ trigger.id | default('') in ['unifi_reboot', 'ha_start'] }}"
       then:

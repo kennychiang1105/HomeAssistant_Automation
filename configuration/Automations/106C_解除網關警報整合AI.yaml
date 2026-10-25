@@ -2,6 +2,7 @@
 # 106C_解除網關警報整合AI (V4.2.1)
 # 相容版本：Helpers V4.0.0
 # 更新紀錄：
+# - V4.2.3（2026-10-25）：加入「網關同步鎖」（packages/v42_gateway_lock.yaml）：一開始鎖 60 秒，106／106D／00-2J／100A 略過期間的來回切換；收尾等 15 秒讓 Apple 家庭回送完，再一次整理成在家開、其餘關、網關在家警戒，鎖再延 20 秒。解決網關連續解除又警戒、反覆響。
 # - V4.2.3（2026-10-24）：按下解除網關警報後，第一步先停下緊急模式的所有動作（預警腳本、廣播排隊與正在播放的喇叭、氣氛燈閃爍、網關警報器），再執行還原；還原完成後才用小音量（0.4）廣播「網關警報已解除」（原本在還原前就廣播、音量依一般等級）。
 # - V4.2.1（2026-10-14）：重置流程開始時寫入 input_datetime.scene_verify_skip_alarm_until（現在＋60 秒），情境檢查 60 秒內略過保全模式檢查（離家情境後馬上解除網關，不該被當成「離家情境補救後仍未到位」）。
 # - V4.2.0（2026-10-10）：新增「緊急模式還原路徑」：開關 emergency_restore_route（預設 off）on、且快照可還原（2 小時內、來源是 HomeKit／手動／實體按鈕，不含自動觸發）、
@@ -41,6 +42,13 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.jie_chu_wang_guan_jing_bao
+
+    # 步驟 0A（V4.2.3）：網關同步鎖（60 秒）：106、106D、00-2J、100A 在這段期間忽略 Aqara 開關與網關的來回切換（含 Apple 家庭回送的指令）
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.gateway_sync_lock_until
+      data:
+        datetime: "{{ (now() + timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S') }}"
 
     # 步驟 0B：接下來會先跑離家情境、隨後立刻解除網關，60 秒內情境檢查不要求保全模式必須是離家警戒
     - action: input_datetime.set_datetime
@@ -176,3 +184,27 @@
             - media_player.che_ku_she_ying_ji_speaker
           message: >-
             {% if restore_route %}網關警報已解除，已還原緊急模式前的狀態。{% elif morning_window %}網關警報已解除，已切換為早安情境。{% else %}網關警報已解除，已切換為到家情境。{% endif %}
+
+    # 步驟 8（V4.2.3）：等 Apple 家庭把狀態回送完（15 秒）後，一次把開關與網關整理成「在家」，再把鎖延到 20 秒後；
+    #   整個過程 106／106D／00-2J／100A 都被鎖住，不會再把網關解除又警戒
+    - delay: "00:00:15"
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.aqara_li_jia
+          - input_boolean.aqara_wan_an
+          - input_boolean.aqara_guan_bi
+          - input_boolean.aqara_chu_fa
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.aqara_zai_jia
+    - if: "{{ states('alarm_control_panel.54ef44cf58f9_alarm') != 'armed_home' }}"
+      then:
+        - action: alarm_control_panel.alarm_arm_home
+          target:
+            entity_id: alarm_control_panel.54ef44cf58f9_alarm
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.gateway_sync_lock_until
+      data:
+        datetime: "{{ (now() + timedelta(seconds=20)).strftime('%Y-%m-%d %H:%M:%S') }}"
