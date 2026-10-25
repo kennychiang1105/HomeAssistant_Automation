@@ -181,6 +181,7 @@ def apply_vision(a, roi, state, out, jpg, now):
                 r['identity_src'] = 'vision'
                 if idr.get('facing') and idr.get('facing_margin', 1) >= thr.get('vision_face_margin', 0.01):
                     r['facing'] = idr['facing']
+                    state.setdefault('slots', {}).setdefault(name, {})['facing'] = idr['facing']
                 s['id'] = idr['identity']
                 s['score'] = idr['score']
             if r['identity'] == 'unknown' and typ and typ.get('p', 0) >= 0.6:
@@ -276,23 +277,37 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         res['vehicle_type'] = 'unknown'
         if os.path.exists(empty_path) and res.get('occupied'):
             res['vehicle_type'] = shape_type(bg, np.load(empty_path))
-        # 車燈
-        lg = gray(crop(arr, s['lights']))
+        # 車燈：車尾朝向攝影機（車頭朝鐵門，door）看尾燈／煞車燈／倒車燈；車頭朝向攝影機（inside）看頭燈。
+        # 亮度（紅外線夜間）與「紅色程度」（白天煞車燈、倒車時的紅色尾燈）兩種訊號，任一明顯高於滾動基準就算亮起。
+        which = 'inside' if st.get('facing') == 'inside' else 'door'
+        lbox = s.get('lights_' + which) or s['lights']
+        lrgb = crop(arr, lbox).astype(np.float32)
+        lg = gray(lrgb)
         level = float(np.percentile(lg, 95)) / max(wall_mean, 1.0)
-        hist = st.setdefault('lights_hist', [])
+        redv = float(np.percentile(lrgb[..., 0] - np.maximum(lrgb[..., 1], lrgb[..., 2]), 95)) / 255.0
+        hist = st.setdefault('lights_hist_' + which, [])
+        rhist = st.setdefault('red_hist_' + which, [])
         base = float(np.median(hist)) if len(hist) >= 5 else None
+        rbase = float(np.median(rhist)) if len(rhist) >= 5 else None
         res['lights_level'] = round(level, 3)
+        res['lights_roi'] = which
         if base is not None and not exposure_changed:
             res['lights_delta'] = round(level - base, 3)
             res['lights_on'] = bool(res['lights_reliable'] and res['lights_delta'] > t_light)
+        if rbase is not None and not exposure_changed:
+            res['red_delta'] = round(redv - rbase, 3)
+            if res['lights_reliable'] and res['red_delta'] > thr.get('red_delta', 0.12):
+                res['lights_on'] = True
         # 位移
         if os.path.exists(ref_path) and not exposure_changed:
             ref = np.load(ref_path)
             dx, dy, peak = phase_shift(bg, ref)
             res['shift_px'] = round(float(np.hypot(dx, dy)), 2)
             res['shift_peak'] = round(peak, 3)
-            res['moved'] = bool(res['shift_px'] >= t_move and peak > 0.05)
+            res['moved'] = bool(res['shift_px'] >= t_move and (peak > 0.03 or res['shift_px'] >= 10))
         res['present'] = bool(present)
+        if learn and res['facing'] != 'unknown':
+            st['facing'] = res['facing']
         if learn:
             if present and st.get('present', True) is False and os.path.exists(ref_path):
                 os.remove(ref_path)          # 車回來了：舊基準作廢，重新學
@@ -305,6 +320,8 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         if learn and quiet and not exposure_changed:
             hist.append(level)
             del hist[:-HIST_KEEP]
+            rhist.append(redv)
+            del rhist[:-HIST_KEEP]
             if (not os.path.exists(ref_path)) or now - st.get('ref_ts', 0) > roi.get('ref_refresh_sec', 300):
                 np.save(ref_path, bg)
                 st['ref_ts'] = now
@@ -398,6 +415,21 @@ def selftest():
             r = analyse(Image.fromarray(gone), roi, state, d, now=4100 + i, gate_recent=False)
         if r['slots']['front']['present'] is not True:
             errors.append('鐵門沒開過卻把車位學成空 %s' % r['slots']['front'])
+    # 紅色煞車燈（白天彩色畫面）：車燈區域變紅 → lights_on（亮度不一定變很多）
+    colr = base.copy()
+    colr[..., 2] = (colr[..., 2] * 0.6).astype(np.uint8)
+    roi_r = dict(roi); roi_r['slots'] = {'front': dict(roi['slots']['front'], lights_door=[0.52, 0.55, 0.88, 0.64])}
+    with tempfile.TemporaryDirectory() as d:
+        state = {}
+        for i in range(8):
+            analyse(Image.fromarray(colr), roi_r, state, d, now=7000 + i)
+        brake = colr.copy()
+        brake[200:230, 340:560, 0] = 235
+        brake[200:230, 340:560, 1] = 60
+        brake[200:230, 340:560, 2] = 60
+        s = analyse(Image.fromarray(brake), roi_r, state, d, learn=False, now=7100)['slots']['front']
+        if not s['lights_on']:
+            errors.append('紅色煞車燈沒被偵測 %s' % s)
     # 車型粗分：機車（小面積）、休旅車（高）、房車（扁長）
     e0 = np.full((100, 200), 60.0, dtype=np.float32)
     def veh(h, w):

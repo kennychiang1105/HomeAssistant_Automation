@@ -124,8 +124,8 @@ input_datetime:
     initial: "2000-01-01 00:00:00"
 
 shell_command:
-  garage_car_watch: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg --vision http://local-garage-vision:8099 --csv {{ gate }} {{ nolearn }}'
-  garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg --vision http://local-garage-vision:8099 {{ arg }}'
+  garage_car_watch: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 --csv {{ gate }} {{ nolearn }}'
+  garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 {{ arg }}'
 
 template:
   - sensor:
@@ -214,7 +214,7 @@ script:
         target:
           entity_id: camera.g6_instant_high_resolution_channel
         data:
-          filename: /config/www/snap/garage_cur.jpg
+          filename: /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg
         continue_on_error: true
       - delay: "00:00:00.5"
       - action: shell_command.garage_car_watch
@@ -441,7 +441,7 @@ script:
         target:
           entity_id: camera.g6_instant_high_resolution_channel
         data:
-          filename: /config/www/snap/garage_cur.jpg
+          filename: /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg
       - delay: "00:00:00.5"
       - action: shell_command.garage_car_learn
         data:

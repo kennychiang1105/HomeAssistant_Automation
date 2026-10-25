@@ -1186,6 +1186,7 @@ class FloorplanV43D extends HTMLElement {
 
     // EV charger (wall box with status LED + coiled cable), mounted on the nearest wall
     const chargers = {};
+    const carReg = cars;       // 車庫前／後位車輛登錄（充電線依「現在充電的車位」接到那台車）
     for (const d of fl.devices) {
       if (d.kind !== "charger") continue;
       const f = facing(d.x - 3, d.y - 3, 6, 6);
@@ -1236,7 +1237,28 @@ class FloorplanV43D extends HTMLElement {
       if (plugged) for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(2.3, 10, 8), pulseMat); m.visible = false; inner.add(m); pulses.push(m); }
       const portDot = plugged ? new THREE.Mesh(new THREE.SphereGeometry(2.6, 10, 8), cableMat) : null;
       if (portDot) { portDot.position.copy(plugged.getPoint(1)); inner.add(portDot); }
-      chargers[d.entity] = { led, cableMat, pulseMat, cabPlug, cabHang, pulses, curve: plugged, portDot };
+      const chg = { led, cableMat, pulseMat, cabPlug, cabHang, pulses, curve: plugged, portDot, key: "" };
+      // 依充電中的車位重畫充電線：Luxgen N7 充電孔在左前、Tesla Model 3 在左後尾燈；車頭朝內時整台車轉 180°，孔位跟著轉
+      chg.route = (c, slot, inside) => {
+        const yaw = c.baseYaw + (inside ? Math.PI : 0), gp = c.g.position, Y = new THREE.Vector3(0, 1, 0);
+        const loc = (a, b, y) => new THREE.Vector3(a, y, b).applyAxisAngle(Y, yaw).add(new THREE.Vector3(gp.x, 0, gp.z));
+        const sd = slot === "tesla_model3" ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, -0.40 * c.W];
+        const port = loc(sd[0], sd[1], 11), near = loc(sd[0], -(c.W / 2 + 6), 5), out = loc(sd[0], -(c.W / 2 + 16), 1.8);
+        const f1 = new THREE.Vector3(start.x + inward[0] * 12, 2, start.z + inward[1] * 12);
+        const mid = f1.clone().lerp(out, 0.5); mid.y = 1.8;
+        return [start, f1, mid, out, near, port];
+      };
+      chg.setTarget = (key, pts) => {
+        if (key === chg.key) return; chg.key = key;
+        if (chg.cabPlug) { inner.remove(chg.cabPlug); chg.cabPlug.geometry.dispose(); chg.cabPlug = null; }
+        if (!pts) { chg.curve = null; return; }
+        chg.curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.4);
+        chg.cabPlug = tube(chg.curve);
+        if (!chg.pulses.length) for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(2.3, 10, 8), pulseMat); m.visible = false; inner.add(m); chg.pulses.push(m); }
+        if (!chg.portDot) { chg.portDot = new THREE.Mesh(new THREE.SphereGeometry(2.6, 10, 8), cableMat); inner.add(chg.portDot); }
+        chg.portDot.position.copy(chg.curve.getPoint(1));
+      };
+      chargers[d.entity] = chg;
     }
 
     // UniFi network gear, modelled by product name: UDM SE (main gateway, 1U box), U6-Pro/Lite (ceiling disc),
@@ -1560,7 +1582,7 @@ class FloorplanV43D extends HTMLElement {
           gh.position.set(x + w / 2, 10, y + h / 2); gh.rotation.y = yaw; gh.visible = false; inner.add(gh);
           // 車型：Tesla Model 3（原本那台）、Luxgen N7（休旅轎跑、貫穿式燈條）、房車／休旅車／機車（其他車輛）
           const baseG = new THREE.Group(); g.add(baseG);
-          [...g.children].forEach((m) => { if (m !== baseG) baseG.add(m); });
+          [...g.children].forEach((m) => { if (m !== baseG) g.remove(m); });
           const models = { tesla: { gr: baseG, paint } };
           const mkModel = (kind, color) => {
             const gr = new THREE.Group(); gr.visible = false; g.add(gr);
@@ -1578,13 +1600,47 @@ class FloorplanV43D extends HTMLElement {
               t.rotation.x = Math.PI / 2; t.position.set(X(fx), r, side * (wd / 2 - 0.5)); gr.add(t);
             }
           };
-          { // Luxgen N7
-            const { gr, pm } = mkModel("luxgen", 0xeceef1);
-            extT(gr, (sh) => { sh.moveTo(X(-0.48), 5); sh.lineTo(X(0.47), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 12.5); sh.quadraticCurveTo(X(0.34), 14.6, X(0.16), 15); sh.lineTo(X(-0.4), 16); sh.quadraticCurveTo(X(-0.52), 13.5, X(-0.48), 5); }, W - 6, pm, 3);
-            extT(gr, (sh) => { sh.moveTo(X(0.17), 14.6); sh.quadraticCurveTo(X(0.05), 26, X(-0.12), 26.6); sh.quadraticCurveTo(X(-0.34), 25.5, X(-0.47), 16.2); sh.lineTo(X(0.17), 14.6); }, W - 12, glassM, 2.2);
-            const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, W - 16), new THREE.MeshBasicMaterial({ color: 0xdfe9ff })); bar.position.set(X(0.5), 11.5, 0); gr.add(bar);
-            const skirt = new THREE.Mesh(new THREE.BoxGeometry(L * 0.96, 2.2, W - 5.5), M(0x1d1f23)); skirt.position.set(0, 5.6, 0); gr.add(skirt);
-            tyresT(gr, [-0.31, 0.32], 6.8, W);
+          // ── 依實車尺寸畫（公尺換算成這個車位的長度）：Tesla Model 3 4720×1850×1441、Luxgen N7 4695×1895×1625；垂直方向壓到 62%，免得比房子的牆還高
+          const sx = L / 4.72, sz = W / 1.85, sy = 0.62 * sx;
+          const prof = (gr, cmds, mat, width, bevel) => {
+            const sh = new THREE.Shape();
+            for (const c of cmds) {
+              if (c[0] === "M") sh.moveTo(c[1] * sx, c[2] * sy);
+              else if (c[0] === "L") sh.lineTo(c[1] * sx, c[2] * sy);
+              else sh.quadraticCurveTo(c[1] * sx, c[2] * sy, c[3] * sx, c[4] * sy);
+            }
+            const geo = new THREE.ExtrudeGeometry(sh, { depth: width, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 10 });
+            geo.translate(0, 0, -width / 2); const m = new THREE.Mesh(geo, mat); gr.add(m); return m;
+          };
+          const box3 = (gr, xm, ym, zm, wm, hm, dm, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(wm * sx, hm * sy, dm * sz), mat); m.position.set(xm * sx, ym * sy, zm * sz); gr.add(m); return m; };
+          const wheels = (gr, rm, xs, track) => {
+            for (const xm of xs) for (const sd of [-1, 1]) {
+              const r = rm * sy * 1.35;
+              const t1 = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.24 * sz, 24), tyreM); t1.rotation.x = Math.PI / 2; t1.position.set(xm * sx, r, sd * track * sz); gr.add(t1);
+              const rim = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.62, r * 0.62, 0.26 * sz, 18), M(0xc9ced6)); rim.rotation.x = Math.PI / 2; rim.position.set(xm * sx, r, sd * track * sz); gr.add(rim);
+            }
+          };
+          const red = new THREE.MeshBasicMaterial({ color: 0xff2b2b }), lampM = new THREE.MeshBasicMaterial({ color: 0xdfe9ff });
+          { // Tesla Model 3：低鼻、圓滑、玻璃車頂、溜背式後窗＋短行李廂、左右分開的尾燈
+            prof(baseG, [["M", -2.34, 0.30], ["L", 2.30, 0.30], ["Q", 2.40, 0.35, 2.38, 0.60], ["Q", 2.36, 0.78, 2.0, 0.84], ["L", 1.0, 0.99], ["L", -1.3, 1.0],
+              ["Q", -2.0, 1.0, -2.30, 0.98], ["Q", -2.38, 0.80, -2.34, 0.30]], paint, W - 4, 2);
+            prof(baseG, [["M", 1.0, 0.99], ["L", 0.18, 1.43], ["Q", -0.2, 1.46, -0.6, 1.42], ["Q", -1.2, 1.30, -1.72, 1.01], ["L", 1.0, 0.99]], glassM, W - 10, 1.6);
+            for (const sd of [-1, 1]) box3(baseG, -2.36, 0.92, sd * 0.72, 0.08, 0.10, 0.40, red);      // 左右分開的紅色尾燈（Tesla 沒有貫穿式）
+            for (const sd of [-1, 1]) box3(baseG, 2.33, 0.72, sd * 0.64, 0.14, 0.07, 0.36, lampM);   // 細長頭燈
+            wheels(baseG, 0.335, [-1.4375, 1.4375], 0.81);
+          }
+          { // Luxgen N7：休旅（4695×1895×1625）、較高的車頂與行李架、車頭中間黑色格柵帶＋兩側細長尖頭燈、黑色下護板、橫貫尾燈
+            const { gr, pm } = mkModel("luxgen", 0xf7f8fa);
+            prof(gr, [["M", -2.34, 0.28], ["L", 2.30, 0.28], ["Q", 2.38, 0.32, 2.36, 0.62], ["Q", 2.33, 0.86, 1.95, 0.95], ["L", 0.98, 1.08], ["L", -1.60, 1.10],
+              ["Q", -2.20, 1.10, -2.30, 1.0], ["Q", -2.38, 0.80, -2.34, 0.28]], pm, W - 2, 2);
+            prof(gr, [["M", 0.98, 1.08], ["L", 0.22, 1.62], ["Q", -0.2, 1.66, -0.9, 1.62], ["Q", -1.6, 1.56, -2.05, 1.18], ["L", -2.20, 1.10], ["L", 0.98, 1.08]], glassM, W - 8, 1.6);
+            for (const sd of [-1, 1]) box3(gr, -0.75, 1.69, sd * 0.74, 1.9, 0.05, 0.07, M(0x1d1f23));   // 車頂行李架
+            box3(gr, 0, 0.42, 0, 4.5, 0.26, 1.93, M(0x1d1f23));                                          // 黑色下護板（輪拱飾板）
+            box3(gr, 2.37, 0.72, 0, 0.06, 0.20, 1.0, M(0x15171a));                                       // 車頭中間黑色格柵帶（LUXGEN 字樣處）
+            box3(gr, 2.36, 0.95, 0, 0.04, 0.03, 1.2, lampM);                                             // 細亮條
+            for (const sd of [-1, 1]) box3(gr, 2.30, 0.88, sd * 0.68, 0.16, 0.09, 0.42, lampM);           // 兩側細長尖頭燈
+            box3(gr, -2.37, 1.00, 0, 0.05, 0.08, 1.55, red);                                             // 橫貫尾燈
+            wheels(gr, 0.37, [-1.46, 1.46], 0.85);
           }
           { // 其他：房車（三廂）
             const { gr, pm } = mkModel("sedan", 0xa7b0ba);
@@ -1609,7 +1665,7 @@ class FloorplanV43D extends HTMLElement {
             const bars = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 22), dark); bars.position.set(ML * 0.33, 21, 0); gr.add(bars);
             const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
           }
-          cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, models };
+          cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, models, L, W };
         }
         break;
       }
@@ -2679,6 +2735,12 @@ class FloorplanV43D extends HTMLElement {
         ap.wifi.visible = up;
       }
       for (const [eid, ch] of Object.entries(g.chargers || {})) {
+        const cs = st["input_select.garage_charging_slot"]?.state;
+        const ce = (cs === "front" || cs === "back") ? Object.entries(g.cars || {}).find(([k]) => k.endsWith("_" + cs)) : null;
+        if (ce && ch.route) {
+          const slotCar = st[ce[0]]?.state, inside = !!ce[1].f.facing_entity && st[ce[1].f.facing_entity]?.state === "inside";
+          ch.setTarget(`${cs}|${slotCar}|${inside}`, ch.route(ce[1], slotCar, inside));
+        } else if (ch.setTarget) ch.setTarget("none", null);
         const ci = chargerInfo(st);
         const color = ci.key === "error" ? 0xe53935 : ci.key === "done" ? 0x4caf50 : ci.key === "charging" ? 0x2f9bff
           : ci.key === "plugged" ? 0x5ec8e8 : 0x777c85;                      // red / green / blue / light blue / grey
@@ -2703,7 +2765,7 @@ class FloorplanV43D extends HTMLElement {
           m.gr.visible = k === kind;
           m.paint.transparent = unk; m.paint.opacity = unk ? 0.5 : 1;
         }
-        c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xb7bec8 : 0xd3d6db);
+        c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xd5dae1 : 0xd3d6db);      // 珍珠白／銀（照實車）
         c.g.rotation.y = c.baseYaw + (inside ? Math.PI : 0);      // 車頭朝內（倒車入庫）＝車模轉 180°
         const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !!info;
         for (const m of Object.values(c.models || {})) m.paint.emissive.setHex(dep ? 0x7a4a00 : 0x000000);
