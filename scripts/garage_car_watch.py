@@ -22,6 +22,8 @@ import os
 import sys
 import time
 
+import urllib.request
+
 import numpy as np
 from PIL import Image
 
@@ -135,6 +137,59 @@ def cmd_learn_cable(img, roi, state, label):
     old = tpl.get(label)
     tpl[label] = sig if not old else [round(0.7 * a + 0.3 * b, 5) for a, b in zip(old, sig)]
     return {'learned_cable': label}
+
+
+def vision_call(url, path, query, jpg, timeout=20):
+    req = urllib.request.Request(url.rstrip('/') + path + '?' + query, data=jpg, method='POST',
+                                 headers={'Content-Type': 'image/jpeg'})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode('utf-8'))
+
+
+def slots_query(roi):
+    return 'slots=' + ';'.join('%s=%s' % (n, ','.join(str(x) for x in s['body'])) for n, s in roi['slots'].items())
+
+
+def apply_vision(a, roi, state, out, jpg, now):
+    """本機 YOLO＋CLIP（Garage Vision add-on）補強：框出車、認出是哪輛車與車頭朝向、粗分車型。
+    平常 vision_every 秒一次；有車燈／位移證據或身分不明時馬上多問一次。add-on 連不上就略過（保持原本的分析）。"""
+    v = state.setdefault('vision', {})
+    thr = roi.get('thresholds', {})
+    need = (now - v.get('ts', 0) > a.vision_every) or any(
+        r['lights_on'] or r['moved'] or r['identity'] == 'unknown' for r in out['slots'].values())
+    if not need:
+        return {'skipped': True}
+    try:
+        res = vision_call(a.vision, '/analyze', slots_query(roi), jpg)
+    except Exception as e:  # noqa: BLE001
+        return {'error': str(e)[:120]}
+    v['ts'] = now
+    summary = {'ms': res.get('ms'), 'slots': {}}
+    for name, vr in (res.get('slots') or {}).items():
+        r = out['slots'].get(name)
+        if r is None:
+            continue
+        d = vr.get('det')
+        s = {'det': d['cls'] if d else None, 'conf': d['conf'] if d else None}
+        if d and d['conf'] >= 0.5:
+            r['present'] = True
+            state.setdefault('slots', {}).setdefault(name, {})['present'] = True
+            idr, typ = vr.get('id'), vr.get('type')
+            if idr and idr.get('score', 0) >= thr.get('vision_id_score', 0.85) and \
+                    (idr.get('second') is None or idr['score'] - idr['second'] >= thr.get('vision_id_margin', 0.02)):
+                r['identity'] = idr['identity']
+                r['identity_src'] = 'vision'
+                if idr.get('facing') and idr.get('facing_margin', 1) >= thr.get('vision_face_margin', 0.01):
+                    r['facing'] = idr['facing']
+                s['id'] = idr['identity']
+                s['score'] = idr['score']
+            if r['identity'] == 'unknown' and typ and typ.get('p', 0) >= 0.6:
+                r['vehicle_type'] = {'truck': 'suv'}.get(typ['label'], typ['label'])
+            elif r['identity'] == 'unknown' and d['cls'] == 'motorcycle':
+                r['vehicle_type'] = 'motorcycle'
+            s['type'] = typ
+        summary['slots'][name] = s
+    return summary
 
 
 def load_json(path, default):
@@ -399,6 +454,8 @@ def main():
     ap.add_argument('--no-learn', action='store_true', help='只分析，不更新滾動基準（除錯用）')
     ap.add_argument('--csv', action='store_true', help='附加一列指標到 metrics.csv（P0 資料收集）')
     ap.add_argument('--gate-recent', action='store_true', help='鐵門最近 10 分鐘內開過（啟用「車位自動學成空」）')
+    ap.add_argument('--vision', help='Garage Vision add-on 網址，例如 http://local-garage-vision:8099（沒給就不用）')
+    ap.add_argument('--vision-every', type=int, default=300, help='平常多久問一次 add-on（秒）')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
@@ -431,10 +488,19 @@ def main():
     if a.learn_sig:
         name, car = a.learn_sig.split('=', 1)
         res = cmd_learn_sig(img, roi, state, name, car, a.dir)
+        if a.vision:
+            try:
+                lab = car if (':' in car or car in ('sedan', 'suv', 'motorcycle')) else car + ':door'
+                rv = vision_call(a.vision, '/learn', 'slot=%s&label=%s&%s' % (name, lab, slots_query(roi)), open(a.snapshot, 'rb').read())
+                res['vision'] = rv.get('learned')
+            except Exception as e:  # noqa: BLE001
+                res['vision_error'] = str(e)[:120]
         save_json(state_path, state)
         print(json.dumps(res))
         return
     out = analyse(img, roi, state, a.dir, learn=not a.no_learn, gate_recent=a.gate_recent)
+    if a.vision:
+        out['vision'] = apply_vision(a, roi, state, out, open(a.snapshot, 'rb').read(), time.time())
     if not a.no_learn:
         save_json(state_path, state)
     if a.csv:
