@@ -1,4 +1,5 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.2.3（2026-10-24）：①每個延遲之後先確認緊急模式沒有被解除（按解除網關警報或緊急模式還原），已解除就停止，不再發 LINE、HA 通知與廣播；②「緊急模式於五分鐘前啟動」的廣播只播一次（原本相隔 1 分鐘播兩次）。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後若緊急模式仍開啟，僅發送一則 HA info 級系統通知（不發 LINE、不重複洗版）。
 # - V4.0.1（2026-10-10）：「復原方式」文字補上「按解除網關警報可還原緊急模式前的狀態（2 小時內）」。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -8,6 +9,7 @@
   description: 緊急模式來源辨識與通知（含地震流程去重）。
   variables:
     automation_version: 'V4.2.2'
+    start_ts: "{{ now().timestamp() }}"
   triggers:
   - trigger: homeassistant
     event: start
@@ -120,6 +122,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -132,6 +138,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -142,6 +152,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -171,6 +185,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -183,6 +201,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -193,6 +215,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -205,6 +231,10 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -232,6 +262,10 @@
             minutes: 5
             seconds: 0
             milliseconds: 0
+        # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+        - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+          then:
+            - stop: "緊急模式已被解除或還原，略過後續提醒"
         - parallel:
           - data:
               user_id: C26ff4e9d30159ba5264a1676f46f8f86
@@ -280,6 +314,10 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - parallel:
               - data:
@@ -290,6 +328,7 @@
                   - media_player.ke_ting_homepod
               # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - action: script.announce
+              enabled: false
               data:
                 level: emergency
                 kind: emergency
@@ -299,6 +338,10 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - delay:
                 hours: 0
@@ -306,6 +349,10 @@
                 seconds: 30
                 milliseconds: 0
               enabled: true
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -375,6 +422,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -387,6 +438,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -397,6 +452,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -426,6 +485,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -438,6 +501,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -448,6 +515,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -460,6 +531,10 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -529,6 +604,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -541,6 +620,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -551,6 +634,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -580,6 +667,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -592,6 +683,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -602,6 +697,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -614,5 +713,9 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single

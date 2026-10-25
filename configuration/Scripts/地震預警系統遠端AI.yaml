@@ -25,6 +25,10 @@
     line_bot_target_user_id: >-
       {{ states('sensor.line_bot_target_user_id') }}
   sequence:
+  # V4.2.3：測試用旗標（dry）一律不處理：eq99 絕不能被測試資料啟動
+  - if: "{{ (dry | default(0) | string | regex_findall('\\d+') | join('') | int(0)) > 0 if dry is defined else false }}"
+    then:
+      - stop: "dry 測試旗標：不處理"
   # V4.2.3（SOP-24）：多來源去重。任何來源（地牛、TREM、氣象署 PWS…）都呼叫本腳本並帶 source；
   # 合併時間內同一場地震只處理最快到的一個，後到的記錄「慢了幾秒」後略過；預估震度比先到的高 2 級以上（且達 3 級）才算升級、重新警報。
   - variables:

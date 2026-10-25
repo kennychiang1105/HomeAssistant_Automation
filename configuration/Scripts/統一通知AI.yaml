@@ -2,6 +2,8 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-25）：announce 新增選填 volume（指定這次廣播音量）。
+# - V4.2.3（2026-10-25）：卡片大圖與第二張圖都可以點擊放大（LINE 開啟原圖）。
 # - V4.2.3（2026-10-25）：notify_dispatch 新增選填 image_ratio／image2_ratio（寬:高）；有給就完整顯示不裁切（地牛截圖、氣象署報告圖用），沒給維持原本 16:9 填滿。
 # - V4.2.3（2026-10-24）：晚安情境（input_boolean.aqara_wan_an）或頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播所有喇叭都不播（整則略過）；緊急等級照常；force 欄位（手動廣播用）可強制播；情境廣播（kind: scene，含晚安情境完成播報）不受影響。
 # - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
@@ -130,7 +132,7 @@ notify_dispatch:
       {% set sig = title_c ~ ' ' ~ src ~ ' ' ~ head_line %}
       {% if sig | regex_search('門鈴') %}doorbell{% elif sig | regex_search('車牌|Tesla|充電') %}car{% elif sig | regex_search('鐵門|車庫') %}gate{% elif sig | regex_search('門鎖') %}lock{% elif sig | regex_search('電量|電池|耗材') %}battery{% elif sig | regex_search('地震|災害|疏散|海嘯') %}quake{% elif sig | regex_search('天氣|豪雨|颱風|大雨') %}weather{% elif sig | regex_search('保全|警報|入侵') %}shield{% elif sig | regex_search('離家|到家|早安|晚安|情境') %}home{% elif sig | regex_search('風扇') %}fan{% elif sig | regex_search('空氣|PM') %}air{% elif sig | regex_search('網關|網路|Wi-Fi|斷線|離線') %}network{% elif sig | regex_search('更新|版本') %}update{% elif sig | regex_search('Bot|LINE|額度') %}chat{% elif lv == 'info' or lv == 'general' %}info{% else %}alarm{% endif %}
     icon_final: "{{ icon if (icon is defined and icon) else ('https://family.kteam.tw:8126/local/icons/' ~ icon_auto | trim ~ '.png?v=2') }}"
-    hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': (image_ratio if (image_ratio is defined and image_ratio) else '16:9'), 'aspectMode': ('fit' if (image_ratio is defined and image_ratio) else 'cover')}} if (image is defined and image) else {} }}"
+    hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': (image_ratio if (image_ratio is defined and image_ratio) else '16:9'), 'aspectMode': ('fit' if (image_ratio is defined and image_ratio) else 'cover'), 'action': {'type': 'uri', 'label': '放大', 'uri': image}}} if (image is defined and image) else {} }}"
     url: "{{ message | regex_findall('https?://[^ \\n]+') | first | default('', true) }}"
     detail_line: >-
       {% set ns = namespace(o=[]) %}{% for l in lines[1:] %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | join('\n') | trim }}
@@ -192,7 +194,7 @@ notify_dispatch:
                     "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "paddingTop": "20px",
                     "contents": (((sp | from_json([]))[:1] + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] + (sp | from_json([]))[1:]) if sp != '' else ([
                       {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}, {"type": "separator", "margin": "lg", "color": "#E5E7EB"}
-                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": (image2_ratio if (image2_ratio is defined and image2_ratio) else "16:9"), "aspectMode": ("fit" if (image2_ratio is defined and image2_ratio) else "cover"), "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
+                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": (image2_ratio if (image2_ratio is defined and image2_ratio) else "16:9"), "aspectMode": ("fit" if (image2_ratio is defined and image2_ratio) else "cover"), "margin": "md", "action": {"type": "uri", "label": "放大", "uri": image2}}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "12px", "backgroundColor": "#F5F6F8",
                     "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center", "margin": "sm", "lineSpacing": "3px"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + (([{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] if (url or lk_url or (link2_url is defined and link2_url)) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": ("md" if (url or lk_url or (link2_url is defined and link2_url)) else "sm")}])}
@@ -251,6 +253,9 @@ announce:
     kind:
       description: 廣播類別（SOP-21），決定開始音與配對的結束音：quake／quake_report／evac／emergency／security／weather／visitor／notice_general／notice_important／scene；省略則依等級（一般→notice_general、重要→notice_important、緊急→emergency）
       required: false
+    volume:
+      description: 指定這次廣播的音量（0.1~1），省略＝依等級的 input_number.announce_volume_*（例如解除網關警報後的小聲廣播用 0.4）
+      required: false
     force:
       description: 設 true 才會在「晚安情境／頂樓熟睡中」仍播放非緊急廣播（手動廣播、車庫鐵門動作前的安全警語用；舊欄位名 force_5f 仍可用）；預設 false＝這段時間一般／重要廣播全部不播
       required: false
@@ -301,7 +306,7 @@ announce:
     # 音量：由 input_number.announce_volume_* 調整（取不到或太小時退回預設值）
     vol: >-
       {% set v = states('input_number.announce_volume_' ~ lv) | float(0) %}
-      {{ v if v >= 0.1 else cfg.vol }}
+      {% if volume is defined and (volume | float(0)) >= 0.1 %}{{ volume | float(0.4) }}{% else %}{{ v if v >= 0.1 else cfg.vol }}{% endif %}
     chime_url: "{{ chime_media if chime_media is defined and chime_media else cfg.chime }}"
     chime_wait: "{{ chime_media_s | float(cfg.chime_s) if chime_media_s is defined and chime_media_s else cfg.chime_s }}"
     use_chime: "{{ (chime | default(true)) not in [false, 'false', 'off', 'no'] }}"
