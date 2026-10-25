@@ -135,7 +135,7 @@ SUBGROUPS = {
         ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
-        ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)|garage_charger_max_a"),
+        ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)"),
         ("離家入侵偵測", r"intrusion_"),
         ("車牌辨識（LPR）", r"lpr_|allowed_plates"),
         ("門鎖與電池", r"doorlock|er_lou_men_suo"),

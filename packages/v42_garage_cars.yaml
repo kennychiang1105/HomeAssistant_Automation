@@ -91,13 +91,6 @@ input_number:
     step: 5
     initial: 70
     mode: slider
-  garage_charger_max_a:
-    name: 充電樁最大電流（A，用來換算 100%／80%／20%）
-    min: 10
-    max: 80
-    step: 1
-    initial: 40
-    mode: box
   garage_ev_front:
     name: 車庫前位｜連續有車燈／位移次數（內部）
     min: 0
@@ -263,23 +256,25 @@ script:
               data:
                 value: "{{ [n_prev + 1, 20] | min if ev else 0 }}"
       # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
-      #     功率規則（依實測）：充電 100%（charging）＝Tesla；降壓約 80%（charging_reduced）＝Luxgen；降壓到約 20%＝Tesla
-      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛
+      #     充電樁狀態是「機率」不是電流大小：正常充電（charging）＝100% Tesla；降壓（charging_reduced）＝80% Luxgen、20% Tesla。
+      #     再用影像證據調整：Luxgen 只有充電時才車頭朝內（平常朝外）→ 朝內大幅加分、朝外大幅扣分；充電線樣板（to_luxgen_in）加分。
+      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛（Tesla）；Luxgen 朝內時線會被擋住
       - variables:
           chg_status: "{{ states('sensor.tesla_wall_connector_status') }}"
-          chg_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) }}"
-          chg_max: "{{ states('input_number.garage_charger_max_a') | float(40) }}"
-          chg_ratio: "{{ (chg_a / chg_max) if chg_max > 0 else 0 }}"
           charging: "{{ chg_status in ['charging', 'charging_reduced'] }}"
-          power_car: >-
-            {% if not charging %}none
-            {% elif chg_status == 'charging' %}tesla_model3
-            {% elif 0.65 <= chg_ratio < 0.95 %}luxgen_n7
-            {% elif chg_ratio <= 0.35 %}tesla_model3
-            {% else %}unknown{% endif %}
           cable: "{{ res.cable.state if (res.get('cable') is mapping) else 'unknown' }}"
           slot_f: "{{ states('input_select.garage_slot_front') }}"
           slot_b: "{{ states('input_select.garage_slot_back') }}"
+          lux_slot: "{{ 'front' if slot_f == 'luxgen_n7' else ('back' if slot_b == 'luxgen_n7' else 'none') }}"
+          lux_face: "{{ states('input_select.garage_facing_' ~ lux_slot) if lux_slot != 'none' else 'unknown' }}"
+          face_factor: "{{ 6.0 if lux_face == 'inside' else (0.1 if lux_face == 'door' else 1.0) }}"
+          cable_factor: "{{ 8.0 if cable == 'to_luxgen_in' else (0.4 if cable in ['to_front', 'unseen'] else 1.0) }}"
+          # 降壓時先驗賠率 80:20＝4，乘上影像證據；正常充電＝Tesla 100%
+          odds_lux: "{{ 4.0 * face_factor * cable_factor }}"
+          p_lux: "{{ 0.0 if chg_status == 'charging' else (odds_lux / (1 + odds_lux) if chg_status == 'charging_reduced' else 0.0) }}"
+          power_car: >-
+            {% if not charging %}none{% elif p_lux >= 0.5 %}luxgen_n7{% else %}tesla_model3{% endif %}
+          power_conf: "{{ (p_lux if p_lux >= 0.5 else 1 - p_lux) if charging else 0 }}"
           # 充電線拍不到不一定是後方車輛：Luxgen 充電時車頭朝內，線會被前面的車擋住（to_luxgen_in）；Tesla 拍不到（unseen）才是後方車輛
           image_slot: >-
             {% if power_car in ['luxgen_n7', 'tesla_model3'] %}{% if slot_f == power_car %}front{% elif slot_b == power_car %}back{% else %}unknown{% endif %}{% else %}unknown{% endif %}
@@ -309,7 +304,7 @@ script:
               entity_id: input_text.garage_charge_log
             data:
               value: >-
-                {{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ ('停止充電' if new_car == 'none' else (names.get(new_car, '車輛') ~ ' 充電中｜' ~ ({'front': '前位', 'back': '後位'}.get(charge_slot, '車位不明')) ~ '｜' ~ (chg_ratio * 100) | round(0) | int ~ '%｜線:' ~ cable ~ ('｜⚠與畫面辨識不一致' if conflict else ''))))[:255] }}
+                {{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ ('停止充電' if new_car == 'none' else (names.get(new_car, '車輛') ~ ' 充電中｜' ~ ({'front': '前位', 'back': '後位'}.get(charge_slot, '車位不明')) ~ '｜' ~ (power_conf * 100) | round(0) | int ~ '%｜線:' ~ cable ~ ('｜⚠與畫面辨識不一致' if conflict else ''))))[:255] }}
       # 充電訊號補強身分：車位原本認不出來（unknown）時，用「誰在充電、線接到哪」填入；另一個車位也不確定時填另一輛
       - if: "{{ charging and power_car in ['luxgen_n7', 'tesla_model3'] and cable_slot != 'unknown' and states('input_select.garage_slot_' ~ cable_slot) in ['unknown'] }}"
         then:
