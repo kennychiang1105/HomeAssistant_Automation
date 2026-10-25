@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────
+# 08-5L頂樓情境廣播AI (V4.2.4)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.2.4：新增。頂樓上樓／下樓／夜燈情境開關打開時，啟動 script.topfloor_scene_announce 在頂樓 HomePod 播報
+#           （人在不在頂樓、早上才播、夜燈接續音樂等判斷都在腳本內）。這支只負責轉交，不阻塞原本的情境動作。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-5L頂樓情境廣播AI (V4.2.4)
+  id: ai_08_5l_topfloor_scene_announce
+  description: 上樓／下樓／夜燈情境開啟時，交給頂樓情境廣播腳本播報（溫度、天氣、風扇說明，夜燈後接續音樂）。
+  mode: queued
+  max: 6
+  variables:
+    automation_version: "V4.2.4"
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.ding_lou_shang_lou_qing_jing
+      to: "on"
+      id: up
+    - trigger: state
+      entity_id: input_boolean.ding_lou_xia_lou_qing_jing
+      to: "on"
+      id: down
+    - trigger: state
+      entity_id: input_boolean.ding_lou_ye_deng_qing_jing
+      to: "on"
+      id: night
+  actions:
+    - action: script.turn_on
+      target:
+        entity_id: script.topfloor_scene_announce
+      data:
+        variables:
+          scene: "{{ trigger.id }}"

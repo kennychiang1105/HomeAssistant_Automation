@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2H燈況記憶AI (V4.1.6)
+# 00-2H燈況記憶AI (V4.1.7)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.7（2026-10-26）：緊急模式進行中與結束後 15 分鐘內不記錄燈況（10/25 22:55 緊急模式把樓梯燈開到 100%，被記成平常亮度，四樓原 70%、頂樓原 80% 因此變亮）。
 # - V4.1.6（2026-10-18）：記錄範圍擴大到客廳 7 顆＋餐廳 3 顆＋四樓／頂樓樓梯燈（供燈組開燈動畫回到「上次狀態」）；
 #           判斷改用燈泡自己回報的 light.mode（2＝色溫）、light.color_temperature、light.brightness（HA 的 color_mode 對這些燈常顯示成 rgb，原本因此一直沒更新記憶）；開燈動畫進行中不記錄。
 # - V4.0.0：只記錄「色溫＋亮度」模式（使用者平常的設定）；顏色（RGB）模式一律不記，避免把提醒留下的顏色當成使用者設定。
@@ -9,7 +10,7 @@
 #           供氣氛燈提醒結束後還原。觸發：燈亮起或顏色/亮度改變（延遲 8 秒等你調完）、開機後 60 秒、每 5 分鐘掃描一次。
 #           氣氛燈提醒進行中與結束後 40 秒內不記錄；琥珀橘/紅色（提醒色）不記錄。
 # ─────────────────────────────────────────────────────────────
-- alias: 00-2H燈況記憶AI (V4.1.6)
+- alias: 00-2H燈況記憶AI (V4.1.7)
   id: ai_00_2h_light_memory
   description: 記錄提醒用 RGB 燈的最後有效顏色/色溫/亮度
   mode: restart
@@ -36,6 +37,15 @@
     - condition: state
       entity_id: input_boolean.mood_alert_active
       state: "off"
+    # V4.1.7：緊急模式（05A／05B／05E）進行中與結束後 15 分鐘內不記錄（緊急模式會把燈全開到 100%，不是平常的亮度）
+    - condition: template
+      value_template: >-
+        {% set ns = namespace(b=false) %}
+        {% for a in states.automation | selectattr('attributes.friendly_name', 'defined') | selectattr('attributes.friendly_name', 'match', '(05A|05B|05E)') %}
+          {% set lt = a.attributes.get('last_triggered') %}
+          {% if (a.attributes.get('current', 0) | int(0)) > 0 or (lt is not none and (now() - lt).total_seconds() < 900) %}{% set ns.b = true %}{% endif %}
+        {% endfor %}
+        {{ not ns.b }}
     # 深夜（熟睡鎖）或樓梯燈剛以深夜亮度亮過時不記錄：自動化指定的深夜值不是使用者平常的設定，
     # 記進去會讓提醒閃燈後把樓梯燈還原成深夜亮度／色溫
     - condition: state
