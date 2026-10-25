@@ -888,11 +888,15 @@
       {"type": "text", "text": "請確認現場是否為真實緊急情況", "size": "sm", "weight": "bold", "color": "#92400E", "flex": 1, "wrap": true}
     ]} -%}
   {%- set rec_box = {
-    "type": "box", "layout": "vertical", "backgroundColor": "#EFF6FF", "borderColor": "#BFDBFE", "borderWidth": "1px", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "4px",
+    "type": "box", "layout": "vertical", "backgroundColor": "#EFF6FF", "borderColor": "#BFDBFE", "borderWidth": "1px", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "6px",
     "contents": [
       {"type": "text", "text": "如何還原", "size": "xs", "weight": "bold", "color": "#1E3A8A"},
-      {"type": "text", "text": "① 按「解除網關警報」：還原緊急模式前的狀態（2 小時內）", "size": "xs", "color": "#1F2937", "wrap": true, "lineSpacing": "3px"},
-      {"type": "text", "text": "② 或在家庭 App 直接調整電源與照明、執行離家模式", "size": "xs", "color": "#1F2937", "wrap": true, "lineSpacing": "3px"}
+      {"type": "box", "layout": "vertical", "backgroundColor": "#FFFFFF", "borderColor": "#2563EB", "borderWidth": "2px", "cornerRadius": "8px", "paddingAll": "10px", "spacing": "4px",
+       "contents": [
+         {"type": "text", "text": "打開「家庭」App，滑到最下方，點「解除網關警報」", "size": "md", "weight": "bold", "color": "#1D4ED8", "wrap": true, "lineSpacing": "4px"},
+         {"type": "text", "text": "會還原到緊急模式前的狀態（2 小時內）", "size": "xs", "color": "#4B5563", "wrap": true}
+       ]},
+      {"type": "text", "text": "或直接在家庭 App 調整電源與照明、執行離家模式", "size": "xs", "color": "#1F2937", "wrap": true, "lineSpacing": "3px"}
     ]} -%}
   {{- [hdr_row, grid_box, src_row, guide_box, rec_box] | tojson -}}
 {%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}
@@ -1206,7 +1210,7 @@
     '- 照明&nbsp;&nbsp;**全部開啟**　電源&nbsp;&nbsp;**已關閉**',
     '- 觸發來源&nbsp;&nbsp;**' ~ src_t ~ '**',
     '- <span style="color:#B45309">**請確認現場是否為真實緊急情況**</span>',
-    '- 還原：按「解除網關警報」還原緊急模式前的狀態（2 小時內），或在家庭 App 調整電源與照明、執行離家模式'
+    '- <span style="color:#1D4ED8">**還原：打開「家庭」App，滑到最下方，點「解除網關警報」**</span>（還原到緊急模式前的狀態，2 小時內）；或直接調整電源與照明、執行離家模式'
   ] -%}
   {{- out | join('\n') -}}
 {%- elif (not skip) and (('地震報告' in sig_h) or ('01地震' in sig_h) or ('02地震' in sig_h) or (joined | regex_search('^\\s*(?:[^\\n]{0,40}中央氣象(?:局|署)訊息[：:]\\s*)?\\d{1,2}/\\d{1,2}\\s*\\d{1,2}:\\d{2}[^\\n]*發生規模'))) -%}

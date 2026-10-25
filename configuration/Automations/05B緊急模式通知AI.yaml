@@ -83,7 +83,7 @@
               照明：全部開啟
               電源：已關閉
               請確認現場是否為真實緊急情況
-              還原：按「解除網關警報」或在家庭 App 調整電源與照明
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -269,7 +269,7 @@
                 照明：全部開啟
                 電源：已關閉
                 請確認現場是否為真實緊急情況
-                還原：按「解除網關警報」或在家庭 App 調整電源與照明
+                還原：打開「家庭」App，滑到最下方，點「解除網關警報」
             enabled: true
             action: script.notify_dispatch
           - if:
@@ -362,7 +362,7 @@
               照明：全部開啟
               電源：已關閉
               請確認現場是否為真實緊急情況
-              還原：按「解除網關警報」或在家庭 App 調整電源與照明
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -533,7 +533,7 @@
               照明：全部開啟
               電源：已關閉
               請確認現場是否為真實緊急情況
-              還原：按「解除網關警報」或在家庭 App 調整電源與照明
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
