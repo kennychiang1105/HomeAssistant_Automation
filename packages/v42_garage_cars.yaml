@@ -272,8 +272,11 @@ script:
             {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ lux_slot if lux_slot != 'none' else 'unknown' }}{% else %}unknown{% endif %}
           face_factor: "{{ 1.5 if lux_face == 'inside' else 1.0 }}"
           cable_factor: "{{ (3.0 if lux_slot == cable_slot else 0.5) if (cable_slot != 'unknown' and lux_slot != 'none') else 1.0 }}"
-          # 降壓時先驗賠率 80:20＝4，乘上影像證據；正常充電＝Tesla 100%
-          odds_lux: "{{ 4.0 * face_factor * cable_factor }}"
+          # 車輛充電電流是最可靠的指紋（45 天歷史：Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 之間沒有重疊）
+          chg_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) }}"
+          a_factor: "{{ 50.0 if chg_a >= 28 else (0.02 if 1 <= chg_a <= 26 else 1.0) }}"
+          # 降壓時先驗賠率 80:20＝4，乘上影像證據與電流；正常充電＝Tesla 100%
+          odds_lux: "{{ 4.0 * face_factor * cable_factor * a_factor }}"
           p_lux: "{{ 0.0 if chg_status == 'charging' else (odds_lux / (1 + odds_lux) if chg_status == 'charging_reduced' else 0.0) }}"
           power_car: >-
             {% if not charging %}none{% elif p_lux >= 0.5 %}luxgen_n7{% else %}tesla_model3{% endif %}
