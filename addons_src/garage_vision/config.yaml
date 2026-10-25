@@ -1,0 +1,12 @@
+name: Garage Vision
+version: "0.1.0"
+slug: garage_vision
+description: 車庫畫面本機偵測（YOLO11 找出汽車／機車）＋CLIP 辨識車種與車頭朝向，給 HA 的車庫車輛分析使用
+url: https://github.com/kennychiang1105/HomeAssistant_Automation
+arch:
+  - amd64
+init: false
+startup: application
+boot: auto
+options: {}
+schema: {}

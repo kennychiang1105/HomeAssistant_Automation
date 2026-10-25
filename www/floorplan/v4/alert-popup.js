@@ -1,4 +1,4 @@
-/* Smart Home Global Alert Popup (V4.2.0 / UI4.0-beta8)
+/* Smart Home Global Alert Popup (V4.2.0 / UI4.0-beta10)
  * Modern responsive modal for:
  *   1. Earthquake Early Warning (EEW: input_text.line_eew_remote_level / seconds)
  *   2. Local Disaster Alerts (sensor.disaster - filtered to 竹南/苗栗/新竹 or national emergency)

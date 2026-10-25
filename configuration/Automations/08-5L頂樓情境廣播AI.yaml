@@ -2,6 +2,7 @@
 # 08-5L頂樓情境廣播AI (V4.2.4)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.5：每次下樓情境都記時間（topfloor_last_down_any），上樓廣播腳本用它判斷短暫下樓再上樓不重播。
 # - V4.2.4：新增。頂樓上樓／下樓／夜燈情境開關打開時，啟動 script.topfloor_scene_announce 在頂樓 HomePod 播報
 #           （人在不在頂樓、早上才播、夜燈接續音樂等判斷都在腳本內）。這支只負責轉交，不阻塞原本的情境動作。
 # ─────────────────────────────────────────────────────────────
@@ -26,6 +27,14 @@
       to: "on"
       id: night
   actions:
+    # 不論有沒有播報，都記下「最近一次下樓情境」時間；腳本用它判斷「短暫下樓上廁所再上樓」不重播
+    - if: "{{ trigger.id == 'down' }}"
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: input_datetime.topfloor_last_down_any
+          data:
+            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     - action: script.turn_on
       target:
         entity_id: script.topfloor_scene_announce

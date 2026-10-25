@@ -7,6 +7,7 @@
 # - V4.2.3（2026-10-25）：notify_dispatch 新增選填 image_ratio／image2_ratio（寬:高）；有給就完整顯示不裁切（地牛截圖、氣象署報告圖用），沒給維持原本 16:9 填滿。
 # - V4.2.3（2026-10-24）：晚安情境（input_boolean.aqara_wan_an）或頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播所有喇叭都不播（整則略過）；緊急等級照常；force 欄位（手動廣播用）可強制播；情境廣播（kind: scene，含晚安情境完成播報）不受影響。
 # - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
+# - V4.2.5（2026-10-26）：頂樓 HomePod 合成語音 4 秒內沒開始播放就重送（最多 2 次），修正夜燈情境廣播被連線中斷（not connected to remote）吃掉。
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
 # - V4.0.0：announce 的 player 可傳「喇叭清單」同時播放（音量只調整清單內的 HomePod）；沒傳 player 仍依等級使用廣播群組。
 # - V4.0.0：修正沒傳 version 欄位時，標題與底部顯示「<function VersionExtension.version at 0x…>」（HA 內建 version() 函式與欄位同名）。
@@ -423,6 +424,27 @@ announce:
                   media_content_type: music
                   announce: true
                 continue_on_error: true
+              # V4.2.5：頂樓 HomePod 偶爾連線中斷（not connected to remote，夜燈情境同時啟動音樂時發生過），
+              #         4 秒內沒開始播放就等 3 秒再送一次（最多 2 次）；其他喇叭維持原樣（避免重複播報）
+              - if: "{{ target_player == 'media_player.ding_lou_homepod' }}"
+                then:
+                  - repeat:
+                      count: 2
+                      sequence:
+                        - wait_template: "{{ is_state(target_player, 'playing') }}"
+                          timeout: "00:00:04"
+                          continue_on_timeout: true
+                        - if: "{{ not wait.completed }}"
+                          then:
+                            - delay: "00:00:03"
+                            - action: media_player.play_media
+                              target:
+                                entity_id: "{{ target_all }}"
+                              data:
+                                media_content_id: "media-source://media_source/local/{{ merged_file }}"
+                                media_content_type: music
+                                announce: true
+                              continue_on_error: true
               - delay:
                   seconds: "{{ merged_dur + 0.3 }}"
             else:
