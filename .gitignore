@@ -58,3 +58,6 @@ scenes.yaml
 scripts.yaml
 sensors.yaml
 button_card_templates.yaml
+
+# 地牛 add-on 的設定與連動腳本（含 webhook ID 與紀錄）
+oxwu/

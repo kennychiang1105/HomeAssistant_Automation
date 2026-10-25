@@ -1,0 +1,49 @@
+# ────────────────────────────────────────────────────────
+# 地牛 add-on 預警接收AI (V4.2.3，SOP-24)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增。HA add-on 版地牛（OX Wake Up，竹南鎮）警報時，由 /config/oxwu/notify.sh 呼叫兩個區網專用 webhook：
+#           ①預警（震度、秒數、預計抵達時間）→ 不阻塞啟動 script.eq99（source＝地牛(HA)；與其他來源由 eq99 去重，最快的先處理）；
+#           ②截圖（檔名）→ script.eew_screenshot_ready。webhook ID 放在 secrets.yaml（eew_oxwu_alert_hook／eew_oxwu_shot_hook）。
+# ────────────────────────────────────────────────────────
+- alias: 地牛 add-on 預警接收AI (V4.2.3)
+  id: ai_oxwu_addon_receiver
+  description: 接收 HA add-on 版地牛的預警與截圖通知，轉給 eq99（多來源去重）與截圖通知。
+  mode: queued
+  max: 5
+  triggers:
+    - trigger: webhook
+      id: alert
+      webhook_id: !secret eew_oxwu_alert_hook
+      allowed_methods: [POST]
+      local_only: true
+    - trigger: webhook
+      id: shot
+      webhook_id: !secret eew_oxwu_shot_hook
+      allowed_methods: [POST]
+      local_only: true
+  conditions: []
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: alert
+          sequence:
+            - action: script.turn_on
+              target:
+                entity_id: script.eq99
+              data:
+                variables:
+                  source: "{{ trigger.json.source | default('地牛(HA)') }}"
+                  level: "{{ trigger.json.level | default('0') }}"
+                  seconds: "{{ trigger.json.seconds | default('0') }}"
+                  timestamp: "{{ trigger.json.timestamp | default('0') }}"
+        - conditions:
+            - condition: trigger
+              id: shot
+          sequence:
+            - action: script.turn_on
+              target:
+                entity_id: script.eew_screenshot_ready
+              data:
+                variables:
+                  file: "{{ trigger.json.file | default('') }}"

@@ -4,11 +4,14 @@
 用法：cwa_quake.py <預警時間 epoch> <容許分鐘> <圖片輸出資料夾> <圖片網址前綴>
 輸出：一行 JSON；ok=true 時含 time／epicenter／lat／lon／mag／depth／max_int／areas／report_img／shake_img，否則 ok=false 與 reason。
 """
-import sys, json, re, os, glob, time, random, datetime, urllib.request, urllib.parse
+import sys, json, re, os, glob, time, random, datetime, ssl, urllib.request, urllib.parse
 
 SECRETS = '/config/secrets.yaml'
 DATASETS = ['E-A0015-001', 'E-A0016-001']
 TW = datetime.timezone(datetime.timedelta(hours=8))
+# 氣象署憑證缺 Subject Key Identifier，Python 3.13 以後預設的嚴格檢查會拒絕；仍然驗證憑證鏈，只關掉 X509 嚴格模式
+CTX = ssl.create_default_context()
+CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
 
 def out(d):
@@ -30,7 +33,7 @@ def api_key():
 def fetch(ds, key):
     url = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/%s?%s' % (
         ds, urllib.parse.urlencode({'Authorization': key, 'format': 'JSON', 'limit': 10}))
-    with urllib.request.urlopen(url, timeout=20) as r:
+    with urllib.request.urlopen(url, timeout=20, context=CTX) as r:
         d = json.load(r)
     rec = d.get('records') or {}
     return rec.get('Earthquake') or []
@@ -39,9 +42,10 @@ def fetch(ds, key):
 def origin_epoch(e):
     t = ((e.get('EarthquakeInfo') or {}).get('OriginTime') or '').strip()
     try:
-        return datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S').replace(tzinfo=TW).timestamp()
+        d = datetime.datetime.fromisoformat(t.replace(' ', 'T'))
     except ValueError:
         return None
+    return (d if d.tzinfo else d.replace(tzinfo=TW)).timestamp()
 
 
 def rank(s):
@@ -56,7 +60,7 @@ def download(url, outdir, prefix, tag):
     ext = ext if ext in ('.png', '.jpg', '.jpeg', '.gif') else '.png'
     name = 'snap_quake_%s_%s%s' % (tag, ''.join(random.choice('abcdef0123456789') for _ in range(16)), ext)
     try:
-        with urllib.request.urlopen(url, timeout=25) as r, open(os.path.join(outdir, name), 'wb') as f:
+        with urllib.request.urlopen(url, timeout=25, context=CTX) as r, open(os.path.join(outdir, name), 'wb') as f:
             f.write(r.read())
     except Exception:
         return ''
@@ -97,7 +101,7 @@ def main():
     cities = {}
     for a in ((e.get('Intensity') or {}).get('ShakingArea') or []):
         c, v = a.get('CountyName'), a.get('AreaIntensity')
-        if c and v is not None and rank(v) > rank(cities.get(c, '')):
+        if c and '、' not in c and v is not None and rank(v) > rank(cities.get(c, '')):
             cities[c] = str(v)
     areas = sorted(cities.items(), key=lambda kv: -rank(kv[1]))
     tag = datetime.datetime.fromtimestamp(o, TW).strftime('%m%d%H%M')

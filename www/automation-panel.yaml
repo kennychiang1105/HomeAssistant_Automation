@@ -1715,7 +1715,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。　自動化 10 支、可調整項目 43 個"
+        content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。　自動化 10 支、可調整項目 46 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -1942,7 +1942,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（1）"
+        heading: "其他開關（1）"
         heading_style: title
         card_mod:
           style: |
@@ -1952,6 +1952,26 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_boolean.eew_extra_enable
+            name: "地震預警｜附地牛截圖與震央詳情"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "其他數值參數（3）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_number.eew_line_min_level
+            name: "地震預警｜LINE 截圖與詳情的最低預估震度"
+          - entity: input_number.eew_dedupe_window_sec
+            name: "地震預警｜同一場地震的合併時間（秒）"
           - entity: input_number.air_notify_cooldown_min
             name: "空氣通知同等級冷卻（分）"
         card_mod: *cm
@@ -3976,7 +3996,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "通知與廣播（36）"
+        heading: "通知與廣播（38）"
         heading_style: title
         card_mod:
           style: |
@@ -3990,6 +4010,8 @@ views:
             name: "LINE_Bot額度耗盡已通知狀態"
           - entity: input_boolean.mood_alert_active
             name: "氣氛燈提醒中（旗標）"
+          - entity: input_datetime.eew_last_event
+            name: "地震預警｜最近一次處理的時間（內部）"
           - entity: input_text.notif_title_086_emergency
             name: "08-6_LINEnotice_緊急"
           - entity: input_text.notif_title_086_important
@@ -4026,6 +4048,8 @@ views:
             name: "LINE_Bot即將切換預告去重鍵"
           - entity: input_text.line_bot_monthly_history
             name: "LINE_Bot各月最後使用紀錄"
+          - entity: input_text.eew_last_info
+            name: "地震預警｜最近一次的來源與震度（內部）"
           - entity: input_text.announce_volume_test_flag
             name: "廣播音量測試值旗標"
           - entity: input_text.announce_volume_unify_flag
@@ -4068,6 +4092,8 @@ views:
             name: "氣氛燈燈況記憶_客廳燈2"
           - entity: input_text.mood_mem_8e3f
             name: "氣氛燈燈況記憶_客廳燈3"
+          - entity: input_text.mood_mem_5007
+            name: "氣氛燈燈況記憶_客廳燈4"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -4083,8 +4109,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_text.mood_mem_5007
-            name: "氣氛燈燈況記憶_客廳燈4"
           - entity: input_text.mood_mem_2024
             name: "氣氛燈燈況記憶_客廳燈5"
           - entity: input_text.mood_mem_f21d
@@ -4395,7 +4419,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "緊急與災防（16）"
+        heading: "緊急與災防（15）"
         heading_style: title
         card_mod:
           style: |
@@ -4419,8 +4443,8 @@ views:
             name: "Last Disaster Broadcast"
           - entity: input_datetime.emergency_snapshot_at
             name: "緊急模式快照時間"
-          - entity: input_datetime.disaster_last_nonurgent_sent
-            name: "非急迫災害訊息｜上次發送時間（內部）"
+          - entity: input_text.line_eew_remote_seconds
+            name: "LINE_EEW遠端_預估到達秒數"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4435,8 +4459,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_text.line_eew_remote_seconds
-            name: "LINE_EEW遠端_預估到達秒數"
           - entity: input_text.line_eew_remote_level
             name: "LINE_EEW遠端_預估震度"
           - entity: input_text.disaster_last_message
