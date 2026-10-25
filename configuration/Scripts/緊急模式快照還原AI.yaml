@@ -1,6 +1,7 @@
 # ────────────────────────────────────────────────────────
 # 緊急模式快照與還原AI (V4.1.0)
 # 更新紀錄：
+# - V4.2.3（2026-10-25）：修正還原一開始就中斷的問題：scene.turn_on 遇到一個還原失敗的實體（關著的風扇「Preset mode Level 2 is not valid」）整個報錯，腳本在第一步停掉，鐵門／通知／清旗標都沒跑；改成忽略錯誤繼續往下，風扇另存另還原（input_text.emergency_fan_prev）。
 # - V4.2.3（2026-10-24）：①快照多涵蓋餐廳與客廳燈泡、燈組動畫、頂樓主燈 1~4（上次事件改動了但沒列在快照裡）；②鐵門改成 script.garage_close_when_clear：連續 20 秒沒有人、沒有車、沒有動作才關，最多等 10 分鐘，等不到只發 HA 通知。
 # - V4.1.0（2026-10-10）：新增 script.emergency_snapshot_save／emergency_restore。05A 啟動時先存「05A 會改動的設備」快照（scene.create），
 #   誤觸時由 106C（解除網關警報，批次 8）呼叫還原。涵蓋：12 燈、18 開關、3 風扇、3 插座、頂樓空調、警報觸發開關；車庫鐵門另存狀態，
@@ -95,6 +96,16 @@ emergency_snapshot_save:
         snapshot_entities: "{{ avail }}"
     - action: input_text.set_value
       target:
+        entity_id: input_text.emergency_fan_prev
+      data:
+        value: >-
+          {% set fans = ['fan.kong_qi_qing_jing_ji', 'fan.ke_ting_dian_feng_shan', 'fan.dmaker_p33_eabd_fan'] %}
+          {% set ns = namespace(o=[]) %}
+          {% for f in fans %}{% if states(f) in ['on', 'off'] %}{% set ns.o = ns.o + [loop.index0 | string ~ ':' ~ states(f) ~ ':' ~ (state_attr(f, 'percentage') | int(0))] %}{% endif %}{% endfor %}
+          {{ ns.o | join('|') }}
+      continue_on_error: true
+    - action: input_text.set_value
+      target:
         entity_id: input_text.emergency_garage_prev
       data:
         value: "{{ states('cover.garage') }}"
@@ -137,11 +148,39 @@ emergency_restore:
       condition: state
       entity_id: input_boolean.emergency_snapshot_valid
       state: "on"
+    # V4.2.3：場景裡只要有一個實體還原失敗（例如關著的空氣清淨機／風扇「Preset mode Level 2 is not valid」），整個 scene.turn_on 會報錯，
+    #   原本整支腳本在這裡中斷：鐵門、通知、清旗標全沒跑、快照一直是有效、按解除網關警報的流程也跟著中斷。改成忽略錯誤、繼續往下，風扇另外還原。
     - action: scene.turn_on
       target:
         entity_id: "scene.{{ sid }}"
       data:
         transition: 2
+      continue_on_error: true
+    - delay: "00:00:02"
+    - alias: "風扇另外還原（不帶 preset，只還原開關與風速）"
+      repeat:
+        for_each: "{{ ['fan.kong_qi_qing_jing_ji', 'fan.ke_ting_dian_feng_shan', 'fan.dmaker_p33_eabd_fan'] }}"
+        sequence:
+          - variables:
+              rec: >-
+                {% set ns = namespace(v='') %}
+                {% for item in states('input_text.emergency_fan_prev').split('|') if item.split(':')[0] == (repeat.index - 1) | string %}{% set ns.v = item %}{% endfor %}
+                {{ ns.v }}
+              want: "{{ rec.split(':')[1] if rec else '' }}"
+              pct: "{{ rec.split(':')[2] | int(0) if rec else 0 }}"
+          - if: "{{ want == 'off' and states(repeat.item) == 'on' }}"
+            then:
+              - action: fan.turn_off
+                target:
+                  entity_id: "{{ repeat.item }}"
+                continue_on_error: true
+          - if: "{{ want == 'on' and states(repeat.item) == 'off' }}"
+            then:
+              - action: fan.turn_on
+                target:
+                  entity_id: "{{ repeat.item }}"
+                data: "{{ {'percentage': pct} if pct > 0 else {} }}"
+                continue_on_error: true
     - if: "{{ not is_test }}"
       then:
         - alias: "警報觸發開關一定還原為關"

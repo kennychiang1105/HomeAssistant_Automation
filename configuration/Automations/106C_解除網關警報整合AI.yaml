@@ -129,6 +129,7 @@
               value_template: "{{ restore_route }}"
           sequence:
             - action: script.emergency_restore
+              continue_on_error: true
         - alias: "早安時段"
           conditions:
             - condition: template

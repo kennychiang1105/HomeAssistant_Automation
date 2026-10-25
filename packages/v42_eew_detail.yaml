@@ -48,6 +48,10 @@ input_datetime:
     has_time: true
     icon: mdi:history
 input_text:
+  emergency_fan_prev:
+    name: 緊急模式快照｜風扇原本狀態（內部）
+    max: 255
+    icon: mdi:fan
   eew_last_extra:
     name: 地震預警｜預警來源給的震央資料（內部）
     max: 200
