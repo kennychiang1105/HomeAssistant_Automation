@@ -1238,12 +1238,13 @@ class FloorplanV43D extends HTMLElement {
       const portDot = plugged ? new THREE.Mesh(new THREE.SphereGeometry(2.6, 10, 8), cableMat) : null;
       if (portDot) { portDot.position.copy(plugged.getPoint(1)); inner.add(portDot); }
       const chg = { led, cableMat, pulseMat, cabPlug, cabHang, pulses, curve: plugged, portDot, key: "" };
-      // 依充電中的車位重畫充電線：Luxgen N7 充電孔在左前、Tesla Model 3 在左後尾燈；車頭朝內時整台車轉 180°，孔位跟著轉
+      // 依充電中的車位重畫充電線：Luxgen N7 充電孔在右前方、Tesla Model 3 在左後方（尾燈旁）；車頭朝內時整台車轉 180°，孔位跟著轉
       chg.route = (c, slot, inside) => {
         const yaw = c.baseYaw + (inside ? Math.PI : 0), gp = c.g.position, Y = new THREE.Vector3(0, 1, 0);
         const loc = (a, b, y) => new THREE.Vector3(a, y, b).applyAxisAngle(Y, yaw).add(new THREE.Vector3(gp.x, 0, gp.z));
-        const sd = slot === "tesla_model3" ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, -0.40 * c.W];
-        const port = loc(sd[0], sd[1], 11), near = loc(sd[0], -(c.W / 2 + 6), 5), out = loc(sd[0], -(c.W / 2 + 16), 1.8);
+        const sd = slot === "tesla_model3" ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, 0.40 * c.W];      // z 負＝車的左側、正＝右側
+        const sg = Math.sign(sd[1]) || 1;
+        const port = loc(sd[0], sd[1], 11), near = loc(sd[0], sg * (c.W / 2 + 6), 5), out = loc(sd[0], sg * (c.W / 2 + 16), 1.8);
         const f1 = new THREE.Vector3(start.x + inward[0] * 12, 2, start.z + inward[1] * 12);
         const mid = f1.clone().lerp(out, 0.5); mid.y = 1.8;
         return [start, f1, mid, out, near, port];
