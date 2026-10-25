@@ -1,0 +1,32 @@
+# ────────────────────────────────────────────────────────
+# TREM 預警客戶端看門狗AI (V4.2.3，SOP-24 / SOP-20)
+# 更新紀錄（統一格式）：
+# - V4.2.3：新增。scripts/trem_eew.py 是常駐在 HA 容器的 TREM（ExpTech）預警客戶端；HA 啟動後 30 秒、之後每 5 分鐘檢查
+#           input_datetime.eew_trem_alive（客戶端每分鐘的心跳），超過 5 分鐘沒心跳就用 shell_command.trem_eew_start 重新啟動
+#           （客戶端自己用 pid 檔避免重複執行）。HA 重啟後自動接續（SOP-20）。
+# ────────────────────────────────────────────────────────
+- alias: TREM 預警客戶端看門狗AI (V4.2.3)
+  id: ai_trem_eew_watchdog
+  description: 確保 TREM 預警客戶端常駐；沒有心跳就重新啟動。
+  mode: single
+  triggers:
+    - trigger: homeassistant
+      event: start
+      id: ha_start
+    - trigger: time_pattern
+      minutes: "/5"
+      id: tick
+  conditions: []
+  actions:
+    - if: "{{ trigger.id == 'ha_start' }}"
+      then:
+        - delay: "00:00:30"
+    - if: "{{ (now().timestamp() - as_timestamp(states('input_datetime.eew_trem_alive'), 0)) > 300 }}"
+      then:
+        - action: shell_command.trem_eew_start
+          continue_on_error: true
+        - action: logbook.log
+          data:
+            name: TREM 預警客戶端看門狗AI
+            message: "TREM 預警客戶端沒有心跳，已重新啟動"
+          continue_on_error: true

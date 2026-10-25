@@ -3,6 +3,8 @@
 # - V4.0.0：（舊）預估抵達時間一到立即播放緊急音效＋「發生地震，請就地避難掩護」（原本固定等 25 秒，中間會空一段）；沒有秒數時維持 25 秒。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V4.0.0：地震廣播延遲優化：①廣播移到最前面（不等 LINE／緊急模式／通知）並不阻塞；②第一句改短句並預先合成快取（斷網也能播）；③拿掉廣播前的 HomePod volume_set（實測卡約 3.6 秒），音量交給統一廣播；④播報秒數扣掉處理延遲與念到數字前的約 3 秒，剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
+# - V4.2.3：多來源去重（SOP-24）：開頭判斷是不是同一場，最快的先處理，後到的只記錄慢了幾秒；升級（高 2 級以上）才重新警報。
+# - V4.2.3：預警一收到就不阻塞啟動 script.eew_detail_followup（氣象署震央詳情補發，SOP-24）。
 # 相容版本：Helpers V3.9（已確認）
 'eq99':
   alias: 地震預警系統(遠端)AI (V4.2.0)
@@ -23,6 +25,45 @@
     line_bot_target_user_id: >-
       {{ states('sensor.line_bot_target_user_id') }}
   sequence:
+  # V4.2.3：測試用旗標（dry）一律不處理：eq99 絕不能被測試資料啟動
+  - if: "{{ (dry | default(0) | string | regex_findall('\\d+') | join('') | int(0)) > 0 if dry is defined else false }}"
+    then:
+      - stop: "dry 測試旗標：不處理"
+  # V4.2.3（SOP-24）：多來源去重。任何來源（地牛、TREM、氣象署 PWS…）都呼叫本腳本並帶 source；
+  # 合併時間內同一場地震只處理最快到的一個，後到的記錄「慢了幾秒」後略過；預估震度比先到的高 2 級以上（且達 3 級）才算升級、重新警報。
+  - variables:
+      src: "{{ source | default('地牛') if source is defined else '地牛' }}"
+      last_ts: "{{ as_timestamp(states('input_datetime.eew_last_event'), 0) }}"
+      gap: "{{ ts0 | float(0) - last_ts | float(0) }}"
+      prev_lv: "{{ (states('input_text.eew_last_info').split('|')[1] | int(0)) if '|' in states('input_text.eew_last_info') else 0 }}"
+      prev_src: "{{ states('input_text.eew_last_info').split('|')[0] if '|' in states('input_text.eew_last_info') else '' }}"
+      is_dup: "{{ gap | float(999999) < (states('input_number.eew_dedupe_window_sec') | float(150)) and not (lv | int(0) >= 3 and lv | int(0) >= prev_lv | int(0) + 2) }}"
+  # 來源有給震央資料（TREM：地名、規模、深度）就記下來，截圖卡會附上；重複來源也先記（不需要是最快的）
+  - if: "{{ eq_loc is defined and (eq_loc | string | length > 0) }}"
+    then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.eew_last_extra
+        data:
+          value: "{{ eq_loc }}|{{ eq_mag }}|{{ eq_depth }}|{{ src }}"
+  - if: "{{ is_dup }}"
+    then:
+      - action: logbook.log
+        data:
+          name: 地震預警系統(遠端)AI
+          message: "重複預警略過：{{ src }} 比 {{ prev_src }} 慢 {{ gap | float(0) | round(1) }} 秒（預估 {{ lv }} 級，先到的是 {{ prev_lv }} 級）"
+        continue_on_error: true
+      - stop: "同一場地震已由 {{ prev_src }} 處理，{{ src }} 慢了 {{ gap | float(0) | round(1) }} 秒"
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.eew_last_event
+    data:
+      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.eew_last_info
+    data:
+      value: "{{ src }}|{{ lv }}"
   - action: input_text.set_value
     target:
       entity_id: input_text.line_eew_remote_level
@@ -33,6 +74,14 @@
       entity_id: input_text.line_eew_remote_seconds
     data:
       value: '{{ seconds_text }}'
+  # V4.2.3：預警一收到就不阻塞啟動「詳情補發」（每分鐘查氣象署，最多 10 分鐘；LINE 受 eew_line_min_level 控管，見 packages/v42_eew_detail.yaml）
+  - action: script.turn_on
+    target:
+      entity_id: script.eew_detail_followup
+    data:
+      variables:
+        lv: "{{ lv }}"
+        t0: "{{ ts0 }}"
   - choose:
     - conditions:
       - condition: template
@@ -76,6 +125,13 @@
       # 語音是預先合成的短句（www 快取暖機 warm_announce.py：震度 3~7 × 3~60 秒），念到數字時倒數已過去約 3 秒，
       # 所以播報秒數 = 預估秒數 - 已經過秒數 - 3；剩 ≤2 秒改念「立即就地趴下，掩護，穩住」。
       # （不再先 volume_set 兩台 HomePod：實測會卡約 3.6 秒；音量由 script.announce 依「廣播音量_緊急」設定）
+      # V4.2.3：預估 4 級以上會啟動緊急模式，先存「閃燈之前」的設備快照（原本 05A 才存，這時氣氛燈已經在閃，樓梯燈等被存成閃爍中的狀態，還原後反而變成開）
+      - if: "{{ lv >= 4 }}"
+        then:
+          - action: script.emergency_snapshot_save
+            data:
+              source: auto
+            continue_on_error: true
       - variables:
           say_sec: "{{ (sec_i - (now().timestamp() - ts0 | float) - 3) | round(0) | int }}"
           quake_msg: >-

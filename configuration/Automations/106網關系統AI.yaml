@@ -3,6 +3,7 @@
 # 106網關系統AI (V4.1.5)
 # 相容版本：Helpers V3.16（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-25）：網關同步鎖期間（input_datetime.gateway_sync_lock_until，106C 解除流程）略過觸發，避免和 106C、106D、Apple 家庭回送來回改開關與網關。
 # - V4.1.5（2026-10-11）：① 移除「自動化重載（automation_reloaded）」觸發：重載時情境開關沒有變，不需要重送警戒指令（原本每次重載都會對實體網關重送 arm_home／away／night，
 #           2026-10-11 一天內已送出 29 次）；HA 啟動與 5 個情境開關變成開仍會同步。② HA 啟動時若實體網關正在「警報中／倒數中」，不覆蓋它（略過這次同步）。
 #           實體網關 → 虛擬情境開關的回寫由 Apple 家庭負責（HA 限制），不在本自動化內。
@@ -46,7 +47,10 @@
     debug_on: "{{ is_state('input_boolean.gateway_debug_notify','on') }}"
     is_ha_start: "{{ trigger is defined and trigger.platform is defined and trigger.platform == 'homeassistant' }}"
 
-  conditions: []
+  conditions:
+    # V4.2.3：網關同步鎖期間（106C 解除流程）略過；HA 啟動照常同步
+    - condition: template
+      value_template: "{{ (trigger.platform | default('')) == 'homeassistant' or as_timestamp(now()) > as_timestamp(states('input_datetime.gateway_sync_lock_until'), 0) }}"
 
   actions:
     - delay: "00:00:01"

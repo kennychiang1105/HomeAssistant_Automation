@@ -1,4 +1,6 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.2.3（2026-10-25）：緊急模式 LINE 通知改成現代化卡片（原本 4 個泡泡的長文字）：狀態（照明全開／電源關閉）、觸發來源、請確認、還原方式四塊；5 分鐘提醒版標題為「緊急模式仍在啟動」。卡片版型在 custom_templates/notify_body.jinja（title 含「緊急模式啟動／仍在啟動」）。
+# - V4.2.3（2026-10-24）：①每個延遲之後先確認緊急模式沒有被解除（按解除網關警報或緊急模式還原），已解除就停止，不再發 LINE、HA 通知與廣播；②「緊急模式於五分鐘前啟動」的廣播只播一次（原本相隔 1 分鐘播兩次）。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後若緊急模式仍開啟，僅發送一則 HA info 級系統通知（不發 LINE、不重複洗版）。
 # - V4.0.1（2026-10-10）：「復原方式」文字補上「按解除網關警報可還原緊急模式前的狀態（2 小時內）」。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -8,6 +10,7 @@
   description: 緊急模式來源辨識與通知（含地震流程去重）。
   variables:
     automation_version: 'V4.2.2'
+    start_ts: "{{ now().timestamp() }}"
   triggers:
   - trigger: homeassistant
     event: start
@@ -69,29 +72,18 @@
       sequence:
       - parallel:
         - data:
-            user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
-              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
-              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
-              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由家庭APP手動觸發\U0001F4F1，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198 緊急
-              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
-          enabled: true
-          action: script.send_line_to_user
-        - data:
             level: emergency
-            line: false
-            source: "05B緊急模式通知AI (V4.0.0)"
+            line: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
+            user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+            source: "05B緊急模式通知AI (V4.2.3)"
             version: "{{ automation_version | default('', true) }}"
-            title: 智慧家庭通知｜緊急 Urgent ‼️
+            title: 緊急模式啟動
             message: |-
-              緊急模式已啟動
+              觸發來源：家庭 App 手動觸發（HomeKit）
               照明：全部開啟
               電源：已關閉
-
-              ※ 請確認現場是否為真實緊急情況。
-              ※ 若為誤觸，請依情況復原電源與照明。
+              請確認現場是否為真實緊急情況
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -120,6 +112,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -132,6 +128,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -142,6 +142,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -171,6 +175,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -183,6 +191,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -193,6 +205,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -205,6 +221,10 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -232,30 +252,24 @@
             minutes: 5
             seconds: 0
             milliseconds: 0
+        # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+        - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+          then:
+            - stop: "緊急模式已被解除或還原，略過後續提醒"
         - parallel:
           - data:
-              user_id: C26ff4e9d30159ba5264a1676f46f8f86
-              payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
-                緊急 Urgent ‼️\"\n      },\n\n       {\n          \"type\":\"text\",\n
-                \         \"text\":\"\U0001F198 緊急模式為啟動狀態\U0001F534\\n(所有照明開啟並關閉電源)\\n\\n\U0001F30D緊急模式由系統自動判定觸發\\n(地震\U0001FAE8,火災\U0001F525,緊急情況等)\\n\\n\U0001F198請確認實際狀況!\"\n\n
-                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況穩定後\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
-                \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198 緊急
-                Urgent ‼️】緊急模式啟動\\n請確認緊急情況與檢查電源與照明設備。\"\n      }\n  ]\n"
-            enabled: true
-            action: script.send_line_to_user
-          - data:
               level: emergency
-              line: false
-              source: "05B緊急模式通知AI (V4.0.0)"
+              line: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
+              user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+              source: "05B緊急模式通知AI (V4.2.3)"
               version: "{{ automation_version | default('', true) }}"
-              title: 智慧家庭通知｜緊急 Urgent ‼️
+              title: 緊急模式仍在啟動
               message: |-
-                緊急模式已啟動
+                觸發來源：系統自動判定（地震、火災或緊急狀況）
                 照明：全部開啟
                 電源：已關閉
-
-                ※ 請確認現場是否為真實緊急情況。
-                ※ 若為誤觸，請依情況復原電源與照明。
+                請確認現場是否為真實緊急情況
+                還原：打開「家庭」App，滑到最下方，點「解除網關警報」
             enabled: true
             action: script.notify_dispatch
           - if:
@@ -280,6 +294,10 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - parallel:
               - data:
@@ -290,6 +308,7 @@
                   - media_player.ke_ting_homepod
               # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - action: script.announce
+              enabled: false
               data:
                 level: emergency
                 kind: emergency
@@ -299,6 +318,10 @@
                 minutes: 1
                 seconds: 0
                 milliseconds: 0
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
             - delay:
                 hours: 0
@@ -306,6 +329,10 @@
                 seconds: 30
                 milliseconds: 0
               enabled: true
+            # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+            - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+              then:
+                - stop: "緊急模式已被解除或還原，略過後續提醒"
             # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -324,29 +351,18 @@
       sequence:
       - parallel:
         - data:
-            user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
-              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
-              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
-              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由系統手動觸發\U0001F449，\\n請確認是否為測試或誤發‼️\\n若為測試或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198 緊急
-              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
-          enabled: true
-          action: script.send_line_to_user
-        - data:
             level: emergency
-            line: false
-            source: "05B緊急模式通知AI (V4.0.0)"
+            line: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
+            user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+            source: "05B緊急模式通知AI (V4.2.3)"
             version: "{{ automation_version | default('', true) }}"
-            title: 智慧家庭通知｜緊急 Urgent ‼️
+            title: 緊急模式啟動
             message: |-
-              緊急模式已啟動
+              觸發來源：系統手動觸發
               照明：全部開啟
               電源：已關閉
-
-              ※ 請確認現場是否為真實緊急情況。
-              ※ 若為誤觸，請依情況復原電源與照明。
+              請確認現場是否為真實緊急情況
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -375,6 +391,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -387,6 +407,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -397,6 +421,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -426,6 +454,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -438,6 +470,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -448,6 +484,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -460,6 +500,10 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
     - conditions:
       - condition: state
@@ -478,29 +522,18 @@
       sequence:
       - parallel:
         - data:
-            user_id: C26ff4e9d30159ba5264a1676f46f8f86
-            payload: "[\n      {\n          \"type\":\"text\",\n\n           \"text\":\"【智慧家庭通知】\U0001F198
-              緊急 Urgent ‼️\"\n      },\n      {\n\n           \"type\":\"text\",\n
-              \         \"text\":\"\U0001F198 緊急模式已被啟動，\\n所有照明開啟並關閉電源!\"\n\n       },\n
-              \     {\n          \"type\":\"text\",\n          \"text\":\"\U0001F534緊急模式由實體按鈕按壓觸發\U0001F518，\\n請確認是否誤觸‼️\\n若為誤觸或誤發命令，\\n請復原所有電源與照明設備狀態。\\n(於家庭APP中直接調整電源與照明or執行離家模式)\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"\U0001F7E2緊急情況結束後，\\n請確認所有電源與照明設備開關狀態!\\n根據情況開關電源與照明。\\n\\n復原方式:\\n於家庭APP中直接調整電源與照明or執行離家模式\"\n\n
-              \      },\n      {\n          \"type\":\"text\",\n          \"text\":\"【\U0001F198 緊急
-              Urgent ‼️】緊急模式啟動\\n請確認狀況與檢查電源與照明設備。\"\n      }\n  ]\n"
-          enabled: true
-          action: script.send_line_to_user
-        - data:
             level: emergency
-            line: false
-            source: "05B緊急模式通知AI (V4.0.0)"
+            line: "{{ is_state('input_boolean.notify_line_emergency_enable', 'on') }}"
+            user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+            source: "05B緊急模式通知AI (V4.2.3)"
             version: "{{ automation_version | default('', true) }}"
-            title: 智慧家庭通知｜緊急 Urgent ‼️
+            title: 緊急模式啟動
             message: |-
-              緊急模式已啟動
+              觸發來源：實體按鈕
               照明：全部開啟
               電源：已關閉
-
-              ※ 請確認現場是否為真實緊急情況。
-              ※ 若為誤觸，請依情況復原電源與照明。
+              請確認現場是否為真實緊急情況
+              還原：打開「家庭」App，滑到最下方，點「解除網關警報」
           enabled: true
           action: script.notify_dispatch
         - if:
@@ -529,6 +562,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -541,6 +578,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -551,6 +592,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -580,6 +625,10 @@
               seconds: 13
               milliseconds: 0
             enabled: false
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -592,6 +641,10 @@
               seconds: 15
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           - action: script.announce
             data:
               level: emergency
@@ -602,6 +655,10 @@
               minutes: 0
               seconds: 25
               milliseconds: 0
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
           - data:
               volume_level: 0.4
@@ -614,5 +671,9 @@
               seconds: 30
               milliseconds: 0
             enabled: true
+          # V4.2.3：延遲後先確認緊急模式還沒被解除（解除網關警報／緊急模式還原）；已解除就不再發提醒
+          - if: "{{ (as_timestamp(state_attr('script.emergency_restore', 'last_triggered'), 0) > start_ts) or (as_timestamp(states.input_boolean.jie_chu_wang_guan_jing_bao.last_changed, 0) > start_ts) }}"
+            then:
+              - stop: "緊急模式已被解除或還原，略過後續提醒"
           # TVSPEAKERTODO: 未來新廣播設備實體位置 (待更換設備後補上音量與播放指令)
   mode: single

@@ -1,0 +1,175 @@
+# ─────────────────────────────────────────────────────────────
+# 地震預警截圖與震央詳情 (V4.2.3，SOP-24)
+# 更新紀錄（統一格式）：
+# - V4.2.3：多來源去重（SOP-24）：地牛、TREM、氣象署 PWS 等任何來源都呼叫 script.eq99（帶 source 欄位），eq99 一開頭用
+#             eew_last_event／eew_last_info 判斷「是不是同一場」：合併時間（eew_dedupe_window_sec，預設 150 秒）內最快到的先處理，
+#             後到的只記一筆「慢了幾秒」就略過，除非預估震度比第一個高 2 級以上（升級才重新警報）。
+# - V4.2.3：新增。①script.eew_screenshot_ready：地牛（HA add-on 的 notify.sh）截圖存到 /config/www/snap/snap_eew_*.jpg 後呼叫，
+#             確認是地震預警（eq99）3 分鐘內，就用 notify_dispatch 附圖補一張卡。
+#           ②script.eew_detail_followup：地震預警（eq99）一開始就不阻塞啟動，每 60 秒向氣象署查一次（scripts/cwa_quake.py，
+#             E-A0015-001／E-A0016-001），最多 10 分鐘，找到發生時間與預警相差 ±5 分鐘的那筆，補發震央、規模、深度、最大震度、
+#             各縣市震度與報告圖（震度分布圖放成卡片底部連結）；找不到（小地震常見）就只記一筆記錄。
+#           LINE 額度保護：預估震度低於 eew_line_min_level（預設 3）只發 HA 通知、不發 LINE；eew_extra_enable 關閉則整個不做。
+#           氣象署授權碼：secrets.yaml 加一行  cwa_api_key: 你的授權碼 （不進 git；沒有授權碼時只是不補發，不影響預警）。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  eew_extra_enable:
+    name: 地震預警｜附地牛截圖與震央詳情
+    icon: mdi:image-marker
+    initial: true
+input_number:
+  eew_line_min_level:
+    name: 地震預警｜LINE 截圖與詳情的最低預估震度
+    min: 1
+    max: 7
+    step: 1
+    initial: 3
+    mode: box
+    unit_of_measurement: 級
+    icon: mdi:numeric-3-box-outline
+  eew_dedupe_window_sec:
+    name: 地震預警｜同一場地震的合併時間（秒）
+    min: 30
+    max: 600
+    step: 10
+    initial: 150
+    mode: box
+    unit_of_measurement: 秒
+    icon: mdi:timer-sand
+input_datetime:
+  eew_trem_alive:
+    name: 地震預警｜TREM 客戶端最近一次心跳（內部）
+    has_date: true
+    has_time: true
+    icon: mdi:heart-pulse
+  eew_last_event:
+    name: 地震預警｜最近一次處理的時間（內部）
+    has_date: true
+    has_time: true
+    icon: mdi:history
+input_text:
+  emergency_fan_prev:
+    name: 緊急模式快照｜風扇原本狀態（內部）
+    max: 255
+    icon: mdi:fan
+  eew_last_extra:
+    name: 地震預警｜預警來源給的震央資料（內部）
+    max: 200
+    icon: mdi:map-marker-radius
+  eew_last_info:
+    name: 地震預警｜最近一次的來源與震度（內部）
+    max: 120
+    icon: mdi:information-outline
+shell_command:
+  trem_eew_start: 'sh -c "nohup python3 /config/scripts/trem_eew.py > /dev/null 2>&1 &"'
+  cwa_quake: 'python3 /config/scripts/cwa_quake.py "{{ t }}" "{{ win }}" /config/www/snap https://family.kteam.tw:8126/local/snap/'
+script:
+  eew_screenshot_ready:
+    alias: 地牛截圖通知AI (V4.2.3)
+    description: 地牛截圖存好後呼叫（file＝/config/www/snap 內 snap_eew_ 開頭的檔名）；地震預警 3 分鐘內才附圖通知。
+    mode: queued
+    max: 3
+    fields:
+      file:
+        description: 檔名（snap_eew_*.jpg，位於 /config/www/snap/）
+        required: true
+      test:
+        description: true＝測試模式：不檢查 eq99 時間、不發 LINE（只發 HA 通知）
+        required: false
+    variables:
+      is_test: "{{ test is defined and test in [true, 'true', 'True', 1, '1'] }}"
+      fname: "{{ (file | default('') | string | regex_replace('[^A-Za-z0-9_.-]', '')) }}"
+      since: "{{ now().timestamp() - as_timestamp(state_attr('script.eq99', 'last_triggered'), 0) }}"
+      lv_i: "{{ states('input_text.line_eew_remote_level') | regex_findall('\\d+') | join('') | int(0) }}"
+      sec: "{{ states('input_text.line_eew_remote_seconds') }}"
+      lv_label: "{{ states('input_text.line_eew_remote_level') | trim }}"
+      line_ok: "{{ (not is_test) and lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
+    sequence:
+      - condition: state
+        entity_id: input_boolean.eew_extra_enable
+        state: 'on'
+      - condition: template
+        value_template: "{{ fname | regex_match('^snap_eew_') and (is_test or 0 <= since <= 180) }}"
+      - action: script.notify_dispatch
+        data:
+          level: general
+          line: "{{ line_ok }}"
+          user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+          source: "地牛截圖通知AI (V4.2.3)"
+          version: "V4.2.3"
+          title: 地震預警畫面
+          image: "https://family.kteam.tw:8126/local/snap/{{ fname }}"
+          image_ratio: "1008:684"
+          message: |-
+            {% if is_test %}【測試】{% endif %}預估地震{{ lv_label }}級，{{ sec }}秒後到達。
+            {% set ex = states('input_text.eew_last_extra').split('|') %}{% if ex | length >= 4 and ex[0] %}預估震央：{{ ex[0] }}　規模 {{ ex[1] }}　深度 {{ ex[2] }} 公里（{{ ex[3] }}）{% endif %}
+  eew_detail_followup:
+    alias: 地震預警詳情補發AI (V4.2.3)
+    description: 地震預警後每分鐘查氣象署報告（最多 10 分鐘），找到同一場就補發震央、規模、深度、各縣市震度與報告圖。
+    mode: restart
+    fields:
+      lv:
+        description: 預估震度（數字）
+        required: false
+      t0:
+        description: 預警觸發時間（epoch 秒，省略＝現在）
+        required: false
+      test:
+        description: true＝測試模式：只查一次、不等 60 秒、不發 LINE（只發 HA 通知）
+        required: false
+    variables:
+      is_test: "{{ test is defined and test in [true, 'true', 'True', 1, '1'] }}"
+      lv_i: "{{ lv | int(0) if lv is defined else 0 }}"
+      t0_f: "{{ (t0 | float(0)) if (t0 is defined and t0) else now().timestamp() }}"
+      line_ok: "{{ (not is_test) and lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
+    sequence:
+      - condition: state
+        entity_id: input_boolean.eew_extra_enable
+        state: 'on'
+      - repeat:
+          count: "{{ 1 if is_test else 10 }}"
+          sequence:
+            - if: "{{ not is_test }}"
+              then:
+                - delay: "00:01:00"
+            - action: shell_command.cwa_quake
+              data:
+                t: "{{ t0_f }}"
+                win: 5
+              response_variable: cwa
+              continue_on_error: true
+            - variables:
+                res: "{{ (cwa.stdout | from_json({})) if (cwa is defined and cwa is mapping and cwa.get('returncode') == 0) else {} }}"
+            - if: "{{ res.get('reason') == 'no_key' }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 地震預警詳情補發AI
+                    message: "沒有氣象署授權碼（secrets.yaml 的 cwa_api_key），略過詳情補發"
+                - stop: "沒有授權碼"
+            - if: "{{ res.get('ok') }}"
+              then:
+                - action: script.notify_dispatch
+                  data:
+                    level: general
+                    line: "{{ line_ok }}"
+                    user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+                    source: "地震預警詳情補發AI (V4.2.3)"
+                    version: "V4.2.3"
+                    title: 地震詳情
+                    image: "{{ res.get('report_img', '') }}"
+                    image_ratio: "{{ res.get('report_ratio', '') }}"
+                    image2: "{{ res.get('shake_img', '') }}"
+                    image2_ratio: "{{ res.get('shake_ratio', '') }}"
+                    message: |-
+                      {% if is_test %}【測試】{% endif %}氣象署地震報告（發生時間 {{ res.time }}）
+                      震央：{{ res.epicenter }}{% if res.lat and res.lon %}（北緯 {{ res.lat }}°、東經 {{ res.lon }}°）{% endif %}
+
+                      規模：{{ res.mag }}　深度：{{ res.depth }} 公里
+                      最大震度：{{ res.max_int }}
+                      {% if res.areas %}各縣市震度：{{ res.areas | map(attribute='county') | zip(res.areas | map(attribute='int')) | map('join', ' ') | join('、') }}{% endif %}
+                - stop: "詳情已補發"
+      - action: logbook.log
+        data:
+          name: 地震預警詳情補發AI
+          message: "10 分鐘內氣象署沒有對應的地震報告（小地震常見），不補發"

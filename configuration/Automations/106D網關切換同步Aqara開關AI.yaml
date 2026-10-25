@@ -1,6 +1,7 @@
 ﻿# ──────────────────────────────────────────────
 # 106D網關切換同步Aqara開關AI (V4.2.2)
 # 更新紀錄：
+# - V4.2.3（2026-10-25）：網關同步鎖期間略過（避免和 106C 解除流程、106、Apple 家庭回送來回切換）。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 1 分鐘後檢查網關警戒模式與 Aqara 虛擬情境開關是否一致，不一致則自動同步；保護 trigger.to_state 避免模板未定義錯誤。
 # - V4.1.6（2026-10-14）：新增。在 HA 伺服器（或實體網關、面板）直接切換網關警戒模式時，先關掉其他四個 Aqara 虛擬情境開關、再打開對應的開關（順序同情境自動化，避免 106 看到兩個同時開而當成異常）：
 #     在家警戒（armed_home）→ aqara_zai_jia、夜間警戒（armed_night）→ aqara_wan_an、離家警戒（armed_away）→ aqara_li_jia。
@@ -45,6 +46,9 @@
       event: start
       id: ha_start
   conditions:
+    - alias: "網關同步鎖期間（106C 解除流程）略過；HA 重啟照常"
+      condition: template
+      value_template: "{{ trigger.id | default('') == 'ha_start' or as_timestamp(now()) > as_timestamp(states('input_datetime.gateway_sync_lock_until'), 0) }}"
     - alias: "人為／實體切換（不是自動化改的）或 HA 重啟"
       condition: template
       value_template: >-
