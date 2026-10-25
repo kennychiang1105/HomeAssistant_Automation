@@ -1,4 +1,4 @@
-# 智慧家庭（橫向＋直向合併版，UI4.0-beta6）：「家」頁依螢幕方向切換（橫向＝左側選單＋3D 地圖；直向＝直向地圖＋人員＋按鈕），
+# 智慧家庭（橫向＋直向合併版，UI4.0-beta10）：「家」頁依螢幕方向切換（橫向＝左側選單＋3D 地圖；直向＝直向地圖＋人員＋按鈕），
 # 其餘頁面兩種方向內容相同。由 scripts/merge_dashboards.py 依 new-ui.yaml 與 new-ui-portrait.yaml 產生；之後調整仍可分別改原檔再重新產生。
 button_card_templates: !include 'floorplan_v4/ios_templates.yaml'
 title: 智慧家庭

@@ -1,0 +1,226 @@
+# ─────────────────────────────────────────────────────────────
+# 頂樓情境廣播 (V4.2.4)
+# 更新紀錄（統一格式）：
+# - V4.2.4：新增。頂樓「上樓／下樓／夜燈」情境執行時，在頂樓 HomePod 播報（觸發由 08-5L頂樓情境廣播AI 負責）。
+#   上樓：頂樓目前室溫、若風扇是這次上樓自動打開的就說明、外面氣溫與天氣；早上（05:00–11:59）起床的上樓再加播今天天氣與穿著建議。
+#   下樓：只在早上（05:00–11:59）播報外面目前與今日天氣；晚上不播；03:00／05:00 的熟睡下樓（熟睡鎖仍開著）也不播。
+#   夜燈：播報明天天氣；HomeKit 自動化會同時開始播音樂，廣播完會自動接著播（原本在播才恢復）。
+#   播放條件：Kenny 的手機已連上頂樓 AP（上樓、夜燈最多等 2 分鐘；下樓不等，不在樓上就略過）。
+#   類別用 scene（不被晚安／熟睡靜音擋掉），上樓用中小音量（0.45）、夜燈用更小音量（0.35），播完由統一廣播自動恢復原音量；同一情境 30 分鐘（夜燈 60 分鐘）內不重複播報。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  topfloor_scene_announce_enable:
+    name: 頂樓情境廣播｜總開關
+    icon: mdi:bullhorn-variant
+    initial: true
+
+input_number:
+  topfloor_up_rejoin_min:
+    name: 頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）
+    min: 0
+    max: 720
+    step: 5
+    initial: 60
+    mode: box
+
+input_datetime:
+  topfloor_last_down_any:
+    name: 頂樓情境廣播｜最近一次下樓情境（不論有沒有播報，內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+  topfloor_announce_last_up:
+    name: 頂樓情境廣播｜上次上樓（內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+  topfloor_announce_last_down:
+    name: 頂樓情境廣播｜上次下樓（內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+  topfloor_announce_last_night:
+    name: 頂樓情境廣播｜上次夜燈（內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+
+script:
+  topfloor_scene_announce:
+    alias: 頂樓情境廣播AI (V4.2.4)
+    description: 上樓／下樓／夜燈情境的頂樓 HomePod 廣播（人在頂樓才播；夜燈播完接續音樂）
+    mode: queued
+    max: 3
+    fields:
+      scene:
+        description: up（上樓）／down（下樓）／night（夜燈）
+        required: true
+    variables:
+      sc: "{{ scene | default('') }}"
+      hp: media_player.ding_lou_homepod
+      loc_entity: sensor.at_home_kenny_location
+      loc5: 頂樓Kenny房間
+      fan_e: fan.dmaker_p33_eabd_fan
+      fan_before: "{{ is_state('fan.dmaker_p33_eabd_fan', 'on') }}"
+      today_mode: "{{ sc == 'down' or (sc == 'up' and 5 <= now().hour < 12) }}"
+      cool_min: "{{ 60 if sc == 'night' else 30 }}"
+      last_ent: "{{ 'input_datetime.topfloor_announce_last_' ~ sc }}"
+      # 下樓上廁所又回來：距離上次下樓情境不到 rejoin 分鐘就當作同一段停留，不重播上樓廣播
+      since_down_min: "{{ (as_timestamp(now()) - as_timestamp(states('input_datetime.topfloor_last_down_any'), 0)) / 60 }}"
+      rejoin_min: "{{ states('input_number.topfloor_up_rejoin_min') | float(60) }}"
+      last_age_min: "{{ ((as_timestamp(now()) - as_timestamp(states(last_ent), 0)) / 60) if sc in ['up', 'down', 'night'] else 0 }}"
+    sequence:
+      # 0) 總開關、情境名稱、冷卻時間
+      - if: >-
+          {{ sc not in ['up', 'down', 'night']
+             or not is_state('input_boolean.topfloor_scene_announce_enable', 'on')
+             or last_age_min < cool_min
+             or (sc == 'up' and since_down_min < rejoin_min) }}
+        then:
+          - stop: "略過頂樓情境廣播（開關關閉、冷卻中，或短暫下樓後又上樓）"
+      # 1) 下樓：只在早上播；熟睡鎖還開著（03:00／05:00 的熟睡下樓）不播；等 5 秒讓熟睡鎖管理員先處理
+      - if: "{{ sc == 'down' }}"
+        then:
+          - if: "{{ not (5 <= now().hour < 12) }}"
+            then:
+              - stop: "下樓只在早上播報"
+          - delay: "00:00:05"
+          - if: "{{ is_state('input_boolean.sleep_silent_active', 'on') or states(loc_entity) != loc5 }}"
+            then:
+              - stop: "熟睡中或人已不在頂樓，下樓不播報"
+      # 2) 上樓：等風扇自動化先跑完（它與上樓開關同時被觸發）
+      - if: "{{ sc == 'up' }}"
+        then:
+          - delay: "00:00:08"
+      # 3) 上樓、夜燈：等 Kenny 到頂樓（最多 2 分鐘，沒到就不播）
+      - if: "{{ sc in ['up', 'night'] }}"
+        then:
+          - wait_template: "{{ states(loc_entity) == loc5 }}"
+            timeout: "00:02:00"
+            continue_on_timeout: false
+      # 4) 通過所有條件，記下這次播報時間
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "{{ last_ent }}"
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      # 5) 下樓、夜燈：取得預報（下樓＝今天，夜燈＝明天）
+      - if: "{{ sc in ['down', 'night'] or today_mode }}"
+        then:
+          - action: weather.get_forecasts
+            target:
+              entity_id: weather.homeweather_zhu_nan_zhen
+            data:
+              type: hourly
+            response_variable: fc
+            continue_on_error: true
+      # 6) 組合播報詞
+      - variables:
+          WX: {sunny: 晴天, clear-night: 晴朗, cloudy: 多雲, partlycloudy: 晴時多雲, rainy: 有雨, pouring: 有大雨, lightning-rainy: 有雷雨, lightning: 有雷, fog: 有霧, windy: 風大, snowy: 下雪}
+          t5: >-
+            {% set m = states('sensor.5f_homepodmini_temperature') | regex_findall('-?[0-9]+(?:[.][0-9]+)?') %}
+            {{ (m[0] | float(0) | round(1)) if m | length > 0 else '' }}
+          out_t: >-
+            {% set m = states('sensor.homeweather_zhu_nan_zhen_temperature') | regex_findall('-?[0-9]+(?:[.][0-9]+)?') %}
+            {{ (m[0] | float(0) | round(0) | int) if m | length > 0 else '' }}
+          cond_now: "{{ WX.get(states('weather.homeweather_zhu_nan_zhen'), '') }}"
+          fan_auto: "{{ sc == 'up' and not fan_before and is_state('fan.dmaker_p33_eabd_fan', 'on') }}"
+          fan_pct: "{{ state_attr('fan.dmaker_p33_eabd_fan', 'percentage') | int(0) }}"
+          day_label: "{{ '今天' if today_mode else '明天' }}"
+          fc_list: >-
+            {{ fc['weather.homeweather_zhu_nan_zhen'].forecast
+               if (fc is defined and fc is mapping and fc.get('weather.homeweather_zhu_nan_zhen')) else [] }}
+          tm_text: >-
+            {% set tmd = now().date() if today_mode else (now() + timedelta(days=1)).date() %}
+            {% set ns = namespace(t=[], p=0, c=[], a=[], r=false, s='') %}
+            {% for f in fc_list %}{% set d = as_local(as_datetime(f.datetime)) %}
+            {% if d.date() == tmd and (not today_mode or d >= now() - timedelta(hours=1)) %}
+            {% if f.temperature is number %}{% set ns.t = ns.t + [f.temperature] %}{% endif %}
+            {% if (f.precipitation_probability | float(0)) > ns.p %}{% set ns.p = f.precipitation_probability | float(0) %}{% endif %}
+            {% if f.condition in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] %}{% set ns.r = true %}{% endif %}
+            {% set ns.a = ns.a + [f.condition] %}
+            {% if 6 <= d.hour <= 18 %}{% set ns.c = ns.c + [f.condition] %}{% endif %}
+            {% endif %}{% endfor %}
+            {% if ns.t | count > 0 %}
+            {% set pool = ns.c if ns.c | count > 0 else ns.a %}
+            {% set top = namespace(k='', n=0) %}
+            {% for c in pool | unique %}{% set n = pool | select('eq', c) | list | count %}{% if n > top.n %}{% set top.k = c %}{% set top.n = n %}{% endif %}{% endfor %}
+            {% set word = WX.get('rainy') if ns.r and top.k not in ['rainy', 'pouring', 'lightning-rainy', 'lightning'] else WX.get(top.k, '天氣不明') %}
+            {% set ns.s = day_label ~ word ~ '，氣溫' ~ (ns.t | min | round(0) | int) ~ '到' ~ (ns.t | max | round(0) | int) ~ '度，' %}
+            {% if ns.p >= 50 or ns.r %}{% set ns.s = ns.s ~ '降雨機率' ~ (ns.p | round(0) | int) ~ '%，出門記得帶傘，' %}
+            {% elif ns.t | max >= 35 %}{% set ns.s = ns.s ~ '天氣炎熱，請防曬並補充水分，' %}
+            {% elif ns.t | min <= 12 %}{% set ns.s = ns.s ~ '天氣偏冷，請多加衣物，' %}
+            {% endif %}
+            {% if sc == 'up' %}{% set lo = ns.t | min %}{% set hi = ns.t | max %}
+            {% set ns.s = ns.s ~ ('天氣炎熱，穿著輕薄透氣的衣物，' if hi >= 31 else ('穿短袖即可，' if hi >= 26 else ('建議穿長袖或薄外套，' if hi >= 20 else ('建議穿外套保暖，' if hi >= 15 else '天氣寒冷，請穿厚外套保暖，')))) ~ ('早晚溫差大，記得帶一件外套，' if (hi - lo) >= 8 and hi < 31 else '') %}
+            {% endif %}
+            {% endif %}
+            {{ ns.s }}
+      - variables:
+          tm: "{{ tm_text | trim | replace('\n', '') }}"
+          msg: >-
+            {% if sc == 'up' %}
+            歡迎上樓，{{ ('目前頂樓室溫' ~ t5 ~ '度，') if t5 != '' else '' }}{{ ('室溫偏高，已自動為您開啟電風扇' ~ (('，風速' ~ fan_pct ~ '%') if fan_pct > 0 else '') ~ '，') if fan_auto else '' }}{% set o = [('氣溫' ~ out_t ~ '度') if out_t != '' else '', cond_now] | select | join('，') %}{{ ('外面' ~ o ~ '。') if o != '' else '' }}{{ ((tm | regex_replace('，$', '')) ~ '。') if (today_mode and tm != '') else '' }}
+            {% elif sc == 'down' %}
+            下樓囉，{{ ('外面目前' ~ cond_now ~ '，') if cond_now != '' else '' }}{{ ('氣溫' ~ out_t ~ '度。') if out_t != '' else '' }}{{ tm ~ '祝您有美好的一天。' if tm != '' else '' }}
+            {% else %}
+            夜燈模式已啟動，{{ tm if tm != '' else '暫時取不到明天的天氣預報，' }}晚安，祝您好夢。
+            {% endif %}
+      # 7) 夜燈：HomeKit 自動化會同時放音樂，先等它開始（最多 20 秒）才知道要不要接續
+      - variables:
+          was_playing: false
+      - if: "{{ sc == 'night' }}"
+        then:
+          - wait_template: "{{ is_state(hp, 'playing') }}"
+            timeout: "00:00:20"
+            continue_on_timeout: true
+          - variables:
+              was_playing: "{{ is_state(hp, 'playing') }}"
+          # HomeKit 剛啟動音樂時 HomePod 的連線還不穩（2026-10-26 夜燈廣播因此失敗）：等 6 秒讓它穩定，再暫停音樂、確認暫停後才廣播
+          - if: "{{ was_playing }}"
+            then:
+              - delay: "00:00:06"
+              - action: media_player.media_pause
+                target:
+                  entity_id: "{{ hp }}"
+                continue_on_error: true
+              - wait_template: "{{ not is_state(hp, 'playing') }}"
+                timeout: "00:00:04"
+                continue_on_timeout: true
+      # 8) 播報（上樓用中小音量（0.45）、夜燈用更小音量（0.35），播完由統一廣播自動恢復原音量；scene 類別不被晚安靜音擋掉）
+      - action: script.announce
+        data:
+          level: general
+          message: "{{ msg | trim }}"
+          kind: scene
+          merge_audio: true
+          player: media_player.ding_lou_homepod
+          volume: "{{ 0.35 if sc == 'night' else (0.45 if sc == 'up' else '') }}"
+      # 9) 夜燈：音樂原本在播就接續（廣播會打斷串流）
+      - if: "{{ sc == 'night' and was_playing }}"
+        then:
+          - delay: "00:00:02"
+          - if: "{{ not is_state(hp, 'playing') }}"
+            then:
+              - action: media_player.media_play
+                target:
+                  entity_id: "{{ hp }}"
+                continue_on_error: true
+              - delay: "00:00:04"
+          - if: "{{ not is_state(hp, 'playing') }}"
+            then:
+              - action: media_player.media_play
+                target:
+                  entity_id: "{{ hp }}"
+                continue_on_error: true
+              - delay: "00:00:04"
+          - if: "{{ not is_state(hp, 'playing') }}"
+            then:
+              - action: script.notify_dispatch
+                data:
+                  level: info
+                  line: false
+                  source: 頂樓情境廣播AI
+                  version: V4.2.4
+                  title: 夜燈音樂未能自動接續
+                  message: "夜燈廣播結束後，頂樓 HomePod 音樂沒有恢復播放（目前狀態：{{ states(hp) }}），請手動繼續。"

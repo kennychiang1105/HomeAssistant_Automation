@@ -53,6 +53,13 @@ frontend:
 recorder: 
   commit_interval: 10
   purge_keep_days: 45
+  # 充電樁電流：用來分辨是哪輛車在充電（Tesla ≈24.7 A、Luxgen ≈31.3 A），雖然 sensor.*_current 被排除，這幾個要保留歷史
+  include:
+    entities:
+      - sensor.che_ku_tesla_wall_connector_vehicle_current
+      - sensor.tesla_wall_connector_phase_a_current
+      - sensor.tesla_wall_connector_phase_b_current
+      - sensor.tesla_wall_connector_phase_c_current
   exclude:
     domains:
       - automation

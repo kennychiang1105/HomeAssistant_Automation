@@ -719,15 +719,6 @@ input_number:
     min: 1
     max: 14
     step: 1
-  # 車牌辨識AI_Beta
-  lpr_auto_close_delay_min:
-    name: LPR關門延遲（分鐘）
-    min: 0.5
-    max: 15
-    step: 0.5
-    unit_of_measurement: min
-    icon: mdi:timer-sand
-
   supply_battery_report_interval_days:
     name: 耗材電量定期回報間隔天數
     min: 1
@@ -1229,6 +1220,7 @@ template:
         - platform: state
           entity_id:
             - sensor.tesla_wall_connector_status
+            - sensor.garage_charging_vehicle
       sensor:
         - name: tesla_charger_homekit_status
           unique_id: tesla_charger_homekit_status
@@ -1236,10 +1228,9 @@ template:
           state: >-
             {% set st_raw = states('sensor.tesla_wall_connector_status') %}
             {% set st = st_raw | string | lower | trim %}
-            {% if st in ['charging_reduced', '充電（降壓）'] %}
-              Luxgen充電中
-            {% elif st in ['charging', '充電中'] %}
-              Tesla充電中
+            {# V4.2.5：誰在充電改看 sensor.garage_charging_vehicle（狀態＋車輛電流：Tesla ≈24.7 A、Luxgen ≈31.3 A），不再只靠 charging／charging_reduced #}
+            {% if st in ['charging_reduced', '充電（降壓）', 'charging', '充電中'] %}
+              {{ 'Luxgen充電中' if states('sensor.garage_charging_vehicle') == 'luxgen_n7' else 'Tesla充電中' }}
             {% elif st in ['charging_finished', 'charging finished', '充電完成'] %}
               充電完成
             {% elif st in ['not_connected', 'vehicle not connected', '車輛未連接'] %}
@@ -1256,30 +1247,26 @@ template:
           unique_id: luxgen_charging_homekit_presence
           icon: mdi:car-electric
           state: >-
-            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ '充電中' if st in ['charging_reduced', '充電（降壓）'] else '未充電' }}
+            {{ '充電中' if states('sensor.garage_charging_vehicle') == 'luxgen_n7' else '未充電' }}
 
         - name: tesla_charging_homekit_presence
           unique_id: tesla_charging_homekit_presence
           icon: mdi:car-electric
           state: >-
-            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ '充電中' if st in ['charging', '充電中'] else '未充電' }}
+            {{ '充電中' if states('sensor.garage_charging_vehicle') == 'tesla_model3' else '未充電' }}
 
       binary_sensor:
         - name: luxgen_charging_homekit_occupancy
           unique_id: luxgen_charging_homekit_occupancy
           device_class: occupancy
           state: >-
-            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ st in ['charging_reduced', '充電（降壓）'] }}
+            {{ states('sensor.garage_charging_vehicle') == 'luxgen_n7' }}
 
         - name: tesla_charging_homekit_occupancy
           unique_id: tesla_charging_homekit_occupancy
           device_class: occupancy
           state: >-
-            {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
-            {{ st in ['charging', '充電中'] }}
+            {{ states('sensor.garage_charging_vehicle') == 'tesla_model3' }}
 
         - name: tesla_wall_connector_vehicle_connected_homekit_occupancy
           unique_id: tesla_wall_connector_vehicle_connected_homekit_occupancy
