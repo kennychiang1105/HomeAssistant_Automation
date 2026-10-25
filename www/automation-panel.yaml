@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **143** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **145** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3996,7 +3996,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "通知與廣播（38）"
+        heading: "通知與廣播（40）"
         heading_style: title
         card_mod:
           style: |
@@ -4010,6 +4010,8 @@ views:
             name: "LINE_Bot額度耗盡已通知狀態"
           - entity: input_boolean.mood_alert_active
             name: "氣氛燈提醒中（旗標）"
+          - entity: input_datetime.eew_trem_alive
+            name: "地震預警｜TREM 客戶端最近一次心跳（內部）"
           - entity: input_datetime.eew_last_event
             name: "地震預警｜最近一次處理的時間（內部）"
           - entity: input_text.notif_title_086_emergency
@@ -4024,8 +4026,6 @@ views:
             name: "100C_LINEnotice_電量告警"
           - entity: input_text.notif_title_100c_warn
             name: "100C_LINEnotice_電量提醒"
-          - entity: input_text.notif_title_100c_calib
-            name: "100C_LINEnotice_電量校正"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4040,6 +4040,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.notif_title_100c_calib
+            name: "100C_LINEnotice_電量校正"
           - entity: input_text.notif_title_doorbell
             name: "105_LINEnotice_大門門鈴"
           - entity: input_text.notify_ha_switch_init
@@ -4050,16 +4052,14 @@ views:
             name: "LINE_Bot各月最後使用紀錄"
           - entity: input_text.eew_last_info
             name: "地震預警｜最近一次的來源與震度（內部）"
+          - entity: input_text.eew_last_extra
+            name: "地震預警｜預警來源給的震央資料（內部）"
           - entity: input_text.announce_volume_test_flag
             name: "廣播音量測試值旗標"
           - entity: input_text.announce_volume_unify_flag
             name: "廣播音量統一旗標"
           - entity: input_text.announce_volume_init
             name: "廣播音量首次初始化旗標"
-          - entity: input_text.scene_announce_last
-            name: "情境廣播上次（情境|時間）"
-          - entity: input_text.scene_announce_init
-            name: "情境廣播開關首次初始化旗標"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4074,6 +4074,10 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.scene_announce_last
+            name: "情境廣播上次（情境|時間）"
+          - entity: input_text.scene_announce_init
+            name: "情境廣播開關首次初始化旗標"
           - entity: input_text.announce_manual_result
             name: "手動廣播｜結果（內部）"
           - entity: input_text.notify_manual_result
@@ -4090,10 +4094,6 @@ views:
             name: "氣氛燈燈況記憶_客廳燈1"
           - entity: input_text.mood_mem_fab7
             name: "氣氛燈燈況記憶_客廳燈2"
-          - entity: input_text.mood_mem_8e3f
-            name: "氣氛燈燈況記憶_客廳燈3"
-          - entity: input_text.mood_mem_5007
-            name: "氣氛燈燈況記憶_客廳燈4"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -4109,6 +4109,10 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.mood_mem_8e3f
+            name: "氣氛燈燈況記憶_客廳燈3"
+          - entity: input_text.mood_mem_5007
+            name: "氣氛燈燈況記憶_客廳燈4"
           - entity: input_text.mood_mem_2024
             name: "氣氛燈燈況記憶_客廳燈5"
           - entity: input_text.mood_mem_f21d
@@ -4589,4 +4593,38 @@ views:
             name: "熟睡鎖最早解鎖（平日醒來）"
           - entity: input_datetime.garage_gate_opened_at
             name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
+        card_mod: *cm
+  - title: "其他"
+    path: other
+    icon: mdi:dots-horizontal-circle-outline
+    type: custom:vertical-layout
+    layout:
+      max_cols: 4
+      width: 340
+    cards:
+    - type: vertical-stack
+      cards:
+      - type: markdown
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 2 支、可調整項目 0 個"
+        card_mod:
+          style: |
+            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "自動化開關（2）"
+        heading_style: title
+        icon: mdi:robot
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3
+            name: "TREM 預警客戶端看門狗AI (V4.2.3)"
+          - entity: automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3
+            name: "地牛 add-on 預警接收AI (V4.2.3)"
         card_mod: *cm

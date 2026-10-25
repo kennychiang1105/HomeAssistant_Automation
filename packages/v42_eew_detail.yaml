@@ -37,17 +37,27 @@ input_number:
     unit_of_measurement: 秒
     icon: mdi:timer-sand
 input_datetime:
+  eew_trem_alive:
+    name: 地震預警｜TREM 客戶端最近一次心跳（內部）
+    has_date: true
+    has_time: true
+    icon: mdi:heart-pulse
   eew_last_event:
     name: 地震預警｜最近一次處理的時間（內部）
     has_date: true
     has_time: true
     icon: mdi:history
 input_text:
+  eew_last_extra:
+    name: 地震預警｜預警來源給的震央資料（內部）
+    max: 200
+    icon: mdi:map-marker-radius
   eew_last_info:
     name: 地震預警｜最近一次的來源與震度（內部）
     max: 120
     icon: mdi:information-outline
 shell_command:
+  trem_eew_start: 'sh -c "nohup python3 /config/scripts/trem_eew.py > /dev/null 2>&1 &"'
   cwa_quake: 'python3 /config/scripts/cwa_quake.py "{{ t }}" "{{ win }}" /config/www/snap https://family.kteam.tw:8126/local/snap/'
 script:
   eew_screenshot_ready:
@@ -83,6 +93,7 @@ script:
           message: |-
             地牛 Wake Up 預警畫面（預估震度 {{ lv_i }} 級，約 {{ sec }} 秒後到達）。
             地圖上可看到震央與各地預估震度。
+            {% set ex = states('input_text.eew_last_extra').split('|') %}{% if ex | length >= 4 and ex[0] %}預估震央：{{ ex[0] }}　規模 {{ ex[1] }}　深度 {{ ex[2] }} 公里（{{ ex[3] }}）{% endif %}
   eew_detail_followup:
     alias: 地震預警詳情補發AI (V4.2.3)
     description: 地震預警後每分鐘查氣象署報告（最多 10 分鐘），找到同一場就補發震央、規模、深度、各縣市震度與報告圖。

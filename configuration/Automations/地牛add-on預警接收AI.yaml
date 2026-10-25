@@ -1,6 +1,7 @@
 # ────────────────────────────────────────────────────────
-# 地牛 add-on 預警接收AI (V4.2.3，SOP-24)
+# 地牛 add-on／TREM 預警接收AI (V4.2.3，SOP-24)
 # 更新紀錄（統一格式）：
+# - V4.2.3：TREM 客戶端（scripts/trem_eew.py）共用預警 webhook：heartbeat＝心跳，其餘＝預警（source＝TREM，另帶震央地名、規模、深度）。
 # - V4.2.3：新增。HA add-on 版地牛（OX Wake Up，竹南鎮）警報時，由 /config/oxwu/notify.sh 呼叫兩個區網專用 webhook：
 #           ①預警（震度、秒數、預計抵達時間）→ 不阻塞啟動 script.eq99（source＝地牛(HA)；與其他來源由 eq99 去重，最快的先處理）；
 #           ②截圖（檔名）→ script.eew_screenshot_ready。webhook ID 放在 secrets.yaml（eew_oxwu_alert_hook／eew_oxwu_shot_hook）。
@@ -28,6 +29,15 @@
             - condition: trigger
               id: alert
           sequence:
+            # TREM 客戶端（scripts/trem_eew.py）每分鐘送心跳，看門狗用它判斷客戶端還活著
+            - if: "{{ trigger.json.heartbeat is defined }}"
+              then:
+                - action: input_datetime.set_datetime
+                  target:
+                    entity_id: input_datetime.eew_trem_alive
+                  data:
+                    datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                - stop: "心跳"
             - action: script.turn_on
               target:
                 entity_id: script.eq99
@@ -37,6 +47,9 @@
                   level: "{{ trigger.json.level | default('0') }}"
                   seconds: "{{ trigger.json.seconds | default('0') }}"
                   timestamp: "{{ trigger.json.timestamp | default('0') }}"
+                  eq_loc: "{{ trigger.json.loc | default('') }}"
+                  eq_mag: "{{ trigger.json.mag | default('') }}"
+                  eq_depth: "{{ trigger.json.depth | default('') }}"
         - conditions:
             - condition: trigger
               id: shot

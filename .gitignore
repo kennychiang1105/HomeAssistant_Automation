@@ -61,3 +61,7 @@ button_card_templates.yaml
 
 # 地牛 add-on 的設定與連動腳本（含 webhook ID 與紀錄）
 oxwu/
+
+# TREM 預警客戶端的紀錄與 pid 檔
+trem_eew.log*
+.trem_eew.pid
