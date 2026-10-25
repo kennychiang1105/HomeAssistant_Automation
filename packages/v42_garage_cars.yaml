@@ -124,8 +124,8 @@ input_datetime:
     initial: "2000-01-01 00:00:00"
 
 shell_command:
-  garage_car_watch: 'python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg --csv {{ gate }} {{ nolearn }}'
-  garage_car_learn: 'python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg {{ arg }}'
+  garage_car_watch: 'OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg --csv {{ gate }} {{ nolearn }}'
+  garage_car_learn: 'OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg {{ arg }}'
 
 template:
   - sensor:
