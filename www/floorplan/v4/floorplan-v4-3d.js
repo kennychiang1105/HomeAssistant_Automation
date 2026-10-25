@@ -2695,7 +2695,7 @@ class FloorplanV43D extends HTMLElement {
       for (const [eid, c] of Object.entries(g.cars || {})) {
         const slot = st[eid]?.state || "unknown";
         const facingSt = c.f.facing_entity ? (st[c.f.facing_entity]?.state || "unknown") : "unknown";
-        const CARS = { luxgen_n7: ["Luxgen N7 (EAK8030)", "luxgen"], tesla_model3: ["Tesla Model 3 (EBH8030)", "tesla"], sedan: ["房車", "sedan"], suv: ["休旅車", "suv"], motorcycle: ["機車", "moto"] };
+        const CARS = { luxgen_n7: ["Luxgen N7｜休旅車", "luxgen", "EAK8030"], tesla_model3: ["Tesla Model 3｜房車", "tesla", "EBH8030"], sedan: ["房車", "sedan"], suv: ["休旅車", "suv"], motorcycle: ["機車", "moto"] };
         const info = CARS[slot], isEmpty = slot === "empty", inside = facingSt === "inside", unk = !info && !isEmpty;
         const kind = info ? info[1] : "tesla";                    // 認不出是哪種車：半透明的通用車模
         c.g.visible = !isEmpty; c.ghost.visible = isEmpty;
@@ -2713,7 +2713,7 @@ class FloorplanV43D extends HTMLElement {
         const chgSlot = st["input_select.garage_charging_slot"]?.state;
         const chg = !isEmpty && chgSlot && eid.endsWith("_" + chgSlot);      // 充電樁判斷（功率比例＋充電線）這個車位的車正在充電
         const text = isEmpty ? `${pos}｜空位${away.length ? "\n" + away.join("、") + " 不在" : ""}`
-          : `${info ? info[0] : "車輛（未辨識）"}\n${pos}${faceTxt ? "｜" + faceTxt : ""}${chg ? "｜⚡充電中" : ""}${dep ? "｜準備出門" : ""}`;
+          : `${info ? info[0] : "車輛（未辨識）"}\n${info && info[2] ? info[2] + "｜" : ""}${pos}${faceTxt ? "｜" + faceTxt : ""}${chg ? "｜⚡充電中" : ""}${dep ? "｜準備出門" : ""}`;
         c.setLabel(text, dep ? "#d9730d" : isEmpty ? "#6b7078" : "#1d1d1f");
       }
       for (const [eid, mat] of Object.entries(g.fixtures || {})) {

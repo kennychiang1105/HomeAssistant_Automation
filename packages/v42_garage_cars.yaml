@@ -139,6 +139,9 @@ template:
           {% elif 'unknown' in [f, b] %}unknown{% else %}away{% endif %}
         attributes:
           label: Luxgen N7
+          plate: EAK8030
+          vehicle_type: suv
+          vehicle_type_name: 休旅車
           slot: >-
             {{ 'front' if is_state('input_select.garage_slot_front', 'luxgen_n7') else ('back' if is_state('input_select.garage_slot_back', 'luxgen_n7') else 'none') }}
           facing: >-
@@ -153,6 +156,9 @@ template:
           {% elif 'unknown' in [f, b] %}unknown{% else %}away{% endif %}
         attributes:
           label: Tesla Model 3
+          plate: EBH8030
+          vehicle_type: sedan
+          vehicle_type_name: 房車
           slot: >-
             {{ 'front' if is_state('input_select.garage_slot_front', 'tesla_model3') else ('back' if is_state('input_select.garage_slot_back', 'tesla_model3') else 'none') }}
           facing: >-
