@@ -271,7 +271,10 @@ script:
           cable_slot: >-
             {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ lux_slot if lux_slot != 'none' else 'unknown' }}{% else %}unknown{% endif %}
           face_factor: "{{ 1.5 if lux_face == 'inside' else 1.0 }}"
-          cable_factor: "{{ (3.0 if lux_slot == cable_slot else 0.5) if (cable_slot != 'unknown' and lux_slot != 'none') else 1.0 }}"
+          # 畫面上看到充電線插在哪台車（to_front／to_luxgen_in）＝直接證據：該車位的車就是在充電的車，權重最高；拍不到（unseen）只是推論（後方車輛）
+          cable_seen: "{{ cable in ['to_front', 'to_luxgen_in'] and cable_slot != 'unknown' }}"
+          direct_car: "{{ states('input_select.garage_slot_' ~ cable_slot) if cable_seen else 'none' }}"
+          cable_factor: "{{ ((20.0 if lux_slot == cable_slot else 0.05) if cable_seen else (3.0 if lux_slot == cable_slot else 0.5)) if (cable_slot != 'unknown' and lux_slot != 'none') else 1.0 }}"
           # 車輛充電電流是最可靠的指紋（45 天歷史：Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 之間沒有重疊）
           chg_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) }}"
           a_factor: "{{ 50.0 if chg_a >= 28 else (0.02 if 1 <= chg_a <= 26 else 1.0) }}"
@@ -279,13 +282,13 @@ script:
           odds_lux: "{{ 4.0 * face_factor * cable_factor * a_factor }}"
           p_lux: "{{ 0.0 if chg_status == 'charging' else (odds_lux / (1 + odds_lux) if chg_status == 'charging_reduced' else 0.0) }}"
           power_car: >-
-            {% if not charging %}none{% elif p_lux >= 0.5 %}luxgen_n7{% else %}tesla_model3{% endif %}
-          power_conf: "{{ (p_lux if p_lux >= 0.5 else 1 - p_lux) if charging else 0 }}"
+            {% if not charging %}none{% elif direct_car in ['luxgen_n7', 'tesla_model3'] %}{{ direct_car }}{% elif p_lux >= 0.5 %}luxgen_n7{% else %}tesla_model3{% endif %}
+          power_conf: "{{ 0.97 if (charging and direct_car in ['luxgen_n7', 'tesla_model3']) else ((p_lux if p_lux >= 0.5 else 1 - p_lux) if charging else 0) }}"
           # 充電線拍不到不一定是後方車輛：Luxgen 充電時車頭朝內，線會被前面的車擋住（to_luxgen_in）；Tesla 拍不到（unseen）才是後方車輛
           image_slot: >-
             {% if power_car in ['luxgen_n7', 'tesla_model3'] %}{% if slot_f == power_car %}front{% elif slot_b == power_car %}back{% else %}unknown{% endif %}{% else %}unknown{% endif %}
           charge_slot: >-
-            {% if not charging %}none{% elif power_car == 'luxgen_n7' and image_slot != 'unknown' %}{{ image_slot }}{% elif cable_slot != 'unknown' %}{{ cable_slot }}{% else %}{{ image_slot }}{% endif %}
+            {% if not charging %}none{% elif cable_seen %}{{ cable_slot }}{% elif power_car == 'luxgen_n7' and image_slot != 'unknown' %}{{ image_slot }}{% elif cable_slot != 'unknown' %}{{ cable_slot }}{% else %}{{ image_slot }}{% endif %}
           conflict: "{{ charging and power_car == 'tesla_model3' and cable_slot != 'unknown' and image_slot != 'unknown' and cable_slot != image_slot }}"
           prev_car: "{{ states('input_select.garage_charging_car') }}"
           prev_slot: "{{ states('input_select.garage_charging_slot') }}"

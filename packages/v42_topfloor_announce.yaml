@@ -14,7 +14,21 @@ input_boolean:
     icon: mdi:bullhorn-variant
     initial: true
 
+input_number:
+  topfloor_up_rejoin_min:
+    name: 頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）
+    min: 0
+    max: 720
+    step: 5
+    initial: 60
+    mode: box
+
 input_datetime:
+  topfloor_last_down_any:
+    name: 頂樓情境廣播｜最近一次下樓情境（不論有沒有播報，內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
   topfloor_announce_last_up:
     name: 頂樓情境廣播｜上次上樓（內部）
     has_date: true
@@ -51,15 +65,19 @@ script:
       today_mode: "{{ sc == 'down' or (sc == 'up' and 5 <= now().hour < 12) }}"
       cool_min: "{{ 60 if sc == 'night' else 30 }}"
       last_ent: "{{ 'input_datetime.topfloor_announce_last_' ~ sc }}"
+      # 下樓上廁所又回來：距離上次下樓情境不到 rejoin 分鐘就當作同一段停留，不重播上樓廣播
+      since_down_min: "{{ (as_timestamp(now()) - as_timestamp(states('input_datetime.topfloor_last_down_any'), 0)) / 60 }}"
+      rejoin_min: "{{ states('input_number.topfloor_up_rejoin_min') | float(60) }}"
       last_age_min: "{{ ((as_timestamp(now()) - as_timestamp(states(last_ent), 0)) / 60) if sc in ['up', 'down', 'night'] else 0 }}"
     sequence:
       # 0) 總開關、情境名稱、冷卻時間
       - if: >-
           {{ sc not in ['up', 'down', 'night']
              or not is_state('input_boolean.topfloor_scene_announce_enable', 'on')
-             or last_age_min < cool_min }}
+             or last_age_min < cool_min
+             or (sc == 'up' and since_down_min < rejoin_min) }}
         then:
-          - stop: "略過頂樓情境廣播（開關關閉或冷卻中）"
+          - stop: "略過頂樓情境廣播（開關關閉、冷卻中，或短暫下樓後又上樓）"
       # 1) 下樓：只在早上播；熟睡鎖還開著（03:00／05:00 的熟睡下樓）不播；等 5 秒讓熟睡鎖管理員先處理
       - if: "{{ sc == 'down' }}"
         then:
