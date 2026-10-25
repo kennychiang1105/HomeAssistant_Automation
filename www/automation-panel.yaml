@@ -2697,7 +2697,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 30 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 29 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2842,7 +2842,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車庫車輛出門偵測（5）"
+        heading: "車庫車輛出門偵測（4）"
         heading_style: title
         card_mod:
           style: |
@@ -2858,8 +2858,6 @@ views:
             name: "車庫出門偵測｜總開關"
           - entity: input_boolean.garage_depart_auto_open_enable
             name: "車庫出門偵測｜自動開鐵門"
-          - entity: input_number.garage_charger_max_a
-            name: "充電樁最大電流（A，用來換算 100%／80%／20%）"
           - entity: input_number.garage_depart_likelihood_min
             name: "車庫出門偵測｜可能性門檻"
         card_mod: *cm

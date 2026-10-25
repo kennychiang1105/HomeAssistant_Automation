@@ -22,6 +22,8 @@ d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
 GONE={"input_boolean.door_light_auto",
+      # 2026-10-26 充電判斷改成機率模型，不再用最大電流換算
+      "input_number.garage_charger_max_a",
       # 2026-10-11 105門鎖自動判斷到家已併入 100A
       "automation.automation_26",
       # 2026-10-12 入侵偵測的收集／統計自動化改名（08-7A→08-7C、08-7S→08-7D）

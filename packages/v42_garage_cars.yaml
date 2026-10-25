@@ -257,8 +257,8 @@ script:
                 value: "{{ [n_prev + 1, 20] | min if ev else 0 }}"
       # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
       #     充電樁狀態是「機率」不是電流大小：正常充電（charging）＝100% Tesla；降壓（charging_reduced）＝80% Luxgen、20% Tesla。
-      #     再用影像證據調整：Luxgen 只有充電時才車頭朝內（平常朝外）→ 朝內大幅加分、朝外大幅扣分；充電線樣板（to_luxgen_in）加分。
-      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛（Tesla）；Luxgen 朝內時線會被擋住
+      #     再用影像證據調整：Luxgen 常停後面、車頭朝外就在充電（朝內也可能），所以朝向只當輕微證據；主要看充電線樣板指向的車位是不是 Luxgen 所在的車位。
+      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛（被前車擋住）
       - variables:
           chg_status: "{{ states('sensor.tesla_wall_connector_status') }}"
           charging: "{{ chg_status in ['charging', 'charging_reduced'] }}"
@@ -267,8 +267,11 @@ script:
           slot_b: "{{ states('input_select.garage_slot_back') }}"
           lux_slot: "{{ 'front' if slot_f == 'luxgen_n7' else ('back' if slot_b == 'luxgen_n7' else 'none') }}"
           lux_face: "{{ states('input_select.garage_facing_' ~ lux_slot) if lux_slot != 'none' else 'unknown' }}"
-          face_factor: "{{ 6.0 if lux_face == 'inside' else (0.1 if lux_face == 'door' else 1.0) }}"
-          cable_factor: "{{ 8.0 if cable == 'to_luxgen_in' else (0.4 if cable in ['to_front', 'unseen'] else 1.0) }}"
+          # 車頭朝向只當輕微證據（Luxgen 朝外或朝內都可能在充電，不能因為朝外就扣分）；充電線則比對「充電的是哪個車位」
+          cable_slot: >-
+            {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ lux_slot if lux_slot != 'none' else 'unknown' }}{% else %}unknown{% endif %}
+          face_factor: "{{ 1.5 if lux_face == 'inside' else 1.0 }}"
+          cable_factor: "{{ (3.0 if lux_slot == cable_slot else 0.5) if (cable_slot != 'unknown' and lux_slot != 'none') else 1.0 }}"
           # 降壓時先驗賠率 80:20＝4，乘上影像證據；正常充電＝Tesla 100%
           odds_lux: "{{ 4.0 * face_factor * cable_factor }}"
           p_lux: "{{ 0.0 if chg_status == 'charging' else (odds_lux / (1 + odds_lux) if chg_status == 'charging_reduced' else 0.0) }}"
@@ -278,12 +281,9 @@ script:
           # 充電線拍不到不一定是後方車輛：Luxgen 充電時車頭朝內，線會被前面的車擋住（to_luxgen_in）；Tesla 拍不到（unseen）才是後方車輛
           image_slot: >-
             {% if power_car in ['luxgen_n7', 'tesla_model3'] %}{% if slot_f == power_car %}front{% elif slot_b == power_car %}back{% else %}unknown{% endif %}{% else %}unknown{% endif %}
-          cable_slot: >-
-            {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ 'front' if slot_f == 'luxgen_n7' else ('back' if slot_b == 'luxgen_n7' else 'unknown') }}{% else %}unknown{% endif %}
           charge_slot: >-
             {% if not charging %}none{% elif power_car == 'luxgen_n7' and image_slot != 'unknown' %}{{ image_slot }}{% elif cable_slot != 'unknown' %}{{ cable_slot }}{% else %}{{ image_slot }}{% endif %}
           conflict: "{{ charging and power_car == 'tesla_model3' and cable_slot != 'unknown' and image_slot != 'unknown' and cable_slot != image_slot }}"
-          luxgen_face_prior: "{{ charging and power_car == 'luxgen_n7' and image_slot != 'unknown' and is_state('input_select.garage_facing_' ~ image_slot, 'unknown') }}"
           prev_car: "{{ states('input_select.garage_charging_car') }}"
           prev_slot: "{{ states('input_select.garage_charging_slot') }}"
           new_car: "{{ power_car if charging else 'none' }}"
@@ -314,18 +314,9 @@ script:
             data:
               option: "{{ power_car }}"
       # 自動學充電線樣板：用「畫面已確認身分」的車位當標籤（拉向前位＝to_front、拍不到＝unseen），沒接車超過 5 分鐘＝hanging；每 30 分鐘最多學一次
-      # Luxgen 只有充電時才車頭朝內（平常朝外）：充電中且朝向還不確定 → 先當作朝內
-      - if: "{{ luxgen_face_prior }}"
-        then:
-          - action: input_select.select_option
-            target:
-              entity_id: "input_select.garage_facing_{{ image_slot }}"
-            data:
-              option: inside
       - variables:
           cable_label: >-
-            {% if charging and power_car == 'luxgen_n7' and image_slot != 'unknown' and is_state('input_select.garage_facing_' ~ image_slot, 'inside') %}to_luxgen_in
-            {% elif charging and power_car == 'tesla_model3' and image_slot != 'unknown' %}{{ 'to_front' if image_slot == 'front' else 'unseen' }}
+            {% if charging and power_car in ['luxgen_n7', 'tesla_model3'] and power_conf >= 0.8 and image_slot != 'unknown' %}{% if power_car == 'luxgen_n7' and lux_face == 'inside' %}to_luxgen_in{% else %}{{ 'to_front' if image_slot == 'front' else 'unseen' }}{% endif %}
             {% elif is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'off') and (as_timestamp(now()) - as_timestamp(states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed)) > 300 %}hanging
             {% else %}none{% endif %}
       - if: "{{ cable_label | trim != 'none' and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_cable_learn_last'), 0)) > 1800 and not conflict }}"
