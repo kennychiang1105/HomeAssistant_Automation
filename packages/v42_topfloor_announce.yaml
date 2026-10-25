@@ -176,6 +176,17 @@ script:
             continue_on_timeout: true
           - variables:
               was_playing: "{{ is_state(hp, 'playing') }}"
+          # HomeKit 剛啟動音樂時 HomePod 的連線還不穩（2026-10-26 夜燈廣播因此失敗）：等 6 秒讓它穩定，再暫停音樂、確認暫停後才廣播
+          - if: "{{ was_playing }}"
+            then:
+              - delay: "00:00:06"
+              - action: media_player.media_pause
+                target:
+                  entity_id: "{{ hp }}"
+                continue_on_error: true
+              - wait_template: "{{ not is_state(hp, 'playing') }}"
+                timeout: "00:00:04"
+                continue_on_timeout: true
       # 8) 播報（上樓用中小音量（0.45）、夜燈用更小音量（0.35），播完由統一廣播自動恢復原音量；scene 類別不被晚安靜音擋掉）
       - action: script.announce
         data:
