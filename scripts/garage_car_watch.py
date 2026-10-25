@@ -172,6 +172,18 @@ def apply_vision(a, roi, state, out, jpg, now):
         d = vr.get('det')
         s = {'det': d['cls'] if d else None, 'conf': d['conf'] if d else None}
         if d and d['conf'] >= 0.5:
+            # 用偵測框中心的位移確認「車真的動了」：人走動擋到車身會讓相位位移很大，但框幾乎不動 → 不算車動
+            ss_ = state.setdefault('slots', {}).setdefault(name, {})
+            cx_, cy_ = (d['box'][0] + d['box'][2]) / 2, (d['box'][1] + d['box'][3]) / 2
+            pb = ss_.get('box')
+            if pb:
+                disp = ((cx_ - pb[0]) ** 2 + (cy_ - pb[1]) ** 2) ** 0.5
+                r['box_disp'] = round(disp, 3)
+                if r['moved'] and disp < thr.get('box_move', 0.02):
+                    r['moved'] = False
+                elif disp >= thr.get('box_move', 0.02):
+                    r['moved'] = True
+            ss_['box'] = [cx_, cy_]
             r['present'] = True
             state.setdefault('slots', {}).setdefault(name, {})['present'] = True
             idr, typ = vr.get('id'), vr.get('type')
@@ -216,6 +228,22 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
     wall_mean = float(wall_g.mean())
     wall_prev = state.get('wall_mean')
     exposure_changed = bool(wall_prev and abs(wall_mean - wall_prev) / max(wall_prev, 1) > roi.get('exposure_jump', 0.25))
+    # 亮度大幅改變（開燈、日夜切換）若持續 3 次取樣，當成新的光線環境：重新學基準，不要一直抑制訊號
+    if exposure_changed:
+        state['expo_n'] = state.get('expo_n', 0) + 1
+        if learn and state['expo_n'] >= 3:
+            exposure_changed = False
+            state['expo_n'] = 0
+            state['wall_mean'] = wall_mean
+            for sn in roi['slots']:
+                ss = state.setdefault('slots', {}).setdefault(sn, {})
+                for k in [k for k in ss if k.startswith(('lights_hist_', 'red_hist_'))]:
+                    del ss[k]
+                rp = os.path.join(workdir, 'ref_%s.npy' % sn)
+                if os.path.exists(rp):
+                    os.remove(rp)
+    else:
+        state['expo_n'] = 0
     out = {'ts': int(now), 'wall_mean': round(wall_mean, 1), 'exposure_changed': exposure_changed, 'slots': {}}
     thr = roi.get('thresholds', {})
     t_light = thr.get('lights_delta', 0.35)
@@ -430,6 +458,15 @@ def selftest():
         s = analyse(Image.fromarray(brake), roi_r, state, d, learn=False, now=7100)['slots']['front']
         if not s['lights_on']:
             errors.append('紅色煞車燈沒被偵測 %s' % s)
+    # 亮度大幅改變持續 3 次取樣後，視為新光線環境，之後的車燈訊號不再被抑制
+    with tempfile.TemporaryDirectory() as d:
+        state = {}
+        for i in range(8):
+            analyse(Image.fromarray(base), roi, state, d, now=8000 + i)
+        bright2 = np.clip(base.astype(np.int16) + 60, 0, 255).astype(np.uint8)
+        flags = [analyse(Image.fromarray(bright2), roi, state, d, now=8100 + i)['exposure_changed'] for i in range(5)]
+        if flags[:2] != [True, True] or flags[-1] is not False:
+            errors.append('持續的亮度改變沒有被當成新光線環境 %s' % flags)
     # 車型粗分：機車（小面積）、休旅車（高）、房車（扁長）
     e0 = np.full((100, 200), 60.0, dtype=np.float32)
     def veh(h, w):
@@ -456,7 +493,7 @@ def selftest():
             errors.append('車頭朝鐵門沒判出 %s' % s1)
         if (s2['identity'], s2['facing']) != ('luxgen_n7', 'inside'):
             errors.append('車頭朝內沒判出 %s' % s2)
-    # 充電線：垂掛／拉向前位車的邊緣分布不同 → 能分出 hanging、to_front；沒學過的畫面回 unknown
+    # 充電線：垂掛／拉向前景車的邊緣分布不同 → 能分出 hanging、to_near；沒學過的畫面回 unknown
     roi_c = dict(roi, cable=[0.0, 0.1, 0.4, 0.7])
     hang = base.copy()
     hang[80:250, 40:44] = 20                 # 垂直線（垂掛）
@@ -466,10 +503,10 @@ def selftest():
     with tempfile.TemporaryDirectory() as d:
         state = {}
         cmd_learn_cable(Image.fromarray(hang), roi_c, state, 'hanging')
-        cmd_learn_cable(Image.fromarray(tofront), roi_c, state, 'to_front')
+        cmd_learn_cable(Image.fromarray(tofront), roi_c, state, 'to_near')
         c1 = analyse(Image.fromarray(hang), roi_c, state, d, learn=False, now=6000)['cable']
         c2 = analyse(Image.fromarray(tofront), roi_c, state, d, learn=False, now=6100)['cable']
-        if c1['state'] != 'hanging' or c2['state'] != 'to_front':
+        if c1['state'] != 'hanging' or c2['state'] != 'to_near':
             errors.append('充電線分類失敗 %s %s' % (c1, c2))
     print(json.dumps({'selftest': 'FAIL' if errors else 'PASS', 'errors': errors}, ensure_ascii=False))
     return 1 if errors else 0
@@ -482,7 +519,7 @@ def main():
     ap.add_argument('--dir', default=DEFAULT_DIR)
     ap.add_argument('--learn-empty')
     ap.add_argument('--learn-sig')
-    ap.add_argument('--learn-cable', help='hanging（沒接車，線垂掛）／to_front（接到前位車）／unseen（拍不到，接到後位車）')
+    ap.add_argument('--learn-cable', help='hanging（沒接車，線垂掛）／to_near（線接到畫面前景那台車）／hidden（線被擋住拍不到＝接到後方那台車）／to_luxgen_in（Luxgen 車頭朝內充電）')
     ap.add_argument('--no-learn', action='store_true', help='只分析，不更新滾動基準（除錯用）')
     ap.add_argument('--csv', action='store_true', help='附加一列指標到 metrics.csv（P0 資料收集）')
     ap.add_argument('--gate-recent', action='store_true', help='鐵門最近 10 分鐘內開過（啟用「車位自動學成空」）')

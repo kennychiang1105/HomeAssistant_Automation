@@ -84,6 +84,15 @@ input_button:
     icon: mdi:school
 
 input_number:
+  lpr_close_buffer_sec:
+    name: LPR關門前安全緩衝（秒）
+    min: 15
+    max: 180
+    step: 5
+    initial: 45
+    unit_of_measurement: s
+    mode: slider
+    icon: mdi:timer-sand
   garage_depart_likelihood_min:
     name: 車庫出門偵測｜可能性門檻
     min: 0
@@ -105,6 +114,11 @@ input_number:
     mode: box
 
 input_datetime:
+  garage_gate_run_last:
+    name: 車庫鐵門評估｜上次開始（內部，104-2 去重）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
   garage_cable_learn_last:
     name: 車庫充電線樣板｜上次學習（內部）
     has_date: true
@@ -121,6 +135,31 @@ shell_command:
   garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 {{ arg }}'
 
 template:
+  # 現在是哪輛車在充電：車輛電流是最可靠的指紋（45 天歷史：Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 沒有重疊）；電流還沒爬升時才用狀態先驗
+  # （charging＝100% Tesla；charging_reduced＝80% Luxgen／20% Tesla）。HomeKit 充電 helper、107 充電通知都吃這一個。
+  - sensor:
+      - name: garage_charging_vehicle
+        unique_id: garage_charging_vehicle
+        icon: mdi:ev-station
+        state: >-
+          {% set st = states('sensor.tesla_wall_connector_status') %}
+          {% set a = states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) %}
+          {% if st not in ['charging', 'charging_reduced'] %}none
+          {% elif a >= 28 %}luxgen_n7
+          {% elif 1 <= a <= 26 %}tesla_model3
+          {% else %}{{ 'tesla_model3' if st == 'charging' else 'luxgen_n7' }}{% endif %}
+        attributes:
+          current_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') }}"
+          status: "{{ states('sensor.tesla_wall_connector_status') }}"
+  # 最近一次有在充電的車（充電完成、拔槍之後通知還要說「是哪輛車充完」）
+  - trigger:
+      - trigger: state
+        entity_id: sensor.garage_charging_vehicle
+    sensor:
+      - name: garage_charging_vehicle_last
+        unique_id: garage_charging_vehicle_last
+        icon: mdi:ev-station
+        state: "{{ trigger.to_state.state if trigger.to_state.state in ['luxgen_n7', 'tesla_model3'] else (this.state if this is defined and this.state not in ['unknown', 'unavailable'] else 'none') }}"
   - sensor:
       - name: garage_car_luxgen_n7
         unique_id: garage_car_luxgen_n7
@@ -258,7 +297,7 @@ script:
       # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
       #     充電樁狀態是「機率」不是電流大小：正常充電（charging）＝100% Tesla；降壓（charging_reduced）＝80% Luxgen、20% Tesla。
       #     再用影像證據調整：Luxgen 常停後面、車頭朝外就在充電（朝內也可能），所以朝向只當輕微證據；主要看充電線樣板指向的車位是不是 Luxgen 所在的車位。
-      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛（被前車擋住）
+      #     充電線：拍到線接到畫面前景那台（to_near，我的『後位』）→ 充電的是前景車；線被擋住拍不到（hidden）→ 充電的是後方那台（遠端靠鐵門，我的『前位』，通常是 Luxgen）
       - variables:
           chg_status: "{{ states('sensor.tesla_wall_connector_status') }}"
           charging: "{{ chg_status in ['charging', 'charging_reduced'] }}"
@@ -269,10 +308,10 @@ script:
           lux_face: "{{ states('input_select.garage_facing_' ~ lux_slot) if lux_slot != 'none' else 'unknown' }}"
           # 車頭朝向只當輕微證據（Luxgen 朝外或朝內都可能在充電，不能因為朝外就扣分）；充電線則比對「充電的是哪個車位」
           cable_slot: >-
-            {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ lux_slot if lux_slot != 'none' else 'unknown' }}{% else %}unknown{% endif %}
+            {% if cable == 'to_near' %}back{% elif cable == 'hidden' %}front{% elif cable == 'to_luxgen_in' %}{{ lux_slot if lux_slot != 'none' else 'unknown' }}{% else %}unknown{% endif %}
           face_factor: "{{ 1.5 if lux_face == 'inside' else 1.0 }}"
-          # 畫面上看到充電線插在哪台車（to_front／to_luxgen_in）＝直接證據：該車位的車就是在充電的車，權重最高；拍不到（unseen）只是推論（後方車輛）
-          cable_seen: "{{ cable in ['to_front', 'to_luxgen_in'] and cable_slot != 'unknown' }}"
+          # 畫面上看到充電線接到哪台車（to_near＝畫面前景那台、to_luxgen_in）＝直接證據：該車位的車就是在充電的車，權重最高；線被前景車擋住拍不到（hidden）是推論＝接到後方（遠端、靠鐵門）那台
+          cable_seen: "{{ cable in ['to_near', 'to_luxgen_in'] and cable_slot != 'unknown' }}"
           direct_car: "{{ states('input_select.garage_slot_' ~ cable_slot) if cable_seen else 'none' }}"
           cable_factor: "{{ ((20.0 if lux_slot == cable_slot else 0.05) if cable_seen else (3.0 if lux_slot == cable_slot else 0.5)) if (cable_slot != 'unknown' and lux_slot != 'none') else 1.0 }}"
           # 車輛充電電流是最可靠的指紋（45 天歷史：Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 之間沒有重疊）
@@ -322,7 +361,7 @@ script:
       # 自動學充電線樣板：用「畫面已確認身分」的車位當標籤（拉向前位＝to_front、拍不到＝unseen），沒接車超過 5 分鐘＝hanging；每 30 分鐘最多學一次
       - variables:
           cable_label: >-
-            {% if charging and power_car in ['luxgen_n7', 'tesla_model3'] and power_conf >= 0.8 and image_slot != 'unknown' %}{% if power_car == 'luxgen_n7' and lux_face == 'inside' %}to_luxgen_in{% else %}{{ 'to_front' if image_slot == 'front' else 'unseen' }}{% endif %}
+            {% if charging and power_car in ['luxgen_n7', 'tesla_model3'] and power_conf >= 0.8 and image_slot != 'unknown' %}{% if power_car == 'luxgen_n7' and lux_face == 'inside' %}to_luxgen_in{% else %}{{ 'to_near' if image_slot == 'back' else 'hidden' }}{% endif %}
             {% elif is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'off') and (as_timestamp(now()) - as_timestamp(states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed)) > 300 %}hanging
             {% else %}none{% endif %}
       - if: "{{ cable_label | trim != 'none' and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_cable_learn_last'), 0)) > 1800 and not conflict }}"

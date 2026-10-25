@@ -2404,7 +2404,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 36 個"
+        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 37 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2673,6 +2673,22 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
+        heading: "其他數值參數（1）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_number.topfloor_up_rejoin_min
+            name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
         heading: "其他操作按鈕（1）"
         heading_style: title
         card_mod:
@@ -2697,7 +2713,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 29 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 28 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2923,7 +2939,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車牌辨識（LPR）（5）"
+        heading: "車牌辨識（LPR）（4）"
         heading_style: title
         card_mod:
           style: |
@@ -2939,8 +2955,6 @@ views:
             name: "LPR自動關門（啟用後才會真的關門）"
           - entity: input_boolean.lpr_open_notify_enable
             name: "LPR車牌開門通知"
-          - entity: input_number.lpr_auto_close_delay_min
-            name: "LPR關門延遲（分鐘）"
           - entity: input_text.allowed_plates_csv
             name: "LPR白名單（CSV, 例：EAK8030,BBN6688）"
         card_mod: *cm
@@ -4395,7 +4409,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "頂樓（48）"
+        heading: "頂樓（49）"
         heading_style: title
         card_mod:
           style: |
@@ -4514,6 +4528,8 @@ views:
             name: "頂樓情境廣播｜上次下樓（內部）"
           - entity: input_datetime.topfloor_announce_last_night
             name: "頂樓情境廣播｜上次夜燈（內部）"
+          - entity: input_datetime.topfloor_last_down_any
+            name: "頂樓情境廣播｜最近一次下樓情境（不論有沒有播報，內部）"
           - entity: input_datetime.topfloor_bedroom_line_last_triggered
             name: "頂樓房間門口跨線最後觸發"
           - entity: input_datetime.topfloor_studyroom_line_last_triggered
@@ -4526,8 +4542,6 @@ views:
             name: "頂樓_最後動線事件（事件|時間戳）"
           - entity: input_text.topfloor_decision_log
             name: "頂樓_最後決策"
-          - entity: input_text.topfloor_debug_last_decision
-            name: "頂樓偵測 Debug（最後決策）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4542,6 +4556,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.topfloor_debug_last_decision
+            name: "頂樓偵測 Debug（最後決策）"
           - entity: input_text.topfloor_debug_last_json
             name: "頂樓偵測 Debug（最新快照 JSON）"
           - entity: timer.topfloor_room_arrived

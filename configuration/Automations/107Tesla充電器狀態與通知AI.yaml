@@ -6,6 +6,7 @@
 # - V4.1.6（2026-10-15）：LINE 內文的「名稱 值」改成「名稱：值」，套用新卡片的名稱／數值排版。
 # - V4.1.6（2026-10-11）：修正充飽後 00:02 誤報「仍未開始充電」：「這次連接後是否已充過電」的判斷是 start_time（只到秒）大於 vehicle_connected.last_changed（含毫秒），插槍同一秒就開始充電時 start_time 反而略小，被判成沒充過電；改成容許 10 秒誤差。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
+# - V4.2.5（2026-10-26）：開始充電通知先等車輛電流穩定（最多 20 秒），車名改用 sensor.garage_charging_vehicle（狀態＋車輛電流：Tesla ≈24.7 A、Luxgen ≈31.3 A；降壓狀態有約 11% 是 Tesla）；完成通知用 sensor.garage_charging_vehicle_last。
 # - V3.3.0：功能版。修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時「無開始通知」與「充電用時計算錯誤」問題。
 #           charge_start 條件新增放行「不同車型互轉」情境：當 charge_start_tesla 觸發且 from_status 為 Luxgen 型，
 #           或 charge_start_luxgen 觸發且 from_status 為 Tesla 型時，視為新車輛插槍，立即更新 start_time 並發送新車開始通知。
@@ -133,6 +134,12 @@
            trigger.from_state.state != trigger.to_state.state }}
 
   action:
+    # V4.2.5：剛開始充電時電流還在爬升（0 A），先等最多 20 秒讓電流穩定，才能用電流判斷是哪輛車（Tesla ≈24.7 A、Luxgen ≈31.3 A）
+    - if: "{{ trigger.id in ['charge_start_tesla', 'charge_start_luxgen'] }}"
+      then:
+        - wait_template: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) >= 1 }}"
+          timeout: "00:00:20"
+          continue_on_timeout: true
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
         # 這次插槍後已經開始充電過（充飽後不拔槍，狀態會退回 ready／waiting，不能再當成「沒在充電」）
@@ -151,8 +158,14 @@
             {{ now_st }}
           {% endif %}
         vehicle_name: >-
+          {% set v = states('sensor.garage_charging_vehicle') %}
+          {% set car = v if v in ['luxgen_n7', 'tesla_model3'] else (states('sensor.garage_charging_vehicle_last') if trigger.id == 'charge_done' else 'none') %}
           {% set st = status_for_vehicle %}
-          {% if st in ['charging_reduced', 'charging (reduced)', '充電（降壓）'] %}
+          {% if car == 'luxgen_n7' %}
+            Luxgen
+          {% elif car == 'tesla_model3' %}
+            Tesla
+          {% elif st in ['charging_reduced', 'charging (reduced)', '充電（降壓）'] %}
             Luxgen
           {% elif st in ['charging', '充電中'] %}
             Tesla
