@@ -6,7 +6,7 @@
 #   下樓：只在早上（05:00–11:59）播報外面目前與今日天氣；晚上不播；03:00／05:00 的熟睡下樓（熟睡鎖仍開著）也不播。
 #   夜燈：播報明天天氣；HomeKit 自動化會同時開始播音樂，廣播完會自動接著播（原本在播才恢復）。
 #   播放條件：Kenny 的手機已連上頂樓 AP（上樓、夜燈最多等 2 分鐘；下樓不等，不在樓上就略過）。
-#   類別用 scene（不被晚安／熟睡靜音擋掉），夜燈用小音量；同一情境 30 分鐘（夜燈 60 分鐘）內不重複播報。
+#   類別用 scene（不被晚安／熟睡靜音擋掉），上樓用中小音量（0.45）、夜燈用更小音量（0.35），播完由統一廣播自動恢復原音量；同一情境 30 分鐘（夜燈 60 分鐘）內不重複播報。
 # ─────────────────────────────────────────────────────────────
 input_boolean:
   topfloor_scene_announce_enable:
@@ -158,7 +158,7 @@ script:
             continue_on_timeout: true
           - variables:
               was_playing: "{{ is_state(hp, 'playing') }}"
-      # 8) 播報（夜燈用小音量；scene 類別不被晚安靜音擋掉）
+      # 8) 播報（上樓用中小音量（0.45）、夜燈用更小音量（0.35），播完由統一廣播自動恢復原音量；scene 類別不被晚安靜音擋掉）
       - action: script.announce
         data:
           level: general
@@ -166,7 +166,7 @@ script:
           kind: scene
           merge_audio: true
           player: media_player.ding_lou_homepod
-          volume: "{{ 0.35 if sc == 'night' else '' }}"
+          volume: "{{ 0.35 if sc == 'night' else (0.45 if sc == 'up' else '') }}"
       # 9) 夜燈：音樂原本在播就接續（廣播會打斷串流）
       - if: "{{ sc == 'night' and was_playing }}"
         then:
