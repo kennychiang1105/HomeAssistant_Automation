@@ -66,7 +66,7 @@ CATS = [
 AUTO_RULES = [
     ("supply", r"^(00-2C|耗材|電池)"),
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7A|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
-    ("topfloor", r"^(08-5[A-K]|800-開關系列-(11|12)[A-D]?)"),
+    ("topfloor", r"^(08-5[A-L]|800-開關系列-(11|12)[A-D]?)"),
     ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
@@ -81,7 +81,7 @@ HELPER_RULES = [
     ("supply", r"supply_|battery_system|doorlock_batt|line_bot_forecast"),
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
-    ("security", r"intrusion_|wu_lou_bao_quan|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
+    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
@@ -93,13 +93,13 @@ HELPER_RULES = [
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
     r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until)"
-    r"|^input_boolean\.(emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
+    r"|^input_boolean\.(garage_depart_candidate|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
-    r"|^input_text\.(intrusion_recent|emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
+    r"|^input_text\.(garage_depart_car|intrusion_recent|emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|disaster_seen_items|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
-    r"|^input_number\.(v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
+    r"|^input_number\.(garage_ev_|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate)"
 )
 
@@ -123,6 +123,7 @@ SUBGROUPS = {
         ("感應燈與書房燈參數", r"topfloor_(evidence|line_debounce|arrive|down_4f|vacancy|study|stairs_night|stairs_day)|topfloor_motion_pause"),
         ("上下樓情境判斷參數", r"_kenny|topfloor_webhook_mode|topfloor_ap_macs"),
         ("睡眠靜默與熟睡鎖", r"sleep_silent"),
+        ("頂樓情境廣播", r"topfloor_scene_announce"),
     ],
     "air_fan": [
         ("溫度門檻與冷氣", r"ac_|enter_|night_cold|morning_reopen|summer_"),
@@ -133,6 +134,7 @@ SUBGROUPS = {
         ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
+        ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)|garage_charger_max_a"),
         ("離家入侵偵測", r"intrusion_"),
         ("車牌辨識（LPR）", r"lpr_|allowed_plates"),
         ("門鎖與電池", r"doorlock|er_lou_men_suo"),
@@ -1061,6 +1063,36 @@ def weather_sun_blocks():
     return [section(heading("日出日落的天氣調整", "mdi:weather-sunset") + md + entities_card(rows))]
 
 
+def garage_cars_blocks():
+    """保全分頁：車庫車輛位置（前／後位、車種、車頭朝向）、出去可能性、樣板學習（packages/v42_garage_cars.yaml）。"""
+    status = [
+        ("sensor.garage_car_luxgen_n7", "Luxgen N7"),
+        ("sensor.garage_car_tesla_model3", "Tesla Model 3"),
+        ("input_select.garage_slot_front", "前位（靠鐵門）"),
+        ("input_select.garage_facing_front", "前位車頭朝向"),
+        ("input_select.garage_slot_back", "後位（內側）"),
+        ("input_select.garage_facing_back", "後位車頭朝向"),
+        ("sensor.garage_depart_likelihood", "出去可能性"),
+        "{type: attribute, entity: sensor.garage_depart_likelihood, attribute: reasons, name: 可能性依據}",
+        ("input_select.garage_charging_car", "現在充電的車"),
+        ("input_select.garage_charging_slot", "現在充電的車位"),
+        ("input_text.garage_charge_log", "充電紀錄（最近一次）"),
+        ("input_boolean.garage_depart_candidate", "準備出門中"),
+        ("input_text.garage_depart_last", "最近一次判斷"),
+    ]
+    learn = [
+        ("input_select.garage_learn_slot", "車位"),
+        ("input_select.garage_learn_car", "這個車位現在是"),
+        ("input_select.garage_learn_facing", "車頭朝向（door＝朝鐵門／inside＝朝內）"),
+        ("input_button.garage_learn_do", "用現在的畫面學習"),
+    ]
+    hint = ("車庫攝影機每分鐘（車庫有人／鐵門沒關／可能性高時每 15 秒）分析一次畫面，判斷前／後位是哪輛車、車頭朝向、車燈與位移，"
+            "3D 平面圖同步顯示。車輛換位置或第一次使用時，請讓車停好，選好車位／車種／車頭朝向後按「用現在的畫面學習」；"
+            "車位是空的就選「empty」。充電中的車會依功率（100%／20%＝Tesla、80%＝Luxgen）與充電線（拍到接到前位、拍不到＝後方車輛）自動記錄並補強辨識。自動開鐵門預設關閉，在「車庫車輛出門偵測」小組設定。")
+    return [section(heading("車庫車輛位置", "mdi:car-multiple") + entities_card(status)),
+            section(heading("車輛樣板學習", "mdi:school") + ["      - type: markdown", "        content: " + q("<sub>" + hint + "</sub>")] + MD_CSS + entities_card(learn))]
+
+
 def family_tracking_blocks():
     """系統維護 > 家人裝置追蹤：每位家人一張現代化卡片（頭像＋在家狀態＋person 目前參考的裝置），
     下面是主要裝置選單；選到「其他」才出現自訂裝置輸入欄（00-2S／packages/v41_person_main_device.yaml）。"""
@@ -1281,6 +1313,8 @@ def build(data):
                 continue   # LINE Bot 模式與設定只放在「總覽」，避免重複
             if re.search(r"^input_select\.person_main_device_|^input_text\.person_main_device_custom_|^input_boolean\.person_main_device_busy$|^input_text\.watch_tracker_entity_kenny$", eid):
                 continue   # 家人主要裝置選單放在「系統維護」的家人裝置追蹤區，自己畫（busy 旗標不顯示）
+            if re.search(r"^input_select\.garage_(slot|facing|learn|charging)_|^input_button\.garage_learn_do$|^input_text\.garage_(depart_last|charge_log)$", eid):
+                continue   # 車庫車輛位置與樣板學習放在「保全」分頁的專屬區塊（garage_cars_blocks），自己畫
             if INTERNAL_RE.search(eid):
                 internal[cat].append((dom, fn or eid, eid))
             else:
@@ -1323,6 +1357,8 @@ def build(data):
             B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
         if key == "scene":
             B.extend(weather_sun_blocks())      # 日出日落的天氣調整（SOP-22）
+        if key == "security":
+            B.extend(garage_cars_blocks())      # 車庫前／後位車輛、車頭朝向、出去可能性、樣板學習
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
         if autos[key]:

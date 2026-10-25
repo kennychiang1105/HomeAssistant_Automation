@@ -1,0 +1,467 @@
+# ─────────────────────────────────────────────────────────────
+# 車庫車輛位置與準備出門偵測 (V4.2.5)
+# 更新紀錄（統一格式）：
+# - V4.2.5：新增。UniFi 攝影機不會把「停很久的車要出門」當成新車輛，所以改用定時畫面分析（scripts/garage_car_watch.py，Pillow＋numpy）：
+#   每個車位（front＝前位／靠鐵門＝3D 車位1，back＝後位／內側＝3D 車位2）判斷有沒有車、是哪輛（Luxgen N7／Tesla Model 3）、車燈是否亮起、車身是否位移。
+#   - 車位實體：input_select.garage_slot_front／back（empty／unknown／luxgen_n7（EAK8030）／tesla_model3（EBH8030）／其他車輛 sedan 房車、suv 休旅車、motorcycle 機車）；車輛實體：sensor.garage_car_luxgen_n7／tesla_model3
+#     （parked_front／parked_back／departing／away／unknown），供 3D 平面圖與 104-2 使用。
+#   - 出去可能性：sensor.garage_depart_likelihood（0–100），用離家情境、車庫人員、家人手機連到車庫 AP、車庫燈、充電槍拔除、晚安狀態等現有訊號計算。
+#   - 判斷「準備出門」：同一車位連續 2 次有車燈亮起或位移，且可能性達門檻、車輛身分確定。預設只記錄；通知與自動開鐵門各有開關（預設關）。
+#   - 自動開鐵門不需要離家情境，改用嚴謹條件（見 script.garage_car_watch_run）；開門後 3 分鐘車位仍沒變空會自動關門（先確認無人）。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  garage_depart_watch_enable:
+    name: 車庫出門偵測｜總開關
+    icon: mdi:car-clock
+    initial: true
+  garage_depart_notify_enable:
+    name: 車庫出門偵測｜偵測到時通知
+    icon: mdi:bell-ring-outline
+    initial: false
+  garage_depart_auto_open_enable:
+    name: 車庫出門偵測｜自動開鐵門
+    icon: mdi:garage-open
+    initial: false
+  garage_depart_candidate:
+    name: 車庫出門偵測｜準備出門中（內部）
+    icon: mdi:car-arrow-right
+
+input_text:
+  garage_depart_last:
+    name: 車庫出門偵測｜最近一次
+    max: 255
+  garage_depart_car:
+    name: 車庫出門偵測｜準備出門的車（內部）
+    max: 30
+  garage_charge_log:
+    name: 車庫充電紀錄（最近一次變化）
+    max: 255
+
+input_select:
+  garage_slot_front:
+    name: 車庫前位（靠鐵門）
+    options: [unknown, empty, luxgen_n7, tesla_model3, sedan, suv, motorcycle]
+    icon: mdi:car-back
+  garage_slot_back:
+    name: 車庫後位（內側）
+    options: [unknown, empty, luxgen_n7, tesla_model3, sedan, suv, motorcycle]
+    icon: mdi:car-back
+  # 車頭朝向：door＝車頭朝鐵門（直接開出去）、inside＝車頭朝內（倒車入庫，出門要倒車）
+  garage_facing_front:
+    name: 車庫前位車頭朝向
+    options: [unknown, door, inside]
+    icon: mdi:arrow-left-right
+  garage_facing_back:
+    name: 車庫後位車頭朝向
+    options: [unknown, door, inside]
+    icon: mdi:arrow-left-right
+  # 充電樁判斷：誰在充電、停在哪個車位（功率比例＋充電線）
+  garage_charging_car:
+    name: 車庫現在充電的車
+    options: [none, unknown, luxgen_n7, tesla_model3]
+    icon: mdi:ev-station
+  garage_charging_slot:
+    name: 車庫現在充電的車位
+    options: [none, unknown, front, back]
+    icon: mdi:ev-plug-tesla
+  # 樣板學習（面板上選好再按「學習」）：把「現在這張畫面」的指定車位學成某輛車／空位
+  garage_learn_slot:
+    name: 學習｜車位
+    options: [front, back]
+    icon: mdi:car-select
+  garage_learn_car:
+    name: 學習｜這個車位現在是
+    options: [luxgen_n7, tesla_model3, sedan, suv, motorcycle, empty]
+    icon: mdi:car-info
+  garage_learn_facing:
+    name: 學習｜車頭朝向
+    options: [door, inside]
+    icon: mdi:arrow-left-right
+
+input_button:
+  garage_learn_do:
+    name: 學習｜用現在的畫面學習
+    icon: mdi:school
+
+input_number:
+  garage_depart_likelihood_min:
+    name: 車庫出門偵測｜可能性門檻
+    min: 0
+    max: 100
+    step: 5
+    initial: 70
+    mode: slider
+  garage_charger_max_a:
+    name: 充電樁最大電流（A，用來換算 100%／80%／20%）
+    min: 10
+    max: 80
+    step: 1
+    initial: 40
+    mode: box
+  garage_ev_front:
+    name: 車庫前位｜連續有車燈／位移次數（內部）
+    min: 0
+    max: 20
+    step: 1
+    mode: box
+  garage_ev_back:
+    name: 車庫後位｜連續有車燈／位移次數（內部）
+    min: 0
+    max: 20
+    step: 1
+    mode: box
+
+input_datetime:
+  garage_cable_learn_last:
+    name: 車庫充電線樣板｜上次學習（內部）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+  garage_depart_last_open:
+    name: 車庫出門偵測｜上次自動開門
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+
+shell_command:
+  garage_car_watch: 'python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg --csv {{ gate }} {{ nolearn }}'
+  garage_car_learn: 'python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/garage_cur.jpg {{ arg }}'
+
+template:
+  - sensor:
+      - name: garage_car_luxgen_n7
+        unique_id: garage_car_luxgen_n7
+        icon: mdi:car-electric
+        state: >-
+          {% set f = states('input_select.garage_slot_front') %}{% set b = states('input_select.garage_slot_back') %}
+          {% set dep = is_state('input_boolean.garage_depart_candidate', 'on') and is_state('input_text.garage_depart_car', 'luxgen_n7') %}
+          {% if f == 'luxgen_n7' or b == 'luxgen_n7' %}{{ 'departing' if dep else ('parked_front' if f == 'luxgen_n7' else 'parked_back') }}
+          {% elif 'unknown' in [f, b] %}unknown{% else %}away{% endif %}
+        attributes:
+          label: Luxgen N7
+          slot: >-
+            {{ 'front' if is_state('input_select.garage_slot_front', 'luxgen_n7') else ('back' if is_state('input_select.garage_slot_back', 'luxgen_n7') else 'none') }}
+          facing: >-
+            {{ states('input_select.garage_facing_front') if is_state('input_select.garage_slot_front', 'luxgen_n7') else (states('input_select.garage_facing_back') if is_state('input_select.garage_slot_back', 'luxgen_n7') else 'unknown') }}
+      - name: garage_car_tesla_model3
+        unique_id: garage_car_tesla_model3
+        icon: mdi:car-electric
+        state: >-
+          {% set f = states('input_select.garage_slot_front') %}{% set b = states('input_select.garage_slot_back') %}
+          {% set dep = is_state('input_boolean.garage_depart_candidate', 'on') and is_state('input_text.garage_depart_car', 'tesla_model3') %}
+          {% if f == 'tesla_model3' or b == 'tesla_model3' %}{{ 'departing' if dep else ('parked_front' if f == 'tesla_model3' else 'parked_back') }}
+          {% elif 'unknown' in [f, b] %}unknown{% else %}away{% endif %}
+        attributes:
+          label: Tesla Model 3
+          slot: >-
+            {{ 'front' if is_state('input_select.garage_slot_front', 'tesla_model3') else ('back' if is_state('input_select.garage_slot_back', 'tesla_model3') else 'none') }}
+          facing: >-
+            {{ states('input_select.garage_facing_front') if is_state('input_select.garage_slot_front', 'tesla_model3') else (states('input_select.garage_facing_back') if is_state('input_select.garage_slot_back', 'tesla_model3') else 'unknown') }}
+      # 出去可能性（0–100）：用現有訊號估計「現在有人要開車出門」的程度（V1，權重可再依實測調整）
+      - name: garage_depart_likelihood
+        unique_id: garage_depart_likelihood
+        icon: mdi:chart-bell-curve
+        unit_of_measurement: "%"
+        state: "{{ [0, [100, this.attributes.get('raw', 0) | int(0)] | min] | max }}"
+        availability: "{{ true }}"
+        attributes:
+          reasons: >-
+            {% set r = [] %}
+            {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}
+            {% if is_state('input_boolean.google_scene_chu_men_trigger', 'on') or is_state('input_boolean.aqara_li_jia', 'on') %}{% set r = r + ['離家情境:+35'] %}{% endif %}
+            {% if is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') %}{% set r = r + ['車庫有人:+20'] %}{% endif %}
+            {% if '車庫' in locs %}{% set r = r + ['家人手機連到車庫AP:+25'] %}{% endif %}
+            {% if is_state('switch.che_ku_zhu_deng', 'on') %}{% set r = r + ['車庫燈亮:+10'] %}{% endif %}
+            {% if is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'off') and (now() - states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed).total_seconds() < 900 %}{% set r = r + ['充電槍剛拔除:+25'] %}{% endif %}
+            {% set wd = states('sensor.tw_day_type_today') %}{% set h = now().hour %}
+            {% if (wd == 'workday' and 6 <= h <= 9) or (wd != 'workday' and 8 <= h <= 11) %}{% set r = r + ['常見出門時段:+10'] %}{% endif %}
+            {% if is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on') %}{% set r = r + ['晚安/熟睡中:-40'] %}{% endif %}
+            {{ r }}
+          raw: >-
+            {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}
+            {% set wd = states('sensor.tw_day_type_today') %}{% set h = now().hour %}
+            {{ (35 if (is_state('input_boolean.google_scene_chu_men_trigger', 'on') or is_state('input_boolean.aqara_li_jia', 'on')) else 0)
+               + (20 if is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') else 0)
+               + (25 if '車庫' in locs else 0)
+               + (10 if is_state('switch.che_ku_zhu_deng', 'on') else 0)
+               + (25 if (is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'off') and (now() - states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed).total_seconds() < 900) else 0)
+               + (10 if ((wd == 'workday' and 6 <= h <= 9) or (wd != 'workday' and 8 <= h <= 11)) else 0)
+               - (40 if (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) else 0) }}
+
+script:
+  garage_car_watch_run:
+    alias: 車庫車輛畫面分析AI (V4.2.5)
+    description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
+    mode: single
+    max_exceeded: silent
+    fields:
+      test:
+        description: true＝只分析（不更新車位、不通知、不開門、不更新滾動基準）
+        required: false
+    variables:
+      is_test: "{{ test | default(false) in [true, 'true', 'True'] }}"
+      gate_recent: "{{ (not is_state('cover.garage', 'closed')) or ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_gate_opened_at'), 0)) < 600) }}"
+      names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 房車, suv: 休旅車, motorcycle: 機車}
+      pos: {front: 前位, back: 後位}
+    sequence:
+      - action: camera.snapshot
+        target:
+          entity_id: camera.g6_instant_high_resolution_channel
+        data:
+          filename: /config/www/snap/garage_cur.jpg
+        continue_on_error: true
+      - delay: "00:00:00.5"
+      - action: shell_command.garage_car_watch
+        data:
+          gate: "{{ '--gate-recent' if gate_recent else '' }}"
+          nolearn: "{{ '--no-learn' if is_test else '' }}"
+        response_variable: r
+        continue_on_error: true
+      - variables:
+          res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+          ok: "{{ res is mapping and res.get('slots') is mapping }}"
+      - if: "{{ (not ok) or is_test }}"
+        then:
+          - stop: "略過（分析失敗或測試模式）"
+      # 1) 更新前／後位車輛與連續證據次數
+      - repeat:
+          for_each: [front, back]
+          sequence:
+            - variables:
+                s: "{{ res.slots[repeat.item] }}"
+                ent: "input_select.garage_slot_{{ repeat.item }}"
+                cur: "{{ states('input_select.garage_slot_' ~ repeat.item) }}"
+                new: >-
+                  {% if not s.present %}empty{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
+                ev: "{{ s.present and (s.lights_on or s.moved) and not res.exposure_changed }}"
+                n_prev: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) }}"
+            - if: "{{ new | trim != cur }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: "{{ ent }}"
+                  data:
+                    option: "{{ new | trim }}"
+            - variables:
+                face_new: "{{ s.facing if (s.present and s.facing != 'unknown') else ('unknown' if not s.present else states('input_select.garage_facing_' ~ repeat.item)) }}"
+            - if: "{{ face_new != states('input_select.garage_facing_' ~ repeat.item) }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: "input_select.garage_facing_{{ repeat.item }}"
+                  data:
+                    option: "{{ face_new }}"
+            - action: input_number.set_value
+              target:
+                entity_id: "input_number.garage_ev_{{ repeat.item }}"
+              data:
+                value: "{{ [n_prev + 1, 20] | min if ev else 0 }}"
+      # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
+      #     功率規則（依實測）：充電 100%（charging）＝Tesla；降壓約 80%（charging_reduced）＝Luxgen；降壓到約 20%＝Tesla
+      #     充電線：拍到線接到前位車（to_front）→ 充電的是前位；拍不到（unseen）→ 充電的是後方車輛
+      - variables:
+          chg_status: "{{ states('sensor.tesla_wall_connector_status') }}"
+          chg_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) }}"
+          chg_max: "{{ states('input_number.garage_charger_max_a') | float(40) }}"
+          chg_ratio: "{{ (chg_a / chg_max) if chg_max > 0 else 0 }}"
+          charging: "{{ chg_status in ['charging', 'charging_reduced'] }}"
+          power_car: >-
+            {% if not charging %}none
+            {% elif chg_status == 'charging' %}tesla_model3
+            {% elif 0.65 <= chg_ratio < 0.95 %}luxgen_n7
+            {% elif chg_ratio <= 0.35 %}tesla_model3
+            {% else %}unknown{% endif %}
+          cable: "{{ res.cable.state if (res.get('cable') is mapping) else 'unknown' }}"
+          slot_f: "{{ states('input_select.garage_slot_front') }}"
+          slot_b: "{{ states('input_select.garage_slot_back') }}"
+          # 充電線拍不到不一定是後方車輛：Luxgen 充電時車頭朝內，線會被前面的車擋住（to_luxgen_in）；Tesla 拍不到（unseen）才是後方車輛
+          image_slot: >-
+            {% if power_car in ['luxgen_n7', 'tesla_model3'] %}{% if slot_f == power_car %}front{% elif slot_b == power_car %}back{% else %}unknown{% endif %}{% else %}unknown{% endif %}
+          cable_slot: >-
+            {% if cable == 'to_front' %}front{% elif cable == 'unseen' %}back{% elif cable == 'to_luxgen_in' %}{{ 'front' if slot_f == 'luxgen_n7' else ('back' if slot_b == 'luxgen_n7' else 'unknown') }}{% else %}unknown{% endif %}
+          charge_slot: >-
+            {% if not charging %}none{% elif power_car == 'luxgen_n7' and image_slot != 'unknown' %}{{ image_slot }}{% elif cable_slot != 'unknown' %}{{ cable_slot }}{% else %}{{ image_slot }}{% endif %}
+          conflict: "{{ charging and power_car == 'tesla_model3' and cable_slot != 'unknown' and image_slot != 'unknown' and cable_slot != image_slot }}"
+          luxgen_face_prior: "{{ charging and power_car == 'luxgen_n7' and image_slot != 'unknown' and is_state('input_select.garage_facing_' ~ image_slot, 'unknown') }}"
+          prev_car: "{{ states('input_select.garage_charging_car') }}"
+          prev_slot: "{{ states('input_select.garage_charging_slot') }}"
+          new_car: "{{ power_car if charging else 'none' }}"
+      - if: "{{ new_car != prev_car or charge_slot != prev_slot }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.garage_charging_car
+            data:
+              option: "{{ new_car }}"
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.garage_charging_slot
+            data:
+              option: "{{ charge_slot }}"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.garage_charge_log
+            data:
+              value: >-
+                {{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ ('停止充電' if new_car == 'none' else (names.get(new_car, '車輛') ~ ' 充電中｜' ~ ({'front': '前位', 'back': '後位'}.get(charge_slot, '車位不明')) ~ '｜' ~ (chg_ratio * 100) | round(0) | int ~ '%｜線:' ~ cable ~ ('｜⚠與畫面辨識不一致' if conflict else ''))))[:255] }}
+      # 充電訊號補強身分：車位原本認不出來（unknown）時，用「誰在充電、線接到哪」填入；另一個車位也不確定時填另一輛
+      - if: "{{ charging and power_car in ['luxgen_n7', 'tesla_model3'] and cable_slot != 'unknown' and states('input_select.garage_slot_' ~ cable_slot) in ['unknown'] }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: "input_select.garage_slot_{{ cable_slot }}"
+            data:
+              option: "{{ power_car }}"
+      # 自動學充電線樣板：用「畫面已確認身分」的車位當標籤（拉向前位＝to_front、拍不到＝unseen），沒接車超過 5 分鐘＝hanging；每 30 分鐘最多學一次
+      # Luxgen 只有充電時才車頭朝內（平常朝外）：充電中且朝向還不確定 → 先當作朝內
+      - if: "{{ luxgen_face_prior }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: "input_select.garage_facing_{{ image_slot }}"
+            data:
+              option: inside
+      - variables:
+          cable_label: >-
+            {% if charging and power_car == 'luxgen_n7' and image_slot != 'unknown' and is_state('input_select.garage_facing_' ~ image_slot, 'inside') %}to_luxgen_in
+            {% elif charging and power_car == 'tesla_model3' and image_slot != 'unknown' %}{{ 'to_front' if image_slot == 'front' else 'unseen' }}
+            {% elif is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'off') and (as_timestamp(now()) - as_timestamp(states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed)) > 300 %}hanging
+            {% else %}none{% endif %}
+      - if: "{{ cable_label | trim != 'none' and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_cable_learn_last'), 0)) > 1800 and not conflict }}"
+        then:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.garage_cable_learn_last
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          - action: shell_command.garage_car_learn
+            data:
+              arg: "--learn-cable {{ cable_label | trim }}"
+            continue_on_error: true
+      # 2) 判斷準備出門
+      - if: "{{ is_state('input_boolean.garage_depart_watch_enable', 'on') and is_state('cover.garage', 'closed') and is_state('input_boolean.garage_depart_candidate', 'off') }}"
+        then:
+          - repeat:
+              for_each: [front, back]
+              sequence:
+                - variables:
+                    s: "{{ res.slots[repeat.item] }}"
+                    car: "{{ states('input_select.garage_slot_' ~ repeat.item) }}"
+                    n: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) + (1 if (s.present and (s.lights_on or s.moved)) else 0) }}"
+                    lk: "{{ states('sensor.garage_depart_likelihood') | float(0) }}"
+                    lk_min: "{{ states('input_number.garage_depart_likelihood_min') | float(70) }}"
+                    cand: "{{ s.present and car in ['luxgen_n7', 'tesla_model3'] and n >= 2 and lk >= lk_min and not res.exposure_changed }}"
+                    strong: "{{ (s.lights_on and s.moved) or n >= 3 }}"
+                    who_in_garage: >-
+                      {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
+                         or ((as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) < 120)
+                         or ('車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')]) }}
+                    do_open: >-
+                      {{ is_state('input_boolean.garage_depart_auto_open_enable', 'on') and strong and who_in_garage
+                         and is_state('input_boolean.sleep_silent_active', 'off') and is_state('input_boolean.aqara_wan_an', 'off')
+                         and ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_depart_last_open'), 0)) > 300) }}
+                - if: "{{ cand }}"
+                  then:
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.garage_depart_car
+                      data:
+                        value: "{{ car }}"
+                    - action: input_boolean.turn_on
+                      target:
+                        entity_id: input_boolean.garage_depart_candidate
+                    - action: input_text.set_value
+                      target:
+                        entity_id: input_text.garage_depart_last
+                      data:
+                        value: >-
+                          {{ (now().strftime('%m-%d %H:%M:%S') ~ ' ' ~ names.get(car, car) ~ '｜' ~ pos[repeat.item] ~ '｜車燈' ~ ('亮' if s.lights_on else '無') ~ '/位移' ~ s.shift_px ~ 'px/可能性' ~ (lk | int) ~ '%' ~ ('｜自動開門' if do_open else ''))[:255] }}
+                    - if: "{{ is_state('input_boolean.garage_depart_notify_enable', 'on') }}"
+                      then:
+                        - action: script.notify_dispatch
+                          data:
+                            level: info
+                            line: false
+                            source: 車庫車輛畫面分析AI
+                            version: V4.2.5
+                            title: "{{ names.get(car, car) }} 準備出門"
+                            message: >-
+                              {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
+                              {{ state_attr('sensor.garage_depart_likelihood', 'reasons') | join('、') }}
+                              {{ '→ 已自動開啟車庫鐵門。' if do_open else '' }}
+                    - if: "{{ do_open }}"
+                      then:
+                        - action: input_datetime.set_datetime
+                          target:
+                            entity_id: input_datetime.garage_depart_last_open
+                          data:
+                            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                        - action: cover.open_cover
+                          target:
+                            entity_id: cover.garage
+                        # 開門後 3 分鐘該車位沒變空 → 判定誤判，關門（先確認車庫沒有人），並通知
+                        - wait_template: "{{ is_state('input_select.garage_slot_' ~ repeat.item, 'empty') }}"
+                          timeout: "00:03:00"
+                          continue_on_timeout: true
+                        - if: "{{ not is_state('input_select.garage_slot_' ~ repeat.item, 'empty') }}"
+                          then:
+                            - if: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off') and is_state('binary_sensor.g6_instant_motion', 'off') }}"
+                              then:
+                                - action: cover.close_cover
+                                  target:
+                                    entity_id: cover.garage
+                            - action: script.notify_dispatch
+                              data:
+                                level: important
+                                line: false
+                                source: 車庫車輛畫面分析AI
+                                version: V4.2.5
+                                title: 車庫自動開門後車輛沒有出去
+                                message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
+                    - stop: "已判斷準備出門"
+
+  garage_car_learn_apply:
+    alias: 車庫車輛樣板學習AI (V4.2.5)
+    description: 面板上選好「車位／這個車位現在是什麼／車頭朝向」後按「學習」：拍一張現在的畫面，把指定車位學成該車（含朝向）或空位。
+    mode: single
+    sequence:
+      - variables:
+          slot: "{{ states('input_select.garage_learn_slot') }}"
+          car: "{{ states('input_select.garage_learn_car') }}"
+          face: "{{ states('input_select.garage_learn_facing') }}"
+          arg: >-
+            {% if car == 'empty' %}--learn-empty {{ slot }}{% else %}--learn-sig {{ slot }}={{ car }}{{ ':inside' if face == 'inside' else '' }}{% endif %}
+      - action: camera.snapshot
+        target:
+          entity_id: camera.g6_instant_high_resolution_channel
+        data:
+          filename: /config/www/snap/garage_cur.jpg
+      - delay: "00:00:00.5"
+      - action: shell_command.garage_car_learn
+        data:
+          arg: "{{ arg }}"
+        response_variable: r
+      - variables:
+          ok: "{{ r is mapping and r.get('returncode', 1) == 0 and 'learned' in (r.get('stdout') or '') }}"
+      - if: "{{ ok }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: "input_select.garage_slot_{{ slot }}"
+            data:
+              option: "{{ car if car != 'empty' else 'empty' }}"
+          - action: input_select.select_option
+            target:
+              entity_id: "input_select.garage_facing_{{ slot }}"
+            data:
+              option: "{{ face if car != 'empty' else 'unknown' }}"
+      - action: script.notify_dispatch
+        data:
+          level: info
+          line: false
+          source: 車庫車輛樣板學習AI
+          version: V4.2.5
+          title: "車庫樣板學習{{ '完成' if ok else '失敗' }}"
+          message: >-
+            {{ {'front': '前位', 'back': '後位'}[slot] }}：{{ '空位' if car == 'empty' else ({'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '房車', 'suv': '休旅車', 'motorcycle': '機車'}[car] ~ '（車頭' ~ ('朝內' if face == 'inside' else '朝鐵門') ~ '）') }}
+            {{ '' if ok else (r.get('stderr') or r.get('stdout') or '') if r is mapping else '' }}

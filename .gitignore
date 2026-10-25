@@ -65,3 +65,6 @@ oxwu/
 # TREM 預警客戶端的紀錄與 pid 檔
 trem_eew.log*
 .trem_eew.pid
+
+# 車庫畫面分析的執行期資料（樣板、基準幀、指標 CSV）
+garage_car/

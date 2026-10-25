@@ -1,0 +1,12 @@
+{
+  "_note": "座標為整張快照的比例 (x0,y0,x1,y1)；slots 的 front=前位(車位1，靠鐵門)、back=後位(車位2，內側)，對應 3D 平面圖 floorplan_src/furniture.yaml 的兩個 car。cable＝充電線區域（垂掛／拉向前位車／拍不到＝接後位車）。",
+  "wall": [0.35, 0.04, 0.50, 0.18],
+  "cable": [0.0, 0.25, 0.40, 0.62],
+  "slots": {
+    "front": {"body": [0.50, 0.17, 0.95, 0.80], "lights": [0.505, 0.39, 0.845, 0.55], "lights_reliable": true},
+    "back":  {"body": [0.00, 0.50, 0.49, 1.00], "lights": [0.50, 0.77, 0.64, 0.92], "lights_reliable": false}
+  },
+  "thresholds": {"lights_delta": 0.35, "shift_px": 3.0, "occupied_diff": 14.0, "identity_dist": 0.25, "cable_dist": 0.30},
+  "exposure_jump": 0.25,
+  "ref_refresh_sec": 300
+}

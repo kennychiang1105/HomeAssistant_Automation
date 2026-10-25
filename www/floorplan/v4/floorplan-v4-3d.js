@@ -841,7 +841,8 @@ class FloorplanV43D extends HTMLElement {
     };
 
     // modelled furniture
-    for (const f of fl.furniture || []) this._furniture(THREE, clearOf(f), fl, { box, cyl, M, lam, inner, edges, facing });
+    const cars = {};      // 綁定車位實體的車（車庫前／後位）：依實體狀態切換車種、有車／空位、車頭朝向
+    for (const f of fl.furniture || []) this._furniture(THREE, clearOf(f), fl, { box, cyl, M, lam, inner, edges, facing, cars });
 
     // light fixtures by name: recessed / ceiling panel / wall sconce / desk lamp / bedside lamp / floor lamp
     const fixtures = {};
@@ -1313,11 +1314,11 @@ class FloorplanV43D extends HTMLElement {
     // everything except the plan shell (slab, walls) and the light glow is "detail" and is hidden in the whole-house view
     const keep = new Set([plan, ...Object.values(decals)]);
     const detail = inner.children.filter((c) => !keep.has(c));
-    return { group, decals, doors, hinged, sensors, fixtures, chargers, aps, detail, fl, inner };
+    return { group, decals, doors, hinged, sensors, fixtures, chargers, cars, aps, detail, fl, inner };
   }
 
   // parametric furniture in plan coordinates (x/y = north-west corner, w along x, h along y)
-  _furniture(THREE, f, fl, { box, cyl, M, lam, inner, edges, facing }) {
+  _furniture(THREE, f, fl, { box, cyl, M, lam, inner, edges, facing, cars }) {
     const { x, y, w, h } = f;
     const onDesk = (fl.furniture || []).some((o) => ["desk", "table"].includes(o.type) && o !== f &&
       x >= o.x - 2 && y >= o.y - 2 && x + w <= o.x + o.w + 2 && y + h <= o.y + o.h + 2);
@@ -1535,6 +1536,80 @@ class FloorplanV43D extends HTMLElement {
           t.rotation.x = Math.PI / 2;
           t.position.set(X(fx), 6, side * (W / 2 - 0.5));
           g.add(t);
+        }
+        if (f.entity && cars) {
+          // 車位實體（input_select.garage_slot_*）：標籤、空位虛線框，狀態由 update 迴圈依 HA 實體切換
+          const cv = document.createElement("canvas"); cv.width = 512; cv.height = 128;
+          const c2 = cv.getContext("2d");
+          const tex = new THREE.CanvasTexture(cv);
+          const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+          spr.scale.set(120, 30, 1); spr.position.set(x + w / 2, 50, y + h / 2); spr.renderOrder = 10; inner.add(spr);
+          let lastKey = "";
+          const setLabel = (text, color) => {
+            const key = text + color; if (key === lastKey) return; lastKey = key;
+            c2.clearRect(0, 0, 512, 128);
+            c2.fillStyle = "rgba(255,255,255,0.92)";
+            c2.beginPath(); if (c2.roundRect) c2.roundRect(4, 6, 504, 116, 20); else c2.rect(4, 6, 504, 116); c2.fill();
+            c2.fillStyle = color; c2.textAlign = "center"; c2.textBaseline = "middle";
+            const ls = String(text).split("\n");
+            c2.font = "bold 36px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[0] || "", 256, ls[1] ? 40 : 64, 488);
+            if (ls[1]) { c2.font = "600 28px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[1], 256, 88, 488); }
+            tex.needsUpdate = true;
+          };
+          const gh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L, 20, W)), new THREE.LineBasicMaterial({ color: 0x9aa0a8 }));
+          gh.position.set(x + w / 2, 10, y + h / 2); gh.rotation.y = yaw; gh.visible = false; inner.add(gh);
+          // 車型：Tesla Model 3（原本那台）、Luxgen N7（休旅轎跑、貫穿式燈條）、房車／休旅車／機車（其他車輛）
+          const baseG = new THREE.Group(); g.add(baseG);
+          [...g.children].forEach((m) => { if (m !== baseG) baseG.add(m); });
+          const models = { tesla: { gr: baseG, paint } };
+          const mkModel = (kind, color) => {
+            const gr = new THREE.Group(); gr.visible = false; g.add(gr);
+            const pm = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05 });
+            models[kind] = { gr, paint: pm }; return { gr, pm };
+          };
+          const extT = (gr, draw, depth, mat, bevel) => {
+            const sh = new THREE.Shape(); draw(sh);
+            const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 8 });
+            geo.translate(0, 0, -depth / 2); const m = new THREE.Mesh(geo, mat); gr.add(m); return m;
+          };
+          const tyresT = (gr, xs, r, wd) => {
+            for (const fx of xs) for (const side of [-1, 1]) {
+              const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 4, 20), tyreM);
+              t.rotation.x = Math.PI / 2; t.position.set(X(fx), r, side * (wd / 2 - 0.5)); gr.add(t);
+            }
+          };
+          { // Luxgen N7
+            const { gr, pm } = mkModel("luxgen", 0xeceef1);
+            extT(gr, (sh) => { sh.moveTo(X(-0.48), 5); sh.lineTo(X(0.47), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 12.5); sh.quadraticCurveTo(X(0.34), 14.6, X(0.16), 15); sh.lineTo(X(-0.4), 16); sh.quadraticCurveTo(X(-0.52), 13.5, X(-0.48), 5); }, W - 6, pm, 3);
+            extT(gr, (sh) => { sh.moveTo(X(0.17), 14.6); sh.quadraticCurveTo(X(0.05), 26, X(-0.12), 26.6); sh.quadraticCurveTo(X(-0.34), 25.5, X(-0.47), 16.2); sh.lineTo(X(0.17), 14.6); }, W - 12, glassM, 2.2);
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, W - 16), new THREE.MeshBasicMaterial({ color: 0xdfe9ff })); bar.position.set(X(0.5), 11.5, 0); gr.add(bar);
+            const skirt = new THREE.Mesh(new THREE.BoxGeometry(L * 0.96, 2.2, W - 5.5), M(0x1d1f23)); skirt.position.set(0, 5.6, 0); gr.add(skirt);
+            tyresT(gr, [-0.31, 0.32], 6.8, W);
+          }
+          { // 其他：房車（三廂）
+            const { gr, pm } = mkModel("sedan", 0xa7b0ba);
+            extT(gr, (sh) => { sh.moveTo(X(-0.49), 4.5); sh.lineTo(X(0.49), 4.5); sh.quadraticCurveTo(X(0.53), 8, X(0.47), 10.5); sh.lineTo(X(0.2), 12); sh.lineTo(X(-0.3), 12.4); sh.lineTo(X(-0.49), 12); sh.lineTo(X(-0.49), 4.5); }, W - 6, pm, 2.5);
+            extT(gr, (sh) => { sh.moveTo(X(0.16), 12); sh.lineTo(X(0.04), 19.5); sh.lineTo(X(-0.2), 19.7); sh.lineTo(X(-0.3), 12.2); sh.lineTo(X(0.16), 12); }, W - 14, glassM, 2);
+            tyresT(gr, [-0.31, 0.32], 6, W);
+          }
+          { // 其他：休旅車（方正、車頂高）
+            const { gr, pm } = mkModel("suv", 0x8b98a6);
+            extT(gr, (sh) => { sh.moveTo(X(-0.49), 5); sh.lineTo(X(0.49), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 13); sh.lineTo(X(0.22), 14.2); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(-0.49), 5); }, W - 6, pm, 2.5);
+            extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 26); sh.lineTo(X(-0.47), 26); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
+            tyresT(gr, [-0.31, 0.32], 7, W);
+          }
+          { // 其他：機車（比汽車短，雙輪＋龍頭）
+            const { gr, pm } = mkModel("moto", 0x3d4b5c);
+            const ML = L * 0.45, dark = M(0x23262b);
+            for (const fx of [-0.38, 0.38]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 3, 20), tyreM); t.rotation.x = Math.PI / 2; t.position.set(ML * fx, 7, 0); gr.add(t); }
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.55, 3, 4), dark); frame.position.set(0, 10, 0); gr.add(frame);
+            const tank = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.22, 5, 7), pm); tank.position.set(ML * 0.08, 14, 0); gr.add(tank);
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.26, 2.5, 6.5), dark); seat.position.set(-ML * 0.17, 13.5, 0); gr.add(seat);
+            const fork = new THREE.Mesh(new THREE.BoxGeometry(1.5, 13, 1.5), dark); fork.position.set(ML * 0.36, 14, 0); fork.rotation.z = -0.25; gr.add(fork);
+            const bars = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 22), dark); bars.position.set(ML * 0.33, 21, 0); gr.add(bars);
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
+          }
+          cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, models };
         }
         break;
       }
@@ -2616,6 +2691,30 @@ class FloorplanV43D extends HTMLElement {
         ch.cabHang.visible = !show || !ch.curve;
         ch.flowing = ci.key === "charging" && !!ch.curve;
         for (const p of ch.pulses) p.visible = ch.flowing;
+      }
+      for (const [eid, c] of Object.entries(g.cars || {})) {
+        const slot = st[eid]?.state || "unknown";
+        const facingSt = c.f.facing_entity ? (st[c.f.facing_entity]?.state || "unknown") : "unknown";
+        const CARS = { luxgen_n7: ["Luxgen N7 (EAK8030)", "luxgen"], tesla_model3: ["Tesla Model 3 (EBH8030)", "tesla"], sedan: ["房車", "sedan"], suv: ["休旅車", "suv"], motorcycle: ["機車", "moto"] };
+        const info = CARS[slot], isEmpty = slot === "empty", inside = facingSt === "inside", unk = !info && !isEmpty;
+        const kind = info ? info[1] : "tesla";                    // 認不出是哪種車：半透明的通用車模
+        c.g.visible = !isEmpty; c.ghost.visible = isEmpty;
+        for (const [k, m] of Object.entries(c.models || {})) {
+          m.gr.visible = k === kind;
+          m.paint.transparent = unk; m.paint.opacity = unk ? 0.5 : 1;
+        }
+        c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xb7bec8 : 0xd3d6db);
+        c.g.rotation.y = c.baseYaw + (inside ? Math.PI : 0);      // 車頭朝內（倒車入庫）＝車模轉 180°
+        const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !!info;
+        for (const m of Object.values(c.models || {})) m.paint.emissive.setHex(dep ? 0x7a4a00 : 0x000000);
+        const away = ["luxgen_n7", "tesla_model3"].filter((k) => !Object.values(g.cars).some((o) => (st[o.f.entity]?.state) === k)).map((k) => CARS[k][0]);
+        const pos = c.f.slot_name || "";
+        const faceTxt = facingSt === "inside" ? "車頭朝內" : facingSt === "door" ? "車頭朝鐵門" : "";
+        const chgSlot = st["input_select.garage_charging_slot"]?.state;
+        const chg = !isEmpty && chgSlot && eid.endsWith("_" + chgSlot);      // 充電樁判斷（功率比例＋充電線）這個車位的車正在充電
+        const text = isEmpty ? `${pos}｜空位${away.length ? "\n" + away.join("、") + " 不在" : ""}`
+          : `${info ? info[0] : "車輛（未辨識）"}\n${pos}${faceTxt ? "｜" + faceTxt : ""}${chg ? "｜⚡充電中" : ""}${dep ? "｜準備出門" : ""}`;
+        c.setLabel(text, dep ? "#d9730d" : isEmpty ? "#6b7078" : "#1d1d1f");
       }
       for (const [eid, mat] of Object.entries(g.fixtures || {})) {
         const s = st[eid], on = s?.state === "on", a = s?.attributes || {};

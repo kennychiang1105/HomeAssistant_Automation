@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────
+# 104-5車輛準備出門偵測AI (V4.2.5)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.2.5：新增。定時（平常每分鐘、有人／鐵門開著／出去可能性高時每 15 秒）呼叫 script.garage_car_watch_run 分析車庫畫面，
+#           更新前／後位車輛（Luxgen N7／Tesla Model 3）與車頭朝向，並判斷哪輛車準備出門。細節見 packages/v42_garage_cars.yaml。
+#   - 104-5：定時分析；104-5B：準備出門旗標超時復歸；104-5C：面板「學習」按鈕。
+# ─────────────────────────────────────────────────────────────
+- alias: 104-5車輛準備出門偵測AI (V4.2.5)
+  id: ai_104_5_garage_depart_watch
+  description: 定時分析車庫畫面（車位、車種、車頭朝向、車燈、位移），判斷車輛準備出門。
+  mode: single
+  max_exceeded: silent
+  variables:
+    automation_version: "V4.2.5"
+  triggers:
+    - trigger: time_pattern
+      seconds: "/15"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.garage_depart_watch_enable
+      state: "on"
+    # 快速模式（每 15 秒）：車庫有人、鐵門沒關好／剛動作、出去可能性偏高；其餘每分鐘一次
+    - condition: template
+      value_template: >-
+        {% set fast = is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
+                      or not is_state('cover.garage', 'closed')
+                      or states('sensor.garage_depart_likelihood') | float(0) >= 30 %}
+        {{ fast or now().second < 15 }}
+  actions:
+    - action: script.garage_car_watch_run
+
+- alias: 104-5B車輛準備出門旗標復歸AI (V4.2.5)
+  id: ai_104_5b_garage_depart_candidate_reset
+  description: 準備出門旗標超過 10 分鐘、或鐵門已開啟後 2 分鐘，自動復歸。
+  mode: restart
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.garage_depart_candidate
+      to: "on"
+      for: "00:10:00"
+      id: timeout
+    - trigger: state
+      entity_id: cover.garage
+      to: "open"
+      for: "00:02:00"
+      id: gate_open
+  conditions:
+    - condition: state
+      entity_id: input_boolean.garage_depart_candidate
+      state: "on"
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.garage_depart_candidate
+
+- alias: 104-5C車庫車輛樣板學習AI (V4.2.5)
+  id: ai_104_5c_garage_learn
+  description: 面板按下「學習」時，用現在的畫面把指定車位學成某輛車（含車頭朝向）或空位。
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: input_button.garage_learn_do
+  actions:
+    - action: script.garage_car_learn_apply
