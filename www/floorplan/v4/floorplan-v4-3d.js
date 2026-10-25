@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta9) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta10) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -379,7 +379,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta9</div>
+        <div class="ver">UI4.0-beta10</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -3228,10 +3228,13 @@ class FloorplanV4Sidebar extends HTMLElement {
         .cams button { display:flex; align-items:center; justify-content:center; gap:5px; border:0; border-radius:8px; padding:6px 4px;
                        background:rgba(79,195,247,.2); color:#1f9bd6; font:700 12px sans-serif; cursor:pointer; --mdc-icon-size:18px; }
         .cams button:active { filter:brightness(1.2); scale:.97; }
-        .compact.box { height:auto; padding:8px 10px 10px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px 8px; }
-        .compact.box.hasaq { grid-template-columns:1fr auto auto; }
+        .compact.box { height:auto; padding:8px 10px 10px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px 8px; }
+        .compact.box.hasaq { grid-template-columns:minmax(0,1fr) auto auto; }
         .compact .top, .compact .date { grid-column:1; } .compact .top { flex-wrap:nowrap; gap:4px; }
-        .compact .time { font-size:26px; } .compact .date { margin:0; font-size:11.5px; white-space:nowrap; }
+        .compact .time { font-size:26px; } .compact .date { margin:0; font-size:11.5px; white-space:normal; min-width:0; }
+        /* 手機版：節日名稱很長（例如「臺灣光復暨金門古寧頭大捷紀念日（補假）」）時在自己這一欄內換行，不要把右邊的天氣擠掉 */
+        .compact .dtag { white-space:normal; margin-left:0; max-width:100%; line-height:1.35; padding:2px 8px; word-break:break-all; }
+        .compact .date > span:first-child { margin-right:6px; }
         .compact .wx { grid-column:2; grid-row:1 / span 2; padding:5px 8px; align-self:stretch; gap:6px; --mdc-icon-size:24px; }
         .compact .wx .t { font-size:20px; } .compact .wx .c { font-size:10.5px; }
         .compact .aq { grid-column:3; grid-row:1 / span 2; align-self:stretch; flex-direction:row; justify-content:flex-start; align-items:center; text-align:left; gap:5px; padding:5px 8px; margin:0; --mdc-icon-size:24px; }
