@@ -79,12 +79,19 @@ def handle(items, seen):
             if e.get('status') == 3:
                 continue
             lv, arrive, r = estimate(eq)
+            # 串流剛連上時可能還帶著已經過去的舊預警（發生超過 3 分鐘、或 S 波早就過了）：不通知，以免誤報
+            if now - float(eq['time']) / 1000.0 > 180 or arrive < now - 20:
+                if eid not in seen:
+                    seen[eid] = 99
+                    log('EEW %s 已過時，略過（發生 %d 秒前）' % (eid, now - float(eq['time']) / 1000.0))
+                continue
             sent = seen.get(eid, -1)
             if lv >= MIN_LEVEL and lv > sent:
                 secs = max(0, int(arrive - now))
-                ok = post({'source': 'TREM', 'level': str(lv), 'seconds': str(secs), 'timestamp': str(int(arrive)),
+                ok = (not os.path.exists('/config/oxwu/dry_run')) and post({'source': 'TREM', 'level': str(lv), 'seconds': str(secs), 'timestamp': str(int(arrive)),
                            'loc': eq.get('loc', ''), 'mag': eq.get('mag'), 'depth': eq.get('depth'), 'lat': eq.get('lat'),
-                           'lon': eq.get('lon'), 'id': eid, 'serial': e.get('serial')})
+                           'lon': eq.get('lon'), 'id': eid, 'serial': e.get('serial'),
+                           'dry': 1 if os.path.exists('/config/oxwu/dry_run') else 0})
                 log('EEW %s #%s M%s %s -> 竹南 預估%s級 %s秒 (R=%.0fkm) post=%s' % (eid, e.get('serial'), eq.get('mag'), eq.get('loc'), lv, secs, r, ok))
                 seen[eid] = lv
             elif eid not in seen:

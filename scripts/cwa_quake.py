@@ -4,7 +4,7 @@
 用法：cwa_quake.py <預警時間 epoch> <容許分鐘> <圖片輸出資料夾> <圖片網址前綴>
 輸出：一行 JSON；ok=true 時含 time／epicenter／lat／lon／mag／depth／max_int／areas／report_img／shake_img，否則 ok=false 與 reason。
 """
-import sys, json, re, os, glob, time, random, datetime, ssl, urllib.request, urllib.parse
+import sys, json, re, os, glob, time, random, datetime, ssl, struct, urllib.request, urllib.parse
 
 SECRETS = '/config/secrets.yaml'
 DATASETS = ['E-A0015-001', 'E-A0016-001']
@@ -51,6 +51,18 @@ def origin_epoch(e):
 def rank(s):
     m = re.search(r'(\d)\s*(弱|強)?', str(s))
     return (int(m.group(1)) + (0.5 if m.group(2) == '強' else 0)) if m else -1
+
+
+def png_ratio(path):
+    try:
+        with open(path, 'rb') as f:
+            h = f.read(24)
+        if h[:8] == b'\x89PNG\r\n\x1a\n':
+            w, hh = struct.unpack('>II', h[16:24])
+            return '%d:%d' % (w, hh) if w and hh and 1 / 3 <= w / hh <= 3 else ''
+    except OSError:
+        pass
+    return ''
 
 
 def download(url, outdir, prefix, tag):
@@ -105,16 +117,18 @@ def main():
             cities[c] = str(v)
     areas = sorted(cities.items(), key=lambda kv: -rank(kv[1]))
     tag = datetime.datetime.fromtimestamp(o, TW).strftime('%m%d%H%M')
+    ri = download(e.get('ReportImageURI'), outdir, prefix, tag + 'r')
+    si = download(e.get('ShakemapImageURI'), outdir, prefix, tag + 's')
     out({'ok': True,
          'time': datetime.datetime.fromtimestamp(o, TW).strftime('%m/%d %H:%M:%S'),
-         'epicenter': epi.get('Location') or epi.get('EpicenterLocation') or info.get('EpicenterLocation') or '',
+         'epicenter': re.sub(r'\s+', '', epi.get('Location') or epi.get('EpicenterLocation') or info.get('EpicenterLocation') or ''),
          'lat': epi.get('EpicenterLatitude'), 'lon': epi.get('EpicenterLongitude'),
          'mag': mag, 'depth': info.get('FocalDepth'),
          'max_int': areas[0][1] if areas else '',
          'areas': [{'county': c, 'int': v} for c, v in areas[:6]],
          'content': e.get('ReportContent') or '',
-         'report_img': download(e.get('ReportImageURI'), outdir, prefix, tag + 'r'),
-         'shake_img': download(e.get('ShakemapImageURI'), outdir, prefix, tag + 's')})
+         'report_img': ri, 'report_ratio': png_ratio(os.path.join(outdir, ri.rsplit('/', 1)[-1])) if ri else '',
+         'shake_img': si, 'shake_ratio': png_ratio(os.path.join(outdir, si.rsplit('/', 1)[-1])) if si else ''})
 
 
 main()

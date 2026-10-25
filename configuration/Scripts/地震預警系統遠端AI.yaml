@@ -35,7 +35,7 @@
       prev_src: "{{ states('input_text.eew_last_info').split('|')[0] if '|' in states('input_text.eew_last_info') else '' }}"
       is_dup: "{{ gap | float(999999) < (states('input_number.eew_dedupe_window_sec') | float(150)) and not (lv | int(0) >= 3 and lv | int(0) >= prev_lv | int(0) + 2) }}"
   # 來源有給震央資料（TREM：地名、規模、深度）就記下來，截圖卡會附上；重複來源也先記（不需要是最快的）
-  - if: "{{ eq_loc is defined and eq_loc }}"
+  - if: "{{ eq_loc is defined and (eq_loc | string | length > 0) }}"
     then:
       - action: input_text.set_value
         target:

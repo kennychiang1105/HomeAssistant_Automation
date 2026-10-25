@@ -69,18 +69,22 @@ script:
       file:
         description: 檔名（snap_eew_*.jpg，位於 /config/www/snap/）
         required: true
+      test:
+        description: true＝測試模式：不檢查 eq99 時間、不發 LINE（只發 HA 通知）
+        required: false
     variables:
+      is_test: "{{ test is defined and test in [true, 'true', 'True', 1, '1'] }}"
       fname: "{{ (file | default('') | string | regex_replace('[^A-Za-z0-9_.-]', '')) }}"
       since: "{{ now().timestamp() - as_timestamp(state_attr('script.eq99', 'last_triggered'), 0) }}"
       lv_i: "{{ states('input_text.line_eew_remote_level') | regex_findall('\\d+') | join('') | int(0) }}"
       sec: "{{ states('input_text.line_eew_remote_seconds') }}"
-      line_ok: "{{ lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
+      line_ok: "{{ (not is_test) and lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
     sequence:
       - condition: state
         entity_id: input_boolean.eew_extra_enable
         state: 'on'
       - condition: template
-        value_template: "{{ fname | regex_match('^snap_eew_') and 0 <= since <= 180 }}"
+        value_template: "{{ fname | regex_match('^snap_eew_') and (is_test or 0 <= since <= 180) }}"
       - action: script.notify_dispatch
         data:
           level: general
@@ -90,8 +94,9 @@ script:
           version: "V4.2.3"
           title: 地牛預警畫面
           image: "https://family.kteam.tw:8126/local/snap/{{ fname }}"
+          image_ratio: "1008:684"
           message: |-
-            地牛 Wake Up 預警畫面（預估震度 {{ lv_i }} 級，約 {{ sec }} 秒後到達）。
+            {% if is_test %}【測試】{% endif %}地牛 Wake Up 預警畫面（預估震度 {{ lv_i }} 級，約 {{ sec }} 秒後到達）。
             地圖上可看到震央與各地預估震度。
             {% set ex = states('input_text.eew_last_extra').split('|') %}{% if ex | length >= 4 and ex[0] %}預估震央：{{ ex[0] }}　規模 {{ ex[1] }}　深度 {{ ex[2] }} 公里（{{ ex[3] }}）{% endif %}
   eew_detail_followup:
@@ -105,18 +110,24 @@ script:
       t0:
         description: 預警觸發時間（epoch 秒，省略＝現在）
         required: false
+      test:
+        description: true＝測試模式：只查一次、不等 60 秒、不發 LINE（只發 HA 通知）
+        required: false
     variables:
+      is_test: "{{ test is defined and test in [true, 'true', 'True', 1, '1'] }}"
       lv_i: "{{ lv | int(0) if lv is defined else 0 }}"
       t0_f: "{{ (t0 | float(0)) if (t0 is defined and t0) else now().timestamp() }}"
-      line_ok: "{{ lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
+      line_ok: "{{ (not is_test) and lv_i >= (states('input_number.eew_line_min_level') | int(3)) }}"
     sequence:
       - condition: state
         entity_id: input_boolean.eew_extra_enable
         state: 'on'
       - repeat:
-          count: 10
+          count: "{{ 1 if is_test else 10 }}"
           sequence:
-            - delay: "00:01:00"
+            - if: "{{ not is_test }}"
+              then:
+                - delay: "00:01:00"
             - action: shell_command.cwa_quake
               data:
                 t: "{{ t0_f }}"
@@ -143,10 +154,11 @@ script:
                     version: "V4.2.3"
                     title: 地震詳情
                     image: "{{ res.get('report_img', '') }}"
-                    link_url: "{{ res.get('shake_img', '') }}"
-                    link_label: 查看震度分布圖
+                    image_ratio: "{{ res.get('report_ratio', '') }}"
+                    image2: "{{ res.get('shake_img', '') }}"
+                    image2_ratio: "{{ res.get('shake_ratio', '') }}"
                     message: |-
-                      氣象署地震報告（發生時間 {{ res.time }}）
+                      {% if is_test %}【測試】{% endif %}氣象署地震報告（發生時間 {{ res.time }}）
                       震央：{{ res.epicenter }}{% if res.lat and res.lon %}（北緯 {{ res.lat }}°、東經 {{ res.lon }}°）{% endif %}
 
                       規模：{{ res.mag }}　深度：{{ res.depth }} 公里

@@ -38,6 +38,24 @@
                   data:
                     datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
                 - stop: "心跳"
+            - variables:
+                lvn: "{{ trigger.json.level | default('0') | string | regex_findall('\\d+') | join('') | int(0) }}"
+            # 測試模式（/config/oxwu/dry_run 存在時 notify.sh 與 TREM 客戶端會帶 dry）：只記錄，不啟動 eq99
+            - if: "{{ (trigger.json.dry | default(0) | string | regex_findall('\\d+') | join('') | int(0)) > 0 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 預警接收AI
+                    message: "測試模式：{{ trigger.json.source | default('?') }} 預警 預估 {{ lvn }} 級 {{ trigger.json.seconds | default('?') }} 秒（沒有啟動 eq99）"
+                - stop: "測試模式"
+            # 預估震度讀不到（參數格式不符）就不要拿 0 級去啟動預警
+            - if: "{{ lvn < 1 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 預警接收AI
+                    message: "忽略預警：讀不到預估震度（payload：{{ trigger.json | tojson }}）"
+                - stop: "沒有預估震度"
             - action: script.turn_on
               target:
                 entity_id: script.eq99
@@ -60,3 +78,4 @@
               data:
                 variables:
                   file: "{{ trigger.json.file | default('') }}"
+                  test: "{{ trigger.json.dry | default(0) }}"

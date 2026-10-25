@@ -2,6 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-25）：notify_dispatch 新增選填 image_ratio／image2_ratio（寬:高）；有給就完整顯示不裁切（地牛截圖、氣象署報告圖用），沒給維持原本 16:9 填滿。
 # - V4.2.3（2026-10-24）：晚安情境（input_boolean.aqara_wan_an）或頂樓熟睡中（input_boolean.sleep_silent_active）時，非緊急（一般／重要）廣播所有喇叭都不播（整則略過）；緊急等級照常；force 欄位（手動廣播用）可強制播；情境廣播（kind: scene，含晚安情境完成播報）不受影響。
 # - V4.2.3：廣播音效依「類別」區分並補上配對的結束音（SOP-21）：announce 新增 kind／end_chime／end_media 欄位與 kinds 對照表；緊急等級預設不再用地震預警音（改 emergency）；合成成功時結束音一併合成進單一音檔，合成失敗／非合成路徑則在語音後另外播放；input_boolean.announce_end_chime_off（預設關＝有結束音）打開可整體關閉結束音。
 # - V4.0.0：新增 announce_volume_guard：廣播腳本遇到 HomePod 逾時中斷時，等所有廣播結束後把音量恢復成第一次廣播前的值。
@@ -71,6 +72,12 @@ notify_dispatch:
     icon:
       description: 卡片標題色塊左側的圖示（https 圖片網址，PNG）
       required: false
+    image_ratio:
+      description: 卡片大圖的寬:高（例如 1008:684）；有給就完整顯示不裁切（aspectMode fit），沒給維持 16:9 填滿裁切
+      required: false
+    image2_ratio:
+      description: 第二張圖的寬:高；有給就完整顯示不裁切
+      required: false
     image2:
       description: 第二張圖（卡片內文標題下方，例如第二台攝影機截圖；https 圖片網址，選填）
       required: false
@@ -123,7 +130,7 @@ notify_dispatch:
       {% set sig = title_c ~ ' ' ~ src ~ ' ' ~ head_line %}
       {% if sig | regex_search('門鈴') %}doorbell{% elif sig | regex_search('車牌|Tesla|充電') %}car{% elif sig | regex_search('鐵門|車庫') %}gate{% elif sig | regex_search('門鎖') %}lock{% elif sig | regex_search('電量|電池|耗材') %}battery{% elif sig | regex_search('地震|災害|疏散|海嘯') %}quake{% elif sig | regex_search('天氣|豪雨|颱風|大雨') %}weather{% elif sig | regex_search('保全|警報|入侵') %}shield{% elif sig | regex_search('離家|到家|早安|晚安|情境') %}home{% elif sig | regex_search('風扇') %}fan{% elif sig | regex_search('空氣|PM') %}air{% elif sig | regex_search('網關|網路|Wi-Fi|斷線|離線') %}network{% elif sig | regex_search('更新|版本') %}update{% elif sig | regex_search('Bot|LINE|額度') %}chat{% elif lv == 'info' or lv == 'general' %}info{% else %}alarm{% endif %}
     icon_final: "{{ icon if (icon is defined and icon) else ('https://family.kteam.tw:8126/local/icons/' ~ icon_auto | trim ~ '.png?v=2') }}"
-    hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': '16:9', 'aspectMode': 'cover'}} if (image is defined and image) else {} }}"
+    hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': (image_ratio if (image_ratio is defined and image_ratio) else '16:9'), 'aspectMode': ('fit' if (image_ratio is defined and image_ratio) else 'cover')}} if (image is defined and image) else {} }}"
     url: "{{ message | regex_findall('https?://[^ \\n]+') | first | default('', true) }}"
     detail_line: >-
       {% set ns = namespace(o=[]) %}{% for l in lines[1:] %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | join('\n') | trim }}
@@ -185,7 +192,7 @@ notify_dispatch:
                     "type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "paddingTop": "20px",
                     "contents": (((sp | from_json([]))[:1] + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] + (sp | from_json([]))[1:]) if sp != '' else ([
                       {"type": "text", "text": title_c, "weight": "bold", "size": "md", "wrap": true, "lineSpacing": "4px"}, {"type": "separator", "margin": "lg", "color": "#E5E7EB"}
-                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover", "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
+                    ] + ([{"type": "image", "url": image2, "size": "full", "aspectRatio": (image2_ratio if (image2_ratio is defined and image2_ratio) else "16:9"), "aspectMode": ("fit" if (image2_ratio is defined and image2_ratio) else "cover"), "margin": "md"}] if (image2 is defined and image2) else []) + (flex_rows(body_lines, 'https://family.kteam.tw:8126/local/icons/b/') | from_json([]))))},
                   "footer": {
                     "type": "box", "layout": "vertical", "paddingAll": "12px", "backgroundColor": "#F5F6F8",
                     "contents": ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": "開啟連結", "uri": url}}] if url else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (lk_label if lk_label else "開啟連結"), "uri": lk_url}}] if lk_url else []) + ([{"type": "text", "text": lk_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center", "margin": "sm", "lineSpacing": "3px"}] if (lk_url and lk_note) else []) + ([{"type": "button", "style": "link", "height": "sm", "action": {"type": "uri", "label": (link2_label if (link2_label is defined and link2_label) else "開啟連結"), "uri": link2_url}}] if (link2_url is defined and link2_url) else []) + ([{"type": "text", "text": link2_note, "size": "xxs", "color": "#9CA3AF", "wrap": true, "align": "center"}] if (link2_url is defined and link2_url and link2_note is defined and link2_note) else []) + (([{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] if (url or lk_url or (link2_url is defined and link2_url)) else []) + [{"type": "text", "text": src ~ ' ・ ' ~ stamp, "size": "xxs", "color": "#9CA3AF", "wrap": true, "margin": ("md" if (url or lk_url or (link2_url is defined and link2_url)) else "sm")}])}
