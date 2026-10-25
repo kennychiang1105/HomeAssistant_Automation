@@ -2,7 +2,7 @@
 # 104-4車庫回家通知系統AI (V4.1.5)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
-# - V4.1.6（2026-10-26）：「有人即將到家」廣播在 Kenny 人在五樓房間睡覺時（22:00–09:00 或晚安情境／熟睡鎖開啟）不播頂樓 HomePod 與頂樓攝影機喇叭，其餘喇叭照播。
+# - V4.1.6（2026-10-26）：「有人即將到家」廣播在 Kenny 人在五樓房間睡覺時（晚安情境或熟睡鎖開啟）不播頂樓 HomePod 與頂樓攝影機喇叭，其餘喇叭照播。
 # - V4.1.5（2026-10-11）：人走進車庫再開鐵門被誤報成「有人即將到家」（17:56 實例：攝影機 17:56:14 偵測到人、Wi-Fi 17:56:23 才變有人、17:56:54 開門，兩者都不到 2 分鐘）。車庫攝影機現在只要偵測到人（不論多久）、或 60 秒內才剛變成沒人，就不通知；Wi-Fi 的「超過 2 分鐘才算」規則不變（開車回家時手機剛連上 Wi-Fi 仍會通知）。
 # - V4.1.5（2026-10-11）：修正「人在車庫用遙控器開門」被誤報成「有人即將到家」。車庫 Wi-Fi 在家判斷在手機換 AP（漫遊）時會短暫掉線約 30 秒，剛好在這段時間開門，
 #           加上攝影機剛看到人不到 2 分鐘（寬限期）就被放行。現在 Wi-Fi 判斷「剛掉線不到 2 分鐘」也視為車庫有人而不通知；真正到家時手機掉線已久（超過 2 分鐘）才會連上，仍會通知。
@@ -88,10 +88,10 @@
       data:
         level: important
         # 播放對象：客廳 HomePod、車庫攝影機喇叭（原「廣播群組重要」成員）＋頂樓 HomePod、頂樓（五樓）攝影機喇叭
-        # V4.1.6：Kenny 人在五樓房間且是睡覺時段（22:00–09:00）或晚安情境中，不播頂樓 HomePod 與頂樓攝影機喇叭（不吵醒）
+        # V4.1.6：Kenny 人在五樓房間且晚安情境或熟睡鎖開啟中，不播頂樓 HomePod 與頂樓攝影機喇叭（不吵醒）
         player: >-
           {% set base = ['media_player.ke_ting_homepod', 'media_player.che_ku_she_ying_ji_speaker'] %}
-          {% set sleeping5 = states('sensor.at_home_kenny_location') == '頂樓Kenny房間' and (now().hour >= 22 or now().hour < 9 or is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) %}
+          {% set sleeping5 = states('sensor.at_home_kenny_location') == '頂樓Kenny房間' and (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) %}
           {{ base if sleeping5 else base + ['media_player.ding_lou_homepod', 'media_player.wu_lou_she_ying_ji_speaker'] }}
         # 提示音只播一次，語音念兩次（同一句寫兩遍；不用 repeat_count，否則提示音也會重複）
         message: 有人即將到家，車庫鐵門正在打開。有人即將到家，車庫鐵門正在打開。
