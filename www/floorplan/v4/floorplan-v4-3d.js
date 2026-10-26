@@ -3252,6 +3252,10 @@ class FloorplanV4Sidebar extends HTMLElement {
         .dtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:9px; font:600 12px sans-serif; line-height:1.5;
                 color:var(--primary-text-color); background:rgba(120,120,128,.14); }
         .dtag.red { color:#e53935; background:rgba(229,57,53,.12); }
+        .dtag, .ntag { cursor:pointer; }
+        .dtag:not(.full) { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .dtag.full { white-space:normal; line-height:1.35; }
+        .narrow .top.dayfull { flex-wrap:wrap; } .narrow .ntag.full { white-space:normal; flex:1 1 100%; line-height:1.35; }
         .ntag { display:none; } .narrow .ntag { display:inline-block; margin:0; padding:1px 6px; font-size:11px; align-self:center; flex:none; white-space:nowrap; }
         /* narrow sidebar (e.g. iPad mini landscape): day tag stays to the right of the clock, seconds a little smaller; if it still does not fit
            _fit() steps the clock / tag down (fit1, fit2) until everything is visible on one line */
@@ -3432,10 +3436,29 @@ class FloorplanV4Sidebar extends HTMLElement {
     const s = this._hass?.states?.[this._cfg?.day_label || "sensor.tw_day_label"];
     if (s && s.attributes?.date === ymd && !["unavailable", "unknown", ""].includes(s.state)) {
       const k = s.attributes.kind;
-      return { text: s.state, red: k === "holiday" || k === "weekend" };
+      return { text: this._dayShort(s.state), full: s.state, red: k === "holiday" || k === "weekend" };
     }
     const we = n.getDay() === 0 || n.getDay() === 6;
-    return { text: we ? "週末" : "工作日", red: we };
+    return { text: we ? "週末" : "工作日", full: we ? "週末" : "工作日", red: we };
+  }
+  // 節日名稱太長會把版面撐壞（例如「臺灣光復暨金門古寧頭大捷紀念日（補假）」）：常見的長名稱換成通用簡稱，
+  // 其他超過 8 個字的截短加「…」；點一下標籤會展開完整名稱（8 秒後自動收回）
+  _dayShort(text) {
+    const MAP = [[/[臺台]灣光復暨金門古寧頭大捷紀念日/, "台灣光復節"], [/中華民國開國紀念日/, "元旦"]];
+    return String(text).split("・").map((seg) => {
+      const m = seg.match(/^(.*?)(（[^）]*）)?$/);
+      let base = (m ? m[1] : seg).trim();
+      const suf = m && m[2] ? m[2] : "";
+      for (const [re, s] of MAP) if (re.test(base)) { base = s; break; }
+      if ([...base].length > 8) base = [...base].slice(0, 7).join("") + "…";
+      return base + suf;
+    }).join("・");
+  }
+  _toggleDay() {
+    this._dayFull = !this._dayFull;
+    clearTimeout(this._dayT);
+    if (this._dayFull) this._dayT = setTimeout(() => { this._dayFull = false; this._updFn?.(); }, 8000);
+    this._updFn?.();
   }
   // narrow layout: make the clock + day tag fit on one line (try normal, then fit1, then fit2)
   _fit() {
@@ -3457,12 +3480,20 @@ class FloorplanV4Sidebar extends HTMLElement {
       if (t.innerHTML !== html) t.innerHTML = html;
       const ds = n.toLocaleDateString("zh-TW", { month: "long", day: "numeric", weekday: "long" });
       const di = this._dayInfo(n);
-      const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}">${esc(di.text)}</span>`;
+      const shown = this._dayFull ? di.full : di.text;
+      const dhtml = `<span>${esc(ds)}</span><span class="dtag${di.red ? " red" : ""}${this._dayFull ? " full" : ""}" title="${esc(di.full)}">${esc(shown)}</span>`;
       if (d.dataset.h !== dhtml) { d.innerHTML = dhtml; d.dataset.h = dhtml; }
-      if (nt && (nt.textContent !== di.text || nt.classList.contains("red") !== di.red)) { nt.textContent = di.text; nt.title = di.text; nt.classList.toggle("red", di.red); this._fit(); }
+      const topEl = this.shadowRoot.querySelector(".top");
+      if (topEl) topEl.classList.toggle("dayfull", !!this._dayFull);
+      if (nt && (nt.textContent !== shown || nt.classList.contains("red") !== di.red || nt.classList.contains("full") !== !!this._dayFull)) { nt.textContent = shown; nt.title = di.full; nt.classList.toggle("red", di.red); nt.classList.toggle("full", !!this._dayFull); this._fit(); }
       if (n.getSeconds() === 0) this._fit();                                // re-check once a minute (digit widths change)
     };
     this._updFn = upd;
+    if (!this._dayBound) {                                                  // 點一下節日標籤：展開／收回完整名稱
+      this._dayBound = true;
+      d.addEventListener("click", (e) => { if (e.target.closest?.(".dtag")) this._toggleDay(); });
+      if (nt) nt.addEventListener("click", () => this._toggleDay());
+    }
     upd();
     clearInterval(this._iv);
     clearTimeout(this._ivAlign);
