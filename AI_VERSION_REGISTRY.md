@@ -65,7 +65,7 @@
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V4.3.0) / 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` / `ai_08_5h_topfloor_sleep_lock_manager` | `V4.3.0` / `V4.2.1` |
 | `configuration/Automations/08-5J頂樓動線推理AI.yaml` | `08-5J頂樓動線推理AI (V4.2.2) / 08-5J頂樓感應週報 (V4.1.5)` | `ai_08_5j_topfloor_path_inference` / `ai_08_5j_topfloor_weekly_report` | `V4.2.2` / `V4.1.5` |
 | `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0) / 08-5K頂樓開機狀態自癒檢查AI (V4.2.2)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` / `ai_08_5k_topfloor_reconcile_on_start` | `V4.0.0` / `V4.0.0` / `V4.0.0` / `V4.2.2` |
-| `configuration/Automations/08-5L頂樓情境廣播AI.yaml` | `08-5L頂樓情境廣播AI (V4.3.0)` | `ai_08_5l_topfloor_scene_announce` | `V4.3.0` |
+| `configuration/Automations/08-5L頂樓情境廣播AI.yaml` | `08-5L頂樓情境廣播AI (V4.3.1)` | `ai_08_5l_topfloor_scene_announce` | `V4.3.1` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V4.0.0)` | `ai_away_security_system` | `V4.0.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V4.2.2)` | `ai_08_7a_auto_goodnight_scene` | `V4.2.2` |
 | `configuration/Automations/08-7C入侵偵測訊號收集AI.yaml` | `08-7C入侵偵測訊號收集AI (V4.1.6)` | `ai_08_7c_intrusion_signal_collector` | `V4.1.6` |
