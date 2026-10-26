@@ -1,8 +1,10 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-2車牌辨識AI (V4.0.0)
+# 104-2車輛動態辨識系統AI (V4.3.0-beta 1)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.0-beta 1（2026-10-26，測試中）：「車牌辨識」升級為「車輛動態辨識系統AI」。駛出憑證改用車位影像分析（該車位由有車變空、104-5 準備出門旗標）與車牌，
+#           舊的車輛偵測／動作偵測只在影像分析關閉時採用；關門前緩衝改讀 input_number.lpr_close_buffer_sec；同一次開門去重；有人取消關門後等人離開再評估一次。正式版預計 V4.3.5。
 # - V4.2.5（2026-10-26）：駛出憑證改看車位影像分析（該車位由有車變空、準備出門旗標），車輛偵測開關／動作偵測只在影像分析關閉時才採用；
 #           關門前緩衝秒數改讀 input_number.lpr_close_buffer_sec（預設 45）；同一次開門去重；有人取消關門後等人離開再評估一次。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -14,7 +16,7 @@
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車牌辨識AI (V4.0.0)
+- alias: 104-2車輛動態辨識系統AI (V4.3.0-beta 1)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、EBH8030）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -42,7 +44,7 @@
       to: "open"
 
   variables:
-    automation_version: "V4.0.0"
+    automation_version: "V4.3.0-beta 1"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -121,7 +123,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車牌辨識AI (V4.0.0)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
                                 message: >-
@@ -142,7 +144,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車牌辨識AI (V4.0.0)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "ℹ️ LPR 事件通知 ({{ automation_version }})"
                                 message: >-
@@ -181,7 +183,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車牌辨識AI (V4.0.0)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: |-
@@ -251,7 +253,7 @@
                                               data:
                                                 level: info
                                                 line: false
-                                                source: "104-2車牌辨識AI (V4.0.0)"
+                                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                                 version: "{{ automation_version | default('', true) }}"
                                                 title: "⛔ 已取消自動關門 (車輛未駛出)"
                                                 message: |-
@@ -268,7 +270,7 @@
                                       data:
                                         level: info
                                         line: false
-                                        source: "104-2車牌辨識AI (V4.0.0)"
+                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "✅ 已取得駛出憑證"
                                         message: |-
@@ -309,7 +311,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車牌辨識AI (V4.0.0)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "⛔ 已取消自動關門 (偵測到人)"
                                 message: "等待期間攝影機偵測到人員活動，為保護安全已暫停關門。"
@@ -356,7 +358,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車牌辨識AI (V4.0.0)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "🤖 自動關門已執行 ({{ automation_version }})"
                                 message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
@@ -368,7 +370,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車牌辨識AI (V4.0.0)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "🤖（預備）條件式關門：會關"
                                 message: "預判會關門。目前僅通知；開啟『LPR自動關門』即可生效。"
@@ -381,7 +383,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車牌辨識AI (V4.0.0)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🙂（預備）條件式關門：不關"
                         message: >-

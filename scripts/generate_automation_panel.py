@@ -141,7 +141,7 @@ SUBGROUPS = {
     "security": [
         ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)"),
         ("離家入侵偵測", r"intrusion_"),
-        ("車牌辨識（LPR）", r"lpr_|allowed_plates"),
+        ("車輛動態辨識（LPR）", r"lpr_|allowed_plates"),
         ("門鎖與電池", r"doorlock|er_lou_men_suo"),
         ("五樓保全", r"wu_lou_bao_quan"),
         ("網關與警報", r"gateway_|wang_guan|jie_chu_wang_guan|網關|54ef44cf58f9_alarm"),
