@@ -39,6 +39,9 @@ input_text:
   garage_charge_log:
     name: 車庫充電紀錄（最近一次變化）
     max: 255
+  garage_id_fix_log:
+    name: 車庫車輛身分校正紀錄（最近一次）
+    max: 255
 
 input_select:
   # 充電車輛鎖定（整段充電維持同一輛，尾端降載電流掉到中間值也不改判）；由 107C 維護
@@ -133,6 +136,11 @@ input_datetime:
     initial: "2000-01-01 00:00:00"
   garage_gate_run_last:
     name: 車庫鐵門評估｜上次開始（內部，104-2 去重）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
+  garage_id_fix_last:
+    name: 車庫車輛身分校正｜上次重學樣板（內部）
     has_date: true
     has_time: true
     initial: "2000-01-01 00:00:00"
@@ -232,7 +240,7 @@ template:
 
 script:
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.3.0-beta 1)
+    alias: 車庫車輛畫面分析AI (V4.3.0-beta 2)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -265,6 +273,11 @@ script:
       - if: "{{ (not ok) or is_test }}"
         then:
           - stop: "略過（分析失敗或測試模式）"
+      # 0) UniFi Protect 動作偵測：車身「位移」需要攝影機同時看到動作（3 分鐘內），人走動遮擋或光線造成的位移假訊號不算；車燈亮起不受限（煞車燈可能沒有畫面動作）
+      - variables:
+          protect_recent: "{{ is_state('binary_sensor.g6_instant_motion', 'on') or ((as_timestamp(now()) - as_timestamp(states('sensor.g6_instant_last_motion_detected'), 0)) < 180) }}"
+          # 影像把兩個車位判成同一輛（夜間紅外線、剛換位置常見）：不要用這個結果覆蓋車位，交給 1A 仲裁
+          dup_res: "{{ res.slots.front.identity in ['luxgen_n7', 'tesla_model3'] and res.slots.front.identity == res.slots.back.identity }}"
       # 1) 更新前／後位車輛與連續證據次數
       - repeat:
           for_each: [front, back]
@@ -274,8 +287,8 @@ script:
                 ent: "input_select.garage_slot_{{ repeat.item }}"
                 cur: "{{ states('input_select.garage_slot_' ~ repeat.item) }}"
                 new: >-
-                  {% if not s.present %}empty{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
-                ev: "{{ s.present and (s.lights_on or s.moved) and not res.exposure_changed }}"
+                  {% if not s.present %}empty{% elif dup_res and cur in ['luxgen_n7', 'tesla_model3'] %}{{ cur }}{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
+                ev: "{{ s.present and (s.lights_on or (s.moved and protect_recent)) and not res.exposure_changed }}"
                 n_prev: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) }}"
             - if: "{{ new | trim != cur }}"
               then:
@@ -298,6 +311,60 @@ script:
                 entity_id: "input_number.garage_ev_{{ repeat.item }}"
               data:
                 value: "{{ [n_prev + 1, 20] | min if ev else 0 }}"
+      # 1A) 身分仲裁（車牌＋排除法）：夜間紅外線／換位置後影像樣板可能把兩個車位判成同一輛或認不出。
+      #     ①兩位判成同一輛 → 樣板距離較差的那位改成另一輛；②一位是已知車、另一位有車但認不出 → 另一位是「另一輛」（車牌近 15 分鐘看到該車，或車型相符：Luxgen＝休旅車、Tesla＝房車）。
+      #     校正由車牌近 15 分鐘證實時，順便用目前畫面重學該車位樣板（每 10 分鐘最多一次），以後同樣光線不再判錯。
+      - variables:
+          sf: "{{ states('input_select.garage_slot_front') }}"
+          sb: "{{ states('input_select.garage_slot_back') }}"
+          lpr_txt: "{{ states('input_text.lpr_last_event') }}"
+          plate_car: >-
+            {% if '來源:LPR' in lpr_txt %}{% if 'EAK8030' in lpr_txt %}luxgen_n7{% elif 'EBH8030' in lpr_txt %}tesla_model3{% else %}none{% endif %}{% else %}none{% endif %}
+          plate_age: "{{ (as_timestamp(now()) - as_timestamp(states.input_text.lpr_last_event.last_updated)) | int(99999) if plate_car != 'none' else 99999 }}"
+          pf_ok: "{{ res.slots.front.present and not res.exposure_changed }}"
+          pb_ok: "{{ res.slots.back.present and not res.exposure_changed }}"
+          fix: >-
+            {% set cars = ['luxgen_n7', 'tesla_model3'] %}
+            {% set other = {'luxgen_n7': 'tesla_model3', 'tesla_model3': 'luxgen_n7'} %}
+            {% set typ = {'luxgen_n7': 'suv', 'tesla_model3': 'sedan'} %}
+            {% set weak = ['unknown', 'sedan', 'suv', 'motorcycle'] %}
+            {% set plate_new = plate_age <= 900 %}
+            {% if sf in cars and sf == sb and pf_ok and pb_ok %}
+              {% set slot = 'front' if (res.slots.front.identity_dist | float(9)) > (res.slots.back.identity_dist | float(9)) else 'back' %}
+              {{ {'slot': slot, 'car': other[sf], 'why': 'dup', 'plate': plate_new and plate_car == other[sf]} | to_json }}
+            {% elif sf in cars and sb in weak and pb_ok %}
+              {% if (plate_new and plate_car == other[sf]) or res.slots.back.vehicle_type == typ[other[sf]] or sb == typ[other[sf]] %}
+                {{ {'slot': 'back', 'car': other[sf], 'why': 'excl', 'plate': plate_new and plate_car == other[sf]} | to_json }}
+              {% else %}{}{% endif %}
+            {% elif sb in cars and sf in weak and pf_ok %}
+              {% if (plate_new and plate_car == other[sb]) or res.slots.front.vehicle_type == typ[other[sb]] or sf == typ[other[sb]] %}
+                {{ {'slot': 'front', 'car': other[sb], 'why': 'excl', 'plate': plate_new and plate_car == other[sb]} | to_json }}
+              {% else %}{}{% endif %}
+            {% else %}{}{% endif %}
+          fixd: "{{ fix | from_json({}) }}"
+      - if: "{{ fixd is mapping and fixd.get('slot') }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: "input_select.garage_slot_{{ fixd.slot }}"
+            data:
+              option: "{{ fixd.car }}"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.garage_id_fix_log
+            data:
+              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ pos[fixd.slot] ~ ' 校正為 ' ~ names[fixd.car] ~ '｜' ~ ('兩位判成同一輛' if fixd.why == 'dup' else '排除法') ~ ('｜車牌證實' if fixd.plate else '｜未見車牌'))[:255] }}"
+          - if: "{{ fixd.plate and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_id_fix_last'), 0)) > 600 }}"
+            then:
+              - action: input_datetime.set_datetime
+                target:
+                  entity_id: input_datetime.garage_id_fix_last
+                data:
+                  datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              - action: shell_command.garage_car_learn
+                data:
+                  arg: "--learn-sig {{ fixd.slot }}={{ fixd.car }}{{ ':inside' if is_state('input_select.garage_facing_' ~ fixd.slot, 'inside') else '' }}"
+                continue_on_error: true
       # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
       #     充電樁狀態是「機率」不是電流大小：正常充電（charging）＝100% Tesla；降壓（charging_reduced）＝80% Luxgen、20% Tesla。
       #     再用影像證據調整：Luxgen 常停後面、車頭朝外就在充電（朝內也可能），所以朝向只當輕微證據；主要看充電線樣板指向的車位是不是 Luxgen 所在的車位。
@@ -424,7 +491,7 @@ script:
                             level: info
                             line: false
                             source: 車庫車輛畫面分析AI
-                            version: V4.3.0-beta 1
+                            version: V4.3.0-beta 2
                             title: "{{ names.get(car, car) }} 準備出門"
                             message: >-
                               {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
@@ -456,7 +523,7 @@ script:
                                 level: important
                                 line: false
                                 source: 車庫車輛畫面分析AI
-                                version: V4.3.0-beta 1
+                                version: V4.3.0-beta 2
                                 title: 車庫自動開門後車輛沒有出去
                                 message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
                     - stop: "已判斷準備出門"

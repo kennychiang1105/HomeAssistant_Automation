@@ -105,7 +105,7 @@ INTERNAL_RE = re.compile(
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|disaster_seen_items|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(garage_ev_|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate|garage_vehicle_latch|garage_vehicle_last)"
-    r"|^input_datetime\.(garage_cable_learn_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
+    r"|^input_datetime\.(garage_cable_learn_last|garage_id_fix_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
 )
 
 # 各分類內的功能小組（依序比對，先符合者先分；沒符合的依元件種類分組）
@@ -1082,6 +1082,7 @@ def garage_cars_blocks():
         ("input_select.garage_charging_car", "現在充電的車"),
         ("input_select.garage_charging_slot", "現在充電的車位"),
         ("input_text.garage_charge_log", "充電紀錄（最近一次）"),
+        ("input_text.garage_id_fix_log", "身分校正紀錄（車牌／排除法，最近一次）"),
         ("input_boolean.garage_depart_candidate", "準備出門中"),
         ("input_text.garage_depart_last", "最近一次判斷"),
     ]
