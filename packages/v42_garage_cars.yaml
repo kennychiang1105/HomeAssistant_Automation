@@ -10,6 +10,9 @@
 #   - 自動開鐵門不需要離家情境，改用嚴謹條件（見 script.garage_car_watch_run）；開門後 3 分鐘車位仍沒變空會自動關門（先確認無人）。
 # ─────────────────────────────────────────────────────────────
 input_boolean:
+  garage_vehicle_confirmed:
+    name: 充電車輛已由電流確認（內部）
+    icon: mdi:check-decagram
   garage_depart_watch_enable:
     name: 車庫出門偵測｜總開關
     icon: mdi:car-clock
@@ -38,6 +41,15 @@ input_text:
     max: 255
 
 input_select:
+  # 充電車輛鎖定（整段充電維持同一輛，尾端降載電流掉到中間值也不改判）；由 107C 維護
+  garage_vehicle_latch:
+    name: 充電車輛（鎖定，內部）
+    options: [none, luxgen_n7, tesla_model3]
+    icon: mdi:ev-station
+  garage_vehicle_last:
+    name: 最近一次充電的車（內部）
+    options: [none, luxgen_n7, tesla_model3]
+    icon: mdi:ev-station
   garage_slot_front:
     name: 車庫前位（靠鐵門）
     options: [unknown, empty, luxgen_n7, tesla_model3, sedan, suv, motorcycle]
@@ -114,6 +126,11 @@ input_number:
     mode: box
 
 input_datetime:
+  tesla_charger_connected_at:
+    name: 充電槍插上時間（內部，107B）
+    has_date: true
+    has_time: true
+    initial: "2000-01-01 00:00:00"
   garage_gate_run_last:
     name: 車庫鐵門評估｜上次開始（內部，104-2 去重）
     has_date: true
@@ -135,31 +152,18 @@ shell_command:
   garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 {{ arg }}'
 
 template:
-  # 現在是哪輛車在充電：車輛電流是最可靠的指紋（45 天歷史：Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 沒有重疊）；電流還沒爬升時才用狀態先驗
-  # （charging＝100% Tesla；charging_reduced＝80% Luxgen／20% Tesla）。HomeKit 充電 helper、107 充電通知都吃這一個。
+  # 現在是哪輛車在充電：由 107C 依「充電樁狀態＋車輛電流」鎖定（Tesla ≈24.7 A、Luxgen ≈31.3 A，26～28 A 沒有重疊；
+  # ≥28 A 確定是 Luxgen，確定後尾端降載電流掉到中間值也不改判）。HomeKit 充電 helper、107 充電通知都吃這一個。
   - sensor:
       - name: garage_charging_vehicle
         unique_id: garage_charging_vehicle
         icon: mdi:ev-station
-        state: >-
-          {% set st = states('sensor.tesla_wall_connector_status') %}
-          {% set a = states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) %}
-          {% if st not in ['charging', 'charging_reduced'] %}none
-          {% elif a >= 28 %}luxgen_n7
-          {% elif 1 <= a <= 26 %}tesla_model3
-          {% else %}{{ 'tesla_model3' if st == 'charging' else 'luxgen_n7' }}{% endif %}
+        state: "{{ states('input_select.garage_vehicle_latch') }}"
         attributes:
           current_a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') }}"
           status: "{{ states('sensor.tesla_wall_connector_status') }}"
-  # 最近一次有在充電的車（充電完成、拔槍之後通知還要說「是哪輛車充完」）
-  - trigger:
-      - trigger: state
-        entity_id: sensor.garage_charging_vehicle
-    sensor:
-      - name: garage_charging_vehicle_last
-        unique_id: garage_charging_vehicle_last
-        icon: mdi:ev-station
-        state: "{{ trigger.to_state.state if trigger.to_state.state in ['luxgen_n7', 'tesla_model3'] else (this.state if this is defined and this.state not in ['unknown', 'unavailable'] else 'none') }}"
+          confirmed: "{{ states('input_boolean.garage_vehicle_confirmed') }}"
+          last: "{{ states('input_select.garage_vehicle_last') }}"
   - sensor:
       - name: garage_car_luxgen_n7
         unique_id: garage_car_luxgen_n7
