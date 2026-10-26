@@ -85,7 +85,7 @@ HELPER_RULES = [
     ("supply", r"supply_|battery_system|doorlock_batt|line_bot_forecast"),
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
-    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|garage_cable|garage_gate|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
+    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|garage_cable|garage_gate|garage_vehicle|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_morning_|scene_verify|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
@@ -97,14 +97,14 @@ HELPER_RULES = [
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
     r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_)"
-    r"|^input_boolean\.(garage_depart_candidate|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
+    r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
     r"|^input_text\.(garage_depart_car|intrusion_recent|emergency_(trigger_source|garage_prev)|air_ai_state|env_alert_cd|.*_init$|.*_flag$|.*_last($|_)|.*decision|.*last_path|ambient_scene_state|announce_manual_result|notify_manual_result|mood_mem_|.*notice_key|.*monthly_history|doorlock_batt_last_stage"
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|disaster_seen_items|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(garage_ev_|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
-    r"|^input_select\.(lpr_last_plate)"
+    r"|^input_select\.(lpr_last_plate|garage_vehicle_latch|garage_vehicle_last)"
     r"|^input_datetime\.(garage_cable_learn_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
 )
 

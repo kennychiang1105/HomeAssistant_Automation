@@ -7,6 +7,7 @@
 # - V4.1.6（2026-10-11）：修正充飽後 00:02 誤報「仍未開始充電」：「這次連接後是否已充過電」的判斷是 start_time（只到秒）大於 vehicle_connected.last_changed（含毫秒），插槍同一秒就開始充電時 start_time 反而略小，被判成沒充過電；改成容許 10 秒誤差。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # - V4.2.5（2026-10-26）：開始充電通知先等車輛電流穩定（最多 20 秒），車名改用 sensor.garage_charging_vehicle（狀態＋車輛電流：Tesla ≈24.7 A、Luxgen ≈31.3 A；降壓狀態有約 11% 是 Tesla）；完成通知用 sensor.garage_charging_vehicle_last。
+# - V4.2.5（2026-10-26 補）：①車名改讀鎖定的 input_select.garage_vehicle_latch（107C 依電流鎖定，尾端降載不改判）、完成通知用 garage_vehicle_last；②「這次連接是否充過電」改用 107B 在插槍時記的 input_datetime.tesla_charger_connected_at（原本比對插槍感測器 last_changed，HA 重啟後被重設成重啟時間，導致充飽後誤報「尚未充過電」）；③單句警示改成「標籤：內容」格式，LINE 卡片不再排成小字。
 # - V3.3.0：功能版。修復 Luxgen→Tesla（或 Tesla→Luxgen）換車充電時「無開始通知」與「充電用時計算錯誤」問題。
 #           charge_start 條件新增放行「不同車型互轉」情境：當 charge_start_tesla 觸發且 from_status 為 Luxgen 型，
 #           或 charge_start_luxgen 觸發且 from_status 為 Tesla 型時，視為新車輛插槍，立即更新 start_time 並發送新車開始通知。
@@ -137,8 +138,8 @@
     # V4.2.5：剛開始充電時電流還在爬升（0 A），先等最多 20 秒讓電流穩定，才能用電流判斷是哪輛車（Tesla ≈24.7 A、Luxgen ≈31.3 A）
     - if: "{{ trigger.id in ['charge_start_tesla', 'charge_start_luxgen'] }}"
       then:
-        - wait_template: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) >= 1 }}"
-          timeout: "00:00:20"
+        - wait_template: "{{ is_state('input_boolean.garage_vehicle_confirmed', 'on') }}"
+          timeout: "00:00:45"
           continue_on_timeout: true
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
@@ -149,7 +150,7 @@
         # 原本的「大於」判成這次連接沒充過電（2026-10-11 22:12 充飽後 00:02 誤報「仍未開始充電」）。改成容許 10 秒誤差。
         charged_this_connection: >-
           {{ as_timestamp(states('input_datetime.tesla_charger_start_time'), 0)
-             >= as_timestamp(states.binary_sensor.tesla_wall_connector_vehicle_connected.last_changed, 0) - 10 }}
+             >= as_timestamp(states('input_datetime.tesla_charger_connected_at'), 0) - 10 }}
         status_for_vehicle: >-
           {% set now_st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
           {% if trigger.id == 'charge_done' and trigger.from_state is defined and trigger.from_state is not none %}
@@ -158,8 +159,8 @@
             {{ now_st }}
           {% endif %}
         vehicle_name: >-
-          {% set v = states('sensor.garage_charging_vehicle') %}
-          {% set car = v if v in ['luxgen_n7', 'tesla_model3'] else (states('sensor.garage_charging_vehicle_last') if trigger.id == 'charge_done' else 'none') %}
+          {% set v = states('input_select.garage_vehicle_latch') %}
+          {% set car = v if v in ['luxgen_n7', 'tesla_model3'] else (states('input_select.garage_vehicle_last') if trigger.id == 'charge_done' else 'none') %}
           {% set st = status_for_vehicle %}
           {% if car == 'luxgen_n7' %}
             Luxgen
@@ -471,7 +472,7 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_important},
-                              {'type':'text','text':'目前仍未開始充電，請檢查車輛狀況。'},
+                              {'type':'text','text':'⚠️ 仍未開始充電\n說明：目前仍未開始充電，請檢查車輛狀況'},
                               {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
@@ -518,7 +519,7 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_important},
-                              {'type':'text','text':'Tesla 充電器狀態異常（error），請儘速檢查設備與供電連線。'},
+                              {'type':'text','text':'🚨 充電器狀態異常\n說明：充電樁回報異常（error），請儘速檢查設備與供電連線'},
                               {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
@@ -575,7 +576,7 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_important},
-                              {'type':'text','text':'已連接超過 6 小時仍未開始充電，請檢查車輛狀況。'},
+                              {'type':'text','text':'⚠️ 已連接超過 6 小時仍未開始充電\n說明：請檢查車輛狀況'},
                               {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
               default:
@@ -635,7 +636,7 @@
                         payload: >-
                           {{ [
                               {'type':'text','text':line_title_important},
-                              {'type':'text','text':'車輛已插槍但沒有在充電：充電器回報「充電完成」，這次連接後尚未充過電（可能是車輛已充飽、排程充電或充電上限）。'},
+                              {'type':'text','text':'⚠️ 車輛已插槍但沒有在充電\n充電器回報：充電完成\n可能原因：車輛已充飽、排程充電或充電上限'},
                               {'type':'text','text':'補充資訊：\n目前狀態：' ~ charger_status ~ '\n通知時間：' ~ now_time}
                             ] | tojson }}
 
@@ -689,3 +690,110 @@
                       LINE 未發送：user_id 無效，或必要通知開關未開啟。
                       user_id={{ line_bot_target_user_id }}、一般={{ states('input_boolean.notify_line_general_enable') }}、重要={{ states('input_boolean.notify_line_important_enable') }}、Tesla額外={{ states('input_boolean.notify_tesla_charge_extra_line_enable') }}。
       default: []
+
+# ── 107B：記下「充電槍插上」的時間（重啟不會被重設；107 用它判斷這次連接是否已充過電） ──
+- alias: 107B充電槍插上時間記錄AI (V4.2.5)
+  id: ai_107b_charger_connected_mark
+  description: 插槍（vehicle_connected 由 off 變 on）時記下時間到 input_datetime.tesla_charger_connected_at。
+  mode: queued
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.tesla_wall_connector_vehicle_connected
+      from: "off"
+      to: "on"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.tesla_charger_connected_at
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+# ── 107C：鎖定「現在是哪輛車在充電」（Tesla 約 24.7 A、Luxgen 約 31.3 A；45 天歷史 26～28 A 沒有重疊） ──
+#   電流 ≥28 A → Luxgen 並標記已確認；尚未確認且落在 23～26 A 平台 → Tesla 並標記已確認；爬升中還不能確認時先用狀態先驗
+#   （charging＝100% Tesla、charging_reduced＝80% Luxgen）；確認後尾端降載電流掉到中間值也不改判；離開充電狀態就清掉。
+- alias: 107C充電車輛鎖定AI (V4.2.5)
+  id: ai_107c_charging_vehicle_latch
+  description: 依充電樁狀態與車輛電流鎖定充電中的車（input_select.garage_vehicle_latch），供 HomeKit 充電 helper、107 通知、3D 使用。
+  mode: queued
+  max: 10
+  variables:
+    st: "{{ states('sensor.tesla_wall_connector_status') }}"
+    a: "{{ states('sensor.che_ku_tesla_wall_connector_vehicle_current') | float(0) }}"
+    charging: "{{ st in ['charging', 'charging_reduced'] }}"
+    cur: "{{ states('input_select.garage_vehicle_latch') }}"
+    confirmed: "{{ is_state('input_boolean.garage_vehicle_confirmed', 'on') }}"
+  triggers:
+    - trigger: state
+      entity_id:
+        - sensor.tesla_wall_connector_status
+        - sensor.che_ku_tesla_wall_connector_vehicle_current
+    - trigger: homeassistant
+      event: start
+  actions:
+    - choose:
+        - conditions: "{{ not charging }}"
+          sequence:
+            - if: "{{ cur != 'none' }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: input_select.garage_vehicle_latch
+                  data:
+                    option: none
+            - if: "{{ confirmed }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.garage_vehicle_confirmed
+        - conditions: "{{ a >= 28 }}"
+          sequence:
+            - if: "{{ cur != 'luxgen_n7' }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: input_select.garage_vehicle_latch
+                  data:
+                    option: luxgen_n7
+            - if: "{{ states('input_select.garage_vehicle_last') != 'luxgen_n7' }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: input_select.garage_vehicle_last
+                  data:
+                    option: luxgen_n7
+            - if: "{{ not confirmed }}"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.garage_vehicle_confirmed
+        - conditions: "{{ (not confirmed) and 23 <= a <= 26 }}"
+          sequence:
+            - if: "{{ cur != 'tesla_model3' }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: input_select.garage_vehicle_latch
+                  data:
+                    option: tesla_model3
+            - if: "{{ states('input_select.garage_vehicle_last') != 'tesla_model3' }}"
+              then:
+                - action: input_select.select_option
+                  target:
+                    entity_id: input_select.garage_vehicle_last
+                  data:
+                    option: tesla_model3
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.garage_vehicle_confirmed
+        - conditions: "{{ cur == 'none' }}"
+          sequence:
+            - action: input_select.select_option
+              target:
+                entity_id: input_select.garage_vehicle_latch
+              data:
+                option: "{{ 'luxgen_n7' if st == 'charging_reduced' else 'tesla_model3' }}"
+            - action: input_select.select_option
+              target:
+                entity_id: input_select.garage_vehicle_last
+              data:
+                option: "{{ 'luxgen_n7' if st == 'charging_reduced' else 'tesla_model3' }}"

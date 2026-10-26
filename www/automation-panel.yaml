@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **149** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **151** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2713,7 +2713,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 28 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 29 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2939,7 +2939,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車牌辨識（LPR）（4）"
+        heading: "車牌辨識（LPR）（5）"
         heading_style: title
         card_mod:
           style: |
@@ -2955,6 +2955,8 @@ views:
             name: "LPR自動關門（啟用後才會真的關門）"
           - entity: input_boolean.lpr_open_notify_enable
             name: "LPR車牌開門通知"
+          - entity: input_number.lpr_close_buffer_sec
+            name: "LPR關門前安全緩衝（秒）"
           - entity: input_text.allowed_plates_csv
             name: "LPR白名單（CSV, 例：EAK8030,BBN6688）"
         card_mod: *cm
@@ -3561,7 +3563,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 25 支、可調整項目 14 個"
+        content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。　自動化 27 支、可調整項目 14 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -3911,7 +3913,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（25）"
+        heading: "自動化開關（27）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -3995,6 +3997,10 @@ views:
             name: "106D網關切換同步Aqara開關AI (V4.2.2)"
           - entity: automation.ai_gateway_anomaly_guard
             name: "106網關系統AI (V4.1.5)"
+          - entity: automation.107bchong_dian_qiang_cha_shang_shi_jian_ji_lu_ai_v4_2_5
+            name: "107B充電槍插上時間記錄AI (V4.2.5)"
+          - entity: automation.107cchong_dian_che_liang_suo_ding_ai_v4_2_5
+            name: "107C充電車輛鎖定AI (V4.2.5)"
           - entity: automation.ai_107_tesla_charger_status_notify
             name: "107Tesla充電器狀態與通知AI (V4.1.6)"
           - entity: automation.si_fu_qi_geng_xin_ji_wei_hu_tong_zhi
@@ -4578,7 +4584,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "保全與門鎖（15）"
+        heading: "保全與門鎖（19）"
         heading_style: title
         card_mod:
           style: |
@@ -4592,6 +4598,8 @@ views:
             name: "GarageJUDGE"
           - entity: input_boolean.er_lou_men_suo_tong_bu_kai_guan
             name: "二樓門鎖"
+          - entity: input_boolean.garage_vehicle_confirmed
+            name: "充電車輛已由電流確認（內部）"
           - entity: input_boolean.garage_depart_candidate
             name: "車庫出門偵測｜準備出門中（內部）"
           - entity: input_datetime.intrusion_last_alert
@@ -4602,6 +4610,8 @@ views:
             name: "車庫充電線樣板｜上次學習（內部）"
           - entity: input_datetime.garage_depart_last_open
             name: "車庫出門偵測｜上次自動開門"
+          - entity: input_datetime.garage_gate_run_last
+            name: "車庫鐵門評估｜上次開始（內部，104-2 去重）"
           - entity: input_datetime.garage_gate_opened_at
             name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
         card_mod: *cm
@@ -4623,6 +4633,10 @@ views:
             name: "車庫前位｜連續有車燈／位移次數（內部）"
           - entity: input_number.garage_ev_back
             name: "車庫後位｜連續有車燈／位移次數（內部）"
+          - entity: input_select.garage_vehicle_latch
+            name: "充電車輛（鎖定，內部）"
+          - entity: input_select.garage_vehicle_last
+            name: "最近一次充電的車（內部）"
           - entity: input_select.lpr_last_plate
             name: "最近車牌"
           - entity: input_text.lpr_last_event
@@ -4755,7 +4769,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "系統維護（6）"
+        heading: "系統維護（7）"
         heading_style: title
         card_mod:
           style: |
@@ -4771,6 +4785,8 @@ views:
             name: "00-01 系統穩定最後執行時間"
           - entity: input_datetime.tesla_charger_start_time
             name: "Tesla 充電器開始時間"
+          - entity: input_datetime.tesla_charger_connected_at
+            name: "充電槍插上時間（內部，107B）"
           - entity: input_text.ai_00_01_last_event
             name: "00-01 系統穩定最後事件"
           - entity: input_text.ai_00_01_last_action
