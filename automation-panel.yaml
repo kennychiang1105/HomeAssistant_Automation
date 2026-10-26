@@ -2496,7 +2496,7 @@ views:
           - entity: automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0
             name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4
-            name: "08-5L頂樓情境廣播AI (V4.2.4)"
+            name: "08-5L頂樓情境廣播AI (V4.3.0)"
           - entity: automation.a107_11a_single
             name: "800-開關系列-11A 書房燈感應開關單擊"
           - entity: automation.a107_11b
@@ -2752,11 +2752,14 @@ views:
             name: "現在充電的車位"
           - entity: input_text.garage_charge_log
             name: "充電紀錄（最近一次）"
+          - entity: input_text.garage_id_fix_log
+            name: "身分校正紀錄（車牌／排除法，最近一次）"
           - entity: input_boolean.garage_depart_candidate
             name: "準備出門中"
           - entity: input_text.garage_depart_last
             name: "最近一次判斷"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2785,7 +2788,6 @@ views:
           - entity: input_button.garage_learn_do
             name: "用現在的畫面學習"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2819,8 +2821,9 @@ views:
           - entity: automation.ai_doorlock_battery_drop_timestamp_recorder
             name: "100C3客廳門鎖電量下降時間紀錄AI (V3.0)"
           - entity: automation.ai_lpr_recognition
-            name: "104-2車牌辨識AI (V4.0.0)"
+            name: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2840,13 +2843,13 @@ views:
           - entity: automation.ai_104_3_garage_gate_open_guard_and_autoclose
             name: "104-3鐵門判斷未關提醒及作動AI (V4.2.2)"
           - entity: automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0
-            name: "104-4車庫回家通知系統AI (V4.1.5)"
+            name: "104-4車庫回家通知系統AI (V4.3.0)"
           - entity: automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5
-            name: "104-5B車輛準備出門旗標復歸AI (V4.2.5)"
+            name: "104-5B車輛準備出門旗標復歸AI (V4.3.0-beta 1)"
           - entity: automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5
-            name: "104-5C車庫車輛樣板學習AI (V4.2.5)"
+            name: "104-5C車庫車輛樣板學習AI (V4.3.0-beta 1)"
           - entity: automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5
-            name: "104-5車輛準備出門偵測AI (V4.2.5)"
+            name: "104-5車輛準備出門偵測AI (V4.3.0-beta 1)"
           - entity: automation.tie_men_kai_guan
             name: "104鐵門安全開關"
           - entity: automation.105da_men_men_ling_zi_dong_hua_ai_v3_0
@@ -2854,7 +2857,6 @@ views:
           - entity: automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0
             name: "106C_解除網關警報整合AI (V4.2.1)"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -3231,7 +3233,7 @@ views:
           - entity: automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5
             name: "05G緊急三擊維修暫停AI (V4.1.5)"
           - entity: automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3
-            name: "TREM 預警客戶端看門狗AI (V4.2.3)"
+            name: "TREM 預警客戶端看門狗AI (V4.3.0)"
           - entity: automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3
             name: "地牛 add-on 預警接收AI (V4.2.3)"
         card_mod: *cm
@@ -3931,7 +3933,7 @@ views:
           - entity: automation.ai_00_01_xiaoyan_gateway_watchdog
             name: "00-01系統回應穩定自動化AI_小燕網關看門狗 (V4.0.0)"
           - entity: automation.00_2hdeng_kuang_ji_yi_ai_v4_0_0
-            name: "00-2H燈況記憶AI (V4.1.7)"
+            name: "00-2H燈況記憶AI (V4.3.0)"
           - entity: automation.00_2ikuai_zhao_qing_li_ai_v4_0_0
             name: "00-2I快照清理AI (V4.0.0)"
           - entity: automation.00_2jqi_fen_deng_qing_jing_tong_bu_ai_v4_0_0
@@ -3998,11 +4000,11 @@ views:
           - entity: automation.ai_gateway_anomaly_guard
             name: "106網關系統AI (V4.1.5)"
           - entity: automation.107bchong_dian_qiang_cha_shang_shi_jian_ji_lu_ai_v4_2_5
-            name: "107B充電槍插上時間記錄AI (V4.2.5)"
+            name: "107B充電槍插上時間記錄AI (V4.3.0)"
           - entity: automation.107cchong_dian_che_liang_suo_ding_ai_v4_2_5
-            name: "107C充電車輛鎖定AI (V4.2.5)"
+            name: "107C充電車輛鎖定AI (V4.3.0)"
           - entity: automation.ai_107_tesla_charger_status_notify
-            name: "107Tesla充電器狀態與通知AI (V4.1.6)"
+            name: "107Tesla充電器狀態與通知AI (V4.3.0)"
           - entity: automation.si_fu_qi_geng_xin_ji_wei_hu_tong_zhi
             name: "14伺服器更新及維護通知 (V4.0.0)"
           - entity: automation.ban_ben_kuai_zhao_ji_zhun_xie_ru_qi
