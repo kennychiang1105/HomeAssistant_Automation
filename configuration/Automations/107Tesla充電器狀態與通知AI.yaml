@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V4.1.6)
+# 107Tesla充電器狀態與通知AI (V4.3.0)
 # 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.0（2026-10-26）：隨 AI 4.3.0 發布統一版號（異動內容見下方 V4.2.x 條目）。
 # - V4.1.6（2026-10-15）：LINE 內文的「名稱 值」改成「名稱：值」，套用新卡片的名稱／數值排版。
 # - V4.1.6（2026-10-11）：修正充飽後 00:02 誤報「仍未開始充電」：「這次連接後是否已充過電」的判斷是 start_time（只到秒）大於 vehicle_connected.last_changed（含毫秒），插槍同一秒就開始充電時 start_time 反而略小，被判成沒充過電；改成容許 10 秒誤差。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
@@ -30,7 +31,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V4.1.6)
+- alias: 107Tesla充電器狀態與通知AI (V4.3.0)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -39,7 +40,7 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V4.1.6"
+    automation_version: "V4.3.0"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -692,7 +693,7 @@
       default: []
 
 # ── 107B：記下「充電槍插上」的時間（重啟不會被重設；107 用它判斷這次連接是否已充過電） ──
-- alias: 107B充電槍插上時間記錄AI (V4.2.5)
+- alias: 107B充電槍插上時間記錄AI (V4.3.0)
   id: ai_107b_charger_connected_mark
   description: 插槍（vehicle_connected 由 off 變 on）時記下時間到 input_datetime.tesla_charger_connected_at。
   mode: queued
@@ -711,7 +712,7 @@
 # ── 107C：鎖定「現在是哪輛車在充電」（Tesla 約 24.7 A、Luxgen 約 31.3 A；45 天歷史 26～28 A 沒有重疊） ──
 #   電流 ≥28 A → Luxgen 並標記已確認；尚未確認且落在 23～26 A 平台 → Tesla 並標記已確認；爬升中還不能確認時先用狀態先驗
 #   （charging＝100% Tesla、charging_reduced＝80% Luxgen）；確認後尾端降載電流掉到中間值也不改判；離開充電狀態就清掉。
-- alias: 107C充電車輛鎖定AI (V4.2.5)
+- alias: 107C充電車輛鎖定AI (V4.3.0)
   id: ai_107c_charging_vehicle_latch
   description: 依充電樁狀態與車輛電流鎖定充電中的車（input_select.garage_vehicle_latch），供 HomeKit 充電 helper、107 通知、3D 使用。
   mode: queued

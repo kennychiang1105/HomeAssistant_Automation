@@ -219,7 +219,7 @@ notify_dispatch:
             message: "{{ voice }}"
 
 announce:
-  alias: 統一廣播AI (V4.0.0)
+  alias: 統一廣播AI (V4.3.0)
   description: 依等級播放提示音，待提示音結束後再播 TTS，播完恢復喇叭音量（SOP-11）；序列執行避免互相蓋台
   mode: queued
   max: 6

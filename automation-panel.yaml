@@ -2939,7 +2939,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車牌辨識（LPR）（5）"
+        heading: "車輛動態辨識（LPR）（5）"
         heading_style: title
         card_mod:
           style: |

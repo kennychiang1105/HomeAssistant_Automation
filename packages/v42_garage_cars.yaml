@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# 車庫車輛位置與準備出門偵測 (V4.2.5)
+# 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.2.5：新增。UniFi 攝影機不會把「停很久的車要出門」當成新車輛，所以改用定時畫面分析（scripts/garage_car_watch.py，Pillow＋numpy）：
 #   每個車位（front＝前位／靠鐵門＝3D 車位1，back＝後位／內側＝3D 車位2）判斷有沒有車、是哪輛（Luxgen N7／Tesla Model 3）、車燈是否亮起、車身是否位移。
@@ -232,7 +232,7 @@ template:
 
 script:
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.2.5)
+    alias: 車庫車輛畫面分析AI (V4.3.0-beta 1)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -424,7 +424,7 @@ script:
                             level: info
                             line: false
                             source: 車庫車輛畫面分析AI
-                            version: V4.2.5
+                            version: V4.3.0-beta 1
                             title: "{{ names.get(car, car) }} 準備出門"
                             message: >-
                               {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
@@ -456,13 +456,13 @@ script:
                                 level: important
                                 line: false
                                 source: 車庫車輛畫面分析AI
-                                version: V4.2.5
+                                version: V4.3.0-beta 1
                                 title: 車庫自動開門後車輛沒有出去
                                 message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
                     - stop: "已判斷準備出門"
 
   garage_car_learn_apply:
-    alias: 車庫車輛樣板學習AI (V4.2.5)
+    alias: 車庫車輛樣板學習AI (V4.3.0-beta 1)
     description: 面板上選好「車位／這個車位現在是什麼／車頭朝向」後按「學習」：拍一張現在的畫面，把指定車位學成該車（含朝向）或空位。
     mode: single
     sequence:
@@ -501,7 +501,7 @@ script:
           level: info
           line: false
           source: 車庫車輛樣板學習AI
-          version: V4.2.5
+          version: V4.3.0-beta 1
           title: "車庫樣板學習{{ '完成' if ok else '失敗' }}"
           message: >-
             {{ {'front': '前位', 'back': '後位'}[slot] }}：{{ '空位' if car == 'empty' else ({'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '房車', 'suv': '休旅車', 'motorcycle': '機車'}[car] ~ '（車頭' ~ ('朝內' if face == 'inside' else '朝鐵門') ~ '）') }}
