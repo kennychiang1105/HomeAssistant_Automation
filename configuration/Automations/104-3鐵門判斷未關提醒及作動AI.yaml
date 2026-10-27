@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-3鐵門判斷未關提醒及作動AI (V4.2.2)
+# 104-3鐵門判斷未關提醒及作動AI (V4.3.1)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.1（2026-10-28）：10 分鐘提醒後的自動關門前，先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因。
 # - V4.2.2（2026-10-23，修正）：開門時間記錄拆成獨立的 104-3A（只在 open／closed 且非 unavailable 來源時寫入）；10 分鐘提醒的「人車安靜 3 分鐘」條件改用 if＋stop（巢狀 condition 不會中止整個自動化，原本會變成有人車活動也照發）；重啟接手的等待改成鐵門關上就中斷。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增開門時間戳記錄（garage_gate_opened_at）與 HA 重啟接手（ha_start）：重啟 1 分鐘後精確計算已開門時間，接續等待剩餘秒數並自動提醒/關門。
 # - V4.0.0：「鐵門開啟超過 10 分鐘」通知改為單一緊急級扁平卡片（HA + LINE），附車庫攝影機截圖與鐵門圖示。
@@ -14,7 +15,7 @@
 # - V3.1：改以 automation.tie_men_kai_guan 執行關門；修正執行期變數時機；LINE 改用 line_bot_target_user_id + tojson。
 # - V3.0：由「08鐵門判斷未關提醒V2」獨立重構；新增 10 分鐘提醒後 2 分鐘關門觀察與自動關門/取消通知。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-3鐵門判斷未關提醒及作動AI (V4.2.2)
+- alias: 104-3鐵門判斷未關提醒及作動AI (V4.3.1)
   id: ai_104_3_garage_gate_open_guard_and_autoclose
   description: >
     鐵門開啟達 10 分鐘且車庫無人車活動時先提醒；接續 2 分鐘觀察期，若無人車移動且車庫主燈狀態未改變則自動關門。
@@ -33,7 +34,7 @@
       event: start
 
   variables:
-    automation_version: "V4.2.2"
+    automation_version: "V4.3.1"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     notif_title_important: "【智慧保全通知AI ({{ automation_version }})】重要 Important ⚠️"
     notif_title_emergency: "【智慧保全通知AI ({{ automation_version }})】緊急 Emergency 🚨"
@@ -303,6 +304,37 @@
               entity_id: binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan
               state: "off"
           then:
+            # V4.3.1：關門前用車庫模型確認淨空（沒人、車燈／煞車燈沒亮、車沒在動）；不安全每 30 秒重判，最多 10 次，仍不安全就不關
+            - repeat:
+                sequence:
+                  - action: script.garage_close_safety_check
+                    response_variable: sf
+                  - if: "{{ not (sf is mapping and sf.get('safe') == true) and is_state('cover.garage', 'open') }}"
+                    then:
+                      - delay: "00:00:30"
+                until:
+                  - condition: template
+                    value_template: "{{ (sf is mapping and sf.get('safe') == true) or not is_state('cover.garage', 'open') or repeat.index >= 10 }}"
+            - action: script.garage_close_safety_check
+              response_variable: sf2
+            - if: "{{ not is_state('cover.garage', 'open') }}"
+              then:
+                - stop: "鐵門在淨空確認期間已關閉"
+            - if: "{{ not (sf2 is mapping and sf2.get('safe') == true) }}"
+              then:
+                - action: script.notify_dispatch
+                  data:
+                    level: important
+                    line: false
+                    source: "104-3鐵門判斷未關提醒及作動AI (V4.3.1)"
+                    version: "{{ automation_version | default('', true) }}"
+                    title: "鐵門自動關門已取消（{{ automation_version }}）"
+                    message: |-
+                      已取消自動關門
+                      原因：{{ '、'.join(sf2.reasons) if (sf2 is mapping and sf2.get('reasons')) else '無法確認淨空' }}
+
+                      ※ 原本的逾時未關提醒不受影響。
+                - stop: "淨空確認未通過，不自動關門"
             - action: automation.trigger
               target:
                 entity_id: automation.tie_men_kai_guan

@@ -194,7 +194,7 @@ def apply_vision(a, roi, state, out, jpg, now):
     平常 vision_every 秒一次；有車燈／位移證據或身分不明時馬上多問一次。add-on 連不上就略過（保持原本的分析）。"""
     v = state.setdefault('vision', {})
     thr = roi.get('thresholds', {})
-    need = (now - v.get('ts', 0) > a.vision_every) or any(
+    need = getattr(a, 'safety', False) or (now - v.get('ts', 0) > a.vision_every) or any(
         r['lights_on'] or r['moved'] or r['identity'] == 'unknown' for r in out['slots'].values())
     if not need:
         return {'skipped': True}
@@ -203,7 +203,7 @@ def apply_vision(a, roi, state, out, jpg, now):
     except Exception as e:  # noqa: BLE001
         return {'error': str(e)[:120]}
     v['ts'] = now
-    summary = {'ms': res.get('ms'), 'slots': {}}
+    summary = {'ms': res.get('ms'), 'slots': {}, 'persons': res.get('persons')}
     for name, vr in (res.get('slots') or {}).items():
         r = out['slots'].get(name)
         if r is None:
@@ -582,6 +582,7 @@ def main():
     ap.add_argument('--learn-cable', help='hanging（沒接車，線垂掛）／to_near（線接到畫面前景那台車）／hidden（線被擋住拍不到＝接到後方那台車）／to_luxgen_in（Luxgen 車頭朝內充電）')
     ap.add_argument('--no-learn', action='store_true', help='只分析，不更新滾動基準（除錯用）')
     ap.add_argument('--csv', action='store_true', help='附加一列指標到 metrics.csv（P0 資料收集）')
+    ap.add_argument('--safety', action='store_true', help='關門前確認淨空：一定問一次 add-on（含人物偵測），結果放在 vision.persons')
     ap.add_argument('--gate-recent', action='store_true', help='鐵門最近 10 分鐘內開過（啟用「車位自動學成空」）')
     ap.add_argument('--vision', help='Garage Vision add-on 網址，例如 http://local-garage-vision:8099（沒給就不用）')
     ap.add_argument('--vision-every', type=int, default=300, help='平常多久問一次 add-on（秒）')

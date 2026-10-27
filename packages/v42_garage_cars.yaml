@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.3.0-beta 6：新增 script.garage_close_safety_check（關門前淨空確認：模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）；104-2、104-3 自動關門與本檔的誤判關門都先過這關。
 # - V4.2.5：新增。UniFi 攝影機不會把「停很久的車要出門」當成新車輛，所以改用定時畫面分析（scripts/garage_car_watch.py，Pillow＋numpy）：
 #   每個車位（front＝前位／靠鐵門＝3D 車位1，back＝後位／內側＝3D 車位2）判斷有沒有車、是哪輛（Luxgen N7／Tesla Model 3）、車燈是否亮起、車身是否位移。
 #   - 車位實體：input_select.garage_slot_front／back（empty／unknown／luxgen_n7（EAK8030）／tesla_model3（EBH8030）／其他車輛 sedan 房車、suv 休旅車、motorcycle 機車）；車輛實體：sensor.garage_car_luxgen_n7／tesla_model3
@@ -259,8 +260,53 @@ template:
                - (40 if (is_state('input_boolean.aqara_wan_an', 'on') or is_state('input_boolean.sleep_silent_active', 'on')) else 0) }}
 
 script:
+  garage_close_safety_check:
+    alias: 車庫關門前淨空確認AI (V4.3.0-beta 6)
+    description: 自動關鐵門前呼叫：用車庫畫面模型（人物偵測＋車燈／煞車燈＋車身位移）加攝影機人員偵測、動作偵測、家人手機位置，確認沒人且車輛沒有要動。回傳 safe 與原因；模型無法使用時改用感測器判斷。
+    mode: queued
+    max: 3
+    sequence:
+      - action: camera.snapshot
+        target:
+          entity_id: camera.g6_instant_high_resolution_channel
+        data:
+          filename: /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg
+        continue_on_error: true
+      - delay: "00:00:00.5"
+      - action: shell_command.garage_car_watch
+        data:
+          gate: "--gate-recent"
+          nolearn: "--no-learn --safety"
+        response_variable: r
+        continue_on_error: true
+      - variables:
+          res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+          vis: "{{ res.get('vision') if (res is mapping and res.get('vision') is mapping) else {} }}"
+          model_ok: "{{ res is mapping and res.get('slots') is mapping and vis.get('persons') is not none and vis.get('persons') is iterable and not vis.get('error') }}"
+          n_person: "{{ (vis.get('persons') | length) if model_ok else 0 }}"
+          lit: >-
+            {% set ns = namespace(l=[]) %}{% if model_ok %}{% for k, s in res.slots.items() %}{% if s.present and s.lights_on %}{% set ns.l = ns.l + [({'front': '前位', 'back': '後位'}.get(k, k))] %}{% endif %}{% endfor %}{% endif %}{{ ns.l | join('、') }}
+          mov: >-
+            {% set ns = namespace(l=[]) %}{% if model_ok %}{% for k, s in res.slots.items() %}{% if s.present and s.moved %}{% set ns.l = ns.l + [({'front': '前位', 'back': '後位'}.get(k, k))] %}{% endif %}{% endfor %}{% endif %}{{ ns.l | join('、') }}
+          cam_person: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}"
+          cam_motion: "{{ is_state('binary_sensor.g6_instant_motion', 'on') }}"
+          phone_in: "{{ '車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] }}"
+          reasons: >-
+            {% set r = [] %}
+            {% if n_person | int(0) > 0 %}{% set r = r + ['畫面辨識到有人（' ~ n_person ~ ' 人）'] %}{% endif %}
+            {% if lit | trim != '' %}{% set r = r + [lit ~ '車輛車燈／煞車燈亮著'] %}{% endif %}
+            {% if mov | trim != '' %}{% set r = r + [mov ~ '車輛在移動'] %}{% endif %}
+            {% if cam_person %}{% set r = r + ['攝影機偵測到人員'] %}{% endif %}
+            {% if cam_motion %}{% set r = r + ['攝影機偵測到動作'] %}{% endif %}
+            {% if phone_in %}{% set r = r + ['家人手機連在車庫 AP'] %}{% endif %}
+            {{ r | to_json }}
+          rs: "{{ reasons | from_json([]) }}"
+          result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok} }}"
+      - stop: 淨空確認完成
+        response_variable: result
+
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.3.0-beta 5)
+    alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -572,7 +618,7 @@ script:
                             level: info
                             line: false
                             source: 車庫車輛畫面分析AI
-                            version: V4.3.0-beta 5
+                            version: V4.3.0-beta 6
                             title: "{{ names.get(car, car) }} 準備出門"
                             message: >-
                               {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
@@ -594,7 +640,9 @@ script:
                           continue_on_timeout: true
                         - if: "{{ not is_state('input_select.garage_slot_' ~ repeat.item, 'empty') }}"
                           then:
-                            - if: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off') and is_state('binary_sensor.g6_instant_motion', 'off') }}"
+                            - action: script.garage_close_safety_check
+                              response_variable: sf
+                            - if: "{{ sf is mapping and sf.get('safe') == true }}"
                               then:
                                 - action: cover.close_cover
                                   target:
@@ -604,7 +652,7 @@ script:
                                 level: important
                                 line: false
                                 source: 車庫車輛畫面分析AI
-                                version: V4.3.0-beta 5
+                                version: V4.3.0-beta 6
                                 title: 車庫自動開門後車輛沒有出去
                                 message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
                     - stop: "已判斷準備出門"
