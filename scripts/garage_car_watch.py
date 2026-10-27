@@ -68,6 +68,16 @@ def phase_shift(a, b):
     return float(dx), float(dy), peak
 
 
+def body_mode(rgb):
+    """日夜：紅外線畫面無彩度（ir），白天彩色（color）；用牆面參考區判斷（不受車位有沒有車影響）。空車位基準依光線模式各存一份，日夜切換不會互相覆蓋。"""
+    mx, mn = rgb.max(axis=2).astype(np.float32), rgb.min(axis=2).astype(np.float32)
+    return 'ir' if float(((mx - mn) / np.maximum(mx, 1)).mean()) < 0.04 else 'color'
+
+
+def empty_file(workdir, name, rgb):
+    return os.path.join(workdir, 'empty_%s_%s.npy' % (name, body_mode(rgb)))
+
+
 def signature(rgb):
     """車身區的樣板：4x4 區塊平均亮度（以整塊平均正規化）＋ 16 格亮度直方圖；另帶彩度判斷日夜（紅外線無彩度）。"""
     g = gray(rgb)
@@ -153,6 +163,21 @@ def slots_query(roi):
 PLATES = {'EAK8030': 'luxgen_n7', 'EBH8030': 'tesla_model3'}      # 家裡兩輛車的車牌；garage_roi.json 的 "plates" 可覆蓋
 
 
+def _lev(a, b):
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def foreign_plate(text, conf, plates):
+    """讀到的車牌和家裡每個車牌都差 3 個字元以上（OCR 誤讀家用車牌通常只差 1～2 個字）且信心夠高 → 別人的車（未知車輛）。"""
+    return conf >= 0.7 and all(_lev(text, p) >= 3 for p in plates)
+
+
 def match_plate(text, conf, plates):
     """車牌文字對應到家裡的車：完全相同，或 OCR 信心 ≥0.9 且只差 1 個字元（O／0、B／8 這類誤讀），其餘不認。"""
     if text in plates:
@@ -212,16 +237,22 @@ def apply_vision(a, roi, state, out, jpg, now):
                 s['score'] = idr['score']
             # 車牌文字辨識（add-on 的 RapidOCR）：車牌在這輛車身上讀到，是比影像樣板更直接的身分證據
             pl = vr.get('plate')
-            if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.8):
+            if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.7):
                 r['plate'] = pl['text']
                 s['plate'] = pl['text']
-                car = match_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES)
+                car = match_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES) if pl['conf'] >= 0.8 else None
                 if car:
                     if r['identity'] not in ('unknown', car):
                         r['id_conflict'] = r['identity']
                     r['identity'] = car
                     r['identity_src'] = 'plate'
                     s['id'] = car
+                elif foreign_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES):
+                    # 別人的車牌：不是 Luxgen／Tesla，不管影像樣板怎麼說都當未知車輛
+                    r['identity'] = 'unknown'
+                    r['identity_src'] = 'foreign_plate'
+                    r['foreign_plate'] = pl['text']
+                    s['id'] = 'foreign'
             if r['identity'] == 'unknown' and typ and typ.get('p', 0) >= 0.6:
                 r['vehicle_type'] = {'truck': 'suv'}.get(typ['label'], typ['label'])
             elif r['identity'] == 'unknown' and d['cls'] == 'motorcycle':
@@ -284,7 +315,7 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         res = {'occupied': None, 'identity': 'unknown', 'lights_on': False, 'lights_delta': 0.0, 'moved': False, 'shift_px': 0.0,
                'lights_reliable': bool(s.get('lights_reliable', True))}
         # 有沒有車
-        empty_path = os.path.join(workdir, 'empty_%s.npy' % name)
+        empty_path = empty_file(workdir, name, crop(arr, roi['wall']))
         if os.path.exists(empty_path):
             e = np.load(empty_path)
             if e.shape == bg.shape:
@@ -391,7 +422,9 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
 
 def cmd_learn_empty(img, roi, name, workdir):
     s = roi['slots'][name]
-    np.save(os.path.join(workdir, 'empty_%s.npy' % name), gray(crop(np.asarray(img), s['body'])))
+    arr = np.asarray(img)
+    body = crop(arr, s['body'])
+    np.save(empty_file(workdir, name, crop(arr, roi['wall'])), gray(body))
     return {'learned_empty': name}
 
 
