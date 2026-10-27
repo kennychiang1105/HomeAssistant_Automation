@@ -2,6 +2,7 @@
 """Garage Vision：YOLO11 偵測汽車／機車 ＋ CLIP 車種／車頭朝向辨識（本機 HTTP，埠 8099，只給 HA 內部用）。
 
 POST /analyze?slots=front=x0,y0,x1,y1;back=...   body=JPEG  → 每個車位的偵測框、身分（樣板庫 kNN）、車型（零樣本）
+     （V0.2.0）回傳多一個 plates（整張畫面讀到的車牌）與每車位的 plate（RapidOCR；plate=0 可關閉）
 POST /learn?slot=front&label=luxgen_n7:inside&slots=...  body=JPEG → 把這個車位的車存進樣板庫
 POST /forget?label=luxgen_n7:inside
 GET  /health、GET /gallery
@@ -10,6 +11,7 @@ GET  /health、GET /gallery
 import io
 import json
 import os
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +28,13 @@ so.intra_op_num_threads = int(os.environ.get("THREADS", "3"))
 yolo = ort.InferenceSession(f"{MODELS}/yolo11m.onnx", so, providers=["CPUExecutionProvider"])
 clip = ort.InferenceSession(f"{MODELS}/clip_visual.onnx", so, providers=["CPUExecutionProvider"])
 TEXT = np.load(f"{MODELS}/text_embeds.npy")
+try:                                             # 車牌文字辨識（RapidOCR，onnx）；載入失敗就只停用車牌功能
+    from rapidocr_onnxruntime import RapidOCR
+    OCR = RapidOCR()
+except Exception as _e:                          # noqa: BLE001
+    OCR = None
+    print("ocr disabled:", _e, flush=True)
+PLATE_RE = [re.compile(r"([A-Z]{2,3})[-·.]?([0-9]{3,4})"), re.compile(r"([0-9]{3,4})[-·.]?([A-Z]{2,3})")]
 TYPES = ["suv", "sedan", "motorcycle", "truck"]
 VEH = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
 MEAN = np.array([0.48145466, 0.4578275, 0.40821073], dtype=np.float32)
@@ -131,6 +140,29 @@ def classify(e, gallery):
     return res
 
 
+def read_plates(img):
+    """整張畫面找車牌文字（台灣車牌：英文＋數字）。回傳 [{text, conf, box(比例), cx, cy}]；OCR 沒載入就回空。"""
+    if OCR is None:
+        return []
+    W, H = img.size
+    res, _ = OCR(np.asarray(img)[:, :, ::-1])
+    out = []
+    for box, txt, conf in (res or []):
+        t = re.sub(r"[\s·.\-_]", "", str(txt).upper())
+        m = None
+        for rx in PLATE_RE:
+            m = rx.fullmatch(t)
+            if m:
+                break
+        if not m or float(conf) < 0.5:
+            continue
+        xs, ys = [p[0] for p in box], [p[1] for p in box]
+        b = [min(xs) / W, min(ys) / H, max(xs) / W, max(ys) / H]
+        out.append({"text": "".join(m.groups()), "conf": round(float(conf), 3), "box": [round(v, 4) for v in b],
+                    "cx": round((b[0] + b[2]) / 2, 4), "cy": round((b[1] + b[3]) / 2, 4)})
+    return sorted(out, key=lambda p: -p["conf"])
+
+
 def parse_slots(q):
     out = {}
     for part in (q.get("slots", [""])[0]).split(";"):
@@ -212,6 +244,8 @@ class H(BaseHTTPRequestHandler):
                 if u.path == "/analyze":
                     gal = load_gallery()
                     res = {"ts": int(time.time()), "size": list(img.size), "dets": dets, "slots": {}}
+                    plates = read_plates(img) if q.get("plate", ["1"])[0] != "0" else []
+                    res["plates"] = plates
                     for name, box in slots.items():
                         d = pick(dets, box)
                         r = {"det": d}
@@ -219,7 +253,20 @@ class H(BaseHTTPRequestHandler):
                             e = embed(crop(img, d["box"]))
                             r["type"] = zero_shot(e)
                             r["id"] = classify(e, gal)
+                        # 車牌屬於這個車位：車牌中心落在該車位的偵測框內（沒偵測到車就看車位框）
+                        area = d["box"] if d else box
+                        r["_area"] = area
                         res["slots"][name] = r
+                    # 一塊車牌只屬於一個車位：包含它的框中面積最小的那個（前景大車的框常蓋住後方車的車牌）
+                    for p in plates:
+                        own = [(( r["_area"][2] - r["_area"][0]) * (r["_area"][3] - r["_area"][1]), n) for n, r in res["slots"].items()
+                               if r["_area"][0] <= p["cx"] <= r["_area"][2] and r["_area"][1] <= p["cy"] <= r["_area"][3]]
+                        if own:
+                            n = min(own)[1]
+                            if "plate" not in res["slots"][n]:
+                                res["slots"][n]["plate"] = {"text": p["text"], "conf": p["conf"]}
+                    for r in res["slots"].values():
+                        r.pop("_area", None)
                     res["ms"] = int((time.time() - t0) * 1000)
                     return self._send(200, res)
             self._send(404, {"error": "not found"})

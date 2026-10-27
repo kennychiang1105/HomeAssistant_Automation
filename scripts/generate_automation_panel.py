@@ -1083,6 +1083,7 @@ def garage_cars_blocks():
         ("input_select.garage_charging_slot", "現在充電的車位"),
         ("input_text.garage_charge_log", "充電紀錄（最近一次）"),
         ("input_text.garage_id_fix_log", "身分校正紀錄（車牌／排除法，最近一次）"),
+        ("input_text.garage_plate_seen", "攝影機讀到的車牌（影像文字辨識，最近一次）"),
         ("input_boolean.garage_depart_candidate", "準備出門中"),
         ("input_text.garage_depart_last", "最近一次判斷"),
     ]

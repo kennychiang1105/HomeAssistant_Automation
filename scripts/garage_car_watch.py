@@ -150,6 +150,20 @@ def slots_query(roi):
     return 'slots=' + ';'.join('%s=%s' % (n, ','.join(str(x) for x in s['body'])) for n, s in roi['slots'].items())
 
 
+PLATES = {'EAK8030': 'luxgen_n7', 'EBH8030': 'tesla_model3'}      # 家裡兩輛車的車牌；garage_roi.json 的 "plates" 可覆蓋
+
+
+def match_plate(text, conf, plates):
+    """車牌文字對應到家裡的車：完全相同，或 OCR 信心 ≥0.9 且只差 1 個字元（O／0、B／8 這類誤讀），其餘不認。"""
+    if text in plates:
+        return plates[text]
+    if conf >= 0.9:
+        near = [car for p, car in plates.items() if len(p) == len(text) and sum(x != y for x, y in zip(p, text)) == 1]
+        if len(set(near)) == 1:
+            return near[0]
+    return None
+
+
 def apply_vision(a, roi, state, out, jpg, now):
     """本機 YOLO＋CLIP（Garage Vision add-on）補強：框出車、認出是哪輛車與車頭朝向、粗分車型。
     平常 vision_every 秒一次；有車燈／位移證據或身分不明時馬上多問一次。add-on 連不上就略過（保持原本的分析）。"""
@@ -196,12 +210,25 @@ def apply_vision(a, roi, state, out, jpg, now):
                     state.setdefault('slots', {}).setdefault(name, {})['facing'] = idr['facing']
                 s['id'] = idr['identity']
                 s['score'] = idr['score']
+            # 車牌文字辨識（add-on 的 RapidOCR）：車牌在這輛車身上讀到，是比影像樣板更直接的身分證據
+            pl = vr.get('plate')
+            if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.8):
+                r['plate'] = pl['text']
+                s['plate'] = pl['text']
+                car = match_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES)
+                if car:
+                    if r['identity'] not in ('unknown', car):
+                        r['id_conflict'] = r['identity']
+                    r['identity'] = car
+                    r['identity_src'] = 'plate'
+                    s['id'] = car
             if r['identity'] == 'unknown' and typ and typ.get('p', 0) >= 0.6:
                 r['vehicle_type'] = {'truck': 'suv'}.get(typ['label'], typ['label'])
             elif r['identity'] == 'unknown' and d['cls'] == 'motorcycle':
                 r['vehicle_type'] = 'motorcycle'
             s['type'] = typ
         summary['slots'][name] = s
+    summary['plates'] = [{'text': p['text'], 'conf': p['conf']} for p in (res.get('plates') or [])]
     return summary
 
 
