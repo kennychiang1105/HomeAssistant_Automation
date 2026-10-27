@@ -59,6 +59,10 @@ def save_gallery(g):
     os.replace(tmp, GAL)
 
 
+PERSON_CONF = 0.30
+LAST = {"persons": []}
+
+
 def detect(img, conf=0.25, iou=0.5):
     W, H = img.size
     s = 640 / max(W, H)
@@ -71,6 +75,17 @@ def detect(img, conf=0.25, iou=0.5):
     boxes, scores = out[:4].T, out[4:].T
     cls, sc = scores.argmax(1), scores.max(1)
     idx = [i for i in np.where(sc > conf)[0] if int(cls[i]) in VEH]
+    # 人（COCO 類別 0）：整個畫面都找，另外回傳（關門前確認淨空用）；門檻略低，夜間紅外線的人信心常偏低
+    pidx = [i for i in np.where(sc > PERSON_CONF)[0] if int(cls[i]) == 0]
+    persons = []
+    for i in sorted(pidx, key=lambda k: -sc[k]):
+        cx, cy, w, h = boxes[i]
+        b = [(cx - w / 2 - px) / s / W, (cy - h / 2 - py) / s / H, (cx + w / 2 - px) / s / W, (cy + h / 2 - py) / s / H]
+        b = [float(min(max(v, 0.0), 1.0)) for v in b]
+        if any(iou_of(b, d["box"]) > iou for d in persons):
+            continue
+        persons.append({"conf": round(float(sc[i]), 3), "box": [round(v, 4) for v in b]})
+    LAST["persons"] = persons
     dets = []
     for i in sorted(idx, key=lambda k: -sc[k]):
         cx, cy, w, h = boxes[i]
@@ -244,6 +259,7 @@ class H(BaseHTTPRequestHandler):
                 if u.path == "/analyze":
                     gal = load_gallery()
                     res = {"ts": int(time.time()), "size": list(img.size), "dets": dets, "slots": {}}
+                    res["persons"] = LAST.get("persons", [])
                     plates = read_plates(img) if q.get("plate", ["1"])[0] != "0" else []
                     res["plates"] = plates
                     for name, box in slots.items():
