@@ -35,15 +35,18 @@
       not_to: [unavailable, unknown]
       id: arrive
   actions:
-    # Kenny 離家→在家：記下回家時間（頂樓上樓廣播用它判斷「回家後第一次上樓」），不播報
+    # Kenny 離家（超過 15 分鐘）→在家：記下回家時間（頂樓上樓廣播用它判斷「回家後第一次上樓」），不播報
     - if: "{{ trigger.id == 'arrive' }}"
       then:
-        - action: input_datetime.set_datetime
-          target:
-            entity_id: input_datetime.topfloor_last_arrival
-          data:
-            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-        - stop: "已記錄回家時間"
+        # 手機 Wi-Fi 閃斷（換 AP、休眠）會短暫變成「離家」：離家超過 15 分鐘才算真的出門回來
+        - if: "{{ trigger.from_state is not none and (as_timestamp(now()) - as_timestamp(trigger.from_state.last_changed)) >= 900 }}"
+          then:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.topfloor_last_arrival
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        - stop: "回家時間處理完畢"
     # 不論有沒有播報，都記下「最近一次下樓情境」時間；腳本用它判斷「短暫下樓上廁所再上樓」不重播
     - if: "{{ trigger.id in ['down', 'night'] }}"
       then:
