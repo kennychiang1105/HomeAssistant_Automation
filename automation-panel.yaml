@@ -2496,7 +2496,7 @@ views:
           - entity: automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0
             name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4
-            name: "08-5L頂樓情境廣播AI (V4.3.1)"
+            name: "08-5L頂樓情境廣播AI (V4.3.2)"
           - entity: automation.a107_11a_single
             name: "800-開關系列-11A 書房燈感應開關單擊"
           - entity: automation.a107_11b
@@ -4423,7 +4423,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "頂樓（49）"
+        heading: "頂樓（50）"
         heading_style: title
         card_mod:
           style: |
@@ -4536,6 +4536,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_datetime.topfloor_last_arrival
+            name: "頂樓情境廣播｜Kenny 最近一次回到家（離家→在家，內部）"
           - entity: input_datetime.topfloor_announce_last_up
             name: "頂樓情境廣播｜上次上樓（內部）"
           - entity: input_datetime.topfloor_announce_last_down
@@ -4554,8 +4556,6 @@ views:
             name: "頂樓_參數首次初始化旗標"
           - entity: input_text.topfloor_last_path
             name: "頂樓_最後動線事件（事件|時間戳）"
-          - entity: input_text.topfloor_decision_log
-            name: "頂樓_最後決策"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4570,6 +4570,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.topfloor_decision_log
+            name: "頂樓_最後決策"
           - entity: input_text.topfloor_debug_last_decision
             name: "頂樓偵測 Debug（最後決策）"
           - entity: input_text.topfloor_debug_last_json
