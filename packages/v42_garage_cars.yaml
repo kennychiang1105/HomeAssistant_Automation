@@ -369,7 +369,6 @@ script:
                   player:
                     - media_player.ke_ting_homepod
                     - media_player.che_ku_she_ying_ji_speaker
-                  adjust_volume: false
 
   garage_car_watch_run:
     alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
