@@ -307,7 +307,7 @@ script:
 
   garage_gate_close_retry:
     alias: 鐵門未關重試關門AI (V4.3.1)
-    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 12 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，並廣播（客廳 HomePod＋車庫攝影機喇叭，熟睡／晚安中不廣播），請自己關門。
+    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 12 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，並一律廣播（客廳 HomePod＋車庫攝影機喇叭），請自己關門。
     mode: single
     sequence:
       - repeat:
@@ -359,16 +359,14 @@ script:
               message: |-
                 鐵門仍開啟，已重試 12 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
                 系統不會再自動關門，請自己關門（若是刻意開著工作，忽略即可）。
-          # 同時廣播：客廳 HomePod ＋ 車庫攝影機喇叭（熟睡／晚安靜音中不廣播，只留通知）
-          - if: "{{ is_state('input_boolean.sleep_silent_active', 'off') and is_state('input_boolean.aqara_wan_an', 'off') }}"
-            then:
-              - action: script.announce
-                data:
-                  level: important
-                  message: 鐵門已經開超過兩小時，系統不會再自動關門，請自己關門。
-                  player:
-                    - media_player.ke_ting_homepod
-                    - media_player.che_ku_she_ying_ji_speaker
+          # 同時廣播：客廳 HomePod ＋ 車庫攝影機喇叭（一律廣播，不看熟睡／晚安）
+          - action: script.announce
+            data:
+              level: important
+              message: 鐵門已經開超過兩小時，系統不會再自動關門，請自己關門。
+              player:
+                - media_player.ke_ting_homepod
+                - media_player.che_ku_she_ying_ji_speaker
 
   garage_car_watch_run:
     alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
