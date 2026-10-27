@@ -305,6 +305,61 @@ script:
       - stop: 淨空確認完成
         response_variable: result
 
+  garage_gate_close_retry:
+    alias: 鐵門未關重試關門AI (V4.3.1)
+    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 6 次（約 1 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功再通知一次。
+    mode: single
+    sequence:
+      - repeat:
+          count: 6
+          sequence:
+            - wait_for_trigger:
+                - trigger: state
+                  entity_id: cover.garage
+                  to: "closed"
+              timeout:
+                minutes: 10
+              continue_on_timeout: true
+            - if: "{{ wait.trigger is not none or not is_state('cover.garage', 'open') }}"
+              then:
+                - stop: "鐵門已關閉，結束重試"
+            - if: >-
+                {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off')
+                   and is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'off')
+                   and is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'off')
+                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) > 180
+                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed)) > 180 }}
+              then:
+                - action: script.garage_close_safety_check
+                  response_variable: sf
+                - if: "{{ sf is mapping and sf.get('safe') == true and is_state('cover.garage', 'open') }}"
+                  then:
+                    - action: automation.trigger
+                      target:
+                        entity_id: automation.tie_men_kai_guan
+                    - action: script.notify_dispatch
+                      data:
+                        level: important
+                        line: false
+                        source: "鐵門未關重試關門AI (V4.3.1)"
+                        version: V4.3.1
+                        title: "鐵門已自動關閉（重試）"
+                        message: |-
+                          第 {{ repeat.index }} 次重試：人車安靜、車庫 AP 無人，模型淨空確認通過，已下達關門。
+                    - stop: "重試成功"
+      - if: "{{ is_state('cover.garage', 'open') }}"
+        then:
+          - action: script.notify_dispatch
+            data:
+              level: emergency
+              source: "鐵門未關重試關門AI (V4.3.1)"
+              version: V4.3.1
+              title: "鐵門開超過 1 小時仍無法自動關閉"
+              user_id: "{{ states('sensor.line_bot_target_user_id') }}"
+              message: |-
+                鐵門仍開啟，已重試 6 次（約 1 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
+                請到現場確認，或手動關門。
+
   garage_car_watch_run:
     alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
