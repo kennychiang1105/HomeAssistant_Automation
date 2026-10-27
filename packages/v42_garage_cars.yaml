@@ -12,7 +12,7 @@
 input_boolean:
   garage_turn_signal_enable:
     name: 車庫出門偵測｜左方向燈偵測（絕對出門訊號）
-    icon: mdi:car-turn-signal-left
+    icon: mdi:car-arrow-left
     initial: true
   garage_turn_signal_open_enable:
     name: 車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）
@@ -20,7 +20,7 @@ input_boolean:
     initial: false
   garage_turn_detected:
     name: 車庫出門偵測｜剛偵測到左方向燈（內部）
-    icon: mdi:car-turn-signal-left
+    icon: mdi:car-arrow-left
   garage_vehicle_confirmed:
     name: 充電車輛已由電流確認（內部）
     icon: mdi:check-decagram
