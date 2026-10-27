@@ -307,11 +307,11 @@ script:
 
   garage_gate_close_retry:
     alias: 鐵門未關重試關門AI (V4.3.1)
-    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 6 次（約 1 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功再通知一次。
+    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 12 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，請自己關門。
     mode: single
     sequence:
       - repeat:
-          count: 6
+          count: 12
           sequence:
             - wait_for_trigger:
                 - trigger: state
@@ -351,14 +351,14 @@ script:
         then:
           - action: script.notify_dispatch
             data:
-              level: emergency
+              level: important
               source: "鐵門未關重試關門AI (V4.3.1)"
               version: V4.3.1
-              title: "鐵門開超過 1 小時仍無法自動關閉"
+              title: "鐵門開超過 2 小時仍無法自動關閉"
               user_id: "{{ states('sensor.line_bot_target_user_id') }}"
               message: |-
-                鐵門仍開啟，已重試 6 次（約 1 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
-                請到現場確認，或手動關門。
+                鐵門仍開啟，已重試 12 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
+                系統不會再自動關門，請自己關門（若是刻意開著工作，忽略即可）。
 
   garage_car_watch_run:
     alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
