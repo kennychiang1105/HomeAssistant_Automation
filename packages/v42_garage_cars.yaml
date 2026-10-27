@@ -42,6 +42,9 @@ input_text:
   garage_id_fix_log:
     name: 車庫車輛身分校正紀錄（最近一次）
     max: 255
+  garage_plate_seen:
+    name: 車庫攝影機讀到的車牌（影像文字辨識，最近一次）
+    max: 255
 
 input_select:
   # 充電車輛鎖定（整段充電維持同一輛，尾端降載電流掉到中間值也不改判）；由 107C 維護
@@ -240,7 +243,7 @@ template:
 
 script:
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.3.0-beta 2)
+    alias: 車庫車輛畫面分析AI (V4.3.0-beta 3)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -277,7 +280,7 @@ script:
       - variables:
           protect_recent: "{{ is_state('binary_sensor.g6_instant_motion', 'on') or ((as_timestamp(now()) - as_timestamp(states('sensor.g6_instant_last_motion_detected'), 0)) < 180) }}"
           # 影像把兩個車位判成同一輛（夜間紅外線、剛換位置常見）：不要用這個結果覆蓋車位，交給 1A 仲裁
-          dup_res: "{{ res.slots.front.identity in ['luxgen_n7', 'tesla_model3'] and res.slots.front.identity == res.slots.back.identity }}"
+          dup_res: "{{ res.slots.front.identity in ['luxgen_n7', 'tesla_model3'] and res.slots.front.identity == res.slots.back.identity and res.slots.front.identity_src | default('') != 'plate' and res.slots.back.identity_src | default('') != 'plate' }}"
       # 1) 更新前／後位車輛與連續證據次數
       - repeat:
           for_each: [front, back]
@@ -329,7 +332,17 @@ script:
             {% set typ = {'luxgen_n7': 'suv', 'tesla_model3': 'sedan'} %}
             {% set weak = ['unknown', 'sedan', 'suv', 'motorcycle'] %}
             {% set plate_new = plate_age <= 900 %}
-            {% if sf in cars and sf == sb and pf_ok and pb_ok %}
+            {% set pa_f = res.slots.front.identity if (res.slots.front.identity_src | default('')) == 'plate' else '' %}
+            {% set pa_b = res.slots.back.identity if (res.slots.back.identity_src | default('')) == 'plate' else '' %}
+            {% if pa_f in cars and sf != pa_f %}
+              {{ {'slot': 'front', 'car': pa_f, 'why': 'ocr', 'plate': true} | to_json }}
+            {% elif pa_b in cars and sb != pa_b %}
+              {{ {'slot': 'back', 'car': pa_b, 'why': 'ocr', 'plate': true} | to_json }}
+            {% elif pa_f in cars and pb_ok and not pa_b and sb != other[pa_f] %}
+              {{ {'slot': 'back', 'car': other[pa_f], 'why': 'ocr_excl', 'plate': true} | to_json }}
+            {% elif pa_b in cars and pf_ok and not pa_f and sf != other[pa_b] %}
+              {{ {'slot': 'front', 'car': other[pa_b], 'why': 'ocr_excl', 'plate': true} | to_json }}
+            {% elif sf in cars and sf == sb and pf_ok and pb_ok %}
               {% set slot = 'front' if (res.slots.front.identity_dist | float(9)) > (res.slots.back.identity_dist | float(9)) else 'back' %}
               {{ {'slot': slot, 'car': other[sf], 'why': 'dup', 'plate': plate_new and plate_car == other[sf]} | to_json }}
             {% elif sf in cars and sb in weak and pb_ok %}
@@ -353,7 +366,7 @@ script:
             target:
               entity_id: input_text.garage_id_fix_log
             data:
-              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ pos[fixd.slot] ~ ' 校正為 ' ~ names[fixd.car] ~ '｜' ~ ('兩位判成同一輛' if fixd.why == 'dup' else '排除法') ~ ('｜車牌證實' if fixd.plate else '｜未見車牌'))[:255] }}"
+              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ pos[fixd.slot] ~ ' 校正為 ' ~ names[fixd.car] ~ '｜' ~ ({'dup': '兩位判成同一輛', 'ocr': '影像讀到車牌', 'ocr_excl': '另一位讀到車牌，排除法'}.get(fixd.why, '排除法')) ~ ('｜車牌證實' if fixd.plate else '｜未見車牌'))[:255] }}"
           - if: "{{ fixd.plate and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_id_fix_last'), 0)) > 600 }}"
             then:
               - action: input_datetime.set_datetime
@@ -365,6 +378,17 @@ script:
                 data:
                   arg: "--learn-sig {{ fixd.slot }}={{ fixd.car }}{{ ':inside' if is_state('input_select.garage_facing_' ~ fixd.slot, 'inside') else '' }}"
                 continue_on_error: true
+      # 1A-2) 影像文字辨識讀到的車牌（add-on RapidOCR）：記錄最近一次，含不是家裡的車牌（經過的車）
+      - variables:
+          seen: >-
+            {% set ns = namespace(l=[]) %}{% for p in (res.get('vision', {}).get('plates', []) if res.get('vision') is mapping else []) %}{% set ns.l = ns.l + [p.text ~ '(' ~ p.conf ~ ')'] %}{% endfor %}{{ ns.l | join('、') }}
+      - if: "{{ seen | trim != '' and not states('input_text.garage_plate_seen').endswith(seen | trim) }}"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.garage_plate_seen
+            data:
+              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ (seen | trim))[:255] }}"
       # 1B) 充電訊號 ＋ 充電線：判斷「現在是哪輛車在充電、它停在哪個車位」，補強車輛身分
       #     充電樁狀態是「機率」不是電流大小：正常充電（charging）＝100% Tesla；降壓（charging_reduced）＝80% Luxgen、20% Tesla。
       #     再用影像證據調整：Luxgen 常停後面、車頭朝外就在充電（朝內也可能），所以朝向只當輕微證據；主要看充電線樣板指向的車位是不是 Luxgen 所在的車位。
@@ -491,7 +515,7 @@ script:
                             level: info
                             line: false
                             source: 車庫車輛畫面分析AI
-                            version: V4.3.0-beta 2
+                            version: V4.3.0-beta 3
                             title: "{{ names.get(car, car) }} 準備出門"
                             message: >-
                               {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
@@ -523,7 +547,7 @@ script:
                                 level: important
                                 line: false
                                 source: 車庫車輛畫面分析AI
-                                version: V4.3.0-beta 2
+                                version: V4.3.0-beta 3
                                 title: 車庫自動開門後車輛沒有出去
                                 message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
                     - stop: "已判斷準備出門"

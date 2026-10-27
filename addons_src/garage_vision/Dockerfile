@@ -10,7 +10,8 @@ RUN python export_clip.py
 
 # Stage 2：執行環境（onnxruntime，不含 torch）
 FROM python:3.12-slim
-RUN pip install --no-cache-dir onnxruntime numpy pillow
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir onnxruntime numpy pillow rapidocr-onnxruntime
 COPY --from=export /w/yolo11m.onnx /models/yolo11m.onnx
 COPY --from=export /w/clip_visual.onnx /models/clip_visual.onnx
 COPY --from=export /w/text_embeds.npy /models/text_embeds.npy

@@ -2496,7 +2496,7 @@ views:
           - entity: automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0
             name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4
-            name: "08-5L頂樓情境廣播AI (V4.3.0)"
+            name: "08-5L頂樓情境廣播AI (V4.3.1)"
           - entity: automation.a107_11a_single
             name: "800-開關系列-11A 書房燈感應開關單擊"
           - entity: automation.a107_11b
@@ -2754,6 +2754,8 @@ views:
             name: "充電紀錄（最近一次）"
           - entity: input_text.garage_id_fix_log
             name: "身分校正紀錄（車牌／排除法，最近一次）"
+          - entity: input_text.garage_plate_seen
+            name: "攝影機讀到的車牌（影像文字辨識，最近一次）"
           - entity: input_boolean.garage_depart_candidate
             name: "準備出門中"
           - entity: input_text.garage_depart_last
@@ -4795,4 +4797,51 @@ views:
             name: "00-01 系統穩定最後動作"
           - entity: input_text.ai_leave_version_text
             name: "AI離家版本字串"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "其他（1）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_datetime.garage_id_fix_last
+            name: "車庫車輛身分校正｜上次重學樣板（內部）"
+        card_mod: *cm
+  - title: "其他"
+    path: other
+    icon: mdi:dots-horizontal-circle-outline
+    type: custom:vertical-layout
+    layout:
+      max_cols: 4
+      width: 340
+    cards:
+    - type: vertical-stack
+      cards:
+      - type: markdown
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 1 個"
+        card_mod:
+          style: |
+            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "文字（1）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_text.garage_id_fix_log
+            name: "車庫車輛身分校正紀錄（最近一次）"
         card_mod: *cm

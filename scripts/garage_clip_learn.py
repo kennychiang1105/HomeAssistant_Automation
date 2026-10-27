@@ -62,6 +62,7 @@ def main():
         return
     sq = gcw.slots_query(roi)
     rec = {'clip': name, 't0': a.t0, 'step': a.step, 'frames': []}
+    learned_n, last_learn, learned_labels = 0, {}, []
     for i, f in enumerate(frames):
         t = i * a.step
         try:
@@ -89,11 +90,26 @@ def main():
                 'ty': (vs.get('type') or {}).get('label'),
                 'lo': int(r1['lights_on']), 'rd': r1.get('red_delta'), 'ld': r1.get('lights_delta'),
                 'mv': int(r1['moved']), 'sh': r1['shift_px'],
+                'pl': (vs.get('plate') or {}).get('text'), 'plc': (vs.get('plate') or {}).get('conf'),
             }
             if idr.get('facing'):
                 state.setdefault('slots', {}).setdefault(sn, {})['facing'] = idr['facing']
+            # 影像讀到家裡車牌（信心 >=0.9、完全相符）＝可靠標籤：影像樣板判錯或不夠有把握的畫面，存進 add-on 樣板庫（每段影片最多 4 張、至少隔 3 個取樣點）
+            pl = vs.get('plate') or {}
+            car = gcw.PLATES.get(pl.get('text')) if (pl and d and pl.get('conf', 0) >= 0.9) else None
+            if car and idr.get('facing') and (idr.get('identity') != car or idr.get('score', 0) < 0.9) \
+                    and learned_n < 4 and i - last_learn.get(sn, -9) >= 3:
+                lab = car + (':inside' if idr['facing'] == 'inside' else '')
+                try:
+                    gcw.vision_call(VISION, '/learn', 'slot=%s&label=%s&%s' % (sn, lab, sq), jpg, timeout=40)
+                    learned_n += 1
+                    last_learn[sn] = i
+                    learned_labels.append('%s:%s' % (sn, lab))
+                except Exception:  # noqa: BLE001
+                    pass
         rec['frames'].append(fr)
     gcw.save_json(state_path, state)
+    rec['learned'] = learned_labels
     with open(OUT, 'a', encoding='utf-8') as fh:
         fh.write(json.dumps(rec, ensure_ascii=False) + '\n')
     shutil.rmtree(tmp, ignore_errors=True)
@@ -101,7 +117,7 @@ def main():
         os.remove(a.clip)
     except Exception:
         pass
-    print('ok', name, len(rec['frames']), 'frames')
+    print('ok', name, len(rec['frames']), 'frames', 'plates:', sum(1 for fr in rec['frames'] for s in fr['s'].values() if s.get('pl')), 'learned:', learned_labels)
 
 
 if __name__ == '__main__':
