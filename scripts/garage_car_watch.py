@@ -68,6 +68,16 @@ def phase_shift(a, b):
     return float(dx), float(dy), peak
 
 
+def body_mode(rgb):
+    """日夜：紅外線畫面無彩度（ir），白天彩色（color）；用牆面參考區判斷（不受車位有沒有車影響）。空車位基準依光線模式各存一份，日夜切換不會互相覆蓋。"""
+    mx, mn = rgb.max(axis=2).astype(np.float32), rgb.min(axis=2).astype(np.float32)
+    return 'ir' if float(((mx - mn) / np.maximum(mx, 1)).mean()) < 0.04 else 'color'
+
+
+def empty_file(workdir, name, rgb):
+    return os.path.join(workdir, 'empty_%s_%s.npy' % (name, body_mode(rgb)))
+
+
 def signature(rgb):
     """車身區的樣板：4x4 區塊平均亮度（以整塊平均正規化）＋ 16 格亮度直方圖；另帶彩度判斷日夜（紅外線無彩度）。"""
     g = gray(rgb)
@@ -284,7 +294,7 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         res = {'occupied': None, 'identity': 'unknown', 'lights_on': False, 'lights_delta': 0.0, 'moved': False, 'shift_px': 0.0,
                'lights_reliable': bool(s.get('lights_reliable', True))}
         # 有沒有車
-        empty_path = os.path.join(workdir, 'empty_%s.npy' % name)
+        empty_path = empty_file(workdir, name, crop(arr, roi['wall']))
         if os.path.exists(empty_path):
             e = np.load(empty_path)
             if e.shape == bg.shape:
@@ -391,7 +401,9 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
 
 def cmd_learn_empty(img, roi, name, workdir):
     s = roi['slots'][name]
-    np.save(os.path.join(workdir, 'empty_%s.npy' % name), gray(crop(np.asarray(img), s['body'])))
+    arr = np.asarray(img)
+    body = crop(arr, s['body'])
+    np.save(empty_file(workdir, name, crop(arr, roi['wall'])), gray(body))
     return {'learned_empty': name}
 
 
