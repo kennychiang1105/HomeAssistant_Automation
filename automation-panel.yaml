@@ -2713,7 +2713,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 29 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 19 支、可調整項目 31 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2761,7 +2761,6 @@ views:
           - entity: input_text.garage_depart_last
             name: "最近一次判斷"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2790,6 +2789,7 @@ views:
           - entity: input_button.garage_learn_do
             name: "用現在的畫面學習"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2825,7 +2825,6 @@ views:
           - entity: automation.ai_lpr_recognition
             name: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2859,10 +2858,11 @@ views:
           - entity: automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0
             name: "106C_解除網關警報整合AI (V4.2.1)"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車庫車輛出門偵測（4）"
+        heading: "車庫車輛出門偵測（6）"
         heading_style: title
         card_mod:
           style: |
@@ -2874,6 +2874,10 @@ views:
         entities:
           - entity: input_boolean.garage_depart_notify_enable
             name: "車庫出門偵測｜偵測到時通知"
+          - entity: input_boolean.garage_turn_signal_enable
+            name: "車庫出門偵測｜左方向燈偵測（絕對出門訊號）"
+          - entity: input_boolean.garage_turn_signal_open_enable
+            name: "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）"
           - entity: input_boolean.garage_depart_watch_enable
             name: "車庫出門偵測｜總開關"
           - entity: input_boolean.garage_depart_auto_open_enable
@@ -4829,29 +4833,10 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 4 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 2 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "開關（2）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.garage_turn_signal_enable
-            name: "車庫出門偵測｜左方向燈偵測（絕對出門訊號）"
-          - entity: input_boolean.garage_turn_signal_open_enable
-            name: "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）"
-        card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
