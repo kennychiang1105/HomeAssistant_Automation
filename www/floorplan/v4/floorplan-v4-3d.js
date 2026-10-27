@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta10) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta11) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -379,7 +379,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta10</div>
+        <div class="ver">UI4.0-beta11</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -1666,7 +1666,7 @@ class FloorplanV43D extends HTMLElement {
             const bars = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 22), dark); bars.position.set(ML * 0.33, 21, 0); gr.add(bars);
             const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
           }
-          cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, models, L, W };
+          cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, spr, models, L, W };
         }
         break;
       }
@@ -2758,10 +2758,10 @@ class FloorplanV43D extends HTMLElement {
       for (const [eid, c] of Object.entries(g.cars || {})) {
         const slot = st[eid]?.state || "unknown";
         const facingSt = c.f.facing_entity ? (st[c.f.facing_entity]?.state || "unknown") : "unknown";
-        const CARS = { luxgen_n7: ["Luxgen N7｜休旅車", "luxgen", "EAK8030"], tesla_model3: ["Tesla Model 3｜房車", "tesla", "EBH8030"], sedan: ["房車", "sedan"], suv: ["休旅車", "suv"], motorcycle: ["機車", "moto"] };
+        const CARS = { luxgen_n7: ["Luxgen N7｜休旅車", "luxgen", "EAK8030"], tesla_model3: ["Tesla Model 3｜房車", "tesla", "EBH8030"], sedan: ["未知車輛｜房車", "sedan"], suv: ["未知車輛｜休旅車", "suv"], motorcycle: ["未知車輛｜機車", "moto"] };
         const info = CARS[slot], isEmpty = slot === "empty", inside = facingSt === "inside", unk = !info && !isEmpty;
         const kind = info ? info[1] : "tesla";                    // 認不出是哪種車：半透明的通用車模
-        c.g.visible = !isEmpty; c.ghost.visible = isEmpty;
+        c.g.visible = !isEmpty; c.ghost.visible = false; c.spr.visible = !isEmpty;      // 沒車：不顯示模型、虛線框與標籤
         for (const [k, m] of Object.entries(c.models || {})) {
           m.gr.visible = k === kind;
           m.paint.transparent = unk; m.paint.opacity = unk ? 0.5 : 1;
@@ -2775,8 +2775,8 @@ class FloorplanV43D extends HTMLElement {
         const faceTxt = facingSt === "inside" ? "車頭朝內" : facingSt === "door" ? "車頭朝鐵門" : "";
         const chgSlot = st["input_select.garage_charging_slot"]?.state;
         const chg = !isEmpty && chgSlot && eid.endsWith("_" + chgSlot);      // 充電樁判斷（功率比例＋充電線）這個車位的車正在充電
-        const text = isEmpty ? `${pos}｜空位${away.length ? "\n" + away.join("、") + " 不在" : ""}`
-          : `${info ? info[0] : "車輛（未辨識）"}\n${info && info[2] ? info[2] + "｜" : ""}${pos}${faceTxt ? "｜" + faceTxt : ""}${chg ? "｜⚡充電中" : ""}${dep ? "｜準備出門" : ""}`;
+        const text = isEmpty ? ""
+          : `${info ? info[0] : "未知車輛"}\n${info && info[2] ? info[2] + "｜" : ""}${pos}${faceTxt ? "｜" + faceTxt : ""}${chg ? "｜⚡充電中" : ""}${dep ? "｜準備出門" : ""}`;
         c.setLabel(text, dep ? "#d9730d" : isEmpty ? "#6b7078" : "#1d1d1f");
       }
       for (const [eid, mat] of Object.entries(g.fixtures || {})) {

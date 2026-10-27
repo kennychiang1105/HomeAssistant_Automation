@@ -260,7 +260,7 @@ template:
 
 script:
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.3.0-beta 4)
+    alias: 車庫車輛畫面分析AI (V4.3.0-beta 5)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -307,7 +307,7 @@ script:
                 ent: "input_select.garage_slot_{{ repeat.item }}"
                 cur: "{{ states('input_select.garage_slot_' ~ repeat.item) }}"
                 new: >-
-                  {% if not s.present %}empty{% elif dup_res and cur in ['luxgen_n7', 'tesla_model3'] %}{{ cur }}{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
+                  {% if not s.present %}empty{% elif s.identity_src | default('') == 'foreign_plate' %}{{ s.vehicle_type if s.vehicle_type in ['sedan', 'suv', 'motorcycle'] else 'sedan' }}{% elif dup_res and cur in ['luxgen_n7', 'tesla_model3'] %}{{ cur }}{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
                 ev: "{{ s.present and (s.lights_on or (s.moved and protect_recent)) and not res.exposure_changed }}"
                 n_prev: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) }}"
             - if: "{{ new | trim != cur }}"
@@ -349,9 +349,12 @@ script:
             {% set typ = {'luxgen_n7': 'suv', 'tesla_model3': 'sedan'} %}
             {% set weak = ['unknown', 'sedan', 'suv', 'motorcycle'] %}
             {% set plate_new = plate_age <= 900 %}
+            {% set foreign_f = (res.slots.front.identity_src | default('')) == 'foreign_plate' %}
+            {% set foreign_b = (res.slots.back.identity_src | default('')) == 'foreign_plate' %}
             {% set pa_f = res.slots.front.identity if (res.slots.front.identity_src | default('')) == 'plate' else '' %}
             {% set pa_b = res.slots.back.identity if (res.slots.back.identity_src | default('')) == 'plate' else '' %}
-            {% if pa_f in cars and sf != pa_f %}
+            {% if foreign_f or foreign_b %}{}
+            {% elif pa_f in cars and sf != pa_f %}
               {{ {'slot': 'front', 'car': pa_f, 'why': 'ocr', 'plate': true} | to_json }}
             {% elif pa_b in cars and sb != pa_b %}
               {{ {'slot': 'back', 'car': pa_b, 'why': 'ocr', 'plate': true} | to_json }}
@@ -361,7 +364,8 @@ script:
               {{ {'slot': 'front', 'car': other[pa_b], 'why': 'ocr_excl', 'plate': true} | to_json }}
             {% elif sf in cars and sf == sb and pf_ok and pb_ok %}
               {% set slot = 'front' if (res.slots.front.identity_dist | float(9)) > (res.slots.back.identity_dist | float(9)) else 'back' %}
-              {{ {'slot': slot, 'car': other[sf], 'why': 'dup', 'plate': plate_new and plate_car == other[sf]} | to_json }}
+              {% set moving = res.slots.front.moved or res.slots.back.moved %}
+              {{ {'slot': slot, 'car': ('empty' if (moving and not (plate_new and plate_car == other[sf])) else other[sf]), 'why': ('dup_move' if (moving and not (plate_new and plate_car == other[sf])) else 'dup'), 'plate': plate_new and plate_car == other[sf]} | to_json }}
             {% elif sf in cars and sb in weak and pb_ok %}
               {% if (plate_new and plate_car == other[sf]) or res.slots.back.vehicle_type == typ[other[sf]] or sb == typ[other[sf]] %}
                 {{ {'slot': 'back', 'car': other[sf], 'why': 'excl', 'plate': plate_new and plate_car == other[sf]} | to_json }}
@@ -383,7 +387,7 @@ script:
             target:
               entity_id: input_text.garage_id_fix_log
             data:
-              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ pos[fixd.slot] ~ ' 校正為 ' ~ names[fixd.car] ~ '｜' ~ ({'dup': '兩位判成同一輛', 'ocr': '影像讀到車牌', 'ocr_excl': '另一位讀到車牌，排除法'}.get(fixd.why, '排除法')) ~ ('｜車牌證實' if fixd.plate else '｜未見車牌'))[:255] }}"
+              value: "{{ (now().strftime('%m-%d %H:%M') ~ ' ' ~ pos[fixd.slot] ~ ' 校正為 ' ~ names.get(fixd.car, '空位') ~ '｜' ~ ({'dup': '兩位判成同一輛', 'dup_move': '同一輛車移動中，另一位改回空位', 'ocr': '影像讀到車牌', 'ocr_excl': '另一位讀到車牌，排除法'}.get(fixd.why, '排除法')) ~ ('｜車牌證實' if fixd.plate else '｜未見車牌'))[:255] }}"
           - if: "{{ fixd.plate and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_id_fix_last'), 0)) > 600 }}"
             then:
               - action: input_datetime.set_datetime
@@ -568,7 +572,7 @@ script:
                             level: info
                             line: false
                             source: 車庫車輛畫面分析AI
-                            version: V4.3.0-beta 4
+                            version: V4.3.0-beta 5
                             title: "{{ names.get(car, car) }} 準備出門"
                             message: >-
                               {{ pos[repeat.item] }}的 {{ names.get(car, car) }}：車燈{{ '已亮起' if s.lights_on else '未亮' }}、位移 {{ s.shift_px }}px，出去可能性 {{ lk | int }}%。
@@ -600,7 +604,7 @@ script:
                                 level: important
                                 line: false
                                 source: 車庫車輛畫面分析AI
-                                version: V4.3.0-beta 4
+                                version: V4.3.0-beta 5
                                 title: 車庫自動開門後車輛沒有出去
                                 message: "{{ names.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
                     - stop: "已判斷準備出門"

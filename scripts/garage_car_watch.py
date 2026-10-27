@@ -163,6 +163,21 @@ def slots_query(roi):
 PLATES = {'EAK8030': 'luxgen_n7', 'EBH8030': 'tesla_model3'}      # 家裡兩輛車的車牌；garage_roi.json 的 "plates" 可覆蓋
 
 
+def _lev(a, b):
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def foreign_plate(text, conf, plates):
+    """讀到的車牌和家裡每個車牌都差 3 個字元以上（OCR 誤讀家用車牌通常只差 1～2 個字）且信心夠高 → 別人的車（未知車輛）。"""
+    return conf >= 0.7 and all(_lev(text, p) >= 3 for p in plates)
+
+
 def match_plate(text, conf, plates):
     """車牌文字對應到家裡的車：完全相同，或 OCR 信心 ≥0.9 且只差 1 個字元（O／0、B／8 這類誤讀），其餘不認。"""
     if text in plates:
@@ -222,16 +237,22 @@ def apply_vision(a, roi, state, out, jpg, now):
                 s['score'] = idr['score']
             # 車牌文字辨識（add-on 的 RapidOCR）：車牌在這輛車身上讀到，是比影像樣板更直接的身分證據
             pl = vr.get('plate')
-            if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.8):
+            if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.7):
                 r['plate'] = pl['text']
                 s['plate'] = pl['text']
-                car = match_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES)
+                car = match_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES) if pl['conf'] >= 0.8 else None
                 if car:
                     if r['identity'] not in ('unknown', car):
                         r['id_conflict'] = r['identity']
                     r['identity'] = car
                     r['identity_src'] = 'plate'
                     s['id'] = car
+                elif foreign_plate(pl['text'], pl['conf'], roi.get('plates') or PLATES):
+                    # 別人的車牌：不是 Luxgen／Tesla，不管影像樣板怎麼說都當未知車輛
+                    r['identity'] = 'unknown'
+                    r['identity_src'] = 'foreign_plate'
+                    r['foreign_plate'] = pl['text']
+                    s['id'] = 'foreign'
             if r['identity'] == 'unknown' and typ and typ.get('p', 0) >= 0.6:
                 r['vehicle_type'] = {'truck': 'suv'}.get(typ['label'], typ['label'])
             elif r['identity'] == 'unknown' and d['cls'] == 'motorcycle':
