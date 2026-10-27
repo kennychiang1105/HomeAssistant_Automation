@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 頂樓情境廣播 (V4.3.1)
+# 頂樓情境廣播 (V4.3.2)
 # 更新紀錄（統一格式）：
+# - V4.3.2：五個時間 helper 拿掉 initial，HA 重啟後保留上次記錄（SOP-20）；回家需離家超過 15 分鐘才記錄（Wi-Fi 閃斷不算）。
+# - V4.3.2：回家後的第一次上樓一定廣播（新增 topfloor_last_arrival，由 08-5L 在 Kenny 離家→在家時記錄）；回家動作順帶觸發的下樓情境不再讓第一次上樓被當成短暫下樓。
 # - V4.3.1：上樓、夜燈情境一執行就廣播，不再等手機連上頂樓 AP（23:02 上樓時手機仍連在 4F AP 而漏播）。
 # - V4.3.1：上樓廣播多一道判斷——上次上樓廣播之後沒有下樓或夜燈情境（只是下樓上廁所又上樓、沒換情境）就不重播；超過 10 小時不受限。
 # - V4.2.4：新增。頂樓「上樓／下樓／夜燈」情境執行時，在頂樓 HomePod 播報（觸發由 08-5L頂樓情境廣播AI 負責）。
@@ -30,26 +32,26 @@ input_datetime:
     name: 頂樓情境廣播｜最近一次下樓情境（不論有沒有播報，內部）
     has_date: true
     has_time: true
-    initial: "2000-01-01 00:00:00"
+  topfloor_last_arrival:
+    name: 頂樓情境廣播｜Kenny 最近一次回到家（離家→在家，內部）
+    has_date: true
+    has_time: true
   topfloor_announce_last_up:
     name: 頂樓情境廣播｜上次上樓（內部）
     has_date: true
     has_time: true
-    initial: "2000-01-01 00:00:00"
   topfloor_announce_last_down:
     name: 頂樓情境廣播｜上次下樓（內部）
     has_date: true
     has_time: true
-    initial: "2000-01-01 00:00:00"
   topfloor_announce_last_night:
     name: 頂樓情境廣播｜上次夜燈（內部）
     has_date: true
     has_time: true
-    initial: "2000-01-01 00:00:00"
 
 script:
   topfloor_scene_announce:
-    alias: 頂樓情境廣播AI (V4.3.1)
+    alias: 頂樓情境廣播AI (V4.3.2)
     description: 上樓／下樓／夜燈情境的頂樓 HomePod 廣播（人在頂樓才播；夜燈播完接續音樂）
     mode: queued
     max: 3
@@ -72,6 +74,8 @@ script:
       rejoin_min: "{{ states('input_number.topfloor_up_rejoin_min') | float(60) }}"
       # 上次上樓廣播之後沒有任何下樓／夜燈情境（人沒換過情境，只是上下樓）：不重播；距離上次上樓廣播超過 10 小時（隔天早上）不受限
       up_ts: "{{ as_timestamp(states('input_datetime.topfloor_announce_last_up'), 0) }}"
+      # 回家後的第一次上樓：Kenny 回到家的時間晚於上次上樓廣播 → 一定播（不受「短暫下樓不重播」限制；回家動作會順帶觸發下樓情境，不能算短暫下樓）
+      first_up_after_arrival: "{{ as_timestamp(states('input_datetime.topfloor_last_arrival'), 0) > up_ts }}"
       no_leave_since_up: "{{ as_timestamp(states('input_datetime.topfloor_last_down_any'), 0) <= up_ts and (as_timestamp(now()) - up_ts) < 36000 }}"
       last_age_min: "{{ ((as_timestamp(now()) - as_timestamp(states(last_ent), 0)) / 60) if sc in ['up', 'down', 'night'] else 0 }}"
     sequence:
@@ -80,7 +84,7 @@ script:
           {{ sc not in ['up', 'down', 'night']
              or not is_state('input_boolean.topfloor_scene_announce_enable', 'on')
              or last_age_min < cool_min
-             or (sc == 'up' and (since_down_min < rejoin_min or no_leave_since_up)) }}
+             or (sc == 'up' and not first_up_after_arrival and (since_down_min < rejoin_min or no_leave_since_up)) }}
         then:
           - stop: "略過頂樓情境廣播（開關關閉、冷卻中、短暫下樓後又上樓，或上次上樓後沒換過情境）"
       # 1) 下樓：只在早上播；熟睡鎖還開著（03:00／05:00 的熟睡下樓）不播；等 5 秒讓熟睡鎖管理員先處理
