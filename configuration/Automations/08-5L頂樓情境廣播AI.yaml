@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5L頂樓情境廣播AI (V4.3.2)
+# 08-5L頂樓情境廣播AI (V4.3.3)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.3：每次上樓情境（不論有沒有播報）都記 topfloor_last_up_seen，並把記錄前的舊值傳給腳本，腳本用它判斷上次上樓後有沒有離開。
 # - V4.3.2：新增「回家」觸發（Kenny 離家→在家）只記錄回家時間，讓上樓廣播腳本判斷「回家後第一次上樓」一定播。
 # - V4.3.1：夜燈情境也記入 topfloor_last_down_any（離開頂樓活動的時間點），上樓廣播腳本用它判斷「上次上樓後有沒有換過情境」。
 # - V4.3.0（2026-10-26）：隨 AI 4.3.0 發布統一版號（異動內容見下方 V4.2.x 條目）。
@@ -9,13 +10,13 @@
 # - V4.2.4：新增。頂樓上樓／下樓／夜燈情境開關打開時，啟動 script.topfloor_scene_announce 在頂樓 HomePod 播報
 #           （人在不在頂樓、早上才播、夜燈接續音樂等判斷都在腳本內）。這支只負責轉交，不阻塞原本的情境動作。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5L頂樓情境廣播AI (V4.3.2)
+- alias: 08-5L頂樓情境廣播AI (V4.3.3)
   id: ai_08_5l_topfloor_scene_announce
   description: 上樓／下樓／夜燈情境開啟時，交給頂樓情境廣播腳本播報（溫度、天氣、風扇說明，夜燈後接續音樂）。
   mode: queued
   max: 6
   variables:
-    automation_version: "V4.3.2"
+    automation_version: "V4.3.3"
   triggers:
     - trigger: state
       entity_id: input_boolean.ding_lou_shang_lou_qing_jing
@@ -55,9 +56,19 @@
             entity_id: input_datetime.topfloor_last_down_any
           data:
             datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - variables:
+        prev_up_seen: "{{ states('input_datetime.topfloor_last_up_seen') }}"
+    - if: "{{ trigger.id == 'up' }}"
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: input_datetime.topfloor_last_up_seen
+          data:
+            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     - action: script.turn_on
       target:
         entity_id: script.topfloor_scene_announce
       data:
         variables:
           scene: "{{ trigger.id }}"
+          prev_up_seen: "{{ prev_up_seen }}"

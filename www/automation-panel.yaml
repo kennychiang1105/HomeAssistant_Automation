@@ -2823,7 +2823,7 @@ views:
           - entity: automation.ai_doorlock_battery_drop_timestamp_recorder
             name: "100C3客廳門鎖電量下降時間紀錄AI (V3.0)"
           - entity: automation.ai_lpr_recognition
-            name: "104-2車輛動態辨識系統AI (V4.3.0-beta 1)"
+            name: "104-2車輛動態辨識系統AI (V4.3.0-beta 3)"
         card_mod: *cm
     - type: vertical-stack
       cards:
