@@ -85,7 +85,7 @@ HELPER_RULES = [
     ("supply", r"supply_|battery_system|doorlock_batt|line_bot_forecast"),
     ("switch", r"terncy_btn|stairs_si_lou_hold"),
     ("lighting", r"toilet_light|garage_light|light_cooldown|light_manual|light_anim"),
-    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|garage_cable|garage_gate|garage_vehicle|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
+    ("security", r"intrusion_|wu_lou_bao_quan|garage_depart|garage_turn_signal|garage_slot|garage_facing|garage_learn|garage_ev_|garage_charg|garage_cable|garage_gate|garage_vehicle|lpr_|allowed_plates|doorlock|er_lou_men_suo|gateway_|garagejudge|五樓保全|wang_guan|jie_chu_wang_guan|54ef44cf58f9_alarm|解除網關"),
     ("topfloor", r"topfloor|sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_|ding_lou_(shang|xia|ye|yue|si_lou)|debug_topfloor|pan_duan_ding_lou|wu_lou_she_ying_ji_kai_guan"),
     ("emergency", r"jin_ji|emergency_|disaster|eq99|di_zhen|tian_qi|line_eew"),
     ("scene", r"auto_scene_|scene_morning_|scene_verify|scene_window_|scene_sunrise|scene_sunset|weather_sun_|aqara_|google_scene|hk_scene|scene_origin|input_button\.(night|li_jia|morning|dao_jia)|collection_of_homekit"),
