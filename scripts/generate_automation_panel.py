@@ -97,7 +97,7 @@ HELPER_RULES = [
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
     r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_)"
-    r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
+    r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|garage_turn_detected|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"
@@ -105,7 +105,7 @@ INTERNAL_RE = re.compile(
     r"|doorlock_batt_model_last_cycle|ai_leave_version_text|scene_origin_device|line_eew_remote_|disaster_seen_items|notif_title_|.*last_message|.*debug_last|ai_00_01_)"
     r"|^input_number\.(garage_ev_|v41_phone_match_|supply_batt_lowest_|doorlock_batt_drop_last_cycle|.*effective_apparent_temperature)"
     r"|^input_select\.(lpr_last_plate|garage_vehicle_latch|garage_vehicle_last)"
-    r"|^input_datetime\.(garage_cable_learn_last|garage_id_fix_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
+    r"|^input_datetime\.(garage_cable_learn_last|garage_id_fix_last|garage_turn_last|garage_gate_opened_at|scene_verify_skip_alarm_until)$"
 )
 
 # 各分類內的功能小組（依序比對，先符合者先分；沒符合的依元件種類分組）
@@ -139,7 +139,7 @@ SUBGROUPS = {
         ("維修暫停（連點三下）", r"emergency_triple_press"),
     ],
     "security": [
-        ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)"),
+        ("車庫車輛出門偵測", r"garage_depart_(watch|notify|auto_open|likelihood)|garage_turn_signal"),
         ("離家入侵偵測", r"intrusion_"),
         ("車輛動態辨識（LPR）", r"lpr_|allowed_plates"),
         ("門鎖與電池", r"doorlock|er_lou_men_suo"),

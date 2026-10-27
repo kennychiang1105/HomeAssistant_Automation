@@ -4825,14 +4825,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 1 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 2 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "文字（1）"
+        heading: "文字（2）"
         heading_style: title
         card_mod:
           style: |
@@ -4842,6 +4842,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.garage_plate_seen
+            name: "車庫攝影機讀到的車牌（影像文字辨識，最近一次）"
           - entity: input_text.garage_id_fix_log
             name: "車庫車輛身分校正紀錄（最近一次）"
         card_mod: *cm
