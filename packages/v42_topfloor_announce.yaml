@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
-# 頂樓情境廣播 (V4.3.2)
+# 頂樓情境廣播 (V4.3.3)
 # 更新紀錄（統一格式）：
+# - V4.3.3：「上次上樓後有沒有離開」改看最近一次上樓情境（含被略過、沒播報的），不再只看上次有播報的上樓。實例：22:22 下樓上廁所、22:55 上樓（略過），00:46 又下四樓上廁所、00:49 上樓，原本因為 22:22 的下樓晚於上次播報的上樓就誤播。
 # - V4.3.2：五個時間 helper 拿掉 initial，HA 重啟後保留上次記錄（SOP-20）；回家需離家超過 15 分鐘才記錄（Wi-Fi 閃斷不算）。
 # - V4.3.2：回家後的第一次上樓一定廣播（新增 topfloor_last_arrival，由 08-5L 在 Kenny 離家→在家時記錄）；回家動作順帶觸發的下樓情境不再讓第一次上樓被當成短暫下樓。
 # - V4.3.1：上樓、夜燈情境一執行就廣播，不再等手機連上頂樓 AP（23:02 上樓時手機仍連在 4F AP 而漏播）。
@@ -36,6 +37,10 @@ input_datetime:
     name: 頂樓情境廣播｜Kenny 最近一次回到家（離家→在家，內部）
     has_date: true
     has_time: true
+  topfloor_last_up_seen:
+    name: 頂樓情境廣播｜最近一次上樓情境（含沒播報的，內部）
+    has_date: true
+    has_time: true
   topfloor_announce_last_up:
     name: 頂樓情境廣播｜上次上樓（內部）
     has_date: true
@@ -51,7 +56,7 @@ input_datetime:
 
 script:
   topfloor_scene_announce:
-    alias: 頂樓情境廣播AI (V4.3.2)
+    alias: 頂樓情境廣播AI (V4.3.3)
     description: 上樓／下樓／夜燈情境的頂樓 HomePod 廣播（人在頂樓才播；夜燈播完接續音樂）
     mode: queued
     max: 3
@@ -59,6 +64,9 @@ script:
       scene:
         description: up（上樓）／down（下樓）／night（夜燈）
         required: true
+      prev_up_seen:
+        description: 這次上樓之前的「最近一次上樓情境」時間（由 08-5L 在記錄前帶入；沒帶就用 helper 現值）
+        required: false
     variables:
       sc: "{{ scene | default('') }}"
       hp: media_player.ding_lou_homepod
@@ -76,7 +84,9 @@ script:
       up_ts: "{{ as_timestamp(states('input_datetime.topfloor_announce_last_up'), 0) }}"
       # 回家後的第一次上樓：Kenny 回到家的時間晚於上次上樓廣播 → 一定播（不受「短暫下樓不重播」限制；回家動作會順帶觸發下樓情境，不能算短暫下樓）
       first_up_after_arrival: "{{ as_timestamp(states('input_datetime.topfloor_last_arrival'), 0) > up_ts }}"
-      no_leave_since_up: "{{ as_timestamp(states('input_datetime.topfloor_last_down_any'), 0) <= up_ts and (as_timestamp(now()) - up_ts) < 36000 }}"
+      # 最近一次上樓情境（含被略過的）：之後沒有下樓／夜燈情境＝人沒換過情境，只是上下樓（上廁所）
+      seen_ts: "{{ as_timestamp(prev_up_seen | default(states('input_datetime.topfloor_last_up_seen'), true), 0) }}"
+      no_leave_since_up: "{{ as_timestamp(states('input_datetime.topfloor_last_down_any'), 0) <= [up_ts, seen_ts] | max and (as_timestamp(now()) - up_ts) < 36000 }}"
       last_age_min: "{{ ((as_timestamp(now()) - as_timestamp(states(last_ent), 0)) / 60) if sc in ['up', 'down', 'night'] else 0 }}"
     sequence:
       # 0) 總開關、情境名稱、冷卻時間
