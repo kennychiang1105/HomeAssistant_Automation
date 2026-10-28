@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────
+# 08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)
+# 相容版本：Helpers V4.0.0（已確認）
+# 更新紀錄（統一格式）：
+# - V4.3.4-beta 1（2026-10-28，測試中）：新增。頂樓攝影機有動靜（motion）或偵測到人（person_detected）就啟動 script.topfloor_cam_ai_loop：
+#   動靜期間每秒抓一張快照給模型判斷有沒有人、往哪走（上樓／下樓），動靜結束後再多看 6 秒，單次上限 60 秒。
+#   判斷結果以事件 topfloor_cam_ai 交給 08-5J頂樓動線推理AI 當證據。總開關 input_boolean.topfloor_cam_ai_enable。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)
+  id: ai_08_5m_topfloor_cam_ai
+  description: 頂樓攝影機有動靜就逐秒分析畫面（模型人物偵測＋軌跡），提早判斷上樓或下樓。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_motion
+      to: "on"
+      id: motion
+    - trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
+      id: person
+  conditions:
+    - condition: state
+      entity_id: input_boolean.topfloor_cam_ai_enable
+      state: "on"
+  actions:
+    - action: script.turn_on
+      target:
+        entity_id: script.topfloor_cam_ai_loop

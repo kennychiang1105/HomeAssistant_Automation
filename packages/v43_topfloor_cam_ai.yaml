@@ -1,0 +1,124 @@
+# ─────────────────────────────────────────────────────────────
+# 頂樓攝影機模型判斷 (V4.3.4-beta 1)
+# 更新紀錄（統一格式）：
+# - V4.3.4-beta 1（2026-10-28，測試中）：新增。頂樓攝影機有動靜（motion 或 person_detected）期間，每秒抓一張快照送 Garage Vision add-on（persons_only，只跑人物偵測），
+#   scripts/topfloor_track.py 累積軌跡並「提早決定」方向（上樓 up／下樓 down），一決定就發事件 topfloor_cam_ai，由 08-5J頂樓動線推理AI 當證據（補漏、提速）；
+#   動靜結束後再多看 6 秒收尾（沒人＝降雜訊計數）。單次上限 60 秒。總開關 input_boolean.topfloor_cam_ai_enable（關閉＝完全回到原本行為）。
+#   流程與回放學習見 PROJECT_RULES.md SOP-26。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  topfloor_cam_ai_enable:
+    name: 頂樓攝影機模型判斷｜總開關
+    icon: mdi:robot-outline
+
+input_text:
+  topfloor_cam_ai_last:
+    name: 頂樓攝影機模型判斷｜最近一次（內部）
+    max: 255
+
+input_datetime:
+  topfloor_cam_ai_up_last:
+    name: 頂樓攝影機模型判斷｜最近一次判上樓（內部）
+    has_date: true
+    has_time: true
+  topfloor_cam_ai_down_last:
+    name: 頂樓攝影機模型判斷｜最近一次判下樓（內部）
+    has_date: true
+    has_time: true
+
+input_number:
+  topfloor_ai_fired:
+    name: 頂樓模型｜提早判斷次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  topfloor_ai_published:
+    name: 頂樓模型｜實際發出動線事件次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  topfloor_ai_ghost:
+    name: 頂樓模型｜有動靜但畫面沒人次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+
+shell_command:
+  topfloor_track_frame: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --frame /config/www/snap/tf_cur.jpg --t {{ ts }} {{ reset }}"
+  topfloor_track_final: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --finalize"
+
+script:
+  topfloor_cam_ai_loop:
+    alias: 頂樓攝影機模型判斷AI (V4.3.4-beta 1)
+    description: 動靜期間每秒一張快照 → 人物偵測 → 累積軌跡提早判斷上樓／下樓，動靜結束後再多看 6 秒；一決定就發事件 topfloor_cam_ai。
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - repeat:
+          while:
+            - condition: template
+              value_template: >-
+                {% set a = states.binary_sensor.wu_lou_she_ying_ji_motion %}
+                {% set b = states.binary_sensor.wu_lou_she_ying_ji_person_detected %}
+                {{ repeat.index < 60
+                   and (a.state == 'on' or b.state == 'on'
+                        or (as_timestamp(now()) - as_timestamp(a.last_changed)) < 6
+                        or (as_timestamp(now()) - as_timestamp(b.last_changed)) < 6) }}
+          sequence:
+            - action: camera.snapshot
+              target:
+                entity_id: camera.wu_lou_she_ying_ji_high
+              data:
+                filename: /config/www/snap/tf_cur.jpg
+              continue_on_error: true
+            - action: shell_command.topfloor_track_frame
+              data:
+                ts: "{{ now().timestamp() }}"
+                reset: "{{ '--reset' if repeat.index == 1 else '' }}"
+              response_variable: r
+              continue_on_error: true
+            - variables:
+                res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+            - if: "{{ res is mapping and res.get('fire') in ['up', 'down'] }}"
+              then:
+                - action: input_number.increment
+                  target:
+                    entity_id: input_number.topfloor_ai_fired
+                - action: input_datetime.set_datetime
+                  target:
+                    entity_id: "input_datetime.topfloor_cam_ai_{{ res.fire }}_last"
+                  data:
+                    timestamp: "{{ now().timestamp() }}"
+                - action: input_text.set_value
+                  target:
+                    entity_id: input_text.topfloor_cam_ai_last
+                  data:
+                    value: "{{ (now().strftime('%H:%M:%S') ~ ' ' ~ res.fire ~ '（' ~ res.reason ~ '，信心 ' ~ res.conf ~ '，第 ' ~ res.frames ~ ' 幀）')[:255] }}"
+                - if: "{{ is_state('input_boolean.topfloor_cam_ai_enable', 'on') }}"
+                  then:
+                    - event: topfloor_cam_ai
+                      event_data:
+                        dir: "{{ res.fire }}"
+                        conf: "{{ res.conf }}"
+                        reason: "{{ res.reason }}"
+                        frames: "{{ res.frames }}"
+            - delay: "00:00:00.3"
+      # 動靜結束：最後分類；整段都沒人＝有動靜但畫面沒人（降雜訊統計）
+      - action: shell_command.topfloor_track_final
+        response_variable: fr
+        continue_on_error: true
+      - variables:
+          fin: "{{ (fr.stdout | from_json({})) if (fr is defined and fr is mapping and fr.get('stdout')) else {} }}"
+      - if: "{{ fin is mapping and fin.get('dir') == 'none' }}"
+        then:
+          - action: input_number.increment
+            target:
+              entity_id: input_number.topfloor_ai_ghost
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.topfloor_cam_ai_last
+        data:
+          value: "{{ (now().strftime('%H:%M:%S') ~ ' 收尾：' ~ fin.get('dir', '?') ~ '（' ~ fin.get('reason', '') ~ '；已提早判斷：' ~ (fin.get('already_fired', []) | join(',')) ~ '）')[:255] }}"
