@@ -2468,7 +2468,7 @@ views:
           - entity: automation.08_5iding_lou_kong_diao_guan_bi_que_ren
             name: "08-5I頂樓空調關閉確認"
           - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
-            name: "08-5J頂樓動線推理AI (V4.3.4-beta 1)"
+            name: "08-5J頂樓動線推理AI (V4.3.4-beta 2)"
           - entity: automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0
             name: "08-5J頂樓感應週報 (V4.1.5)"
           - entity: automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0

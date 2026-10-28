@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 頂樓攝影機模型判斷 (V4.3.4-beta 1)
+# 頂樓攝影機模型判斷 (V4.3.4-beta 3)
 # 更新紀錄（統一格式）：
+# - V4.3.4-beta 3（2026-10-28，測試中）：新增「最後去向」判斷：人消失超過 2.5 秒就依消失位置＋走動方向判斷去向（下樓梯／進書房／回臥室），發事件 topfloor_cam_exit 給 08-5J，
+#   由 08-5J 等實體訊號對照後才補發動線。獨立開關 input_boolean.topfloor_cam_ai_exit_enable；統計 input_number.topfloor_ai_exit／_agree／_disagree／_published。
 # - V4.3.4-beta 1（2026-10-28，測試中）：新增。頂樓攝影機有動靜（motion 或 person_detected）期間，每秒抓一張快照送 Garage Vision add-on（persons_only，只跑人物偵測），
 #   scripts/topfloor_track.py 累積軌跡並「提早決定」方向（上樓 up／下樓 down），一決定就發事件 topfloor_cam_ai，由 08-5J頂樓動線推理AI 當證據（補漏、提速）；
 #   動靜結束後再多看 6 秒收尾（沒人＝降雜訊計數）。單次上限 60 秒。總開關 input_boolean.topfloor_cam_ai_enable（關閉＝完全回到原本行為）。
@@ -10,10 +12,16 @@ input_boolean:
   topfloor_cam_ai_enable:
     name: 頂樓攝影機模型判斷｜總開關
     icon: mdi:robot-outline
+  topfloor_cam_ai_exit_enable:
+    name: 頂樓攝影機模型判斷｜最後去向開關
+    icon: mdi:door-open
 
 input_text:
   topfloor_cam_ai_last:
     name: 頂樓攝影機模型判斷｜最近一次（內部）
+    max: 255
+  topfloor_cam_ai_exit_last:
+    name: 頂樓攝影機模型判斷｜最近一次去向（內部）
     max: 255
 
 input_datetime:
@@ -45,14 +53,64 @@ input_number:
     max: 100000
     step: 1
     mode: box
+  topfloor_ai_exit:
+    name: 頂樓模型｜去向判斷次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  topfloor_ai_exit_agree:
+    name: 頂樓模型｜去向與實體訊號一致次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  topfloor_ai_exit_disagree:
+    name: 頂樓模型｜去向與實體訊號不一致次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  topfloor_ai_exit_published:
+    name: 頂樓模型｜去向補發動線次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
 
 shell_command:
   topfloor_track_frame: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --frame /config/www/snap/tf_cur.jpg --t {{ ts }} {{ reset }}"
   topfloor_track_final: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --finalize"
 
 script:
+  topfloor_cam_ai_exit:
+    alias: 頂樓攝影機模型｜記錄最後去向 (V4.3.4-beta 3)
+    description: 記錄模型判斷的最後去向（下樓梯／進書房／回臥室）並發事件 topfloor_cam_exit。由 topfloor_cam_ai_loop 呼叫，傳入 ex（topfloor_track.py 的 exit 結果）。
+    mode: queued
+    max: 5
+    sequence:
+      - action: input_number.increment
+        target:
+          entity_id: input_number.topfloor_ai_exit
+        continue_on_error: true
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.topfloor_cam_ai_exit_last
+        data:
+          value: "{{ (now().strftime('%H:%M:%S') ~ ' ' ~ (ex.get('dest') or '看不出') ~ '（' ~ ex.get('reason', '') ~ '）')[:255] }}"
+        continue_on_error: true
+      - if: "{{ ex.get('dest') in ['stairs', 'study', 'bedroom'] and is_state('input_boolean.topfloor_cam_ai_enable', 'on') and is_state('input_boolean.topfloor_cam_ai_exit_enable', 'on') }}"
+        then:
+          - event: topfloor_cam_exit
+            event_data:
+              dest: "{{ ex.dest }}"
+              zone: "{{ ex.get('zone', '') }}"
+              dx: "{{ ex.get('dx', 0) }}"
+              x: "{{ ex.get('x', 0) }}"
+              reason: "{{ ex.get('reason', '') }}"
+
   topfloor_cam_ai_loop:
-    alias: 頂樓攝影機模型判斷AI (V4.3.4-beta 1)
+    alias: 頂樓攝影機模型判斷AI (V4.3.4-beta 3)
     description: 動靜期間每秒一張快照 → 人物偵測 → 累積軌跡提早判斷上樓／下樓，動靜結束後再多看 6 秒；一決定就發事件 topfloor_cam_ai。
     mode: single
     max_exceeded: silent
@@ -105,6 +163,12 @@ script:
                         conf: "{{ res.conf }}"
                         reason: "{{ res.reason }}"
                         frames: "{{ res.frames }}"
+            - if: "{{ res is mapping and res.get('exit') is mapping }}"
+              then:
+                - action: script.topfloor_cam_ai_exit
+                  data:
+                    ex: "{{ res.exit }}"
+                  continue_on_error: true
             - delay: "00:00:00.3"
       # 動靜結束：最後分類；整段都沒人＝有動靜但畫面沒人（降雜訊統計）
       - action: shell_command.topfloor_track_final
@@ -112,6 +176,12 @@ script:
         continue_on_error: true
       - variables:
           fin: "{{ (fr.stdout | from_json({})) if (fr is defined and fr is mapping and fr.get('stdout')) else {} }}"
+      - if: "{{ fin is mapping and fin.get('exit') is mapping }}"
+        then:
+          - action: script.topfloor_cam_ai_exit
+            data:
+              ex: "{{ fin.exit }}"
+            continue_on_error: true
       - if: "{{ fin is mapping and fin.get('dir') == 'none' }}"
         then:
           - action: input_number.increment

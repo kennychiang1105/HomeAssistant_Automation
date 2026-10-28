@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""頂樓攝影機逐秒人物軌跡分析（V4.3.4-beta 1）
+"""頂樓攝影機逐秒人物軌跡分析（V4.3.4-beta 3）
 
 流程：動靜期間每秒一張快照 → Garage Vision add-on（persons_only=1，只跑 YOLO 人物偵測）→ 這支腳本累積軌跡並「提早決定」方向。
   上樓（up）：人在樓梯口往走道（畫面右側）離開；下樓（down）：人往畫面左下的樓梯口走進去；
@@ -45,6 +45,15 @@ DEFAULT_CFG = {
     'approach_dh': 0.12,       #   且框高增加至少這麼多
     'stair_x': 0.45,           # 軌跡結束在樓梯口區（x 小於這個、腳底接近畫面底）→ 傾向下樓
     'stair_bottom': 0.90,
+    # ── 最後去向（人消失在畫面哪裡）：往左下樓梯口（x≈0.35、腳底貼底）消失＝下樓；在右側房門口區（x≥0.60）消失＝進房，
+    #    書房與臥室門的位置差不多，所以用走動方向分辨（往右走到門口＝臥室，從右邊緣往左走到門口＝書房）。區域與門檻可用 topfloor_roi.json 覆蓋
+    'exit_gap_s': 2.5,         # 人消失超過這麼久（秒）才判斷去向
+    'exit_min_det': 2,         # 這一段至少要偵測到幾幀
+    'exit_stairs_x': 0.45,     # 最後位置 x 小於這個、腳底 y 不小於 exit_stairs_y → 樓梯口（下樓）
+    'exit_stairs_y': 0.90,
+    'exit_edge_x': 0.86,       # 最後位置 x 不小於這個 → 右邊緣（臥室側）
+    'exit_door_x': 0.60,       # 最後位置 x 不小於這個 → 在房門口區消失（書房／臥室）；再用走動方向分辨
+    'exit_dx': 0.05,           # 房門口區消失時，位移（最後 x － 第一次 x）≥ +這個＝臥室、≤ －這個＝書房
 }
 
 
@@ -124,6 +133,24 @@ def final_class(frames, cfg, decided):
     return {'dir': 'unknown', 'conf': 0.0, 'reason': '看不出方向（偵測 %d 幀）' % len(det)}
 
 
+def exit_zone(seg, cfg):
+    """seg: 這一段的偵測（[{'t','p'}]，時間順序）。回傳 {'zone','dest','origin','reason'}；zone＝stairs／right_edge／door_mid／unknown"""
+    first, last = seg[0]['p'], seg[-1]['p']
+    dx = last['x'] - first['x']
+    origin = 'stairs' if first['x'] <= cfg['exit_stairs_x'] else ('right_edge' if first['x'] >= cfg['exit_edge_x'] else 'door_mid')
+    if last['x'] <= cfg['exit_stairs_x'] and last['y'] >= cfg['exit_stairs_y']:
+        zone, dest = 'stairs', 'stairs'
+    elif last['x'] >= cfg['exit_door_x']:
+        # 書房門與臥室門在畫面裡都落在 x≈0.70～0.80（10/20～10/28 共 82 段錄影），位置分不出來，改看「從哪一側走過來」：
+        # 從左側（樓梯側）往右走到門口消失＝臥室；從右邊緣往左走到門口消失＝書房；位移太小就不猜
+        zone = 'right_edge' if last['x'] >= cfg['exit_edge_x'] else 'door_mid'
+        dest = 'bedroom' if dx >= cfg['exit_dx'] else ('study' if dx <= -cfg['exit_dx'] else '')
+    else:
+        zone, dest = 'unknown', ''
+    return {'zone': zone, 'dest': dest, 'origin': origin, 'dx': round(dx, 2), 'x': last['x'], 'y': last['y'], 'h': last['h'],
+            'reason': '消失在 x %.2f y %.2f（起點 x %.2f，位移 %+.2f，共 %d 幀）→ %s' % (last['x'], last['y'], first['x'], dx, len(seg), dest or '看不出')}
+
+
 class Tracker:
     def __init__(self, cfg, state=None):
         self.cfg = cfg
@@ -131,13 +158,25 @@ class Tracker:
         self.frames = s.get('frames', [])
         self.fired = s.get('fired', [])
         self.t_last = s.get('t_last', 0)
+        self.exit_mark = s.get('exit_mark', 0)      # 已經判過去向的最後一次偵測時間
 
     def dump(self):
-        return {'frames': self.frames[-120:], 'fired': self.fired, 't_last': self.t_last}
+        return {'frames': self.frames[-120:], 'fired': self.fired, 't_last': self.t_last, 'exit_mark': self.exit_mark}
+
+    def exit_check(self, t, force=False):
+        """人消失超過 exit_gap_s（force＝動靜結束時不等）就判斷最後去向；每一段只判一次"""
+        det = [f for f in self.frames if f['p'] and f['t'] > self.exit_mark]
+        if len(det) < self.cfg['exit_min_det']:
+            return None
+        if not force and t - det[-1]['t'] < self.cfg['exit_gap_s']:
+            return None
+        r = exit_zone(det, self.cfg)
+        self.exit_mark = det[-1]['t']
+        return r
 
     def add(self, t, persons):
         if self.t_last and t - self.t_last > self.cfg['idle_reset_s']:
-            self.frames, self.fired = [], []
+            self.frames, self.fired, self.exit_mark = [], [], 0
         self.t_last = t
         p = main_person(persons, self.cfg)
         self.frames.append({'t': round(t, 2), 'p': p})
@@ -150,6 +189,10 @@ class Tracker:
             fire = res['dir']
         out = {'persons': n_all, 'main': p, 'dir': res['dir'], 'conf': res['conf'], 'reason': res['reason'], 'fire': fire,
                'frames': len(self.frames), 'detected': len([f for f in self.frames if f['p']])}
+        if p is None:
+            ex = self.exit_check(t)
+            if ex:
+                out['exit'] = ex
         return out
 
     def finalize(self):
@@ -158,6 +201,9 @@ class Tracker:
         r['frames'] = len(self.frames)
         r['detected'] = len([f for f in self.frames if f['p']])
         r['already_fired'] = list(self.fired)
+        ex = self.exit_check(self.t_last, force=True)       # 動靜結束時還沒判過去向的最後一段
+        if ex:
+            r['exit'] = ex
         return r
 
 
@@ -268,6 +314,30 @@ def selftest():
     f, fin = _run_seq([(0.67, 0.78, 0.37), (0.69, 0.89, 0.70), (0.57, 0.99, 0.79), (0.69, 0.89, 0.73)], cfg)
     if not f or f[0][1] != 'down':
         errors.append('走向樓梯沒判成 down：%s' % f)
+    # 最後去向：往右走到房門口消失＝臥室；從右邊緣往左走到房門口消失＝書房；往左下樓梯口消失＝下樓；位移太小不猜
+    def exits(seq):
+        tr, out = Tracker(cfg), []
+        for i, p in enumerate(seq):
+            h = 0.6
+            persons = [] if p is None else [{'conf': 0.9, 'box': [p[0] - 0.1, p[1] - h, p[0] + 0.1, p[1]]}]
+            o = tr.add(i * 0.5, persons)
+            if o.get('exit'):
+                out.append(o['exit']['dest'])
+        return out, tr
+    gone = [None] * 7
+    for name, seq, want in (('往右走到門口', [(0.35, 0.99), (0.5, 0.99), (0.65, 0.99), (0.74, 0.99)], 'bedroom'),
+                            ('從右邊緣往左走到門口', [(0.91, 0.99), (0.85, 0.99), (0.78, 0.99), (0.73, 0.99)], 'study'),
+                            ('往左下樓梯口', [(0.8, 0.99), (0.6, 0.99), (0.42, 0.99), (0.35, 1.0)], 'stairs'),
+                            ('原地不動', [(0.72, 0.99), (0.73, 0.99), (0.72, 0.99)], '')):
+        got, _ = exits(seq + gone)
+        if got != [want]:
+            errors.append('去向 %s 應為 %r，實際 %r' % (name, want, got))
+    got, _ = exits([(0.35, 0.99), (0.5, 0.99), (0.65, 0.99), (0.74, 0.99)] + [None] * 3)      # 消失還不到 2.5 秒：先不判
+    if got:
+        errors.append('消失不到 2.5 秒不該判去向：%r' % got)
+    got, tr = exits([(0.35, 0.99), (0.5, 0.99), (0.65, 0.99), (0.74, 0.99)] + [None] * 3)
+    if tr.finalize().get('exit', {}).get('dest') != 'bedroom':
+        errors.append('動靜結束時要補判去向')
     # 沒人：只在 finalize 判
     f, fin = _run_seq([None] * 6, cfg)
     if f or fin['dir'] != 'none':
