@@ -334,13 +334,13 @@
         - variables:
             t1: "{{ now().timestamp() }}"
             s_study: >-
-              {{ (t1 - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0)) <= 10
-                 or (t1 - as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0)) <= 10
-                 or (is_state('switch.shu_fang_deng', 'on') and (t1 - states.switch.shu_fang_deng.last_changed.timestamp()) <= 10) }}
+              {{ (t1 - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0)) <= 20
+                 or (t1 - as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0)) <= 20
+                 or (is_state('switch.shu_fang_deng', 'on') and (t1 - states.switch.shu_fang_deng.last_changed.timestamp()) <= 20) }}
             s_bed: >-
-              {{ (t1 - as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0)) <= 10
-                 or (is_state('light.yeelink_bslamp2_4329_light', 'on') and (t1 - states.light.yeelink_bslamp2_4329_light.last_changed.timestamp()) <= 10)
-                 or (is_state('light.yeelink_lamp2_678c_light', 'on') and (t1 - states.light.yeelink_lamp2_678c_light.last_changed.timestamp()) <= 10) }}
+              {{ (t1 - as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0)) <= 20
+                 or (is_state('light.yeelink_bslamp2_4329_light', 'on') and (t1 - states.light.yeelink_bslamp2_4329_light.last_changed.timestamp()) <= 20)
+                 or (is_state('light.yeelink_lamp2_678c_light', 'on') and (t1 - states.light.yeelink_lamp2_678c_light.last_changed.timestamp()) <= 20) }}
             lp_raw: "{{ states('input_text.topfloor_last_path') | string }}"
             lp_now: "{{ lp_raw.split('|')[0] if '|' in lp_raw else '' }}"
             lp_age: "{{ t1 - ((lp_raw.split('|')[1] | float(0)) if '|' in lp_raw else 0) }}"
