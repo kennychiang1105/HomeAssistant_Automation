@@ -255,7 +255,7 @@ def replay_clip(clip, vision, cfg, fps=1.0, scale=640):
     for i, f in enumerate(sorted(glob.glob(os.path.join(d, '*.jpg')))):
         t = i / fps
         o = tr.add(t, vision_persons(vision, f))
-        rows.append((round(t, 1), o['main'], o['dir'], o['fire']))
+        rows.append((round(t, 1), o['main'], o['dir'], o['fire'], o.get('exit')))
     fin = tr.finalize()
     for f in glob.glob(os.path.join(d, '*')):
         os.remove(f)
@@ -267,8 +267,8 @@ def cmd_replay(a):
     cfg = load_cfg(a.dir)
     rows, fin = replay_clip(a.replay_clip, a.vision, cfg, a.fps)
     for r in rows:
-        if r[1] or r[3]:
-            print('%5.1fs' % r[0], r[1], r[2], ('FIRE ' + r[3]) if r[3] else '')
+        if r[1] or r[3] or r[4]:
+            print('%5.1fs' % r[0], r[1], r[2], ('FIRE ' + r[3]) if r[3] else '', ('EXIT ' + json.dumps(r[4], ensure_ascii=False)) if r[4] else '')
     print('FINAL', json.dumps(fin, ensure_ascii=False))
 
 
