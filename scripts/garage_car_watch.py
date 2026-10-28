@@ -195,7 +195,8 @@ def apply_vision(a, roi, state, out, jpg, now):
     v = state.setdefault('vision', {})
     thr = roi.get('thresholds', {})
     need = getattr(a, 'safety', False) or (now - v.get('ts', 0) > a.vision_every) or any(
-        r['lights_on'] or r['moved'] or r['identity'] == 'unknown' for r in out['slots'].values())
+        r['lights_on'] or r['moved'] or r['identity'] == 'unknown' or state.get('slots', {}).get(n, {}).get('bigchg', 0) >= 1
+        for n, r in out['slots'].items())
     if not need:
         return {'skipped': True}
     try:
@@ -210,6 +211,18 @@ def apply_vision(a, roi, state, out, jpg, now):
             continue
         d = vr.get('det')
         s = {'det': d['cls'] if d else None, 'conf': d['conf'] if d else None}
+        # V4.3.0-beta 7：車開走後，像素比對的空車位基準因光線輕微飄移而一直判成有車（前位 Tesla 開走後仍顯示在位）。
+        #   影像模型連續 3 次在車位框內完全找不到車、且像素差異 < 2 倍門檻（真的有車時 > 28）→ 判成空位，並重學空車位基準
+        ss0 = state.setdefault('slots', {}).setdefault(name, {})
+        ss0['vis_empty'] = (ss0.get('vis_empty', 0) + 1) if d is None else 0
+        if d is None and ss0['vis_empty'] >= 3 and r.get('occupied') and r.get('occupied_diff', 99) < 2 * thr.get('occupied_diff', 14.0) \
+                and not out.get('exposure_changed'):
+            r['present'] = False
+            r['occupied'] = False
+            r['vision_empty'] = True
+            r['identity'] = 'unknown'
+            ss0['present'] = False
+            ss0['vis_empty'] = 0
         if d and d['conf'] >= 0.5:
             # 用偵測框中心的位移確認「車真的動了」：人走動擋到車身會讓相位位移很大，但框幾乎不動 → 不算車動
             ss_ = state.setdefault('slots', {}).setdefault(name, {})
@@ -631,6 +644,10 @@ def main():
     out = analyse(img, roi, state, a.dir, learn=not a.no_learn, gate_recent=a.gate_recent)
     if a.vision:
         out['vision'] = apply_vision(a, roi, state, out, open(a.snapshot, 'rb').read(), time.time())
+        if not a.no_learn:
+            for n, r in out['slots'].items():
+                if r.get('vision_empty'):
+                    cmd_learn_empty(img, roi, n, a.dir)
     if not a.no_learn:
         save_json(state_path, state)
     if a.csv:

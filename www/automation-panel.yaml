@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **151** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **152** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2404,7 +2404,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 37 個"
+        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 41 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2468,7 +2468,7 @@ views:
           - entity: automation.08_5iding_lou_kong_diao_guan_bi_que_ren
             name: "08-5I頂樓空調關閉確認"
           - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
-            name: "08-5J頂樓動線推理AI (V4.2.2)"
+            name: "08-5J頂樓動線推理AI (V4.3.4-beta 1)"
           - entity: automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0
             name: "08-5J頂樓感應週報 (V4.1.5)"
           - entity: automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0
@@ -2657,7 +2657,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他開關（1）"
+        heading: "其他開關（2）"
         heading_style: title
         card_mod:
           style: |
@@ -2669,11 +2669,13 @@ views:
         entities:
           - entity: input_boolean.wu_lou_she_ying_ji_kai_guan
             name: "五樓攝影機麥克風開關"
+          - entity: input_boolean.topfloor_cam_ai_enable
+            name: "頂樓攝影機模型判斷｜總開關"
         card_mod: *cm
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（1）"
+        heading: "其他數值參數（4）"
         heading_style: title
         card_mod:
           style: |
@@ -2685,6 +2687,12 @@ views:
         entities:
           - entity: input_number.topfloor_up_rejoin_min
             name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
+          - entity: input_number.topfloor_ai_published
+            name: "頂樓模型｜實際發出動線事件次數"
+          - entity: input_number.topfloor_ai_fired
+            name: "頂樓模型｜提早判斷次數"
+          - entity: input_number.topfloor_ai_ghost
+            name: "頂樓模型｜有動靜但畫面沒人次數"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2823,7 +2831,7 @@ views:
           - entity: automation.ai_doorlock_battery_drop_timestamp_recorder
             name: "100C3客廳門鎖電量下降時間紀錄AI (V3.0)"
           - entity: automation.ai_lpr_recognition
-            name: "104-2車輛動態辨識系統AI (V4.3.0-beta 3)"
+            name: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2842,7 +2850,7 @@ views:
           - entity: automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2
             name: "104-3A鐵門開啟時間記錄AI (V4.2.2)"
           - entity: automation.ai_104_3_garage_gate_open_guard_and_autoclose
-            name: "104-3鐵門判斷未關提醒及作動AI (V4.2.2)"
+            name: "104-3鐵門判斷未關提醒及作動AI (V4.3.1)"
           - entity: automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0
             name: "104-4車庫回家通知系統AI (V4.3.0)"
           - entity: automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5
@@ -4283,7 +4291,6 @@ views:
           - entity: input_text.mood_mem_fab7
             name: "氣氛燈燈況記憶_客廳燈2"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4318,6 +4325,7 @@ views:
           - entity: input_text.notify_selftest_flag
             name: "通知自我測試旗標"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4423,7 +4431,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "頂樓（51）"
+        heading: "頂樓（54）"
         heading_style: title
         card_mod:
           style: |
@@ -4452,7 +4460,6 @@ views:
           - entity: input_boolean.topfloor_kandeng_auto
             name: "頂樓_坎燈由感應開啟"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4485,6 +4492,7 @@ views:
           - entity: input_datetime.topfloor_study_last_exited
             name: "書房推理最後離開時間"
         card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4564,6 +4572,10 @@ views:
         entities:
           - entity: input_datetime.topfloor_bedroom_line_last_triggered
             name: "頂樓房間門口跨線最後觸發"
+          - entity: input_datetime.topfloor_cam_ai_up_last
+            name: "頂樓攝影機模型判斷｜最近一次判上樓（內部）"
+          - entity: input_datetime.topfloor_cam_ai_down_last
+            name: "頂樓攝影機模型判斷｜最近一次判下樓（內部）"
           - entity: input_datetime.topfloor_studyroom_line_last_triggered
             name: "頂樓書房門口跨線最後觸發"
           - entity: input_datetime.topfloor_stairs_line_last_triggered
@@ -4576,10 +4588,6 @@ views:
             name: "頂樓_最後決策"
           - entity: input_text.topfloor_debug_last_decision
             name: "頂樓偵測 Debug（最後決策）"
-          - entity: input_text.topfloor_debug_last_json
-            name: "頂樓偵測 Debug（最新快照 JSON）"
-          - entity: timer.topfloor_room_arrived
-            name: "頂樓_剛進房間（暫不因攝影機重開樓梯燈）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4594,6 +4602,12 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_text.topfloor_debug_last_json
+            name: "頂樓偵測 Debug（最新快照 JSON）"
+          - entity: input_text.topfloor_cam_ai_last
+            name: "頂樓攝影機模型判斷｜最近一次（內部）"
+          - entity: timer.topfloor_room_arrived
+            name: "頂樓_剛進房間（暫不因攝影機重開樓梯燈）"
           - entity: timer.topfloor_pause
             name: "頂樓_感應暫停計時"
           - entity: timer.topfloor_stairs_max
@@ -4851,10 +4865,28 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 0 支、可調整項目 2 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 2 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "自動化開關（1）"
+        heading_style: title
+        icon: mdi:robot
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1
+            name: "08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)"
+        card_mod: *cm
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading

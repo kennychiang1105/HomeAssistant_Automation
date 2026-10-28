@@ -2,6 +2,7 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.0-beta 6：新增 script.garage_close_safety_check（關門前淨空確認：模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）；104-2、104-3 自動關門與本檔的誤判關門都先過這關。
+# - V4.3.0-beta 7：開關類 helper（出門偵測總開關、左方向燈偵測、自動開鐵門、左方向燈可直接開門、出門通知）拿掉 initial，HA 重啟後保留使用者設定（SOP-20）。原本 initial: false 讓 10/28 HAOS 重開機後自動開鐵門與左轉燈開門被歸零，左轉燈出門時鐵門沒開。
 # - V4.2.5：新增。UniFi 攝影機不會把「停很久的車要出門」當成新車輛，所以改用定時畫面分析（scripts/garage_car_watch.py，Pillow＋numpy）：
 #   每個車位（front＝前位／靠鐵門＝3D 車位1，back＝後位／內側＝3D 車位2）判斷有沒有車、是哪輛（Luxgen N7／Tesla Model 3）、車燈是否亮起、車身是否位移。
 #   - 車位實體：input_select.garage_slot_front／back（empty／unknown／luxgen_n7（EAK8030）／tesla_model3（EBH8030）／其他車輛 sedan 房車、suv 休旅車、motorcycle 機車）；車輛實體：sensor.garage_car_luxgen_n7／tesla_model3
@@ -14,11 +15,9 @@ input_boolean:
   garage_turn_signal_enable:
     name: 車庫出門偵測｜左方向燈偵測（絕對出門訊號）
     icon: mdi:car-arrow-left
-    initial: true
   garage_turn_signal_open_enable:
     name: 車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）
     icon: mdi:garage-open-variant
-    initial: false
   garage_turn_detected:
     name: 車庫出門偵測｜剛偵測到左方向燈（內部）
     icon: mdi:car-arrow-left
@@ -28,15 +27,12 @@ input_boolean:
   garage_depart_watch_enable:
     name: 車庫出門偵測｜總開關
     icon: mdi:car-clock
-    initial: true
   garage_depart_notify_enable:
     name: 車庫出門偵測｜偵測到時通知
     icon: mdi:bell-ring-outline
-    initial: false
   garage_depart_auto_open_enable:
     name: 車庫出門偵測｜自動開鐵門
     icon: mdi:garage-open
-    initial: false
   garage_depart_candidate:
     name: 車庫出門偵測｜準備出門中（內部）
     icon: mdi:car-arrow-right
@@ -291,6 +287,9 @@ script:
           cam_person: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}"
           cam_motion: "{{ is_state('binary_sensor.g6_instant_motion', 'on') }}"
           phone_in: "{{ '車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] }}"
+          # 車位在最近 3 分鐘內「變成有車」（車子在車庫內挪位置、剛倒車進來／換位置）＝車上可能還有人，車庫攝影機人員偵測看不到車裡的人
+          moved_in: >-
+            {% set ns = namespace(l=[]) %}{% for e, n in [('input_select.garage_slot_front', '前位'), ('input_select.garage_slot_back', '後位')] %}{% if not is_state(e, 'empty') and (as_timestamp(now()) - as_timestamp(states[e].last_changed)) < 180 %}{% set ns.l = ns.l + [n] %}{% endif %}{% endfor %}{{ ns.l | join('、') }}
           reasons: >-
             {% set r = [] %}
             {% if n_person | int(0) > 0 %}{% set r = r + ['畫面辨識到有人（' ~ n_person ~ ' 人）'] %}{% endif %}
@@ -299,6 +298,7 @@ script:
             {% if cam_person %}{% set r = r + ['攝影機偵測到人員'] %}{% endif %}
             {% if cam_motion %}{% set r = r + ['攝影機偵測到動作'] %}{% endif %}
             {% if phone_in %}{% set r = r + ['家人手機連在車庫 AP'] %}{% endif %}
+            {% if moved_in | trim != '' %}{% set r = r + [moved_in ~ '剛有車輛挪動／進入（3 分鐘內），車上可能還有人'] %}{% endif %}
             {{ r | to_json }}
           rs: "{{ reasons | from_json([]) }}"
           result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok} }}"

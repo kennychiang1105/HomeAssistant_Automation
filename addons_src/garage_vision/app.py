@@ -242,6 +242,10 @@ class H(BaseHTTPRequestHandler):
             slots = parse_slots(q)
             with LOCK:
                 dets = detect(img)
+                # 只要人物偵測（頂樓攝影機逐秒分析用）：跳過車牌 OCR、CLIP 車型與樣板比對，快很多
+                if u.path == "/analyze" and q.get("persons_only", ["0"])[0] == "1":
+                    return self._send(200, {"ts": int(time.time()), "size": list(img.size), "persons": LAST.get("persons", []),
+                                            "ms": int((time.time() - t0) * 1000)})
                 if u.path == "/learn":
                     slot, label = q.get("slot", [""])[0], q.get("label", [""])[0]
                     d = pick(dets, slots[slot]) if slot in slots else None
