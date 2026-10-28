@@ -2404,7 +2404,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 41 個"
+        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 30 支、可調整項目 46 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2468,7 +2468,7 @@ views:
           - entity: automation.08_5iding_lou_kong_diao_guan_bi_que_ren
             name: "08-5I頂樓空調關閉確認"
           - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
-            name: "08-5J頂樓動線推理AI (V4.3.4-beta 2)"
+            name: "08-5J頂樓動線推理AI (V4.3.4-beta 3)"
           - entity: automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0
             name: "08-5J頂樓感應週報 (V4.1.5)"
           - entity: automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0
@@ -2657,7 +2657,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他開關（2）"
+        heading: "其他開關（3）"
         heading_style: title
         card_mod:
           style: |
@@ -2669,13 +2669,15 @@ views:
         entities:
           - entity: input_boolean.wu_lou_she_ying_ji_kai_guan
             name: "五樓攝影機麥克風開關"
+          - entity: input_boolean.topfloor_cam_ai_exit_enable
+            name: "頂樓攝影機模型判斷｜最後去向開關"
           - entity: input_boolean.topfloor_cam_ai_enable
             name: "頂樓攝影機模型判斷｜總開關"
         card_mod: *cm
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（4）"
+        heading: "其他數值參數（8）"
         heading_style: title
         card_mod:
           style: |
@@ -2687,6 +2689,14 @@ views:
         entities:
           - entity: input_number.topfloor_up_rejoin_min
             name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
+          - entity: input_number.topfloor_ai_exit
+            name: "頂樓模型｜去向判斷次數"
+          - entity: input_number.topfloor_ai_exit_agree
+            name: "頂樓模型｜去向與實體訊號一致次數"
+          - entity: input_number.topfloor_ai_exit_disagree
+            name: "頂樓模型｜去向與實體訊號不一致次數"
+          - entity: input_number.topfloor_ai_exit_published
+            name: "頂樓模型｜去向補發動線次數"
           - entity: input_number.topfloor_ai_published
             name: "頂樓模型｜實際發出動線事件次數"
           - entity: input_number.topfloor_ai_fired
@@ -4431,7 +4441,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "頂樓（54）"
+        heading: "頂樓（55）"
         heading_style: title
         card_mod:
           style: |
@@ -4459,6 +4469,8 @@ views:
             name: "頂樓_5F梯廳燈由感應開啟"
           - entity: input_boolean.topfloor_kandeng_auto
             name: "頂樓_坎燈由感應開啟"
+          - entity: input_boolean.topfloor_study_auto
+            name: "頂樓_書房燈由感應開啟"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4473,8 +4485,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_boolean.topfloor_study_auto
-            name: "頂樓_書房燈由感應開啟"
           - entity: input_boolean.topfloor_stairs_night_used
             name: "頂樓_樓梯燈上次為深夜亮度"
           - entity: input_boolean.topfloor_stairs_keep_on
@@ -4491,6 +4501,10 @@ views:
             name: "書房推理最後進入時間"
           - entity: input_datetime.topfloor_study_last_exited
             name: "書房推理最後離開時間"
+          - entity: input_datetime.topfloor_j_bedroom
+            name: "頂樓_08-5J房門線去抖動"
+          - entity: input_datetime.topfloor_j_study
+            name: "頂樓_08-5J書房線去抖動"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -4506,10 +4520,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_datetime.topfloor_j_bedroom
-            name: "頂樓_08-5J房門線去抖動"
-          - entity: input_datetime.topfloor_j_study
-            name: "頂樓_08-5J書房線去抖動"
           - entity: input_datetime.topfloor_j_stairs
             name: "頂樓_08-5J樓梯線去抖動"
           - entity: input_datetime.topfloor_pir_right_last
@@ -4524,6 +4534,12 @@ views:
             name: "頂樓_攝影機最後有人"
           - entity: input_datetime.topfloor_cam_last_off
             name: "頂樓_攝影機最後清空"
+          - entity: input_datetime.topfloor_path_down
+            name: "頂樓_最後下樓"
+          - entity: input_datetime.topfloor_path_bedroom
+            name: "頂樓_最後回臥室"
+          - entity: input_datetime.topfloor_path_enter_study
+            name: "頂樓_最後進書房"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4538,12 +4554,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_datetime.topfloor_path_down
-            name: "頂樓_最後下樓"
-          - entity: input_datetime.topfloor_path_bedroom
-            name: "頂樓_最後回臥室"
-          - entity: input_datetime.topfloor_path_enter_study
-            name: "頂樓_最後進書房"
           - entity: input_datetime.topfloor_last_arrival
             name: "頂樓情境廣播｜Kenny 最近一次回到家（離家→在家，內部）"
           - entity: input_datetime.topfloor_announce_last_up
@@ -4556,6 +4566,14 @@ views:
             name: "頂樓情境廣播｜最近一次上樓情境（含沒播報的，內部）"
           - entity: input_datetime.topfloor_last_down_any
             name: "頂樓情境廣播｜最近一次下樓情境（不論有沒有播報，內部）"
+          - entity: input_datetime.topfloor_bedroom_line_last_triggered
+            name: "頂樓房間門口跨線最後觸發"
+          - entity: input_datetime.topfloor_cam_ai_up_last
+            name: "頂樓攝影機模型判斷｜最近一次判上樓（內部）"
+          - entity: input_datetime.topfloor_cam_ai_down_last
+            name: "頂樓攝影機模型判斷｜最近一次判下樓（內部）"
+          - entity: input_datetime.topfloor_studyroom_line_last_triggered
+            name: "頂樓書房門口跨線最後觸發"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4570,14 +4588,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_datetime.topfloor_bedroom_line_last_triggered
-            name: "頂樓房間門口跨線最後觸發"
-          - entity: input_datetime.topfloor_cam_ai_up_last
-            name: "頂樓攝影機模型判斷｜最近一次判上樓（內部）"
-          - entity: input_datetime.topfloor_cam_ai_down_last
-            name: "頂樓攝影機模型判斷｜最近一次判下樓（內部）"
-          - entity: input_datetime.topfloor_studyroom_line_last_triggered
-            name: "頂樓書房門口跨線最後觸發"
           - entity: input_datetime.topfloor_stairs_line_last_triggered
             name: "頂樓樓梯跨線最後觸發"
           - entity: input_text.topfloor_param_init
@@ -4588,6 +4598,16 @@ views:
             name: "頂樓_最後決策"
           - entity: input_text.topfloor_debug_last_decision
             name: "頂樓偵測 Debug（最後決策）"
+          - entity: input_text.topfloor_debug_last_json
+            name: "頂樓偵測 Debug（最新快照 JSON）"
+          - entity: input_text.topfloor_cam_ai_exit_last
+            name: "頂樓攝影機模型判斷｜最近一次去向（內部）"
+          - entity: input_text.topfloor_cam_ai_last
+            name: "頂樓攝影機模型判斷｜最近一次（內部）"
+          - entity: timer.topfloor_room_arrived
+            name: "頂樓_剛進房間（暫不因攝影機重開樓梯燈）"
+          - entity: timer.topfloor_pause
+            name: "頂樓_感應暫停計時"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4602,14 +4622,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_text.topfloor_debug_last_json
-            name: "頂樓偵測 Debug（最新快照 JSON）"
-          - entity: input_text.topfloor_cam_ai_last
-            name: "頂樓攝影機模型判斷｜最近一次（內部）"
-          - entity: timer.topfloor_room_arrived
-            name: "頂樓_剛進房間（暫不因攝影機重開樓梯燈）"
-          - entity: timer.topfloor_pause
-            name: "頂樓_感應暫停計時"
           - entity: timer.topfloor_stairs_max
             name: "頂樓_樓梯燈保底關燈"
           - entity: timer.topfloor_stairs_manual_hold
