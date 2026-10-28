@@ -1,8 +1,9 @@
 ﻿# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-2車輛動態辨識系統AI (V4.3.0-beta 4)
+# 104-2車輛動態辨識系統AI (V4.3.0-beta 5)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.0-beta 5（2026-10-28，測試中）：車在車庫內挪位置（一個車位變空、另一車位同時變成有車）不算駛出憑證；淨空確認新增「車位 3 分鐘內變成有車＝車上可能還有人」。實際事件：10/28 10:28 Luxgen 由後位挪到前位準備出門，10:30 開門後 104-2 把後位剛變空當成已駛出，10:30:52 自動把鐵門關上，車還在車庫裡。
 # - V4.3.0-beta 4（2026-10-28，測試中）：自動關門前先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因（交給 104-3）。
 # - V4.3.0-beta 3（2026-10-28，測試中）：車庫有人（攝影機看到人或家人手機連在車庫 AP）而車還沒開走時，不再照 45 秒關門，改等車位真的變空（不設上限，車一直沒走就由 104-3 鐵門未關處理）、車走後再等一次緩衝。
 # - V4.3.0-beta 2（2026-10-28，測試中）：用 10/24～10/27 的鐵門開啟紀錄逐筆回放後修正三處：①車位在鐵門「開到底之前」就變空（車在門升起途中開走）也算駛出憑證，原本只認開到底之後的變化，
@@ -21,7 +22,7 @@
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車輛動態辨識系統AI (V4.3.0-beta 4)
+- alias: 104-2車輛動態辨識系統AI (V4.3.0-beta 5)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、EBH8030）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -49,7 +50,7 @@
       to: "open"
 
   variables:
-    automation_version: "V4.3.0-beta 4"
+    automation_version: "V4.3.0-beta 5"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -83,13 +84,17 @@
         (as_timestamp(now()) - as_timestamp(states.input_text.lpr_last_event.last_updated)) < 120 
       }}
 
-    # V4.3.0-beta 4：車子在鐵門升起途中就開走（車位在「開到底」之前已變空）也算駛出憑證，只看開門前 120 秒內才變空的車位
+    # V4.3.0-beta 5：車子在鐵門升起途中就開走（車位在「開到底」之前已變空）也算駛出憑證，只看開門前 120 秒內才變空的車位
     #   （實際紀錄 10/27 11:03、15:17 車位都在開到底前 10～40 秒變空，原本會因為等不到憑證而不關門）；需車位影像分析開啟
     slot_emptied_recently: >-
       {{ is_state('input_boolean.garage_depart_watch_enable', 'on') and (
            (is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed)) < 120)
            or (is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed)) < 120)) }}
-    have_cred: "{{ lpr_opened_recently or slot_emptied_recently }}"
+    # 車在車庫內挪位置（一個車位變空、另一個車位同時變成有車；10/28 10:28 Luxgen 由後位挪到前位，結果鐵門被自動關上）不算駛出
+    slot_moved_inside: >-
+      {{ (not is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed)) < 180)
+         or (not is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed)) < 180) }}
+    have_cred: "{{ lpr_opened_recently or (slot_emptied_recently and not slot_moved_inside) }}"
 
     # LPR 當下「開門」預判（需保全 Arm Away）
     should_open_now: "{{ is_state('cover.garage','closed') and arm_away_now }}"
@@ -136,7 +141,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
                                 message: >-
@@ -157,7 +162,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "ℹ️ LPR 事件通知 ({{ automation_version }})"
                                 message: >-
@@ -196,7 +201,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: |-
@@ -215,7 +220,7 @@
                     - condition: template
                       value_template: "{{ not have_cred }}"  # 🟢 若 LPR 剛觸發過、或車位在開門途中已變空，跳過這段等待
                   sequence:
-                    # V4.3.0-beta 4：憑證等待有固定期限（開到底起 6 分鐘），被忽略的舊訊號不再重置計時，也不會在重複 6 次後被當成憑證
+                    # V4.3.0-beta 5：憑證等待有固定期限（開到底起 6 分鐘），被忽略的舊訊號不再重置計時，也不會在重複 6 次後被當成憑證
                     - variables:
                         cred_deadline: "{{ as_timestamp(now()) + 360 }}"
                     - repeat:
@@ -223,7 +228,7 @@
                             - wait_for_trigger:
                                 # 【憑證一：車位影像分析（V4.2.5）】停了很久的車要出門時，攝影機不會產生新的車輛事件；
                                 #   改看車位狀態（該車位由有車變空）。
-                                #   V4.3.0-beta 4：不再把「準備出門旗標」當憑證——車還停著、只是亮燈準備時就會誤判，45 秒後可能關門；一定要看到車位真的變空或車牌。
+                                #   V4.3.0-beta 5：不再把「準備出門旗標」當憑證——車還停著、只是亮燈準備時就會誤判，45 秒後可能關門；一定要看到車位真的變空或車牌。
                                 - platform: state
                                   entity_id: input_select.garage_slot_front
                                   to: "empty"
@@ -267,7 +272,7 @@
                                               data:
                                                 level: info
                                                 line: false
-                                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                                 version: "{{ automation_version | default('', true) }}"
                                                 title: "⛔ 已取消自動關門 (車輛未駛出)"
                                                 message: |-
@@ -288,7 +293,7 @@
                                       data:
                                         level: info
                                         line: false
-                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "✅ 已取得駛出憑證"
                                         message: |-
@@ -329,7 +334,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "⛔ 已取消自動關門 (偵測到人)"
                                 message: "等待期間攝影機偵測到人員活動，為保護安全已暫停關門。"
@@ -347,7 +352,7 @@
                       then:
                         - stop: "Canceled by presence (retry timed out)"
 
-            # V4.3.0-beta 4：車庫有人（攝影機看到人，或家人手機連在車庫 AP）而車還沒開走（開門前 120 秒起沒有車位變空）
+            # V4.3.0-beta 5：車庫有人（攝影機看到人，或家人手機連在車庫 AP）而車還沒開走（開門前 120 秒起沒有車位變空）
             #   ⇒ 不照 45 秒關門，改等車位真的變空（不設上限；一直沒走由 104-3 鐵門未關處理），車走後再等一次緩衝。需車位影像分析開啟
             - if: >-
                 {{ is_state('input_boolean.garage_depart_watch_enable', 'on')
@@ -417,7 +422,7 @@
                                       data:
                                         level: info
                                         line: false
-                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "⛔ 已取消自動關門 (淨空確認未通過)"
                                         message: "{{ '、'.join(sf2.reasons) if (sf2 is mapping and sf2.get('reasons')) else '無法確認' }}。5 分鐘內仍未淨空，不自動關門，交給 104-3 鐵門未關處理。"
@@ -429,7 +434,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "🤖 自動關門已執行 ({{ automation_version }})"
                                 message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
@@ -441,7 +446,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "🤖（預備）條件式關門：會關"
                                 message: "預判會關門。目前僅通知；開啟『LPR自動關門』即可生效。"
@@ -454,7 +459,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 4)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
