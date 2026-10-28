@@ -1,7 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 08-5J頂樓動線推理AI (V4.3.4-beta 1)
+# 08-5J頂樓動線推理AI (V4.3.4-beta 2)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.4-beta 2（2026-10-28，測試中）：上樓情境開啟 20 秒內，床頭燈／檯燈被開啟（情境自己開的）不再誤判為進臥室（10/28 21:16 上樓時樓梯燈亮了 5 秒就關、跨線到達後又亮）。
 # - V4.3.4-beta 1（2026-10-28，測試中）：新增模型判斷觸發 cam_ai（事件 topfloor_cam_ai，由 08-5M頂樓攝影機模型分析AI 逐秒分析後發出）：模型判上樓／下樓時，若 8 秒內沒有跨線、近 30 秒沒發過同方向，就提早發出 arrive_up／down_start（補漏、提速）；以既有跨線為準，總開關 input_boolean.topfloor_cam_ai_enable。
 # - V4.2.2（2026-10-23）：依 SOP-20 保護 trigger 變數（ha_start／手動執行時 trigger.event 與 trigger.id 防呆），重啟後並行推理自動歸零無殘留旗標。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
@@ -16,14 +17,14 @@
 #           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
 #           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
 # ────────────────────────────────────────────────────────
-- alias: 08-5J頂樓動線推理AI (V4.3.4-beta 1)
+- alias: 08-5J頂樓動線推理AI (V4.3.4-beta 2)
   id: ai_08_5j_topfloor_path_inference
   description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
   mode: parallel
   max: 30
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.4-beta 1"
+    automation_version: "V4.3.4-beta 2"
     src: "{{ trigger.event.data.source if (trigger.id is defined and trigger.id == 'test' and trigger.event is defined) else (trigger.id if trigger.id is defined else 'unknown') }}"
     W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
     deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
@@ -114,6 +115,13 @@
       value_template: >-
         {{ src != 'study_on' or not (is_state('input_boolean.topfloor_study_auto', 'on')
            and (now() - states.input_boolean.topfloor_study_auto.last_changed).total_seconds() <= 20) }}
+    # 床頭燈／檯燈是「上樓情境」自己打開的（情境開啟 20 秒內）不當作人進臥室：
+    #   10/28 21:16 上樓時情境一開床頭燈，就被判成 enter_bedroom，樓梯燈 5 秒後就關、人還沒走到，後來跨線到達又再亮一次（亮了又關）
+    - condition: template
+      alias: "誤判防護：上樓情境剛開啟（20 秒內）時，床頭燈／檯燈被開啟不當作進臥室"
+      value_template: >-
+        {{ src != 'bed_lamp_on' or not (is_state('input_boolean.ding_lou_shang_lou_qing_jing', 'on')
+           and (now() - states.input_boolean.ding_lou_shang_lou_qing_jing.last_changed).total_seconds() <= 20) }}
     # 模型判斷（V4.3.4）：總開關關閉就忽略
     - condition: template
       alias: "模型判斷總開關"
