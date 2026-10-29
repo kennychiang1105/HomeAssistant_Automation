@@ -220,7 +220,8 @@ def apply_vision(a, roi, state, out, jpg, now):
         gate_open_recent = bool(getattr(a, 'gate_recent', False))
         #   V4.3.5：夜間紅外線模式（鐵門關著、車庫燈沒開）下，白天學的空車位基準比對差異恆大（diff 86），車開走後前位一直顯示有車（10/29 16:25 實測）。
         #   身分不明的「有車」且模型連續 8 次（約 2 分鐘）都找不到車 → 判成空位。
-        long_empty = ss0['vis_empty'] >= 8 and r.get('identity') == 'unknown'
+        #   只用在前位：後位離攝影機很近，車身被畫面切到、影像模型本來就常找不到（10/29 20:24 Tesla 停後位被誤判已離開）。
+        long_empty = name == 'front' and ss0['vis_empty'] >= 8 and r.get('identity') == 'unknown'
         if d is None and ss0['vis_empty'] >= 3 and r.get('occupied') and (gate_open_recent or long_empty or (
                 r.get('occupied_diff', 99) < 2 * thr.get('occupied_diff', 14.0) and not out.get('exposure_changed'))):
             r['present'] = False
