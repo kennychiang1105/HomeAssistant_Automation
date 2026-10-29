@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # 100A自動啟動到家早安情境AI (V4.2.0)
 # 更新紀錄：
+# - V4.3.5（2026-10-29）：二樓夜間防下樓時間窗（binary_sensor.anti_down_window，見 08-7B）期間不自動啟動到家／早安情境，避免 Iris 夜間下樓、開燈被誤判成早安或在家。
 # - V4.2.3（2026-10-25）：網關同步鎖期間（106C 解除流程）不自動啟動到家／早安情境（解除流程中網關短暫變成「解除」，會被誤判成要到家）。
 # - V4.2.0（2026-10-18）：移除影子模式（auto_scene_shadow 已於 2026-10-10 核准關閉，程式碼與 helper 一併刪除），行為不變。
 # - V4.1.6（2026-10-14）：「有人在客廳」觸發的停留時間由 2 分鐘縮短為 1 分鐘（2026-10-14 10:12 下樓後廁所燈亮 45 秒的燈光觸發比客廳 2 分鐘早到，改短後位置觸發比燈光慢不到 15 秒內）。
@@ -21,7 +22,7 @@
 #   防重複沿用 aqara_last_away_goodnight_triggered（180 秒）；自動啟動後發 HA 資訊通知（不發 LINE），並寫 input_text.auto_scene_last。
 # ──────────────────────────────────────────────
 - id: ai_100a_auto_arrive_morning_v41
-  alias: 100A自動啟動到家早安情境AI (V4.2.0)
+  alias: 100A自動啟動到家早安情境AI (V4.3.5)
   description: >
     家裡有活動跡象（燈、風扇、鐵門關閉）且保全不是在家模式時，自動啟動早安或到家情境。
   mode: single
@@ -114,6 +115,9 @@
       to: "closed"
       for: "00:02:00"
   conditions:
+    - alias: "二樓夜間防下樓時間窗（Kenny 熟睡、只有 Iris 或沒人在二樓）期間不自動啟動到家／早安情境"
+      condition: template
+      value_template: "{{ not is_state('binary_sensor.anti_down_window', 'on') }}"
     - alias: "網關同步鎖期間（106C 解除流程）不自動啟動到家／早安情境"
       condition: template
       value_template: "{{ as_timestamp(now()) > as_timestamp(states('input_datetime.gateway_sync_lock_until'), 0) }}"
@@ -208,6 +212,6 @@
             level: info
             line: false
             source: 100A自動啟動到家早安情境AI
-            version: V4.2.0
+            version: V4.3.5
             title: "自動啟動{{ scene_name }}情境"
             message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"

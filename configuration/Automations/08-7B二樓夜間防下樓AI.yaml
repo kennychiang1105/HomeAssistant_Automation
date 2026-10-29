@@ -1,0 +1,195 @@
+# ─────────────────────────────────────────────────────────────
+# 08-7B二樓夜間防下樓AI (V4.3.5)
+# 相容版本：Helpers V4.3.5（packages/v43_anti_down.yaml）
+# 更新紀錄（統一格式）：
+# - V4.3.5（2026-10-29）：新增。防下樓時間窗（binary_sensor.anti_down_window：晚安情境已執行、頂樓熟睡鎖開著、00:30 到日出＋30 分（平日）／＋60 分（假日）、
+#   二樓沒人或只有 Iris）內，二樓客廳／餐廳／廚房燈、二三樓與三樓樓梯燈、電視、客廳電風扇一被打開就立刻關掉（最多重試 3 次），
+#   並用客廳 HomePod 以一般廣播音量廣播「夜間睡覺期間請勿…」（間隔至少 anti_down_announce_gap_min 分鐘）。廚房插座、空氣清淨機不處理。
+#   電視只用網路指令（remote.turn_off）關機待機，絕不送紅外線；09C 喚醒中（tv_ir_power 開或 09C 執行中）不處理電視。
+#   100A、08-8A 在時間窗內不啟動，避免被誤判成早安／到家，或和本自動化互搶。HA 重啟後 90 秒重新掃描（SOP-20）。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-7B二樓夜間防下樓AI (V4.3.5)
+  id: ai_08_7b_anti_down
+  description: 夜間睡覺時間窗內，二樓只有 Iris 或沒人時，客廳／餐廳／廚房燈、二三樓與三樓樓梯燈、電視、客廳電風扇一打開就立刻關掉並廣播提醒
+  mode: queued
+  max: 20
+  max_exceeded: silent
+  variables:
+    automation_version: "V4.3.5"
+    light_ids:
+      - light.yeelink_color5_4181_light
+      - light.yeelink_color5_106d_light
+      - light.yeelink_color5_fab7_light
+      - light.yeelink_color5_8e3f_light
+      - light.yeelink_color5_5007_light
+      - light.yeelink_color5_2024_light
+      - light.yeelink_color5_f21d_light
+      - light.yeelink_color5_53ed_light
+      - light.yeelink_color5_f618_light
+      - light.yeelink_color5_c8d3_light
+    switch_ids:
+      - switch.ke_ting_kan_deng
+      - switch.ke_ting_bi_deng
+      - switch.ke_ting_huan_rao_deng
+      - switch.can_ting_deng
+      - switch.can_ting_bi_deng
+      - switch.can_ting_kan_deng
+      - switch.chu_fang_deng
+      - switch.er_san_lou_lou_ti_deng
+      - switch.san_lou_lou_ti_deng
+    fan_id: fan.ke_ting_dian_feng_shan
+    tv_media: media_player.ke_ting_dian_shi_hisense
+    tv_remote: remote.ke_ting_dian_shi
+  triggers:
+    - id: dev_on
+      alias: "[二樓燈／開關／電風扇／電視] 被打開"
+      trigger: state
+      entity_id:
+        - light.yeelink_color5_4181_light
+        - light.yeelink_color5_106d_light
+        - light.yeelink_color5_fab7_light
+        - light.yeelink_color5_8e3f_light
+        - light.yeelink_color5_5007_light
+        - light.yeelink_color5_2024_light
+        - light.yeelink_color5_f21d_light
+        - light.yeelink_color5_53ed_light
+        - light.yeelink_color5_f618_light
+        - light.yeelink_color5_c8d3_light
+        - switch.ke_ting_kan_deng
+        - switch.ke_ting_bi_deng
+        - switch.ke_ting_huan_rao_deng
+        - switch.can_ting_deng
+        - switch.can_ting_bi_deng
+        - switch.can_ting_kan_deng
+        - switch.chu_fang_deng
+        - switch.er_san_lou_lou_ti_deng
+        - switch.san_lou_lou_ti_deng
+        - fan.ke_ting_dian_feng_shan
+        - media_player.ke_ting_dian_shi_hisense
+      to: "on"
+    - id: window_on
+      alias: "[防下樓時間窗] 開始（掃一次殘留的燈）"
+      trigger: state
+      entity_id: binary_sensor.anti_down_window
+      to: "on"
+    - id: ha_start
+      trigger: homeassistant
+      event: start
+  actions:
+    - if: "{{ trigger.id == 'ha_start' }}"
+      then:
+        - delay: "00:01:30"
+    - alias: "時間窗內才處理（氣氛燈提醒、噪音警告閃燈中不處理）"
+      condition: template
+      value_template: >-
+        {{ is_state('binary_sensor.anti_down_window', 'on')
+           and is_state('input_boolean.mood_alert_active', 'off')
+           and is_state('input_boolean.noise_warning', 'off') }}
+    - variables:
+        tv_busy: >-
+          {{ is_state('input_boolean.tv_ir_power', 'on')
+             or (states.automation | selectattr('attributes.id', 'defined') | selectattr('attributes.id', 'eq', 'ai_09c_tv_keepalive')
+                 | map(attribute='attributes.current') | map('int', 0) | sum) > 0 }}
+        first_on: >-
+          {{ ((light_ids + switch_ids) | select('is_state', 'on') | list)
+             + ([fan_id] if is_state(fan_id, 'on') else [])
+             + ([tv_media] if (is_state(tv_media, 'on') and not tv_busy) else []) }}
+    - if: "{{ first_on | length == 0 }}"
+      then:
+        - stop: "沒有需要關的東西"
+    # 立刻關；500 毫秒後複查，沒關成功再關（最多 3 輪，避免被其他自動化搶開）
+    - repeat:
+        sequence:
+          - parallel:
+              - if: "{{ (light_ids | select('is_state', 'on') | list) | length > 0 }}"
+                then:
+                  - action: light.turn_off
+                    target:
+                      entity_id: "{{ light_ids | select('is_state', 'on') | list }}"
+                    data:
+                      transition: 0
+                    continue_on_error: true
+              - if: "{{ (switch_ids | select('is_state', 'on') | list) | length > 0 }}"
+                then:
+                  - action: switch.turn_off
+                    target:
+                      entity_id: "{{ switch_ids | select('is_state', 'on') | list }}"
+                    continue_on_error: true
+              - if: "{{ is_state(fan_id, 'on') }}"
+                then:
+                  - action: fan.turn_off
+                    target:
+                      entity_id: "{{ fan_id }}"
+                    continue_on_error: true
+              - if: "{{ is_state(tv_media, 'on') and not tv_busy and not is_state(tv_remote, 'unavailable') }}"
+                then:
+                  - action: remote.turn_off
+                    target:
+                      entity_id: "{{ tv_remote }}"
+                    continue_on_error: true
+          - delay:
+              milliseconds: 500
+        until: >-
+          {{ repeat.index >= 3
+             or ((light_ids + switch_ids) | select('is_state', 'on') | list | length == 0
+                 and not is_state(fan_id, 'on')
+                 and (tv_busy or not is_state(tv_media, 'on'))) }}
+    - action: input_number.increment
+      target:
+        entity_id: input_number.anti_down_blocked
+      continue_on_error: true
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.anti_down_last
+      data:
+        value: "{{ (now().strftime('%H:%M:%S') ~ ' 關掉 ' ~ (first_on | map('replace', 'light.yeelink_color5_', '') | map('replace', 'switch.', '') | join('、')))[:255] }}"
+      continue_on_error: true
+    - action: logbook.log
+      data:
+        name: 二樓夜間防下樓
+        message: "{{ now().strftime('%H:%M:%S') }} 夜間睡覺時間，立即關閉 {{ first_on | length }} 個項目（{{ first_on | join('、') }}）"
+      continue_on_error: true
+    # 廣播（客廳 HomePod、一般音量、非阻塞，避免排隊拖慢下一次關燈）
+    - if: >-
+        {{ is_state('input_boolean.anti_down_announce_enable', 'on')
+           and (as_timestamp(now()) - as_timestamp(states('input_datetime.anti_down_last_announce'), 0)) > (states('input_number.anti_down_announce_gap_min') | float(3)) * 60 }}
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: input_datetime.anti_down_last_announce
+          data:
+            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          continue_on_error: true
+        - action: input_number.increment
+          target:
+            entity_id: input_number.anti_down_announced
+          continue_on_error: true
+        - action: script.turn_on
+          target:
+            entity_id: script.announce
+          data:
+            variables:
+              level: general
+              player: media_player.ke_ting_homepod
+              force: true
+              message: >-
+                {% set e = state_attr('binary_sensor.anti_down_window', 'end') %}
+                {% set et = (e | as_datetime | as_local) if e not in [none, '', 'None'] else none %}
+                夜間睡覺期間，請勿操作任何電燈設備，請勿進入客廳和廚房，不得發出噪音，吵到他人。{% if et is not none %}夜間睡覺時間到早上{{ et.hour }}點{{ (et.minute ~ '分') if et.minute > 0 else '' }}。{% endif %}
+          continue_on_error: true
+
+# 晚安情境一執行就記下時間（防下樓時間窗用：00:30 後才執行完晚安也算「已執行過夜間情境」）
+- alias: 08-7B二樓夜間防下樓｜記錄晚安情境時間 (V4.3.5)
+  id: ai_08_7b_anti_down_night_stamp
+  description: aqara_wan_an 變 on 時記錄時間到 input_datetime.anti_down_night_done_at
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.aqara_wan_an
+      to: "on"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.anti_down_night_done_at
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────
+# 08-7E噪音警告AI (V4.3.5)
+# 相容版本：Helpers V4.3.5（packages/v43_anti_down.yaml）
+# 更新紀錄（統一格式）：
+# - V4.3.5（2026-10-29）：新增（閃燈為紅色、廣播內容較長）。打開 input_boolean.noise_warning（噪音警告）→ 客廳 HomePod 播「重要」級警告廣播（security 警告鈴聲、重要音量，強制播放不受晚安／熟睡靜音影響），
+#   同時廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃紅燈（script.noise_warn_flash）；不閃四樓、頂樓樓梯燈。播完自動把開關關回，再按再執行。HA 重啟時開關若是 on 直接關回。
+# ─────────────────────────────────────────────────────────────
+- alias: 08-7E噪音警告AI (V4.3.5)
+  id: ai_08_7e_noise_warning
+  description: 打開噪音警告開關 → 二樓客廳 HomePod 重要級警告廣播＋廚房／餐廳／客廳／二三樓／三樓樓梯燈閃爍，播完開關自動關回
+  mode: single
+  max_exceeded: silent
+  variables:
+    automation_version: "V4.3.5"
+  triggers:
+    - id: press
+      trigger: state
+      entity_id: input_boolean.noise_warning
+      to: "on"
+    - id: ha_start
+      trigger: homeassistant
+      event: start
+  actions:
+    - if: "{{ trigger.id == 'ha_start' }}"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.noise_warning
+          continue_on_error: true
+        - stop: "重啟後把噪音警告開關關回"
+    - parallel:
+        - action: script.announce
+          data:
+            level: important
+            kind: security
+            player: media_player.ke_ting_homepod
+            force: true
+            mood_flash: false
+            message: 注意，目前二樓的噪音太大聲了，已經影響到其他人休息。請立刻降低音量，保持安靜，不要再發出聲音，謝謝你的配合。
+          continue_on_error: true
+        - action: script.noise_warn_flash
+          continue_on_error: true
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.noise_warning
+      continue_on_error: true
+
+# 保險：開關卡在 on（廣播或閃燈腳本中途出錯）超過 3 分鐘就關回，才能再按
+- alias: 08-7E噪音警告｜開關卡住自動關回 (V4.3.5)
+  id: ai_08_7e_noise_warning_reset
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.noise_warning
+      to: "on"
+      for: "00:03:00"
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.noise_warning
