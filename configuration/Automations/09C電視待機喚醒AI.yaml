@@ -1,27 +1,39 @@
 # ────────────────────────────────────────────────────────
-# 09C電視待機喚醒AI (V4.2.2)
+# 09C電視待機喚醒AI (V4.2.3)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-10-29）：新增觸發 maint_end：維護模式（網路設備重開機）結束後 2 分鐘，電視仍連不上才喚醒。原本「連不上 2 分鐘」是邊緣觸發，維護模式期間被條件擋掉後，電視一直連不上也不會再觸發，永遠不會喚醒（10/29 網路設備更新後客廳電視沒重新連網）。已自己連回就不送紅外線（切換型紅外線會把開著的電視關掉）。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟 2 分鐘後重新檢查電視是否仍斷線，仍斷線才送紅外線喚醒；復位開關加 ha_start 防呆。
 # - V4.1.6（2026-10-16）：新增。電視（Android TV 遙控與 Chromecast）都連不上 2 分鐘 → 開啟 input_boolean.tv_ir_power（Aqara 紅外線電視開關情境，
 #   由 Apple 家庭自動化觸發）→ 最多等 100 秒電視重新連上 → 用網路指令關機，讓電視停在「待機但保持連線」；
 #   連不上就發一則通知、不重送（紅外線是切換型，再送一次會把電視關掉）。維護模式期間、總開關（tv_keepalive_enable）關閉時、10 分鐘內剛執行過不動作。
 # ────────────────────────────────────────────────────────
-- alias: 09C電視待機喚醒AI (V4.2.2)
+- alias: 09C電視待機喚醒AI (V4.2.3)
   id: ai_09c_tv_keepalive
-  description: 電視連不上 2 分鐘就用紅外線喚醒，連上網路後用網路指令關機，讓電視保持可連線
+  description: 電視連不上 2 分鐘（或維護模式結束後 2 分鐘仍連不上）就用紅外線喚醒，連上網路後用網路指令關機，讓電視保持可連線
   mode: single
   variables:
-    automation_version: "V4.2.2"
+    automation_version: "V4.2.3"
   trigger:
     - trigger: template
       value_template: >-
         {{ is_state('remote.ke_ting_dian_shi', 'unavailable') and is_state('media_player.ke_ting_dian_shi_googlecast', 'unavailable') }}
       for: "00:02:00"
+    # V4.2.3：維護模式結束後電視仍連不上才喚醒（上面的邊緣觸發在維護期間被條件擋掉後不會再觸發）
+    - id: maint_end
+      trigger: state
+      entity_id: binary_sensor.maintenance_active
+      from: "on"
+      to: "off"
+      for: "00:02:00"
     - id: ha_start
       trigger: homeassistant
       event: start
   condition:
+    - alias: "維護模式結束觸發：電視仍連不上才喚醒（已自己連回就不送紅外線）"
+      condition: template
+      value_template: >-
+        {{ trigger.id | default('') != 'maint_end' or (is_state('remote.ke_ting_dian_shi', 'unavailable') and is_state('media_player.ke_ting_dian_shi_googlecast', 'unavailable')) }}
     - condition: state
       entity_id: input_boolean.tv_keepalive_enable
       state: "on"

@@ -75,7 +75,7 @@
 | `configuration/Automations/08-8A廚房感應燈AI.yaml` | `08-8A 廚房感應燈AI (V3.2) / 08-8A 廚房感應燈重新偵測AI (V3.3.0) / 08-8A 廚房燈無人保險關燈AI (V3.4.0)` | `ai_08_8a_kitchen_motion_light` / `ai_08_8a_kitchen_motion_retrigger` / `ai_08_8a_kitchen_idle_off` | `V3.2` / `V3.3.0` / `V3.4.0` |
 | `configuration/Automations/08-8B廁所感應燈AI.yaml` | `08-8B廁所感應燈AI (V3.0.3) / 08-8B廁所感應燈重新偵測AI (V3.1.0) / 08-8B 廁所燈無人保險關燈AI (V3.2.0)` | `ai_08_8b_toilet_motion_light` / `ai_08_8b_toilet_motion_retrigger` / `ai_08_8b_toilet_idle_off` | `V3.0.3` / `V3.1.0` / `V3.2.0` |
 | `configuration/Automations/08-9Terncy無線開關單擊切換AI.yaml` | `08-9Terncy無線開關單擊切換AI (V4.1.1)` | `ai_08_9_terncy_wireless_single_toggle` | `V4.1.1` |
-| `configuration/Automations/09C電視待機喚醒AI.yaml` | `09C電視待機喚醒AI (V4.2.2) / 09C電視紅外線開關自動復位AI (V4.2.2)` | `ai_09c_tv_keepalive` / `ai_09c_tv_ir_reset` | `V4.2.2` / `V4.2.2` |
+| `configuration/Automations/09C電視待機喚醒AI.yaml` | `09C電視待機喚醒AI (V4.2.3) / 09C電視紅外線開關自動復位AI (V4.2.2)` | `ai_09c_tv_keepalive` / `ai_09c_tv_ir_reset` | `V4.2.3` / `V4.2.2` |
 | `configuration/Automations/100A自動啟動到家早安情境AI.yaml` | `100A自動啟動到家早安情境AI (V4.2.0)` | `ai_100a_auto_arrive_morning_v41` | `V4.2.0` |
 | `configuration/Automations/100B自動離家AI.yaml` | `100B自動離家AI (V4.2.2)` | `ai_auto_leave_system` | `V4.2.2` |
 | `configuration/Automations/100C1客廳門鎖電量分級通知AI.yaml` | `100C1客廳門鎖電量分級通知AI (V4.0.0)` | `ai_doorlock_battery_stage_notify` | `V4.0.0` |
