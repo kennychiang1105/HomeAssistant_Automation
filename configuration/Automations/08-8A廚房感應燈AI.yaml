@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 08-8A廚房感應燈AI (V3.4.0)
 # 更新紀錄：
+# - V3.4.1（2026-10-29）：二樓夜間防下樓時間窗（binary_sensor.anti_down_window，見 08-7B）期間，感應不開廚房燈（兩支開燈自動化都加條件），避免和防下樓互搶；關燈邏輯不變。
 # - V3.4.0（2026-10-11）：新增「無人保險關燈」自動化：燈亮著、兩顆感應器（小米人體＋毫米波原感應器）都無人超過 10 分鐘就關燈。原本只在感應器「變成無人」那一刻關燈，手動開燈時感應器本來就是無人（沒有變化）會一直亮著。「廚房感應燈自動化」被長按關掉（手動模式）時不處理。
 # - V3.3.0（2026-10-10）：新增「重新偵測」自動化：手動關燈後再進廚房也會亮。小米人體感應器有人活動時約每 20 秒回報一次（狀態仍是 on、只更新 last_triggered），原本只看「狀態變 on」所以被忽略；新增依 last_triggered 屬性變化，燈關著超過 10 秒才再開燈。毫米波存在感應器容易誤判，不參與開燈。長按關閉廚房感應燈自動化（10B）時不動作。
 # - V3.2：修補版；移除手動按鍵後 60 秒的防誤觸冷卻判斷，感應燈偵測到動作時將直接開燈。
@@ -29,7 +30,10 @@
         hours: 0
         minutes: 1
         seconds: 0
-  conditions: []
+  conditions:
+    - alias: "二樓夜間防下樓時間窗內不開廚房燈（關燈照常）"
+      condition: template
+      value_template: "{{ trigger.id != 'motion_on' or not is_state('binary_sensor.anti_down_window', 'on') }}"
   actions:
     - choose:
         - conditions:
@@ -73,6 +77,9 @@
       condition: state
       entity_id: automation.ai_08_8a_kitchen_motion_light
       state: "on"
+    - alias: "二樓夜間防下樓時間窗內不開廚房燈"
+      condition: template
+      value_template: "{{ not is_state('binary_sensor.anti_down_window', 'on') }}"
     - alias: "廚房燈關著"
       condition: state
       entity_id: switch.chu_fang_deng

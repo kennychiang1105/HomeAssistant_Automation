@@ -2,6 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.5（2026-10-29）：announce 新增選填 mood_flash（預設 true＝行為不變；false＝重要／緊急廣播不呼叫內建 mood_alert），給噪音警告自己控制二樓閃燈用。
 # - V4.2.3（2026-10-25）：announce 新增選填 volume（指定這次廣播音量）。
 # - V4.2.3（2026-10-25）：卡片大圖與第二張圖都可以點擊放大（LINE 開啟原圖）。
 # - V4.2.3（2026-10-25）：notify_dispatch 新增選填 image_ratio／image2_ratio（寬:高）；有給就完整顯示不裁切（地牛截圖、氣象署報告圖用），沒給維持原本 16:9 填滿。
@@ -219,7 +220,7 @@ notify_dispatch:
             message: "{{ voice }}"
 
 announce:
-  alias: 統一廣播AI (V4.3.0)
+  alias: 統一廣播AI (V4.3.5)
   description: 依等級播放提示音，待提示音結束後再播 TTS，播完恢復喇叭音量（SOP-11）；序列執行避免互相蓋台
   mode: queued
   max: 6
@@ -256,6 +257,9 @@ announce:
       required: false
     volume:
       description: 指定這次廣播的音量（0.1~1），省略＝依等級的 input_number.announce_volume_*（例如解除網關警報後的小聲廣播用 0.4）
+      required: false
+    mood_flash:
+      description: 重要／緊急廣播時是否同時呼叫氣氛燈提醒 mood_alert（預設 true；噪音警告自己閃二樓的燈，設 false 避免內建提醒閃到四樓、頂樓樓梯燈）
       required: false
     force:
       description: 設 true 才會在「晚安情境／頂樓熟睡中」仍播放非緊急廣播（手動廣播、車庫鐵門動作前的安全警語用；舊欄位名 force_5f 仍可用）；預設 false＝這段時間一般／重要廣播全部不播
@@ -333,7 +337,7 @@ announce:
       then:
         - stop: "晚安情境或頂樓熟睡中，非緊急廣播不播放"
     # 0) 氣氛燈提醒（重要/緊急；與 LINE 同事件時由 mood_alert 去重）
-    - if: "{{ lv in ['important', 'emergency'] }}"
+    - if: "{{ lv in ['important', 'emergency'] and (mood_flash | default(true)) not in [false, 'false', 'False', 'off'] }}"
       then:
         - action: script.turn_on
           target:

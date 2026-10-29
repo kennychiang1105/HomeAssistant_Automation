@@ -1,0 +1,248 @@
+# ─────────────────────────────────────────────────────────────
+# 二樓夜間防下樓＋噪音警告 (V4.3.5)
+# 更新紀錄（統一格式）：
+# - V4.3.5（2026-10-29）：新增。
+#   ① 防下樓時間窗 binary_sensor.anti_down_window：晚安情境已執行、頂樓熟睡鎖開著、00:30 起到「日出＋30 分（平日）／＋60 分（假日）」之前，
+#      且二樓沒人或只有 Iris（Kenny (iPad) 不算人）時為 on；Kenny 剛下樓（近 3 分鐘 08-5J 有下樓事件）、氣氛燈提醒中、噪音警告中都為 off。
+#      時間窗內由 08-7B 立刻關掉二樓客廳／餐廳／廚房燈、二三樓與三樓樓梯燈、電視、客廳電風扇，並用客廳 HomePod 廣播；100A、08-8A 在時間窗內不啟動。
+#   ② 噪音警告 input_boolean.noise_warning：按下由 08-7E 在二樓播重要級警告廣播並閃燈（script.noise_warn_flash），播完自動關回。
+#   開關類不加 initial（SOP-20）；流程見 PROJECT_RULES.md SOP-27。
+# ─────────────────────────────────────────────────────────────
+input_boolean:
+  anti_down_enable:
+    name: 二樓夜間防下樓｜總開關
+    icon: mdi:shield-moon
+  anti_down_announce_enable:
+    name: 二樓夜間防下樓｜廣播開關
+    icon: mdi:bullhorn-outline
+  noise_warning:
+    name: 噪音警告
+    icon: mdi:volume-vibrate
+
+input_datetime:
+  anti_down_start:
+    name: 二樓夜間防下樓｜開始時間
+    has_date: false
+    has_time: true
+    initial: "00:30"
+    icon: mdi:clock-start
+  anti_down_night_done_at:
+    name: 二樓夜間防下樓｜晚安情境最近一次執行（內部）
+    has_date: true
+    has_time: true
+  anti_down_last_announce:
+    name: 二樓夜間防下樓｜最近一次廣播（內部）
+    has_date: true
+    has_time: true
+
+input_number:
+  anti_down_sunrise_offset_workday_min:
+    name: 二樓夜間防下樓｜結束時間（平日，日出後幾分鐘）
+    min: 0
+    max: 300
+    step: 5
+    initial: 30
+    mode: box
+    icon: mdi:weather-sunset-up
+  anti_down_sunrise_offset_holiday_min:
+    name: 二樓夜間防下樓｜結束時間（假日，日出後幾分鐘）
+    min: 0
+    max: 300
+    step: 5
+    initial: 60
+    mode: box
+    icon: mdi:weather-sunset-up
+  anti_down_announce_gap_min:
+    name: 二樓夜間防下樓｜廣播最短間隔（分鐘）
+    min: 1
+    max: 60
+    step: 1
+    initial: 3
+    mode: box
+    icon: mdi:timer-outline
+  anti_down_blocked:
+    name: 二樓夜間防下樓｜關掉次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+  anti_down_announced:
+    name: 二樓夜間防下樓｜廣播次數
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+
+input_text:
+  anti_down_last:
+    name: 二樓夜間防下樓｜最近一次動作（內部）
+    max: 255
+
+template:
+  - binary_sensor:
+      - name: anti_down_window
+        unique_id: anti_down_window_v435
+        icon: mdi:shield-moon
+        state: >-
+          {% set n = now() %}
+          {% set st = states('input_datetime.anti_down_start') %}
+          {% set start_dt = n.replace(hour=(st[0:2] | int(0)), minute=(st[3:5] | int(30)), second=0, microsecond=0) if st[0:2].isdigit() else n.replace(hour=0, minute=30, second=0, microsecond=0) %}
+          {% set sr = state_attr('sensor.scene_morning_start', 'sunrise_eff') or state_attr('sensor.scene_morning_start', 'sunrise') %}
+          {% set holiday = states('sensor.tw_day_type_today') == 'holiday' %}
+          {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(60)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(30)) %}
+          {% if sr in [none, '', 'None'] %}
+            {% set end_dt = n.replace(hour=(8 if holiday else 6), minute=(0 if holiday else 30), second=0, microsecond=0) %}
+          {% else %}
+            {% set end_dt = (sr | as_datetime | as_local) + timedelta(minutes=off_min) %}
+          {% endif %}
+          {% set cut = n.replace(hour=18, minute=0, second=0, microsecond=0) %}
+          {% set cut = cut - timedelta(days=1) if n < cut else cut %}
+          {% set night_done = is_state('input_boolean.aqara_wan_an', 'on') or as_timestamp(states('input_datetime.anti_down_night_done_at'), 0) >= cut.timestamp() %}
+          {% set sf = 'binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan' %}
+          {% set mp = state_attr(sf, 'matched_people') %}
+          {% set names = [] if mp in [none, '', '無'] else (mp | string).split(', ') %}
+          {% set sf_ok = states(sf) not in ['unavailable', 'unknown'] and (names | reject('in', ['Iris', 'Kenny (iPad)']) | list | length == 0) %}
+          {% set lp = states('input_text.topfloor_last_path') | string %}
+          {% set lp_ev = lp.split('|')[0] if '|' in lp else '' %}
+          {% set lp_age = (as_timestamp(n) - (lp.split('|')[1] | float(0))) if '|' in lp else 99999 %}
+          {% set kenny_down = 'down' in lp_ev and lp_age < 180 %}
+          {{ is_state('input_boolean.anti_down_enable', 'on')
+             and is_state('input_boolean.sleep_silent_active', 'on')
+             and night_done
+             and start_dt <= n < end_dt
+             and sf_ok
+             and not kenny_down
+             and is_state('input_boolean.mood_alert_active', 'off')
+             and is_state('input_boolean.noise_warning', 'off') }}
+        attributes:
+          start: >-
+            {% set n = now() %}{% set st = states('input_datetime.anti_down_start') %}
+            {{ n.replace(hour=(st[0:2] | int(0)), minute=(st[3:5] | int(30)), second=0, microsecond=0).isoformat() if st[0:2].isdigit() else '' }}
+          end: >-
+            {% set n = now() %}
+            {% set sr = state_attr('sensor.scene_morning_start', 'sunrise_eff') or state_attr('sensor.scene_morning_start', 'sunrise') %}
+            {% set holiday = states('sensor.tw_day_type_today') == 'holiday' %}
+            {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(60)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(30)) %}
+            {% if sr in [none, '', 'None'] %}{{ n.replace(hour=(8 if holiday else 6), minute=(0 if holiday else 30), second=0, microsecond=0).isoformat() }}
+            {% else %}{{ ((sr | as_datetime | as_local) + timedelta(minutes=off_min)).isoformat() }}{% endif %}
+          people: >-
+            {{ state_attr('binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan', 'matched_people') }}
+
+script:
+  noise_warn_flash:
+    alias: 噪音警告閃燈 (V4.3.5)
+    description: 二樓廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃爍（琥珀色、亮 1.5 秒／滅 0.8 秒、2 次），閃完還原原本狀態。不碰四樓、頂樓樓梯燈。
+    mode: single
+    max_exceeded: silent
+    variables:
+      automation_version: "V4.3.5"
+      rgb_all:
+        - light.yeelink_color5_4181_light
+        - light.yeelink_color5_106d_light
+        - light.yeelink_color5_fab7_light
+        - light.yeelink_color5_8e3f_light
+        - light.yeelink_color5_5007_light
+        - light.yeelink_color5_2024_light
+        - light.yeelink_color5_f21d_light
+        - light.yeelink_color5_53ed_light
+        - light.yeelink_color5_f618_light
+        - light.yeelink_color5_c8d3_light
+      sw_all:
+        - switch.chu_fang_deng
+        - switch.er_san_lou_lou_ti_deng
+        - switch.san_lou_lou_ti_deng
+      pulses: 2
+      on_ms: 1500
+      off_ms: 800
+    sequence:
+      # 氣氛燈提醒進行中就等它結束（最多 25 秒），避免互相搶燈
+      - wait_template: "{{ is_state('input_boolean.mood_alert_active', 'off') }}"
+        timeout: "00:00:25"
+        continue_on_timeout: true
+      - wait_template: "{{ state_attr('script.mood_alert_restore_off', 'current') | int(0) == 0 }}"
+        timeout: "00:00:08"
+        continue_on_timeout: true
+      - variables:
+          rgb_ok: "{{ rgb_all | reject('is_state', 'unavailable') | reject('is_state', 'unknown') | list }}"
+          was_off: "{{ rgb_ok | select('is_state', 'off') | list }}"
+          sw_ok: "{{ sw_all | reject('is_state', 'unavailable') | reject('is_state', 'unknown') | list }}"
+          sw_was_on: "{{ sw_ok | select('is_state', 'on') | list }}"
+          sw_was_off: "{{ sw_ok | select('is_state', 'off') | list }}"
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.mood_alert_active
+      - action: scene.create
+        data:
+          scene_id: noise_warn_snapshot
+          snapshot_entities: "{{ rgb_ok }}"
+        continue_on_error: true
+      - repeat:
+          count: "{{ pulses }}"
+          sequence:
+            - parallel:
+                - if: "{{ rgb_ok | length > 0 }}"
+                  then:
+                    - action: light.turn_on
+                      target:
+                        entity_id: "{{ rgb_ok }}"
+                      data:
+                        rgb_color: [255, 140, 0]
+                        brightness: 255
+                        transition: 0
+                      continue_on_error: true
+                - if: "{{ sw_ok | length > 0 }}"
+                  then:
+                    - action: switch.turn_on
+                      target:
+                        entity_id: "{{ sw_ok }}"
+                      continue_on_error: true
+            - delay:
+                milliseconds: "{{ on_ms }}"
+            - parallel:
+                - if: "{{ rgb_ok | length > 0 }}"
+                  then:
+                    - action: light.turn_off
+                      target:
+                        entity_id: "{{ rgb_ok }}"
+                      continue_on_error: true
+                - if: "{{ sw_ok | length > 0 }}"
+                  then:
+                    - action: switch.turn_off
+                      target:
+                        entity_id: "{{ sw_ok }}"
+                      continue_on_error: true
+            - if: "{{ not repeat.last }}"
+              then:
+                - delay:
+                    milliseconds: "{{ off_ms }}"
+      # 還原：原本亮的燈由快照還原；開關式燈回到原本開／關；原本關著的燈泡把顏色寫回再關
+      - action: scene.turn_on
+        target:
+          entity_id: scene.noise_warn_snapshot
+        continue_on_error: true
+      - if: "{{ sw_was_on | length > 0 }}"
+        then:
+          - action: switch.turn_on
+            target:
+              entity_id: "{{ sw_was_on }}"
+            continue_on_error: true
+      - if: "{{ sw_was_off | length > 0 }}"
+        then:
+          - action: switch.turn_off
+            target:
+              entity_id: "{{ sw_was_off }}"
+            continue_on_error: true
+      - repeat:
+          for_each: "{{ was_off }}"
+          sequence:
+            - action: script.turn_on
+              target:
+                entity_id: script.mood_alert_restore_off
+              data:
+                variables:
+                  entity: "{{ repeat.item }}"
+              continue_on_error: true
+      - delay: "00:00:04"
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.mood_alert_active
