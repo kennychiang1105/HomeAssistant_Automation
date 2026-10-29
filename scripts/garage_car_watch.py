@@ -215,8 +215,14 @@ def apply_vision(a, roi, state, out, jpg, now):
         #   影像模型連續 3 次在車位框內完全找不到車、且像素差異 < 2 倍門檻（真的有車時 > 28）→ 判成空位，並重學空車位基準
         ss0 = state.setdefault('slots', {}).setdefault(name, {})
         ss0['vis_empty'] = (ss0.get('vis_empty', 0) + 1) if d is None else 0
-        if d is None and ss0['vis_empty'] >= 3 and r.get('occupied') and r.get('occupied_diff', 99) < 2 * thr.get('occupied_diff', 14.0) \
-                and not out.get('exposure_changed'):
+        #   V4.3.5：鐵門最近開過（--gate-recent）時，車開走後白天光線灌進來，像素差異很大且曝光也在變，原條件永遠不成立，
+        #   前位一直顯示「有車、車燈亮、位移」，淨空確認不通過、鐵門不自動關（10/29 11:03 實測）。鐵門開過時改只看模型連續 3 次找不到車。
+        gate_open_recent = bool(getattr(a, 'gate_recent', False))
+        #   V4.3.5：夜間紅外線模式（鐵門關著、車庫燈沒開）下，白天學的空車位基準比對差異恆大（diff 86），車開走後前位一直顯示有車（10/29 16:25 實測）。
+        #   身分不明的「有車」且模型連續 8 次（約 2 分鐘）都找不到車 → 判成空位。
+        long_empty = ss0['vis_empty'] >= 8 and r.get('identity') == 'unknown'
+        if d is None and ss0['vis_empty'] >= 3 and r.get('occupied') and (gate_open_recent or long_empty or (
+                r.get('occupied_diff', 99) < 2 * thr.get('occupied_diff', 14.0) and not out.get('exposure_changed'))):
             r['present'] = False
             r['occupied'] = False
             r['vision_empty'] = True
