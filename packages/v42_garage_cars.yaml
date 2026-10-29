@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.3.0-beta 8（2026-10-29）：左方向燈偵測不再要求亮煞車燈：出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也錄 3 秒影片檢查（每 30 秒最多一次）。原本只打方向燈沒踩煞車時 lights_on 為否，完全不會檢查，鐵門不會開（10/29 10:57 實測）。
 # - V4.3.0-beta 6：新增 script.garage_close_safety_check（關門前淨空確認：模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）；104-2、104-3 自動關門與本檔的誤判關門都先過這關。
 # - V4.3.0-beta 7：開關類 helper（出門偵測總開關、左方向燈偵測、自動開鐵門、左方向燈可直接開門、出門通知）拿掉 initial，HA 重啟後保留使用者設定（SOP-20）。原本 initial: false 讓 10/28 HAOS 重開機後自動開鐵門與左轉燈開門被歸零，左轉燈出門時鐵門沒開。
 # - V4.2.5：新增。UniFi 攝影機不會把「停很久的車要出門」當成新車輛，所以改用定時畫面分析（scripts/garage_car_watch.py，Pillow＋numpy）：
@@ -606,9 +607,12 @@ script:
           - repeat:
               for_each: [front, back]
               sequence:
-                # 左方向燈（絕對出門訊號）：車頭朝鐵門的已知車輛亮煞車燈時，錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；每 30 秒最多檢查一次
+                # 左方向燈（絕對出門訊號）：車頭朝鐵門的已知車輛，錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；每 30 秒最多檢查一次。V4.3.5：不必亮煞車燈，只要出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也檢查（只打方向燈沒踩煞車時原本完全不檢查）
                 - if: >-
-                    {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present and res.slots[repeat.item].lights_on
+                    {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present
+                       and (res.slots[repeat.item].lights_on or states('sensor.garage_depart_likelihood') | float(0) >= 30
+                            or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
+                            or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) < 180)
                        and states('input_select.garage_slot_' ~ repeat.item) in ['luxgen_n7', 'tesla_model3']
                        and is_state('input_select.garage_facing_' ~ repeat.item, 'door')
                        and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_turn_last'), 0)) > 30 }}
