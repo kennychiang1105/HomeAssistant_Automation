@@ -131,7 +131,7 @@ template:
 script:
   noise_warn_flash:
     alias: 噪音警告閃燈 (V4.3.5)
-    description: 二樓廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃爍（琥珀色、亮 1.5 秒／滅 0.8 秒、2 次），閃完還原原本狀態。不碰四樓、頂樓樓梯燈。
+    description: 二樓廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃爍（紅色、亮 1.5 秒／滅 0.8 秒、2 次），閃完還原原本狀態。不碰四樓、頂樓樓梯燈。
     mode: single
     max_exceeded: silent
     variables:
@@ -186,7 +186,7 @@ script:
                       target:
                         entity_id: "{{ rgb_ok }}"
                       data:
-                        rgb_color: [255, 140, 0]
+                        rgb_color: [255, 0, 0]
                         brightness: 255
                         transition: 0
                       continue_on_error: true

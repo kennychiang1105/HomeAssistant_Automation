@@ -2,8 +2,8 @@
 # 08-7E噪音警告AI (V4.3.5)
 # 相容版本：Helpers V4.3.5（packages/v43_anti_down.yaml）
 # 更新紀錄（統一格式）：
-# - V4.3.5（2026-10-29）：新增。打開 input_boolean.noise_warning（噪音警告）→ 客廳 HomePod 播「重要」級警告廣播（security 警告鈴聲、重要音量，強制播放不受晚安／熟睡靜音影響），
-#   同時廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃爍（script.noise_warn_flash）；不閃四樓、頂樓樓梯燈。播完自動把開關關回，再按再執行。HA 重啟時開關若是 on 直接關回。
+# - V4.3.5（2026-10-29）：新增（閃燈為紅色、廣播內容較長）。打開 input_boolean.noise_warning（噪音警告）→ 客廳 HomePod 播「重要」級警告廣播（security 警告鈴聲、重要音量，強制播放不受晚安／熟睡靜音影響），
+#   同時廚房燈、餐廳燈、客廳燈與二三樓、三樓樓梯燈像重要提示一樣閃紅燈（script.noise_warn_flash）；不閃四樓、頂樓樓梯燈。播完自動把開關關回，再按再執行。HA 重啟時開關若是 on 直接關回。
 # ─────────────────────────────────────────────────────────────
 - alias: 08-7E噪音警告AI (V4.3.5)
   id: ai_08_7e_noise_warning
@@ -36,7 +36,7 @@
             player: media_player.ke_ting_homepod
             force: true
             mood_flash: false
-            message: 噪音太大聲了，請安靜。
+            message: 注意，目前二樓的噪音太大聲了，已經影響到其他人休息。請立刻降低音量，保持安靜，不要再發出聲音，謝謝你的配合。
           continue_on_error: true
         - action: script.noise_warn_flash
           continue_on_error: true
