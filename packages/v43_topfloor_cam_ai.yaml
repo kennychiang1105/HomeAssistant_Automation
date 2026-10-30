@@ -79,7 +79,7 @@ input_number:
     mode: box
 
 shell_command:
-  topfloor_track_frame: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --frame /config/www/snap/tf_cur.jpg --t {{ ts }} {{ reset }}"
+  topfloor_track_frame: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --frame {{ frame | default('/config/www/snap/tf_cur.jpg') }} --t {{ ts }} {{ reset }}"
   topfloor_track_final: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --finalize"
 
 script:
@@ -126,50 +126,59 @@ script:
                         or (as_timestamp(now()) - as_timestamp(a.last_changed)) < 6
                         or (as_timestamp(now()) - as_timestamp(b.last_changed)) < 6) }}
           sequence:
-            - action: camera.snapshot
-              target:
-                entity_id: camera.wu_lou_she_ying_ji_high
-              data:
-                filename: /config/www/snap/tf_cur.jpg
-              continue_on_error: true
-            - action: shell_command.topfloor_track_frame
-              data:
-                ts: "{{ now().timestamp() }}"
-                reset: "{{ '--reset' if repeat.index == 1 else '' }}"
-              response_variable: r
-              continue_on_error: true
+            # V4.3.7 加速：拍下一張與分析上一張同時進行（管線化），改用中解析度串流快照（較快），取消每輪 0.3 秒等待；
+            #   每輪約 0.45 秒（原本約 1.1～1.2 秒）。第一輪只拍照；分析結果在同一個分支內處理（平行分支的變數不會傳出來）。
             - variables:
-                res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
-            - if: "{{ res is mapping and res.get('fire') in ['up', 'down'] }}"
-              then:
-                - action: input_number.increment
+                cur_file: "/config/www/snap/tf_n{{ repeat.index % 2 }}.jpg"
+                prev_file: "/config/www/snap/tf_n{{ (repeat.index + 1) % 2 }}.jpg"
+            - parallel:
+                - action: camera.snapshot
                   target:
-                    entity_id: input_number.topfloor_ai_fired
-                - action: input_datetime.set_datetime
-                  target:
-                    entity_id: "input_datetime.topfloor_cam_ai_{{ res.fire }}_last"
+                    entity_id: camera.wu_lou_she_ying_ji_medium
                   data:
-                    timestamp: "{{ now().timestamp() }}"
-                - action: input_text.set_value
-                  target:
-                    entity_id: input_text.topfloor_cam_ai_last
-                  data:
-                    value: "{{ (now().strftime('%H:%M:%S') ~ ' ' ~ res.fire ~ '（' ~ res.reason ~ '，信心 ' ~ res.conf ~ '，第 ' ~ res.frames ~ ' 幀）')[:255] }}"
-                - if: "{{ is_state('input_boolean.topfloor_cam_ai_enable', 'on') }}"
-                  then:
-                    - event: topfloor_cam_ai
-                      event_data:
-                        dir: "{{ res.fire }}"
-                        conf: "{{ res.conf }}"
-                        reason: "{{ res.reason }}"
-                        frames: "{{ res.frames }}"
-            - if: "{{ res is mapping and res.get('exit') is mapping }}"
-              then:
-                - action: script.topfloor_cam_ai_exit
-                  data:
-                    ex: "{{ res.exit }}"
+                    filename: "{{ cur_file }}"
                   continue_on_error: true
-            - delay: "00:00:00.3"
+                - sequence:
+                    - condition: template
+                      value_template: "{{ repeat.index > 1 }}"
+                    - action: shell_command.topfloor_track_frame
+                      data:
+                        frame: "{{ prev_file }}"
+                        ts: "{{ now().timestamp() - 0.45 }}"
+                        reset: "{{ '--reset' if repeat.index == 2 else '' }}"
+                      response_variable: r
+                      continue_on_error: true
+                    - variables:
+                        res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+                    - if: "{{ res is mapping and res.get('fire') in ['up', 'down'] }}"
+                      then:
+                        - action: input_number.increment
+                          target:
+                            entity_id: input_number.topfloor_ai_fired
+                        - action: input_datetime.set_datetime
+                          target:
+                            entity_id: "input_datetime.topfloor_cam_ai_{{ res.fire }}_last"
+                          data:
+                            timestamp: "{{ now().timestamp() }}"
+                        - action: input_text.set_value
+                          target:
+                            entity_id: input_text.topfloor_cam_ai_last
+                          data:
+                            value: "{{ (now().strftime('%H:%M:%S') ~ ' ' ~ res.fire ~ '（' ~ res.reason ~ '，信心 ' ~ res.conf ~ '，第 ' ~ res.frames ~ ' 幀）')[:255] }}"
+                        - if: "{{ is_state('input_boolean.topfloor_cam_ai_enable', 'on') }}"
+                          then:
+                            - event: topfloor_cam_ai
+                              event_data:
+                                dir: "{{ res.fire }}"
+                                conf: "{{ res.conf }}"
+                                reason: "{{ res.reason }}"
+                                frames: "{{ res.frames }}"
+                    - if: "{{ res is mapping and res.get('exit') is mapping }}"
+                      then:
+                        - action: script.topfloor_cam_ai_exit
+                          data:
+                            ex: "{{ res.exit }}"
+                          continue_on_error: true
       # 動靜結束：最後分類；整段都沒人＝有動靜但畫面沒人（降雜訊統計）
       - action: shell_command.topfloor_track_final
         response_variable: fr

@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta11) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta12) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -385,7 +385,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta11</div>
+        <div class="ver">UI4.0-beta12</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -693,9 +693,13 @@ class FloorplanV43D extends HTMLElement {
     const T = this._T;
     const base = new URL("./models/", import.meta.url).href;
     // 車模出處：Tesla＝「Tesla M3 model」by wintrez（sketchfab.com，CC-BY 4.0）；Luxgen N7＝依官方照片與規格程式建模（C:\ai_lab\n7\make_n7.py）
+    const ver = "v438b";
     const defs = {
-      tesla: { file: "tesla_model3.glb", paint: 0xe8ebee, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
-      luxgen: { file: "luxgen_n7.glb", paint: 0xf3f4f6, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+      tesla: { file: "tesla_model3.glb?" + ver, paint: 0xe8ebee, hk: null, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
+      luxgen: { file: "luxgen_n7.glb?" + ver, paint: 0xf3f4f6, hk: 1.08, tail: /hongdeng|n7_tail/i, head: /jinshudeng\.1|n7_head/i, turn: /n7_turn/i, hide: /^floor$/i, trim: true },
+      sedan: { file: "sedan.glb?" + ver, paint: 0xa7b0ba, hk: 0.90, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+      suv: { file: "suv.glb?" + ver, paint: 0x8b98a6, hk: 1.08, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+      moto: { file: "motorcycle.glb?" + ver, paint: 0x3d4b5c, hk: 0.96, lenFrac: 0.45, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
     };
     import(LIB + "GLTFLoader.js").then(({ GLTFLoader }) => {
       const loader = new GLTFLoader();
@@ -767,7 +771,7 @@ class FloorplanV43D extends HTMLElement {
       for (const [kind, tp] of Object.entries(tpls)) {
         const mdl = s.models[kind];
         if (!mdl) continue;
-        const k = (s.L * 0.97) / tp.len, ky = k * Math.min(1, Math.max(0.78, s.sy / s.sx + 0.2));     // 垂直方向略壓（房子比例），比原本程式車模少壓
+        const k = (s.L * (tp.d.lenFrac || 0.97)) / tp.len, ky = k * (tp.d.hk || Math.min(1, Math.max(0.78, s.sy / s.sx + 0.2)));     // 垂直方向略壓（房子比例），比原本程式車模少壓
         const car = tp.piv.clone(true);
         car.scale.set(k, ky, k);
         const lp = { tail: [], brake: [], head: [], turn: [], glow: { tail: [], head: [], turn: [] }, mats: true };
@@ -806,6 +810,13 @@ class FloorplanV43D extends HTMLElement {
         mdl.gr.add(car);
         if (paint) mdl.paint = paint;
         mdl.lamps = lp;
+        // V4.3.8 充電孔位置：依車模實際外形算（模型座標：車頭 +x、左側 -z）。Tesla Model 3＝左後尾燈內側（朝後）；Luxgen N7＝右前葉子板（朝右側）
+        {
+          const len = bx.max.x - bx.min.x;
+          mdl.port = (kind === "tesla" || kind === "sedan")
+            ? new T.Vector3((tb ? tb.min.x + (tb.max.x - tb.min.x) * 0.35 : bx.min.x + 0.04 * len) * k, tY * ky, -wz * 0.72 * k)
+            : new T.Vector3((bx.max.x - 0.22 * len) * k, bx.max.y * 0.52 * ky, wz * 0.98 * k);
+        }
       }
     }
     this._sync?.();
@@ -1021,7 +1032,7 @@ class FloorplanV43D extends HTMLElement {
     const WALLMOUNT = new Set(["floor_patch", "rug", "deck", "curtain_line", "computer", "printer", "lamp", "whiteboard", "ac_unit", "wall_shelf", "mirror", "tv_wall",
       "noren", "picture", "pendant"]);
     const clearOf = (f) => {
-      if (WALLMOUNT.has(f.type) || f.x == null || f.w * f.h > 40000) return f;
+      if (WALLMOUNT.has(f.type) || f.type === "chair" || f.x == null || f.w * f.h > 40000) return f;      // V4.3.8：椅子跟著桌子，不因窗戶退讓而被推開（5F 椅子跑掉）
       let { x, y } = f; const { w, h } = f;
       for (const s of spans) {
         const lo = s.hz ? x : y, hi = s.hz ? x + w : y + h;
@@ -1436,12 +1447,25 @@ class FloorplanV43D extends HTMLElement {
       chg.route = (c, slot, inside) => {
         const yaw = c.baseYaw + (inside ? Math.PI : 0), gp = c.g.position, Y = new THREE.Vector3(0, 1, 0);
         const loc = (a, b, y) => new THREE.Vector3(a, y, b).applyAxisAngle(Y, yaw).add(new THREE.Vector3(gp.x, 0, gp.z));
-        const sd = slot === "tesla_model3" ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, 0.40 * c.W];      // z 負＝車的左側、正＝右側
+        const isTesla = slot === "tesla_model3" || slot === "sedan";
+        const kindKey = slot === "tesla_model3" ? "tesla" : slot === "luxgen_n7" ? "luxgen" : slot === "suv" ? "suv" : slot === "sedan" ? "sedan" : "luxgen";
+        const pl = c.models?.[kindKey]?.port;      // V4.3.8：用車模實際外形算出的孔位；模型還沒載入時退回估算值
+        const sd = pl ? [pl.x, pl.z] : isTesla ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, 0.40 * c.W];      // z 負＝車的左側、正＝右側
+        const py = pl ? pl.y : 11;
         const sg = Math.sign(sd[1]) || 1;
-        const port = loc(sd[0], sd[1], 11), near = loc(sd[0], sg * (c.W / 2 + 6), 5), out = loc(sd[0], sg * (c.W / 2 + 16), 1.8);
-        const f1 = new THREE.Vector3(start.x + inward[0] * 12, 2, start.z + inward[1] * 12);
-        const mid = f1.clone().lerp(out, 0.5); mid.y = 1.8;
-        return [start, f1, mid, out, near, port];
+        const port = loc(sd[0], sd[1], py);
+        const near = isTesla ? loc(sd[0] - 6, sd[1] - 2, py * 0.65) : loc(sd[0], sd[1] + sg * 6, py * 0.65);
+        const out = isTesla ? loc(sd[0] - 14, sg * (c.W / 2 + 12), 1.8) : loc(sd[0], sg * (c.W / 2 + 14), 1.8);
+        const f1 = new THREE.Vector3(start.x + inward[0] * 10, 1.8, start.z + inward[1] * 10);
+        // 沿著車位側邊地面繞到充電孔所在側，避免充電線直接穿過車底或車庫中央
+        const sideWallX = gp.x - c.W / 2 - 16;
+        const w1 = new THREE.Vector3(sideWallX, 1.8, f1.z);
+        const w2 = new THREE.Vector3(sideWallX, 1.8, out.z);
+        if (Math.abs(out.x - sideWallX) > c.W * 0.6) {
+          const endZ = gp.z + (out.z < gp.z ? -(c.L / 2 + 14) : (c.L / 2 + 14));
+          return [start, f1, w1, new THREE.Vector3(sideWallX, 1.8, endZ), new THREE.Vector3(out.x, 1.8, endZ), out, near, port];
+        }
+        return [start, f1, w1, w2, out, near, port];
       };
       chg.setTarget = (key, pts) => {
         if (key === chg.key) return; chg.key = key;
@@ -1905,7 +1929,7 @@ class FloorplanV43D extends HTMLElement {
           { // 其他：休旅車（方正、車頂高）
             const { gr, pm } = mkModel("suv", 0x8b98a6);
             extT(gr, (sh) => { sh.moveTo(X(-0.49), 5); sh.lineTo(X(0.49), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 13); sh.lineTo(X(0.22), 14.2); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(-0.49), 5); }, W - 6, pm, 2.5);
-            extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 26); sh.lineTo(X(-0.47), 26); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
+            extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 30); sh.lineTo(X(-0.47), 30); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
             tyresT(gr, [-0.31, 0.32], 7, W);
           }
           { // 其他：機車（比汽車短，雙輪＋龍頭）
@@ -2996,7 +3020,7 @@ class FloorplanV43D extends HTMLElement {
         const ce = (cs === "front" || cs === "back") ? Object.entries(g.cars || {}).find(([k]) => k.endsWith("_" + cs)) : null;
         if (ce && ch.route) {
           const slotCar = st[ce[0]]?.state, inside = !!ce[1].f.facing_entity && st[ce[1].f.facing_entity]?.state === "inside";
-          ch.setTarget(`${cs}|${slotCar}|${inside}`, ch.route(ce[1], slotCar, inside));
+          ch.setTarget(`${cs}|${slotCar}|${inside}|${ce[1].models?.tesla?.port ? 1 : 0}${ce[1].models?.luxgen?.port ? 1 : 0}`, ch.route(ce[1], slotCar, inside));
         } else if (ch.setTarget) ch.setTarget("none", null);
         const ci = chargerInfo(st);
         const color = ci.key === "error" ? 0xe53935 : ci.key === "done" ? 0x4caf50 : ci.key === "charging" ? 0x2f9bff
