@@ -1,21 +1,22 @@
 # ─────────────────────────────────────────────────────────────
-# 08-7B二樓夜間防下樓AI (V4.3.5)
+# 08-7B二樓夜間防下樓AI (V4.3.6)
 # 相容版本：Helpers V4.3.5（packages/v43_anti_down.yaml）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-10-30）：新增客廳主開關下3 連按兩下切換 input_boolean.anti_down_override（今晚解除）；晚安情境再次執行或中午 12:00 自動復位。時間窗改為平日日出後 0 分、假日 +30 分，且 anti_down_cutoff（預設 06:20）之後一律解除（見 packages/v43_anti_down.yaml）。
 # - V4.3.5（2026-10-29）：新增。防下樓時間窗（binary_sensor.anti_down_window：晚安情境已執行、頂樓熟睡鎖開著、00:30 到日出＋30 分（平日）／＋60 分（假日）、
 #   二樓沒人或只有 Iris）內，二樓客廳／餐廳／廚房燈、二三樓與三樓樓梯燈、電視、客廳電風扇一被打開就立刻關掉（最多重試 3 次），
 #   並用客廳 HomePod 以一般廣播音量廣播「夜間睡覺期間請勿…」（間隔至少 anti_down_announce_gap_min 分鐘）。廚房插座、空氣清淨機不處理。
 #   電視只用網路指令（remote.turn_off）關機待機，絕不送紅外線；09C 喚醒中（tv_ir_power 開或 09C 執行中）不處理電視。
 #   100A、08-8A 在時間窗內不啟動，避免被誤判成早安／到家，或和本自動化互搶。HA 重啟後 90 秒重新掃描（SOP-20）。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-7B二樓夜間防下樓AI (V4.3.5)
+- alias: 08-7B二樓夜間防下樓AI (V4.3.6)
   id: ai_08_7b_anti_down
   description: 夜間睡覺時間窗內，二樓只有 Iris 或沒人時，客廳／餐廳／廚房燈、二三樓與三樓樓梯燈、電視、客廳電風扇一打開就立刻關掉並廣播提醒
   mode: queued
   max: 20
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.5"
+    automation_version: "V4.3.6"
     light_ids:
       - light.yeelink_color5_4181_light
       - light.yeelink_color5_106d_light
@@ -193,3 +194,47 @@
         entity_id: input_datetime.anti_down_night_done_at
       data:
         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+# 客廳主開關下3 連按兩下 → 今晚解除防下樓（再按兩下取消）
+- alias: 08-7B二樓夜間防下樓｜客廳主開關下3雙擊解除 (V4.3.6)
+  id: ai_08_7b_anti_down_override_toggle
+  description: 客廳主開關下3 連按兩下切換 input_boolean.anti_down_override（解除／恢復今晚的防下樓）
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: event.ke_ting_zhu_kai_guan_xia_3_double_press
+      not_from:
+        - unavailable
+        - unknown
+      not_to:
+        - unavailable
+        - unknown
+  actions:
+    - action: input_boolean.toggle
+      target:
+        entity_id: input_boolean.anti_down_override
+    - action: logbook.log
+      data:
+        name: 二樓夜間防下樓
+        message: "客廳主開關下3 雙擊：今晚解除 {{ states('input_boolean.anti_down_override') }}"
+        entity_id: input_boolean.anti_down_override
+
+# 解除狀態復位：晚安情境再次執行、或每天中午 12:00、HA 重啟後若已過 12:00 且不在夜間不動作（解除只管一晚）
+- alias: 08-7B二樓夜間防下樓｜解除狀態復位 (V4.3.6)
+  id: ai_08_7b_anti_down_override_reset
+  description: 晚安情境執行或中午 12:00 把「今晚解除」關回去
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.aqara_wan_an
+      to: "on"
+    - trigger: time
+      at: "12:00:00"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.anti_down_override
+      state: "on"
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.anti_down_override

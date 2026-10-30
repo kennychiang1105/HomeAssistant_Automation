@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 二樓夜間防下樓＋噪音警告 (V4.3.5)
+# 二樓夜間防下樓＋噪音警告 (V4.3.6)
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-10-30）：結束時間改為「日出後偏移分鐘」平日 0、假日 30；新增「一律解除時間」anti_down_cutoff（預設 06:20，超過這個時間不論日出一律解除）；
+#   新增 input_boolean.anti_down_override「今晚解除」：客廳主開關下3 連按兩下（08-7B）開啟，時間窗直接解除；再按兩下取消，晚安情境再次執行或中午 12:00 自動復位。
 # - V4.3.5（2026-10-29）：新增。
 #   ① 防下樓時間窗 binary_sensor.anti_down_window：晚安情境已執行、頂樓熟睡鎖開著、00:30 起到「日出＋30 分（平日）／＋60 分（假日）」之前，
 #      且二樓沒人或只有 Iris（Kenny (iPad) 不算人）時為 on；Kenny 剛下樓（近 3 分鐘 08-5J 有下樓事件）、氣氛燈提醒中、噪音警告中都為 off。
@@ -18,6 +20,9 @@ input_boolean:
   noise_warning:
     name: 噪音警告
     icon: mdi:volume-vibrate
+  anti_down_override:
+    name: 二樓夜間防下樓｜今晚解除
+    icon: mdi:shield-off-outline
 
 input_datetime:
   anti_down_start:
@@ -26,6 +31,12 @@ input_datetime:
     has_time: true
     initial: "00:30"
     icon: mdi:clock-start
+  anti_down_cutoff:
+    name: 二樓夜間防下樓｜一律解除時間
+    has_date: false
+    has_time: true
+    initial: "06:20"
+    icon: mdi:clock-end
   anti_down_night_done_at:
     name: 二樓夜間防下樓｜晚安情境最近一次執行（內部）
     has_date: true
@@ -41,7 +52,7 @@ input_number:
     min: 0
     max: 300
     step: 5
-    initial: 30
+    initial: 0
     mode: box
     icon: mdi:weather-sunset-up
   anti_down_sunrise_offset_holiday_min:
@@ -49,7 +60,7 @@ input_number:
     min: 0
     max: 300
     step: 5
-    initial: 60
+    initial: 30
     mode: box
     icon: mdi:weather-sunset-up
   anti_down_announce_gap_min:
@@ -89,12 +100,15 @@ template:
           {% set start_dt = n.replace(hour=(st[0:2] | int(0)), minute=(st[3:5] | int(30)), second=0, microsecond=0) if st[0:2].isdigit() else n.replace(hour=0, minute=30, second=0, microsecond=0) %}
           {% set sr = state_attr('sensor.scene_morning_start', 'sunrise_eff') or state_attr('sensor.scene_morning_start', 'sunrise') %}
           {% set holiday = states('sensor.tw_day_type_today') == 'holiday' %}
-          {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(60)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(30)) %}
+          {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(30)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(0)) %}
           {% if sr in [none, '', 'None'] %}
             {% set end_dt = n.replace(hour=(8 if holiday else 6), minute=(0 if holiday else 30), second=0, microsecond=0) %}
           {% else %}
             {% set end_dt = (sr | as_datetime | as_local) + timedelta(minutes=off_min) %}
           {% endif %}
+          {% set ct = states('input_datetime.anti_down_cutoff') %}
+          {% set cut_dt = n.replace(hour=(ct[0:2] | int(6)), minute=(ct[3:5] | int(20)), second=0, microsecond=0) if ct[0:2].isdigit() else n.replace(hour=6, minute=20, second=0, microsecond=0) %}
+          {% set end_dt = [end_dt, cut_dt] | min %}
           {% set cut = n.replace(hour=18, minute=0, second=0, microsecond=0) %}
           {% set cut = cut - timedelta(days=1) if n < cut else cut %}
           {% set night_done = is_state('input_boolean.aqara_wan_an', 'on') or as_timestamp(states('input_datetime.anti_down_night_done_at'), 0) >= cut.timestamp() %}
@@ -107,6 +121,7 @@ template:
           {% set lp_age = (as_timestamp(n) - (lp.split('|')[1] | float(0))) if '|' in lp else 99999 %}
           {% set kenny_down = 'down' in lp_ev and lp_age < 180 %}
           {{ is_state('input_boolean.anti_down_enable', 'on')
+             and is_state('input_boolean.anti_down_override', 'off')
              and is_state('input_boolean.sleep_silent_active', 'on')
              and night_done
              and start_dt <= n < end_dt
@@ -122,9 +137,11 @@ template:
             {% set n = now() %}
             {% set sr = state_attr('sensor.scene_morning_start', 'sunrise_eff') or state_attr('sensor.scene_morning_start', 'sunrise') %}
             {% set holiday = states('sensor.tw_day_type_today') == 'holiday' %}
-            {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(60)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(30)) %}
-            {% if sr in [none, '', 'None'] %}{{ n.replace(hour=(8 if holiday else 6), minute=(0 if holiday else 30), second=0, microsecond=0).isoformat() }}
-            {% else %}{{ ((sr | as_datetime | as_local) + timedelta(minutes=off_min)).isoformat() }}{% endif %}
+            {% set off_min = (states('input_number.anti_down_sunrise_offset_holiday_min') | float(30)) if holiday else (states('input_number.anti_down_sunrise_offset_workday_min') | float(0)) %}
+            {% set e = n.replace(hour=(8 if holiday else 6), minute=(0 if holiday else 30), second=0, microsecond=0) if sr in [none, '', 'None'] else ((sr | as_datetime | as_local) + timedelta(minutes=off_min)) %}
+            {% set ct = states('input_datetime.anti_down_cutoff') %}
+            {% set c = n.replace(hour=(ct[0:2] | int(6)), minute=(ct[3:5] | int(20)), second=0, microsecond=0) if ct[0:2].isdigit() else n.replace(hour=6, minute=20, second=0, microsecond=0) %}
+            {{ ([e, c] | min).isoformat() }}
           people: >-
             {{ state_attr('binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan', 'matched_people') }}
 

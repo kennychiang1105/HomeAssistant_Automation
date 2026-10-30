@@ -427,7 +427,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "啟用中的自動化 **157** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **158** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -1986,7 +1986,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 19 支、可調整項目 27 個"
+        content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。　自動化 21 支、可調整項目 29 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2040,7 +2040,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（19）"
+        heading: "自動化開關（21）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -2054,23 +2054,17 @@ views:
           - entity: automation.ai_08_7a_auto_goodnight_scene
             name: "08-7A自動晚安情境AI (V4.2.2)"
           - entity: automation.08_7ber_lou_ye_jian_fang_xia_lou_ai_v4_3_5
-            name: "08-7B二樓夜間防下樓AI (V4.3.5)"
+            name: "08-7B二樓夜間防下樓AI (V4.3.6)"
+          - entity: automation.08_7ber_lou_ye_jian_fang_xia_lou_ke_ting_zhu_kai_guan_xia_3shuang_ji_jie_chu_v4_3_6
+            name: "08-7B二樓夜間防下樓｜客廳主開關下3雙擊解除 (V4.3.6)"
+          - entity: automation.08_7ber_lou_ye_jian_fang_xia_lou_jie_chu_zhuang_tai_fu_wei_v4_3_6
+            name: "08-7B二樓夜間防下樓｜解除狀態復位 (V4.3.6)"
           - entity: automation.08_7ber_lou_ye_jian_fang_xia_lou_ji_lu_wan_an_qing_jing_shi_jian_v4_3_5
             name: "08-7B二樓夜間防下樓｜記錄晚安情境時間 (V4.3.5)"
           - entity: automation.08_7ezao_yin_jing_gao_ai_v4_3_5
             name: "08-7E噪音警告AI (V4.3.5)"
           - entity: automation.08_7ezao_yin_jing_gao_kai_guan_qia_zhu_zi_dong_guan_hui_v4_3_5
             name: "08-7E噪音警告｜開關卡住自動關回 (V4.3.5)"
-          - entity: automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0
-            name: "100A自動啟動到家早安情境AI (V4.3.5)"
-          - entity: automation.ai_auto_leave_system
-            name: "100B自動離家AI (V4.2.2)"
-          - entity: automation.ai_100c_googlehome_scene_virtual_button_bridge
-            name: "100C GoogleHome情境虛擬按鈕橋接AI (V4.2.2)"
-          - entity: automation.wan_an_qing_jing
-            name: "100晚安情境"
-          - entity: automation.101zao_an_qing_jing
-            name: "101早安情境"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2086,10 +2080,35 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0
+            name: "100A自動啟動到家早安情境AI (V4.3.5)"
+          - entity: automation.ai_auto_leave_system
+            name: "100B自動離家AI (V4.2.2)"
+          - entity: automation.ai_100c_googlehome_scene_virtual_button_bridge
+            name: "100C GoogleHome情境虛擬按鈕橋接AI (V4.2.2)"
+          - entity: automation.wan_an_qing_jing
+            name: "100晚安情境"
+          - entity: automation.101zao_an_qing_jing
+            name: "101早安情境"
           - entity: automation.101li_jia_qing_jing
             name: "102離家情境"
           - entity: automation.103dao_jia_qing_jing
             name: "103到家情境"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "自動化開關（續）"
+        heading_style: title
+        icon: mdi:robot
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
           - entity: automation.107_0b_ke_ting_zhu_kai_guan_xia_3_zao_an_dao_jia
             name: "800-開關系列-0B 客廳主開關下3-早安到家"
           - entity: automation.107chu_fang_kai_guan_3zao_an_dao_jia
@@ -2109,7 +2128,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "開關（8）"
+        heading: "開關（9）"
         heading_style: title
         card_mod:
           style: |
@@ -2119,6 +2138,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_boolean.anti_down_override
+            name: "二樓夜間防下樓｜今晚解除"
           - entity: input_boolean.anti_down_announce_enable
             name: "二樓夜間防下樓｜廣播開關"
           - entity: input_boolean.anti_down_enable
@@ -2192,7 +2213,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "日期時間（3）"
+        heading: "日期時間（4）"
         heading_style: title
         card_mod:
           style: |
@@ -2202,6 +2223,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_datetime.anti_down_cutoff
+            name: "二樓夜間防下樓｜一律解除時間"
           - entity: input_datetime.anti_down_start
             name: "二樓夜間防下樓｜開始時間"
           - entity: input_datetime.scene_morning_earliest
@@ -4039,7 +4062,7 @@ views:
           - entity: automation.09b_homepod_sensor_sync
             name: "09B-Homepod Sensor sync"
           - entity: automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6
-            name: "09C電視待機喚醒AI (V4.2.3)"
+            name: "09C電視待機喚醒AI (V4.2.4)"
           - entity: automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6
             name: "09C電視紅外線開關自動復位AI (V4.2.2)"
         card_mod: *cm
@@ -4937,14 +4960,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 2 支、可調整項目 2 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 2 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（2）"
+        heading: "自動化開關（1）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -4957,8 +4980,6 @@ views:
         entities:
           - entity: automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1
             name: "08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)"
-          - entity: automation.zzce_shi_fang_xia_lou
-            name: "ZZ測試防下樓"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
