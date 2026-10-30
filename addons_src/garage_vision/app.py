@@ -4,6 +4,7 @@
 POST /analyze?slots=front=x0,y0,x1,y1;back=...   body=JPEG  → 每個車位的偵測框、身分（樣板庫 kNN）、車型（零樣本）
      （V0.2.0）回傳多一個 plates（整張畫面讀到的車牌）與每車位的 plate（RapidOCR；plate=0 可關閉）
      （V0.4.0）occ=1：每車位多回傳 occ（有車機率，/data/occ_model.json 的學習式判斷）；persons_only=1&pose=1：人物含 17 個姿態關鍵點（/data/yolo11m-pose.onnx）
+     （V0.5.0）車輛偵測合併 /data/garage_car.onnx（車庫畫面微調版）
 POST /learn?slot=front&label=luxgen_n7:inside&slots=...  body=JPEG → 把這個車位的車存進樣板庫
 POST /forget?label=luxgen_n7:inside
 GET  /health、GET /gallery
@@ -129,6 +130,55 @@ def detect_pose(img, conf=0.25, iou=0.5):
         persons.append({"conf": round(float(sc[i]), 3), "box": [round(v, 4) for v in b],
                         "kp": [[round(float(min(max((k[0] - px) / s / W, 0.0), 1.0)), 4), round(float(min(max((k[1] - py) / s / H, 0.0), 1.0)), 4), round(float(k[2]), 3)] for k in kp]})
     return persons
+
+
+# V0.5.0：用你家車庫畫面微調的車輛偵測（YOLO11m，只有 car／person 兩類，/data/garage_car.onnx）。/analyze 時和原本的車輛偵測結果合併
+# （框重疊就取信心高的），人物仍只用原本的模型，頂樓 persons_only 路徑完全不跑它。紅外線夜間後位近距離的車，原模型約 88% 偵測得到，
+# 微調後 100%（10/29～10/30 驗證集）。沒有這個檔案就停用。
+FT = {"s": None, "tried": False}
+
+
+def ft_session():
+    if not FT["tried"]:
+        FT["tried"] = True
+        p = os.path.join(DATA, "garage_car.onnx")
+        if os.path.exists(p):
+            try:
+                FT["s"] = ort.InferenceSession(p, so, providers=["CPUExecutionProvider"])
+            except Exception as e:  # noqa: BLE001
+                print("ft disabled:", e, flush=True)
+    return FT["s"]
+
+
+def merge_ft(dets, img, conf=0.3, iou=0.5):
+    fs = ft_session()
+    if fs is None:
+        return dets
+    W, H = img.size
+    s = 640 / max(W, H)
+    nw, nh = round(W * s), round(H * s)
+    px, py = (640 - nw) // 2, (640 - nh) // 2
+    canvas = Image.new("RGB", (640, 640), (114, 114, 114))
+    canvas.paste(img.resize((nw, nh), Image.BILINEAR), (px, py))
+    x = np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1)[None] / 255.0
+    out = fs.run(None, {fs.get_inputs()[0].name: x})[0][0]          # (6, N)：cx,cy,w,h,car,person
+    sc = out[4]
+    fdets = []
+    for i in sorted(np.where(sc > conf)[0], key=lambda k: -sc[k]):
+        cx, cy, w, h = out[:4, i]
+        b = [(cx - w / 2 - px) / s / W, (cy - h / 2 - py) / s / H, (cx + w / 2 - px) / s / W, (cy + h / 2 - py) / s / H]
+        b = [float(min(max(v, 0.0), 1.0)) for v in b]
+        if any(iou_of(b, d["box"]) > iou for d in fdets):
+            continue
+        fdets.append({"cls": "car", "conf": round(float(sc[i]), 3), "box": [round(v, 4) for v in b]})
+    dets = list(dets)
+    for f in fdets:
+        j = next((k for k, d in enumerate(dets) if d["cls"] == "car" and iou_of(f["box"], d["box"]) > 0.5), None)
+        if j is None:
+            dets.append(f)
+        elif f["conf"] > dets[j]["conf"]:
+            dets[j] = f
+    return dets
 
 
 def detect(img, conf=0.25, iou=0.5):
@@ -334,6 +384,8 @@ class H(BaseHTTPRequestHandler):
                     g.append({"label": label, "emb": [round(float(v), 5) for v in e], "ts": time.time()})
                     save_gallery(g)
                     return self._send(200, {"learned": label, "slot": slot, "det": d, "gallery": len(g)})
+                if u.path in ("/analyze", "/learn"):
+                    dets = merge_ft(dets, img)
                 if u.path == "/analyze":
                     gal = load_gallery()
                     res = {"ts": int(time.time()), "size": list(img.size), "dets": dets, "slots": {}}
