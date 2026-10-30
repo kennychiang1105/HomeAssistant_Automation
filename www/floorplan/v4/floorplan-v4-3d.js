@@ -11,6 +11,12 @@
 const KEY = "floorplan_v4_floor";
 const EVT = "floorplan-v4-floor";
 const LIB = new URL("./lib/", import.meta.url).href;
+// V4.3.7 車燈：程式車模是單一 MeshBasicMaterial（直接換顏色）；glTF 真車模是一組 PBR 材質（用自發光點亮，關燈時回到原本顏色）
+const carLamp = (m, on, onHex, offHex) => {
+  if (!m) return;
+  if (Array.isArray(m)) { for (const x of m) { if (x.emissive) { x.emissive.setHex(on ? onHex : 0x000000); x.emissiveIntensity = on ? 2.2 : 1; } } return; }
+  m.color.setHex(on ? onHex : offHex);
+};
 let threePromise = null;
 const loadThree = () => {
   threePromise = threePromise || Promise.all([
@@ -674,6 +680,135 @@ class FloorplanV43D extends HTMLElement {
     group.userData.ground = ground;
     group.userData.bbLocal = bb.clone().translate(group.position.clone().negate());     // 不含陰影地面的範圍（樓層位置改變時重算陰影用）
     this._fitSun();
+  }
+
+  // V4.3.7 真車模：Tesla Model 3、Luxgen N7（以外型相近的 Zeekr X 代替）用 Sketchfab CC-BY 的 glTF 車模（www/floorplan/v4/models/），
+  //   載入一次後每個車位各複製一份（幾何共用、材質各自一份，才能各自亮燈）。自動判斷車頭方向（白色頭燈在前、紅色尾燈在後），
+  //   縮放到車位長度、車底貼地；車漆改成實車顏色並加環境反光；尾燈／頭燈／方向燈材質接到原本的車燈狀態（lamps 介面不變）。
+  _queueCarModels(models, L, sx, sy) {
+    (this._carSlots = this._carSlots || []).push({ models, L, sx, sy });
+    if (this._carTpl) { this._applyCarModels(); return; }
+    if (this._carLoading) return;
+    this._carLoading = true;
+    const T = this._T;
+    const base = new URL("./models/", import.meta.url).href;
+    // 車模出處（CC-BY 4.0，需標註作者）：「Tesla M3 model」by wintrez、「Zeekr X 2025」by ItsDiyor（sketchfab.com），車漆顏色與燈光由本程式調整
+    const defs = {
+      tesla: { file: "tesla_model3.glb", paint: 0xe8ebee, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
+      luxgen: { file: "luxgen_n7.glb", paint: 0xf3f4f6, tail: /hongdeng/i, head: /jinshudeng\.1/i, turn: /^$/, hide: /^floor$/i, trim: true },
+    };
+    import(LIB + "GLTFLoader.js").then(({ GLTFLoader }) => {
+      const loader = new GLTFLoader();
+      return Promise.all(Object.entries(defs).map(([kind, d]) => new Promise((ok) => {
+        loader.load(base + d.file, (gl) => ok([kind, this._prepCarTpl(T, gl.scene, d)]), undefined, (e) => { console.warn("floorplan-v4-3d: car model load failed", d.file, e); ok([kind, null]); });
+      })));
+    }).then((list) => {
+      this._carTpl = Object.fromEntries(list.filter(([, t]) => t));
+      this._applyCarModels();
+    }).catch((e) => console.warn("floorplan-v4-3d: GLTFLoader unavailable", e));
+  }
+
+  _carEnv(T) {
+    if (this._carEnvMap) return this._carEnvMap;
+    const pm = new T.PMREMGenerator(this._renderer);
+    const sc = new T.Scene();
+    const sky = new T.Mesh(new T.SphereGeometry(50, 32, 16), new T.MeshBasicMaterial({ side: T.BackSide, vertexColors: true }));
+    const pos = sky.geometry.attributes.position, col = [];
+    for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 50; const v = y > 0 ? 0.55 + 0.45 * y : 0.32 + 0.2 * (1 + y); col.push(v, v * 0.99, v * 0.97); }
+    sky.geometry.setAttribute("color", new T.Float32BufferAttribute(col, 3)); sc.add(sky);
+    for (const [x, y, z, w, h] of [[0, 30, 0, 40, 6], [-30, 15, 10, 4, 18], [30, 15, -10, 4, 18], [0, 12, 35, 30, 4]]) {
+      const p = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide }));
+      p.position.set(x, y, z); p.lookAt(0, 0, 0); sc.add(p);
+    }
+    this._carEnvMap = pm.fromScene(sc, 0.04).texture;
+    pm.dispose();
+    return this._carEnvMap;
+  }
+
+  _prepCarTpl(T, root, d) {
+    const piv = new T.Group(); piv.add(root);
+    root.traverse((o) => { if (o.isMesh && d.hide.test(o.material?.name || "")) o.visible = false; });
+    piv.updateMatrixWorld(true);
+    if (d.trim) {        // 車模裡有幾件內裝／裝飾物件超出車身（比車頂還高、比車底還低），會讓縮放和貼地算錯，藏起來
+      const pb = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible && /car_paint|carpaint/i.test(o.material?.name || "")) pb.expandByObject(o); });
+      if (!pb.isEmpty()) {
+        const tol = (pb.max.x - pb.min.x + pb.max.z - pb.min.z) * 0.02;
+        root.traverse((o) => {
+          if (!o.isMesh || !o.visible) return;
+          const b = new T.Box3().setFromObject(o);
+          if (/luntai|lungu|tire|rim/i.test(o.material?.name || "")) return;        // 輪胎、輪圈本來就比車身低
+          if (b.max.y > pb.max.y + tol || b.min.y < pb.min.y - tol * 4) o.visible = false;
+        });
+      }
+    }
+    const boxOf = (re) => { const b = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible && re.test(o.material?.name || "")) b.expandByObject(o); }); return b; };
+    const visBox = () => { piv.updateMatrixWorld(true); const b = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible) b.expandByObject(o); }); return b; };   // 只算看得見的（車模附的地板不算）
+    let bb = visBox();
+    let sz = bb.getSize(new T.Vector3());
+    if (sz.z > sz.x) { root.rotation.y += Math.PI / 2; bb = visBox(); sz = bb.getSize(new T.Vector3()); }
+    const tail = boxOf(d.tail), c = bb.getCenter(new T.Vector3());
+    if (!tail.isEmpty() && tail.getCenter(new T.Vector3()).x > c.x) { root.rotation.y += Math.PI; bb = visBox(); }
+    const ctr = bb.getCenter(new T.Vector3());
+    root.position.sub(new T.Vector3(ctr.x, bb.min.y, ctr.z));
+    const fin = visBox();
+    piv.updateMatrixWorld(true);
+    return { piv, d, len: fin.getSize(new T.Vector3()).x, box: fin, tailBox: boxOf(d.tail), headBox: boxOf(d.head) };
+  }
+
+  _applyCarModels() {
+    const T = this._T, tpls = this._carTpl;
+    if (!T || !tpls) return;
+    const env = this._carEnv(T);
+    const glowTex = window.__fpCarGlow;
+    for (const s of this._carSlots || []) {
+      if (s.done) continue;
+      s.done = true;
+      for (const [kind, tp] of Object.entries(tpls)) {
+        const mdl = s.models[kind];
+        if (!mdl) continue;
+        const k = (s.L * 0.97) / tp.len, ky = k * Math.min(1, Math.max(0.78, s.sy / s.sx + 0.2));     // 垂直方向略壓（房子比例），比原本程式車模少壓
+        const car = tp.piv.clone(true);
+        car.scale.set(k, ky, k);
+        const lp = { tail: [], brake: [], head: [], turn: [], glow: { tail: [], head: [], turn: [] }, mats: true };
+        let paint = null;
+        car.traverse((o) => {
+          if (!o.isMesh) return;
+          o.castShadow = true; o.receiveShadow = true;
+          const m = o.material.clone(); o.material = m;
+          const n = m.name || "";
+          if (/carpaint|car_paint/i.test(n)) {
+            m.color.setHex(tp.d.paint); m.metalness = 0.3; m.roughness = 0.28;
+            if ("clearcoat" in m) { m.clearcoat = 1; m.clearcoatRoughness = 0.06; }
+            paint = paint || m;
+          }
+          if (m.isMeshStandardMaterial) { m.envMap = env; m.envMapIntensity = /glass|boli/i.test(n) ? 1.4 : 0.9; m.needsUpdate = true; }
+          if (tp.d.tail.test(n)) { m.emissive?.setHex(0x000000); lp.tail.push(m); }
+          else if (tp.d.head.test(n)) { lp.head.push(m); }
+          else if (tp.d.turn.test(n)) { lp.turn.push(m); }
+        });
+        // 光暈：尾燈／頭燈左右兩顆、左側前後方向燈（車模座標：車頭 +x，左側 -z）
+        const gl = (role, x, y, z, size, color) => {
+          const sp = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+          sp.scale.set(size, size, 1); sp.position.set(x * k, y * ky, z * k); sp.visible = false; mdl.gr.add(sp); lp.glow[role].push(sp);
+        };
+        const bx = tp.box, tb = tp.tailBox.isEmpty() ? null : tp.tailBox, hb = tp.headBox.isEmpty() ? null : tp.headBox;
+        const tY = tb ? (tb.min.y + tb.max.y) / 2 : bx.max.y * 0.6, hY = hb ? (hb.min.y + hb.max.y) / 2 : bx.max.y * 0.5;
+        const wz = (bx.max.z - bx.min.z) / 2;
+        for (const sd of [-1, 1]) {
+          gl("tail", bx.min.x - 0.05, tY, sd * wz * 0.72, 26, 0xff2a2a);
+          gl("head", bx.max.x + 0.05, hY, sd * wz * 0.72, 30, 0xf2f6ff);
+        }
+        gl("turn", bx.min.x - 0.05, tY, -wz * 0.85, 24, 0xffb000);
+        gl("turn", bx.max.x + 0.05, hY, -wz * 0.85, 24, 0xffb000);
+        // 換掉程式車模：保留群組（狀態迴圈用 gr.visible 切換車種），隱藏原本的幾何與光暈
+        for (const ch of [...mdl.gr.children]) if (!lp.glow.tail.includes(ch) && !lp.glow.head.includes(ch) && !lp.glow.turn.includes(ch)) ch.visible = false;
+        mdl.gr.add(car);
+        if (paint) mdl.paint = paint;
+        mdl.lamps = lp;
+      }
+    }
+    this._sync?.();
+    this._dirty = true;
   }
 
   _fitSun() {
@@ -1785,6 +1920,7 @@ class FloorplanV43D extends HTMLElement {
             const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
           }
           cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, spr, models, L, W };
+          this._queueCarModels(models, L, sx, sy);      // V4.3.7：有真車模（models/*.glb）就換上去，載入失敗沿用上面的程式車模
         }
         break;
       }
@@ -2898,9 +3034,9 @@ class FloorplanV43D extends HTMLElement {
         c.turnUntil = !isEmpty && tsRaw ? tsRaw * 1000 + 30000 : 0;
         const lp = c.models?.[kind]?.lamps;
         if (lp) {
-          lp.tail.color.setHex(lampOn ? 0xff2424 : 0x6e1a1a);
-          lp.brake.color.setHex(lampOn ? 0xff1a1a : 0x4a1414);
-          lp.head.color.setHex(lampOn ? 0xffffff : 0xcdd4de);
+          carLamp(lp.tail, lampOn, 0xff2424, 0x6e1a1a);
+          carLamp(lp.brake, lampOn, 0xff1a1a, 0x4a1414);
+          carLamp(lp.head, lampOn, 0xffffff, 0xcdd4de);
           for (const s of lp.glow.tail) s.visible = lampOn;
           for (const s of lp.glow.head) s.visible = lampOn;
         }
@@ -2977,7 +3113,7 @@ class FloorplanV43D extends HTMLElement {
         const on = blinking && (t * 1.5) % 1 < 0.5;
         if (on === lp._turnOn) continue;
         lp._turnOn = on;
-        lp.turn.color.setHex(on ? 0xffb000 : 0x6b4a14);
+        carLamp(lp.turn, on, 0xffb000, 0x6b4a14);
         for (const s of lp.glow.turn) s.visible = on;
         this._dirty = true;
       }
