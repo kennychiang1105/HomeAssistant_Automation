@@ -2,6 +2,7 @@
 # 二樓夜間防下樓＋噪音警告 (V4.3.6)
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：結束時間改為「日出後偏移分鐘」平日 0、假日 30；新增「一律解除時間」anti_down_cutoff（預設 06:20，超過這個時間不論日出一律解除）；
+#   緊急狀況一律不擋：緊急模式快照有效（地震預警／緊急模式啟動後 2 小時）、script.eq99 執行中、緊急模式判斷開關 I～IV 任一開啟、30 分鐘內有地震預警事件、五樓／車庫攝影機煙霧或 CO 警報時，時間窗為 off。
 #   新增 input_boolean.anti_down_override「今晚解除」：客廳主開關下3 連按兩下（08-7B）開啟，時間窗直接解除；再按兩下取消，晚安情境再次執行或中午 12:00 自動復位。
 # - V4.3.5（2026-10-29）：新增。
 #   ① 防下樓時間窗 binary_sensor.anti_down_window：晚安情境已執行、頂樓熟睡鎖開著、00:30 起到「日出＋30 分（平日）／＋60 分（假日）」之前，
@@ -120,7 +121,14 @@ template:
           {% set lp_ev = lp.split('|')[0] if '|' in lp else '' %}
           {% set lp_age = (as_timestamp(n) - (lp.split('|')[1] | float(0))) if '|' in lp else 99999 %}
           {% set kenny_down = 'down' in lp_ev and lp_age < 180 %}
+          {% set eew_ts = as_timestamp(states('input_datetime.eew_last_event'), 0) %}
+          {% set emergency = is_state('input_boolean.emergency_snapshot_valid', 'on')
+             or is_state('script.eq99', 'on')
+             or (['input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit', 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto', 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iii_ha_manual', 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu'] | select('is_state', 'on') | list | length > 0)
+             or (as_timestamp(n) - eew_ts) < 1800
+             or (['binary_sensor.wu_lou_she_ying_ji_smoke_alarm_detected', 'binary_sensor.wu_lou_she_ying_ji_co_alarm_detected', 'binary_sensor.che_ku_she_ying_ji_smoke_alarm_detected', 'binary_sensor.che_ku_she_ying_ji_co_alarm_detected'] | select('is_state', 'on') | list | length > 0) %}
           {{ is_state('input_boolean.anti_down_enable', 'on')
+             and not emergency
              and is_state('input_boolean.anti_down_override', 'off')
              and is_state('input_boolean.sleep_silent_active', 'on')
              and night_done
