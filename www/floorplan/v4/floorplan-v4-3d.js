@@ -1457,15 +1457,16 @@ class FloorplanV43D extends HTMLElement {
         const near = isTesla ? loc(sd[0] - 6, sd[1] - 2, py * 0.65) : loc(sd[0], sd[1] + sg * 6, py * 0.65);
         const out = isTesla ? loc(sd[0] - 14, sg * (c.W / 2 + 12), 1.8) : loc(sd[0], sg * (c.W / 2 + 14), 1.8);
         const f1 = new THREE.Vector3(start.x + inward[0] * 10, 1.8, start.z + inward[1] * 10);
-        // 沿著車位側邊地面繞到充電孔所在側，避免充電線直接穿過車底或車庫中央
-        const sideWallX = gp.x - c.W / 2 - 16;
-        const w1 = new THREE.Vector3(sideWallX, 1.8, f1.z);
-        const w2 = new THREE.Vector3(sideWallX, 1.8, out.z);
-        if (Math.abs(out.x - sideWallX) > c.W * 0.6) {
-          const endZ = gp.z + (out.z < gp.z ? -(c.L / 2 + 14) : (c.L / 2 + 14));
-          return [start, f1, w1, new THREE.Vector3(sideWallX, 1.8, endZ), new THREE.Vector3(out.x, 1.8, endZ), out, near, port];
+        // 沿著車位與腳踏車／櫃子之間的走道地面走線（z ≈ gp.z + c.W/2 + 28），完全避開左側櫃子、桌子、水桶與腳踏車，也不穿過後車
+        const laneZ = gp.z + c.W / 2 + 28;
+        const p1 = new THREE.Vector3(THREE.MathUtils.lerp(f1.x, out.x, 0.35), 1.8, THREE.MathUtils.lerp(f1.z, laneZ, 0.55));
+        const p2 = new THREE.Vector3(THREE.MathUtils.lerp(f1.x, out.x, 0.72), 1.8, laneZ);
+        if (out.z < gp.z - 5) {
+          // 若充電孔在車位另一側（北側 z < gp.z），先走外車道繞過車頭／車尾轉角再進入
+          const endX = gp.x + (out.x < gp.x ? -(c.L / 2 + 12) : (c.L / 2 + 12));
+          return [start, f1, p1, new THREE.Vector3(endX, 1.8, laneZ), new THREE.Vector3(endX, 1.8, out.z), out, near, port];
         }
-        return [start, f1, w1, w2, out, near, port];
+        return [start, f1, p1, p2, out, near, port];
       };
       chg.setTarget = (key, pts) => {
         if (key === chg.key) return; chg.key = key;
