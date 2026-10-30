@@ -398,7 +398,7 @@ script:
     variables:
       is_test: "{{ test | default(false) in [true, 'true', 'True'] }}"
       gate_recent: "{{ (not is_state('cover.garage', 'closed')) or ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_gate_opened_at'), 0)) < 600) }}"
-      names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 房車, suv: 休旅車, motorcycle: 機車}
+      names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛}
       pos: {front: 前位, back: 後位}
     sequence:
       - action: camera.snapshot
@@ -635,7 +635,7 @@ script:
           - repeat:
               for_each: [front, back]
               sequence:
-                # 左方向燈（絕對出門訊號）：車頭朝鐵門的已知車輛，錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；V4.3.6：有動靜（攝影機動作／有人／車燈亮）時每 5 秒最多檢查一次（原 30 秒）。V4.3.5：不必亮煞車燈，只要出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也檢查（只打方向燈沒踩煞車時原本完全不檢查）
+                # 左方向燈（絕對出門訊號）：車頭朝鐵門（或朝向未定的未知車輛）錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；V4.3.6：有動靜（攝影機動作／有人／車燈亮）時每 5 秒最多檢查一次（原 30 秒）。V4.3.5：不必亮煞車燈，只要出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也檢查；未知車輛（房車／休旅車／機車／unknown）一併支援。
                 - if: >-
                     {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present
                        and (res.slots[repeat.item].lights_on or states('sensor.garage_depart_likelihood') | float(0) >= 30
@@ -643,8 +643,8 @@ script:
                             or is_state('binary_sensor.che_ku_che_ku_she_ying_ji_motion', 'on')
                             or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_che_ku_she_ying_ji_motion.last_changed)) < 60
                             or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) < 180)
-                       and states('input_select.garage_slot_' ~ repeat.item) in ['luxgen_n7', 'tesla_model3']
-                       and is_state('input_select.garage_facing_' ~ repeat.item, 'door')
+                       and not is_state('input_select.garage_slot_' ~ repeat.item, 'empty')
+                       and not is_state('input_select.garage_facing_' ~ repeat.item, 'inside')
                        and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_turn_last'), 0)) > 5 }}
                   then:
                     - action: input_datetime.set_datetime
@@ -683,8 +683,8 @@ script:
                     n: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) + (1 if (s.present and (s.lights_on or s.moved)) else 0) }}"
                     lk: "{{ states('sensor.garage_depart_likelihood') | float(0) }}"
                     lk_min: "{{ states('input_number.garage_depart_likelihood_min') | float(70) }}"
-                    turn: "{{ is_state('input_boolean.garage_turn_detected', 'on') and s.present and car in ['luxgen_n7', 'tesla_model3'] }}"
-                    cand: "{{ turn or (s.present and car in ['luxgen_n7', 'tesla_model3'] and n >= 2 and lk >= lk_min and not res.exposure_changed) }}"
+                    turn: "{{ is_state('input_boolean.garage_turn_detected', 'on') and s.present and car != 'empty' }}"
+                    cand: "{{ turn or (s.present and car != 'empty' and n >= 2 and lk >= lk_min and not res.exposure_changed) }}"
                     strong: "{{ (s.lights_on and s.moved) or n >= 3 }}"
                     who_in_garage: >-
                       {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
@@ -779,7 +779,7 @@ script:
               source: 車庫車輛畫面分析AI
               version: V4.3.6
               title: 車庫自動開門後車輛沒有出去
-              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
+              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '未知房車', 'suv': '未知休旅車', 'motorcycle': '未知機車', 'unknown': '未知車輛'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
 
   garage_car_learn_apply:
     alias: 車庫車輛樣板學習AI (V4.3.0-beta 1)

@@ -774,6 +774,7 @@ class FloorplanV43D extends HTMLElement {
         const k = (s.L * (tp.d.lenFrac || 0.97)) / tp.len, ky = k * (tp.d.hk || Math.min(1, Math.max(0.78, s.sy / s.sx + 0.2)));     // 垂直方向略壓（房子比例），比原本程式車模少壓
         const car = tp.piv.clone(true);
         car.scale.set(k, ky, k);
+        car.updateMatrixWorld(true);
         const lp = { tail: [], brake: [], head: [], turn: [], glow: { tail: [], head: [], turn: [] }, mats: true };
         let paint = null;
         car.traverse((o) => {
@@ -789,9 +790,13 @@ class FloorplanV43D extends HTMLElement {
           if (m.isMeshStandardMaterial) { m.envMap = env; m.envMapIntensity = /glass|boli/i.test(n) ? 1.4 : 0.9; m.needsUpdate = true; }
           if (tp.d.tail.test(n)) { m.emissive?.setHex(0x000000); lp.tail.push(m); }
           else if (tp.d.head.test(n)) { lp.head.push(m); }
-          else if (tp.d.turn.test(n)) { lp.turn.push(m); }
+          else if (tp.d.turn.test(n)) {
+            // 只把左側（z <= 0）的方向燈材質加入閃爍清單，避免左轉時左右兩側同時閃成雙黃燈
+            const mc = new T.Box3().setFromObject(o).getCenter(new T.Vector3());
+            if (mc.z <= 0) lp.turn.push(m);
+          }
         });
-        // 光暈：尾燈／頭燈左右兩顆、左側前後方向燈（車模座標：車頭 +x，左側 -z）
+        // 光暈：尾燈／煞車燈／頭燈、左側前後方向燈（車模座標：車頭 +x，左側 -z）
         const gl = (role, x, y, z, size, color) => {
           const sp = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
           sp.scale.set(size, size, 1); sp.position.set(x * k, y * ky, z * k); sp.visible = false; mdl.gr.add(sp); lp.glow[role].push(sp);
@@ -799,12 +804,20 @@ class FloorplanV43D extends HTMLElement {
         const bx = tp.box, tb = tp.tailBox.isEmpty() ? null : tp.tailBox, hb = tp.headBox.isEmpty() ? null : tp.headBox;
         const tY = tb ? (tb.min.y + tb.max.y) / 2 : bx.max.y * 0.6, hY = hb ? (hb.min.y + hb.max.y) / 2 : bx.max.y * 0.5;
         const wz = (bx.max.z - bx.min.z) / 2;
-        for (const sd of [-1, 1]) {
-          gl("tail", bx.min.x - 0.05, tY, sd * wz * 0.72, 26, 0xff2a2a);
-          gl("head", bx.max.x + 0.05, hY, sd * wz * 0.72, 30, 0xf2f6ff);
+        if (kind === "moto") {
+          gl("tail", bx.min.x - 0.04, tY, 0, 22, 0xff2a2a);
+          gl("head", bx.max.x + 0.04, hY, 0, 26, 0xf2f6ff);
+          gl("turn", bx.min.x - 0.04, tY, -wz * 0.65, 18, 0xffb000);
+          gl("turn", bx.max.x + 0.04, hY, -wz * 0.65, 18, 0xffb000);
+        } else {
+          for (const sd of [-1, 1]) {
+            gl("tail", bx.min.x - 0.05, tY, sd * wz * 0.72, 26, 0xff2a2a);
+            gl("head", bx.max.x + 0.05, hY, sd * wz * 0.72, 30, 0xf2f6ff);
+          }
+          gl("tail", bx.min.x + (bx.max.x - bx.min.x) * 0.14, bx.max.y * 0.86, 0, 18, 0xff1a1a);   // 第三煞車燈光暈
+          gl("turn", bx.min.x - 0.05, tY, -wz * 0.85, 24, 0xffb000);
+          gl("turn", bx.max.x + 0.05, hY, -wz * 0.85, 24, 0xffb000);
         }
-        gl("turn", bx.min.x - 0.05, tY, -wz * 0.85, 24, 0xffb000);
-        gl("turn", bx.max.x + 0.05, hY, -wz * 0.85, 24, 0xffb000);
         // 換掉程式車模：保留群組（狀態迴圈用 gr.visible 切換車種），隱藏原本的幾何與光暈
         for (const ch of [...mdl.gr.children]) if (!lp.glow.tail.includes(ch) && !lp.glow.head.includes(ch) && !lp.glow.turn.includes(ch)) ch.visible = false;
         mdl.gr.add(car);
@@ -1925,18 +1938,43 @@ class FloorplanV43D extends HTMLElement {
           }
           { // 其他：房車（三廂）
             const { gr, pm } = mkModel("sedan", 0xa7b0ba);
+            const lp = mkLamps(); models.sedan.lamps = lp;
             extT(gr, (sh) => { sh.moveTo(X(-0.49), 4.5); sh.lineTo(X(0.49), 4.5); sh.quadraticCurveTo(X(0.53), 8, X(0.47), 10.5); sh.lineTo(X(0.2), 12); sh.lineTo(X(-0.3), 12.4); sh.lineTo(X(-0.49), 12); sh.lineTo(X(-0.49), 4.5); }, W - 6, pm, 2.5);
             extT(gr, (sh) => { sh.moveTo(X(0.16), 12); sh.lineTo(X(0.04), 19.5); sh.lineTo(X(-0.2), 19.7); sh.lineTo(X(-0.3), 12.2); sh.lineTo(X(0.16), 12); }, W - 14, glassM, 2);
+            for (const sd of [-1, 1]) {
+              box3(gr, -2.28, 0.85, sd * 0.52, 0.06, 0.08, 0.34, lp.tail);
+              box3(gr, -2.30, 0.79, sd * 0.66, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              box3(gr, 2.26, 0.68, sd * 0.54, 0.10, 0.06, 0.32, lp.head);
+              box3(gr, 2.28, 0.60, sd * 0.68, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              glow(gr, lp, "tail", -2.38, 0.85, sd * 0.52, 26, 0xff2a2a);
+              glow(gr, lp, "head", 2.40, 0.68, sd * 0.54, 30, 0xf2f6ff);
+            }
+            box3(gr, -1.52, 1.02, 0, 0.04, 0.03, 0.30, lp.brake);
+            glow(gr, lp, "tail", -1.56, 1.05, 0, 18, 0xff2a2a);
+            for (const xm of [-2.36, 2.34]) glow(gr, lp, "turn", xm, xm < 0 ? 0.79 : 0.60, xm < 0 ? -0.66 : -0.68, 24, 0xffb000);
             tyresT(gr, [-0.31, 0.32], 6, W);
           }
           { // 其他：休旅車（方正、車頂高）
             const { gr, pm } = mkModel("suv", 0x8b98a6);
+            const lp = mkLamps(); models.suv.lamps = lp;
             extT(gr, (sh) => { sh.moveTo(X(-0.49), 5); sh.lineTo(X(0.49), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 13); sh.lineTo(X(0.22), 14.2); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(-0.49), 5); }, W - 6, pm, 2.5);
             extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 30); sh.lineTo(X(-0.47), 30); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
+            for (const sd of [-1, 1]) {
+              box3(gr, -2.28, 1.00, sd * 0.56, 0.07, 0.09, 0.34, lp.tail);
+              box3(gr, -2.30, 0.92, sd * 0.70, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              box3(gr, 2.26, 0.84, sd * 0.56, 0.12, 0.07, 0.32, lp.head);
+              box3(gr, 2.28, 0.78, sd * 0.72, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              glow(gr, lp, "tail", -2.38, 1.00, sd * 0.56, 28, 0xff2a2a);
+              glow(gr, lp, "head", 2.40, 0.84, sd * 0.56, 30, 0xf2f6ff);
+            }
+            box3(gr, -2.18, 1.56, 0, 0.04, 0.03, 0.38, lp.brake);
+            glow(gr, lp, "tail", -2.22, 1.58, 0, 18, 0xff2a2a);
+            for (const xm of [-2.36, 2.34]) glow(gr, lp, "turn", xm, xm < 0 ? 0.92 : 0.78, xm < 0 ? -0.70 : -0.72, 24, 0xffb000);
             tyresT(gr, [-0.31, 0.32], 7, W);
           }
           { // 其他：機車（比汽車短，雙輪＋龍頭）
             const { gr, pm } = mkModel("moto", 0x3d4b5c);
+            const lp = mkLamps(); models.moto.lamps = lp;
             const ML = L * 0.45, dark = M(0x23262b);
             for (const fx of [-0.38, 0.38]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 3, 20), tyreM); t.rotation.x = Math.PI / 2; t.position.set(ML * fx, 7, 0); gr.add(t); }
             const frame = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.55, 3, 4), dark); frame.position.set(0, 10, 0); gr.add(frame);
@@ -1944,7 +1982,17 @@ class FloorplanV43D extends HTMLElement {
             const seat = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.26, 2.5, 6.5), dark); seat.position.set(-ML * 0.17, 13.5, 0); gr.add(seat);
             const fork = new THREE.Mesh(new THREE.BoxGeometry(1.5, 13, 1.5), dark); fork.position.set(ML * 0.36, 14, 0); fork.rotation.z = -0.25; gr.add(fork);
             const bars = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 22), dark); bars.position.set(ML * 0.33, 21, 0); gr.add(bars);
-            const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), lp.head); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
+            const tailM = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 4.2), lp.tail); tailM.position.set(-ML * 0.34, 14.2, 0); gr.add(tailM);
+            for (const sd of [-1, 1]) {
+              const tm = sd < 0 ? lp.turn : M(0x5a3a10);
+              const ft = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 6), tm); ft.position.set(ML * 0.36, 16.5, sd * 6); gr.add(ft);
+              const rt = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 6), tm); rt.position.set(-ML * 0.34, 13.6, sd * 5.5); gr.add(rt);
+            }
+            glow(gr, lp, "tail", -0.82, 0.80, 0, 22, 0xff2a2a);
+            glow(gr, lp, "head", 0.95, 0.96, 0, 26, 0xf2f6ff);
+            glow(gr, lp, "turn", -0.82, 0.77, -0.24, 18, 0xffb000);
+            glow(gr, lp, "turn", 0.86, 0.93, -0.26, 18, 0xffb000);
           }
           cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, spr, models, L, W };
           this._queueCarModels(models, L, sx, sy);      // V4.3.7：有真車模（models/*.glb）就換上去，載入失敗沿用上面的程式車模
@@ -3043,15 +3091,15 @@ class FloorplanV43D extends HTMLElement {
         const facingSt = c.f.facing_entity ? (st[c.f.facing_entity]?.state || "unknown") : "unknown";
         const CARS = { luxgen_n7: ["Luxgen N7｜休旅車", "luxgen", "EAK8030"], tesla_model3: ["Tesla Model 3｜房車", "tesla", "EBH8030"], sedan: ["未知車輛｜房車", "sedan"], suv: ["未知車輛｜休旅車", "suv"], motorcycle: ["未知車輛｜機車", "moto"] };
         const info = CARS[slot], isEmpty = slot === "empty", inside = facingSt === "inside", unk = !info && !isEmpty;
-        const kind = info ? info[1] : "tesla";                    // 認不出是哪種車：半透明的通用車模
+        const kind = info ? info[1] : "sedan";                    // 認不出是哪種車：半透明的通用房車模型
         c.g.visible = !isEmpty; c.ghost.visible = false; c.spr.visible = !isEmpty;      // 沒車：不顯示模型、虛線框與標籤
         for (const [k, m] of Object.entries(c.models || {})) {
           m.gr.visible = k === kind;
-          m.paint.transparent = unk; m.paint.opacity = unk ? 0.5 : 1;
+          m.paint.transparent = unk; m.paint.opacity = unk ? 0.65 : 1;
         }
         c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xd5dae1 : 0xd3d6db);      // 珍珠白／銀（照實車）
         c.g.rotation.y = c.baseYaw + (inside ? Math.PI : 0);      // 車頭朝內（倒車入庫）＝車模轉 180°
-        const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !!info;
+        const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !isEmpty;
         for (const m of Object.values(c.models || {})) m.paint.emissive.setHex(dep ? 0x7a4a00 : 0x000000);
         // V4.3.6 車燈：車庫分析的「車燈亮」（input_boolean.garage_lamp_<車位>）→ 尾燈／第三煞車燈／頭燈點亮；
         //   左方向燈偵測（input_datetime.garage_turn_seen_<車位>）30 秒內 → 左側方向燈一亮一滅（_tickFlow 動畫）

@@ -404,26 +404,40 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         if os.path.exists(empty_path) and res.get('occupied'):
             res['vehicle_type'] = shape_type(bg, np.load(empty_path))
         # 車燈：車尾朝向攝影機（車頭朝鐵門，door）看尾燈／煞車燈／倒車燈；車頭朝向攝影機（inside）看頭燈。
-        # 亮度（紅外線夜間）與「紅色程度」（白天煞車燈、倒車時的紅色尾燈）兩種訊號，任一明顯高於滾動基準就算亮起。
-        which = 'inside' if st.get('facing') == 'inside' else 'door'
-        lbox = s.get('lights_' + which) or s['lights']
-        lrgb = crop(arr, lbox).astype(np.float32)
-        lg = gray(lrgb)
-        level = float(np.percentile(lg, 95)) / max(wall_mean, 1.0)
-        redv = float(np.percentile(lrgb[..., 0] - np.maximum(lrgb[..., 1], lrgb[..., 2]), 95)) / 255.0
-        hist = st.setdefault('lights_hist_' + which, [])
-        rhist = st.setdefault('red_hist_' + which, [])
-        base = float(np.median(hist)) if len(hist) >= 5 else None
-        rbase = float(np.median(rhist)) if len(rhist) >= 5 else None
-        res['lights_level'] = round(level, 3)
+        # 未知車輛朝向未定時同時檢查 door 與 inside 兩區，任一區亮度或紅色程度明顯高於滾動基準就算亮起。
+        known_face = res['facing'] if res['facing'] in ('door', 'inside') else (st.get('facing') if res['identity'] in ('luxgen_n7', 'tesla_model3') and st.get('facing') in ('door', 'inside') else None)
+        rois = [known_face] if known_face else ['door', 'inside']
+        l_samples = {}
+        for w in ('door', 'inside'):
+            lbox = s.get('lights_' + w) or s['lights']
+            lrgb = crop(arr, lbox).astype(np.float32)
+            lg = gray(lrgb)
+            lv = float(np.percentile(lg, 95)) / max(wall_mean, 1.0)
+            rv = float(np.percentile(lrgb[..., 0] - np.maximum(lrgb[..., 1], lrgb[..., 2]), 95)) / 255.0
+            l_samples[w] = (lv, rv)
+        which = known_face or 'door'
+        res['lights_level'] = round(l_samples[which][0], 3)
         res['lights_roi'] = which
-        if base is not None and not exposure_changed:
-            res['lights_delta'] = round(level - base, 3)
-            res['lights_on'] = bool(res['lights_reliable'] and res['lights_delta'] > t_light)
-        if rbase is not None and not exposure_changed:
-            res['red_delta'] = round(redv - rbase, 3)
-            if res['lights_reliable'] and res['red_delta'] > thr.get('red_delta', 0.12):
-                res['lights_on'] = True
+        for w in rois:
+            lv, rv = l_samples[w]
+            hist = st.setdefault('lights_hist_' + w, [])
+            rhist = st.setdefault('red_hist_' + w, [])
+            base = float(np.median(hist)) if len(hist) >= 5 else None
+            rbase = float(np.median(rhist)) if len(rhist) >= 5 else None
+            if base is not None and not exposure_changed:
+                ld = round(lv - base, 3)
+                if w == which or ld > res.get('lights_delta', -999):
+                    res['lights_delta'] = ld
+                if res['lights_reliable'] and ld > t_light:
+                    res['lights_on'] = True
+                    res['lights_roi'] = w
+            if rbase is not None and not exposure_changed:
+                rd = round(rv - rbase, 3)
+                if w == which or rd > res.get('red_delta', -999):
+                    res['red_delta'] = rd
+                if res['lights_reliable'] and rd > thr.get('red_delta', 0.12):
+                    res['lights_on'] = True
+                    res['lights_roi'] = w
         # 位移
         if os.path.exists(ref_path) and not exposure_changed:
             ref = np.load(ref_path)
@@ -444,10 +458,13 @@ def analyse(img, roi, state, workdir, learn=True, now=None, gate_recent=False):
         # 更新滾動基準（只在「看起來靜止」時；異常時凍結，避免把變化學進基準）
         quiet = not res['lights_on'] and not res['moved'] and bool(present) and not big
         if learn and quiet and not exposure_changed:
-            hist.append(level)
-            del hist[:-HIST_KEEP]
-            rhist.append(redv)
-            del rhist[:-HIST_KEEP]
+            for w, (lv, rv) in l_samples.items():
+                hist = st.setdefault('lights_hist_' + w, [])
+                rhist = st.setdefault('red_hist_' + w, [])
+                hist.append(lv)
+                del hist[:-HIST_KEEP]
+                rhist.append(rv)
+                del rhist[:-HIST_KEEP]
             if (not os.path.exists(ref_path)) or now - st.get('ref_ts', 0) > roi.get('ref_refresh_sec', 300):
                 np.save(ref_path, bg)
                 st['ref_ts'] = now
