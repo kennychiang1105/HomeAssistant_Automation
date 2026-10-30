@@ -96,7 +96,7 @@ HELPER_RULES = [
 # 「內部狀態」：由自動化自動維護，不是給人調整的（旗標、時間戳、紀錄、計時器、計數器、記憶值…）
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
-    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_|anti_down_start)"
+    r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_|anti_down_start|anti_down_cutoff)"
     r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|garage_turn_detected|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
