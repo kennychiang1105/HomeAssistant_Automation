@@ -2,6 +2,8 @@
 # 104-5車輛準備出門偵測AI (V4.3.0-beta 1)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-10-30）：有動靜（攝影機動作中或 60 秒內、有人、出去可能性 ≥ 30%）時每 5 秒分析一次，攝影機動作一開始就立刻分析（原 15 秒）；鐵門沒關好維持 15 秒、平常每分鐘。左方向燈檢查冷卻同步縮到 5 秒（packages/v42_garage_cars.yaml）。
+#   另修正：自動開門後的 3 分鐘等待改由獨立腳本 garage_open_followup 執行，不再卡住分析（10/30 開門後分析停擺 3 分多鐘、車開走了鐵門也晚關）。
 # - V4.3.0-beta 1（2026-10-26，測試中）：隨「車輛動態辨識系統AI」掛 beta；正式版預計 V4.3.5。
 # - V4.2.5：新增。定時（平常每分鐘、有人／鐵門開著／出去可能性高時每 15 秒）呼叫 script.garage_car_watch_run 分析車庫畫面，
 #           更新前／後位車輛（Luxgen N7／Tesla Model 3）與車頭朝向，並判斷哪輛車準備出門。細節見 packages/v42_garage_cars.yaml。
@@ -16,18 +18,25 @@
     automation_version: "V4.3.0-beta 1"
   triggers:
     - trigger: time_pattern
-      seconds: "/15"
+      seconds: "/5"
+    # V4.3.6：攝影機一偵測到動作立刻分析（5 秒內檢查左方向燈）
+    - trigger: state
+      entity_id: binary_sensor.che_ku_che_ku_she_ying_ji_motion
+      to: "on"
   conditions:
     - condition: state
       entity_id: input_boolean.garage_depart_watch_enable
       state: "on"
-    # 快速模式（每 15 秒）：車庫有人、鐵門沒關好／剛動作、出去可能性偏高；其餘每分鐘一次
+    # 有動靜（攝影機動作中或 60 秒內、車庫有人、出去可能性 ≥ 30%）每 5 秒；鐵門沒關好每 15 秒；其餘每分鐘一次
     - condition: template
       value_template: >-
-        {% set fast = is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
-                      or not is_state('cover.garage', 'closed')
-                      or states('sensor.garage_depart_likelihood') | float(0) >= 30 %}
-        {{ fast or now().second < 15 }}
+        {% set s = now().second %}
+        {% set m = 'binary_sensor.che_ku_che_ku_she_ying_ji_motion' %}
+        {% set active = is_state(m, 'on') or (as_timestamp(now()) - as_timestamp(states[m].last_changed)) < 60
+                        or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
+                        or states('sensor.garage_depart_likelihood') | float(0) >= 30 %}
+        {% set fast = not is_state('cover.garage', 'closed') %}
+        {{ active or (fast and s % 15 < 5) or s < 5 }}
   actions:
     - action: script.garage_car_watch_run
 
