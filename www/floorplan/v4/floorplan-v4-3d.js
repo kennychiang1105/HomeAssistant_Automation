@@ -695,7 +695,7 @@ class FloorplanV43D extends HTMLElement {
     // 車模出處（CC-BY 4.0，需標註作者）：「Tesla M3 model」by wintrez、「Zeekr X 2025」by ItsDiyor（sketchfab.com），車漆顏色與燈光由本程式調整
     const defs = {
       tesla: { file: "tesla_model3.glb", paint: 0xe8ebee, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
-      luxgen: { file: "luxgen_n7.glb", paint: 0xf3f4f6, tail: /hongdeng/i, head: /jinshudeng\.1/i, turn: /^$/, hide: /^floor$/i, trim: true },
+      luxgen: { file: "luxgen_n7.glb", paint: 0xf3f4f6, tail: /hongdeng|n7_tail/i, head: /jinshudeng\.1|n7_head/i, turn: /n7_turn/i, hide: /^floor$/i, trim: true, n7: true },
     };
     import(LIB + "GLTFLoader.js").then(({ GLTFLoader }) => {
       const loader = new GLTFLoader();
@@ -750,9 +750,85 @@ class FloorplanV43D extends HTMLElement {
     if (!tail.isEmpty() && tail.getCenter(new T.Vector3()).x > c.x) { root.rotation.y += Math.PI; bb = visBox(); }
     const ctr = bb.getCenter(new T.Vector3());
     root.position.sub(new T.Vector3(ctr.x, bb.min.y, ctr.z));
-    const fin = visBox();
+    let fin = visBox();
     piv.updateMatrixWorld(true);
+    if (d.n7) this._dressN7(T, piv, root, fin, boxOf, d);
+    fin = visBox();
     return { piv, d, len: fin.getSize(new T.Vector3()).x, box: fin, tailBox: boxOf(d.tail), headBox: boxOf(d.head) };
+  }
+
+  // V4.3.7：用 Zeekr X 車模改出 Luxgen N7 的樣子（照官方前／後照片）：
+  //   ①輪子：原車模只有左前一顆（還疊了好幾種輪圈），全部藏起來，四個角重做 N7 的黑色多輻輪圈＋輪胎
+  //   ②車頭：貫穿式細燈條＋中間 LUXGEN 黑色字帶、兩側尖型頭燈、下方黑色梯形進氣格柵、白色 n7 車牌
+  //   ③車尾：兩側燈組＋中間黑色飾條、第三煞車燈、黑色下保桿、白色 n7 車牌
+  _dressN7(T, piv, root, bb, boxOf, d) {
+    const len = bb.max.x - bb.min.x, wid = bb.max.z - bb.min.z, hgt = bb.max.y - bb.min.y;
+    // ① 輪子位置：從原本那顆輪胎量半徑與寬度；前後軸取左前輪胎與後輪輪圈標誌的位置
+    let tyre = null; const logos = [];
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const n = o.material?.name || "";
+      if (/luntai/i.test(n) && !tyre) tyre = new T.Box3().setFromObject(o);
+      if (/hublogo/i.test(o.name)) logos.push(new T.Box3().setFromObject(o).getCenter(new T.Vector3()));
+    });
+    const R = tyre ? (tyre.max.y - tyre.min.y) / 2 : hgt * 0.24;
+    const tw = tyre ? (tyre.max.z - tyre.min.z) : wid * 0.12;
+    const fx = tyre ? (tyre.min.x + tyre.max.x) / 2 : bb.max.x - len * 0.2;
+    const rx = logos.filter((p) => p.x < 0).reduce((a, p, i, arr) => a + p.x / arr.length, 0) || (bb.min.x + len * 0.2);
+    const zc = logos.length ? Math.max(...logos.map((p) => Math.abs(p.z))) - tw / 2 : wid / 2 - tw / 2;
+    root.traverse((o) => {          // 藏掉原本的輪子（輪胎、輪圈、輪圈標誌），車尾標誌留著
+      if (!o.isMesh || /^trunk/i.test(o.name)) return;
+      if (/luntai|lunguhei|lungujinshu|hublogo|^Cylinder0(08|22|23)|^Object0(2[1-9]|3[01])|^Shape01|^Rectangle003/i.test((o.material?.name || "") + "|" + o.name)) {
+        const c = new T.Box3().setFromObject(o).getCenter(new T.Vector3());
+        if (Math.abs(c.z) > wid * 0.25 && c.y < R * 2.2) o.visible = false;
+      }
+    });
+    const rubber = new T.MeshStandardMaterial({ color: 0x15161a, roughness: 0.85, metalness: 0 });
+    const rimM = new T.MeshStandardMaterial({ name: "n7_rim", color: 0x111214, roughness: 0.25, metalness: 0.6 });
+    const capM = new T.MeshStandardMaterial({ color: 0x8b9099, roughness: 0.3, metalness: 0.8 });
+    const wheel = () => {
+      const w = new T.Group();
+      const t = new T.Mesh(new T.CylinderGeometry(R, R, tw, 40), rubber); t.rotation.x = Math.PI / 2; w.add(t);
+      const rim = new T.Mesh(new T.CylinderGeometry(R * 0.66, R * 0.66, tw * 1.02, 40), rimM); rim.rotation.x = Math.PI / 2; w.add(rim);
+      for (let i = 0; i < 10; i++) {            // 雙五輻（N7 的黑色多輻輪圈）
+        const a = (i / 10) * Math.PI * 2 + (i % 2 ? 0.16 : 0);
+        const sp = new T.Mesh(new T.BoxGeometry(R * 0.6, R * 0.07, tw * 0.12), rimM);
+        sp.position.set(Math.cos(a) * R * 0.33, Math.sin(a) * R * 0.33, 0); sp.rotation.z = a; w.add(sp);
+      }
+      const cap = new T.Mesh(new T.CylinderGeometry(R * 0.12, R * 0.12, tw * 1.05, 20), capM); cap.rotation.x = Math.PI / 2; w.add(cap);
+      return w;
+    };
+    for (const x of [fx, rx]) for (const sd of [-1, 1]) {
+      const w = wheel(); w.position.set(x, R, sd * zc);
+      for (const ch of w.children) if (ch.geometry?.type === "BoxGeometry") ch.position.z = sd * tw * 0.47;      // 輻條在外側面
+      piv.add(w);
+    }
+    // ②③ 車頭／車尾外觀（貼在車模表面外側一點點）
+    const head = boxOf(d.head), tail = boxOf(d.tail);
+    const hy = head.isEmpty() ? bb.min.y + hgt * 0.52 : (head.min.y + head.max.y) / 2;
+    const ty = tail.isEmpty() ? bb.min.y + hgt * 0.62 : (tail.min.y + tail.max.y) / 2;
+    const add = (mat, x, y, z, sx, sy, sz) => { const m = new T.Mesh(new T.BoxGeometry(sx, sy, sz), mat); m.position.set(x, y, z); piv.add(m); return m; };
+    const headM = new T.MeshStandardMaterial({ name: "n7_head", color: 0xe9eef5, roughness: 0.2, metalness: 0.1, emissive: 0x000000 });
+    const tailM = new T.MeshStandardMaterial({ name: "n7_tail", color: 0x7a1414, roughness: 0.3, metalness: 0.1, emissive: 0x000000 });
+    const blk = new T.MeshStandardMaterial({ color: 0x0e0f11, roughness: 0.35, metalness: 0.2 });
+    const plate = new T.MeshStandardMaterial({ color: 0xf2f3f5, roughness: 0.5 });
+    const fxm = bb.max.x, rxm = bb.min.x, e = len * 0.004;
+    add(headM, fxm - e, hy, 0, len * 0.012, hgt * 0.022, wid * 0.80);                // 車頭貫穿式細燈條
+    add(blk, fxm - e * 0.5, hy - hgt * 0.035, 0, len * 0.012, hgt * 0.035, wid * 0.36);        // LUXGEN 黑色字帶
+    for (const sd of [-1, 1]) add(headM, fxm - e * 3, hy - hgt * 0.01, sd * wid * 0.33, len * 0.03, hgt * 0.045, wid * 0.17);   // 兩側尖型頭燈
+    add(blk, fxm - e * 4, bb.min.y + hgt * 0.22, 0, len * 0.02, hgt * 0.12, wid * 0.55);       // 下方黑色梯形進氣格柵
+    add(plate, fxm - e * 2, bb.min.y + hgt * 0.36, 0, len * 0.008, hgt * 0.075, wid * 0.2);   // 前車牌 n7
+    for (const sd of [-1, 1]) add(tailM, rxm + e * 2, ty, sd * wid * 0.36, len * 0.02, hgt * 0.04, wid * 0.17);    // 車尾兩側燈組
+    add(blk, rxm + e, ty + hgt * 0.005, 0, len * 0.012, hgt * 0.03, wid * 0.52);              // 尾燈中間黑色飾條
+    add(tailM, rxm + len * 0.08, bb.max.y - hgt * 0.03, 0, len * 0.02, hgt * 0.012, wid * 0.2);   // 第三煞車燈
+    add(blk, rxm + e * 3, bb.min.y + hgt * 0.24, 0, len * 0.02, hgt * 0.14, wid * 0.7);       // 黑色下保桿
+    add(plate, rxm + e * 1.5, bb.min.y + hgt * 0.36, 0, len * 0.008, hgt * 0.075, wid * 0.2); // 後車牌 n7
+    const turnM = new T.MeshStandardMaterial({ name: "n7_turn", color: 0x6b4a14, roughness: 0.3, emissive: 0x000000 });
+    for (const sd of [-1, 1]) {                                                                // 方向燈段（兩側都有；狀態只會點亮材質，兩側一起亮）
+      add(turnM, fxm - e * 3.5, hy - hgt * 0.04, sd * wid * 0.41, len * 0.02, hgt * 0.02, wid * 0.05);
+      add(turnM, rxm + e * 2.5, ty - hgt * 0.035, sd * wid * 0.42, len * 0.02, hgt * 0.02, wid * 0.06);
+    }
+    piv.updateMatrixWorld(true);
   }
 
   _applyCarModels() {
@@ -1095,10 +1171,11 @@ class FloorplanV43D extends HTMLElement {
           add(new THREE.CylinderGeometry(2.2, 2.2, 6, 12), glow, ox, 34 - len - 3.5, 0);
         }
       } else if (/車庫主燈/.test(n)) {                            // 1F photo: two flat rectangular LED panels on the ceiling
-        for (const ox of [-55, 55]) {
-          add(new THREE.BoxGeometry(46, 1.2, 24), M(0xdfe2e6), ox, 33.4, 0);
-          add(new THREE.BoxGeometry(42, 0.4, 20), glow, ox, 32.7, 0);
-          add(new THREE.BoxGeometry(40, 0.3, 18), glow, ox, 34.1, 0);                     // lit face also visible from the top-down camera
+        // V4.3.7：轉 90°（兩片沿車位方向排列），並抬高到真車模車頂上方（車高約 60），免得燈板插進車裡
+        for (const oz of [-55, 55]) {
+          add(new THREE.BoxGeometry(24, 1.2, 46), M(0xdfe2e6), 0, 66.4, oz);
+          add(new THREE.BoxGeometry(20, 0.4, 42), glow, 0, 65.7, oz);
+          add(new THREE.BoxGeometry(18, 0.3, 40), glow, 0, 67.1, oz);                     // lit face also visible from the top-down camera
         }
       } else if (/燈組|頂樓燈|主燈/.test(n)) {
         add(new THREE.CylinderGeometry(0.4, 0.4, 6, 6), metal, 0, 31, 0);
