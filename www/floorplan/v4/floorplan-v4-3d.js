@@ -947,8 +947,10 @@ class FloorplanV43D extends HTMLElement {
     }
 
     // plan geometry: walls from black fills; anything inside a modelled item / stair is replaced by the model
+    // V4.3.8：若 chair 在 furniture.yaml 手動移過位置（如 5F 辦公椅對齊雙螢幕），連同平面圖原本畫的舊椅子底圖一併蓋掉，不在地上留灰色殘影
     const inRect = (b, r, pad = 3) => b.x0 >= r.x - pad && b.x1 <= r.x + r.w + pad && b.y0 >= r.y - pad && b.y1 <= r.y + r.h + pad;
-    const covered = (b) => furnitureBoxes.some((r) => inRect(b, r)) || (fl.stairs || []).some((r) => inRect(b, r));
+    const chairShadows = furnitureBoxes.filter((_, i) => (fl.furniture || [])[i]?.type === "chair").map((r) => ({ x: r.x - 30, y: r.y - 40, w: r.w + 60, h: r.h + 85 }));
+    const covered = (b) => furnitureBoxes.some((r) => inRect(b, r)) || chairShadows.some((r) => inRect(b, r)) || (fl.stairs || []).some((r) => inRect(b, r));
     const data = loader.parse(svgText);
     const walls = [];
     for (const path of data.paths) {
