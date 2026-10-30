@@ -3,6 +3,8 @@
 
 POST /analyze?slots=front=x0,y0,x1,y1;back=...   body=JPEG  → 每個車位的偵測框、身分（樣板庫 kNN）、車型（零樣本）
      （V0.2.0）回傳多一個 plates（整張畫面讀到的車牌）與每車位的 plate（RapidOCR；plate=0 可關閉）
+     （V0.4.0）occ=1：每車位多回傳 occ（有車機率，/data/occ_model.json 的學習式判斷）；persons_only=1&pose=1：人物含 17 個姿態關鍵點（/data/yolo11m-pose.onnx）
+     （V0.5.0）車輛偵測合併 /data/garage_car.onnx（車庫畫面微調版）
 POST /learn?slot=front&label=luxgen_n7:inside&slots=...  body=JPEG → 把這個車位的車存進樣板庫
 POST /forget?label=luxgen_n7:inside
 GET  /health、GET /gallery
@@ -61,6 +63,122 @@ def save_gallery(g):
 
 PERSON_CONF = 0.30
 LAST = {"persons": []}
+
+# V0.4.0：車位「有沒有車」學習式判斷（固定車位框的 CLIP 特徵 → 邏輯迴歸，權重在 /data/occ_model.json，重啟不用重建映像）
+OCC = {"mtime": 0, "m": {}}
+
+
+def occ_model():
+    p = os.path.join(DATA, "occ_model.json")
+    try:
+        mt = os.path.getmtime(p)
+        if mt != OCC["mtime"]:
+            with open(p, encoding="utf-8") as f:
+                OCC["m"] = json.load(f)
+            OCC["mtime"] = mt
+    except Exception:
+        OCC["m"] = {}
+    return OCC["m"]
+
+
+def occ_prob(img, slot, box):
+    m = occ_model().get(slot)
+    if not m:
+        return None
+    e = embed(crop(img, box))
+    z = float(np.dot(np.asarray(m["w"], dtype=np.float32), e) + m["b"])
+    return 1.0 / (1.0 + np.exp(-z))
+
+
+# V0.4.0：人體姿態（YOLO11-pose ONNX，放在 /data/yolo11m-pose.onnx；沒有檔案就停用）。回傳每個人的框＋17 個關鍵點（比例座標、信心）
+POSE = {"s": None, "tried": False}
+
+
+def pose_session():
+    if not POSE["tried"]:
+        POSE["tried"] = True
+        p = os.path.join(DATA, "yolo11m-pose.onnx")
+        if os.path.exists(p):
+            try:
+                POSE["s"] = ort.InferenceSession(p, so, providers=["CPUExecutionProvider"])
+            except Exception as e:  # noqa: BLE001
+                print("pose disabled:", e, flush=True)
+    return POSE["s"]
+
+
+def detect_pose(img, conf=0.25, iou=0.5):
+    ps = pose_session()
+    if ps is None:
+        return None
+    W, H = img.size
+    s = 640 / max(W, H)
+    nw, nh = round(W * s), round(H * s)
+    px, py = (640 - nw) // 2, (640 - nh) // 2
+    canvas = Image.new("RGB", (640, 640), (114, 114, 114))
+    canvas.paste(img.resize((nw, nh), Image.BILINEAR), (px, py))
+    x = np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1)[None] / 255.0
+    out = ps.run(None, {ps.get_inputs()[0].name: x})[0][0]          # (56, N)：cx,cy,w,h,conf,17*(x,y,v)
+    sc = out[4]
+    persons = []
+    for i in sorted(np.where(sc > conf)[0], key=lambda k: -sc[k]):
+        cx, cy, w, h = out[:4, i]
+        b = [(cx - w / 2 - px) / s / W, (cy - h / 2 - py) / s / H, (cx + w / 2 - px) / s / W, (cy + h / 2 - py) / s / H]
+        b = [float(min(max(v, 0.0), 1.0)) for v in b]
+        if any(iou_of(b, d["box"]) > iou for d in persons):
+            continue
+        kp = out[5:, i].reshape(17, 3)
+        persons.append({"conf": round(float(sc[i]), 3), "box": [round(v, 4) for v in b],
+                        "kp": [[round(float(min(max((k[0] - px) / s / W, 0.0), 1.0)), 4), round(float(min(max((k[1] - py) / s / H, 0.0), 1.0)), 4), round(float(k[2]), 3)] for k in kp]})
+    return persons
+
+
+# V0.5.0：用你家車庫畫面微調的車輛偵測（YOLO11m，只有 car／person 兩類，/data/garage_car.onnx）。/analyze 時和原本的車輛偵測結果合併
+# （框重疊就取信心高的），人物仍只用原本的模型，頂樓 persons_only 路徑完全不跑它。紅外線夜間後位近距離的車，原模型約 88% 偵測得到，
+# 微調後 100%（10/29～10/30 驗證集）。沒有這個檔案就停用。
+FT = {"s": None, "tried": False}
+
+
+def ft_session():
+    if not FT["tried"]:
+        FT["tried"] = True
+        p = os.path.join(DATA, "garage_car.onnx")
+        if os.path.exists(p):
+            try:
+                FT["s"] = ort.InferenceSession(p, so, providers=["CPUExecutionProvider"])
+            except Exception as e:  # noqa: BLE001
+                print("ft disabled:", e, flush=True)
+    return FT["s"]
+
+
+def merge_ft(dets, img, conf=0.3, iou=0.5):
+    fs = ft_session()
+    if fs is None:
+        return dets
+    W, H = img.size
+    s = 640 / max(W, H)
+    nw, nh = round(W * s), round(H * s)
+    px, py = (640 - nw) // 2, (640 - nh) // 2
+    canvas = Image.new("RGB", (640, 640), (114, 114, 114))
+    canvas.paste(img.resize((nw, nh), Image.BILINEAR), (px, py))
+    x = np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1)[None] / 255.0
+    out = fs.run(None, {fs.get_inputs()[0].name: x})[0][0]          # (6, N)：cx,cy,w,h,car,person
+    sc = out[4]
+    fdets = []
+    for i in sorted(np.where(sc > conf)[0], key=lambda k: -sc[k]):
+        cx, cy, w, h = out[:4, i]
+        b = [(cx - w / 2 - px) / s / W, (cy - h / 2 - py) / s / H, (cx + w / 2 - px) / s / W, (cy + h / 2 - py) / s / H]
+        b = [float(min(max(v, 0.0), 1.0)) for v in b]
+        if any(iou_of(b, d["box"]) > iou for d in fdets):
+            continue
+        fdets.append({"cls": "car", "conf": round(float(sc[i]), 3), "box": [round(v, 4) for v in b]})
+    dets = list(dets)
+    for f in fdets:
+        j = next((k for k, d in enumerate(dets) if d["cls"] == "car" and iou_of(f["box"], d["box"]) > 0.5), None)
+        if j is None:
+            dets.append(f)
+        elif f["conf"] > dets[j]["conf"]:
+            dets[j] = f
+    return dets
 
 
 def detect(img, conf=0.25, iou=0.5):
@@ -241,6 +359,12 @@ class H(BaseHTTPRequestHandler):
             img = Image.open(io.BytesIO(body)).convert("RGB")
             slots = parse_slots(q)
             with LOCK:
+                # V0.4.0：姿態版人物偵測（頂樓追蹤用）：pose=1 且有姿態模型時改回傳含 17 個關鍵點的人物，不跑車輛偵測
+                if u.path == "/analyze" and q.get("persons_only", ["0"])[0] == "1" and q.get("pose", ["0"])[0] == "1":
+                    pp = detect_pose(img)
+                    if pp is not None:
+                        return self._send(200, {"ts": int(time.time()), "size": list(img.size), "persons": pp, "pose": True,
+                                                "ms": int((time.time() - t0) * 1000)})
                 dets = detect(img)
                 # 只要人物偵測（頂樓攝影機逐秒分析用）：跳過車牌 OCR、CLIP 車型與樣板比對，快很多
                 if u.path == "/analyze" and q.get("persons_only", ["0"])[0] == "1":
@@ -260,6 +384,8 @@ class H(BaseHTTPRequestHandler):
                     g.append({"label": label, "emb": [round(float(v), 5) for v in e], "ts": time.time()})
                     save_gallery(g)
                     return self._send(200, {"learned": label, "slot": slot, "det": d, "gallery": len(g)})
+                if u.path in ("/analyze", "/learn"):
+                    dets = merge_ft(dets, img)
                 if u.path == "/analyze":
                     gal = load_gallery()
                     res = {"ts": int(time.time()), "size": list(img.size), "dets": dets, "slots": {}}
@@ -276,6 +402,11 @@ class H(BaseHTTPRequestHandler):
                         # 車牌屬於這個車位：車牌中心落在該車位的偵測框內（沒偵測到車就看車位框）
                         area = d["box"] if d else box
                         r["_area"] = area
+                        # V0.4.0：occ=1 時多回傳「這個車位有車的機率」（學習式，不受日夜／紅外線／車燈影響）
+                        if q.get("occ", ["0"])[0] == "1":
+                            po = occ_prob(img, name, box)
+                            if po is not None:
+                                r["occ"] = round(float(po), 3)
                         res["slots"][name] = r
                     # 一塊車牌只屬於一個車位：包含它的框中面積最小的那個（前景大車的框常蓋住後方車的車牌）
                     for p in plates:

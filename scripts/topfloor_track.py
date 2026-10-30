@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""頂樓攝影機逐秒人物軌跡分析（V4.3.4-beta 3）
+"""頂樓攝影機逐秒人物軌跡分析（V4.3.6）
+V4.3.6：改用人體姿態模型找人（Garage Vision 0.4.0 pose=1，近 3 天 120 段錄影上樓偵測 24→27／28 段、去向臥室 26→34 段）；另新增「框高縮小」下樓規則（descend_on，預設關）：用近 3 天錄影驗證 up 判斷不受影響（27/27）、能濾掉走向鏡頭的誤判，但涵蓋不到「從房門走向樓梯」的走法，所以先不啟用。
+
 
 流程：動靜期間每秒一張快照 → Garage Vision add-on（persons_only=1，只跑 YOLO 人物偵測）→ 這支腳本累積軌跡並「提早決定」方向。
   上樓（up）：人在樓梯口往走道（畫面右側）離開；下樓（down）：人往畫面左下的樓梯口走進去；
@@ -25,6 +27,12 @@ import urllib.request
 DEFAULT_CFG = {
     'fire_dirs': ['up'],       # 哪些方向可以「提早決定」並發事件。下樓（down）先不發：回放 25 段沒有上下樓標籤的走道錄影，down 誤報 9 段（走道上走向鏡頭也會符合），
                                # 召回又只有 2/9，等累積更多標籤與規則調準再開；down 仍會輸出在 dir／最後分類供記錄
+    'descend_on': False,       # V4.3.6：用「框高縮小」判斷下樓（取代走向鏡頭／往左就算下樓的舊規則）。預設關：舊規則的「從房門走向樓梯」（10/23 實錄）屬於另一種下樓走法，新規則還沒涵蓋，需更多實測再合併兩種
+    'descend_min_det': 6,
+    'descend_h0': 0.45,
+    'descend_dh': 0.20,
+    'descend_x': 0.45,
+    'descend_dx': 0.20,
     'min_conf': 0.35,          # 人物偵測最低信心
     'idle_reset_s': 15,        # 超過這麼久沒有新幀，軌跡歸零
     'none_frames': 4,          # 連續幾幀都沒人 → none
@@ -102,6 +110,12 @@ def decide(frames, cfg):
     # 下樓：①從遠處（腳還看得到、y 不貼底）走向鏡頭／樓梯口（y 變大、框變高）；②往左進入樓梯口並逐漸沉下去
     approach = len(det) >= 2 and first['y'] <= cfg['far_y'] and (last['y'] - first['y']) >= cfg['approach_dy'] and (last['h'] - first['h']) >= cfg['approach_dh']
     to_stairs = len(det) >= cfg['down_min_det'] and cur <= cfg['down_x'] and (mx - cur) >= cfg['down_dx']
+    # V4.3.6：下樓＝人從走道站著往左走進樓梯口，身體高度越來越矮（頭沉到樓梯口下面）。用「框高縮小」區分走向鏡頭（框高變大）造成的誤判；
+    #   用 10/27～10/29 共 120 段頂樓錄影（姿態模型偵測）調出：起點框高 ≥0.45、框高縮小 ≥0.2、往左位移 ≥0.2、最後 x ≤0.45、至少 6 幀
+    if cfg.get('descend_on'):
+        approach = False
+        to_stairs = (len(det) >= cfg['descend_min_det'] and first['h'] >= cfg['descend_h0'] and (first['h'] - last['h']) >= cfg['descend_dh']
+                     and cur <= cfg['descend_x'] and (xs[0] - cur) >= cfg['descend_dx'])
     dn = approach or to_stairs
     if emerge:
         dn = False      # 頭肩從畫面底邊冒出來＝爬樓梯上來，優先於其他下樓規則
@@ -209,7 +223,8 @@ class Tracker:
 
 def vision_persons(url, jpg_path, timeout=20):
     data = open(jpg_path, 'rb').read()
-    req = urllib.request.Request(url.rstrip('/') + '/analyze?slots=front=0,0,1,1&plate=0&persons_only=1', data=data,
+    # V4.3.6：pose=1＝用人體姿態模型（YOLO11-pose）找人；add-on 沒有姿態模型時自動退回一般人物偵測，格式相同（框＋信心，另多 kp 關鍵點）
+    req = urllib.request.Request(url.rstrip('/') + '/analyze?slots=front=0,0,1,1&plate=0&persons_only=1&pose=1', data=data,
                                  headers={'Content-Type': 'image/jpeg'})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r).get('persons', [])
@@ -314,7 +329,7 @@ def selftest():
     f, fin = _run_seq([(0.67, 0.78, 0.37), (0.69, 0.89, 0.70), (0.57, 0.99, 0.79), (0.69, 0.89, 0.73)], cfg)
     if not f or f[0][1] != 'down':
         errors.append('走向樓梯沒判成 down：%s' % f)
-    # 最後去向：往右走到房門口消失＝臥室；從右邊緣往左走到房門口消失＝書房；往左下樓梯口消失＝下樓；位移太小不猜
+    # V4.3.6 框高縮小下樓規則（descend_on）：站在走道（框高 0.65）往左走進樓梯口、框高縮到 0.3（t050 10/27 22:53 實錄的形狀）\n    dcfg = dict(cfg, descend_on=True)\n    f, fin = _run_seq([(0.72, 0.99, 0.65), (0.66, 0.99, 0.62), (0.6, 0.99, 0.55), (0.54, 0.99, 0.5), (0.48, 0.99, 0.42), (0.43, 1.0, 0.36), (0.4, 1.0, 0.3)], dcfg)\n    if not f or f[0][1] != 'down':\n        errors.append('框高縮小下樓沒判成 down：%s' % f)\n    # 走向鏡頭（框高變大）不是下樓\n    f, fin = _run_seq([(0.5, 0.7, 0.3), (0.46, 0.8, 0.4), (0.43, 0.9, 0.5), (0.42, 0.97, 0.62), (0.4, 1.0, 0.7), (0.4, 1.0, 0.75)], dcfg)\n    if f and f[0][1] == 'down':\n        errors.append('走向鏡頭被判成 down：%s' % f)\n    # 最後去向：往右走到房門口消失＝臥室；從右邊緣往左走到房門口消失＝書房；往左下樓梯口消失＝下樓；位移太小不猜
     def exits(seq):
         tr, out = Tracker(cfg), []
         for i, p in enumerate(seq):

@@ -200,7 +200,7 @@ def apply_vision(a, roi, state, out, jpg, now):
     if not need:
         return {'skipped': True}
     try:
-        res = vision_call(a.vision, '/analyze', slots_query(roi), jpg)
+        res = vision_call(a.vision, '/analyze', slots_query(roi) + '&occ=1', jpg)
     except Exception as e:  # noqa: BLE001
         return {'error': str(e)[:120]}
     v['ts'] = now
@@ -230,6 +230,26 @@ def apply_vision(a, roi, state, out, jpg, now):
             r['identity'] = 'unknown'
             ss0['present'] = False
             ss0['vis_empty'] = 0
+        # V4.3.6：學習式「車位有沒有車」（add-on 回傳 occ＝固定車位框的 CLIP 特徵→邏輯迴歸，用近 5 天真實畫面訓練，不受日夜／紅外線／車燈／開門光線影響）。
+        #   連續 2 次（只在有問 add-on 的週期計次）都很有把握：occ ≤ 0.2 → 判成空位；occ ≥ 0.8 → 判成有車。其餘沿用原本的像素＋模型判斷。
+        po = vr.get('occ')
+        if po is not None:
+            s['occ'] = po
+            ss0['occ_empty_n'] = (ss0.get('occ_empty_n', 0) + 1) if po <= 0.2 else 0
+            ss0['occ_full_n'] = (ss0.get('occ_full_n', 0) + 1) if po >= 0.8 else 0
+            if r.get('present') and ss0['occ_empty_n'] >= 2 and not (d and d['conf'] >= 0.5):
+                r['present'] = False
+                r['occupied'] = False
+                r['vision_empty'] = True
+                r['identity'] = 'unknown'
+                ss0['present'] = False
+                ss0['occ_empty_n'] = 0
+            elif (not r.get('present')) and ss0['occ_full_n'] >= 2:
+                r['present'] = True
+                r['occupied'] = True
+                ss0['present'] = True
+                ss0['arrived_ts'] = now
+                ss0['occ_full_n'] = 0
         if d and d['conf'] >= 0.5:
             # 用偵測框中心的位移確認「車真的動了」：人走動擋到車身會讓相位位移很大，但框幾乎不動 → 不算車動
             ss_ = state.setdefault('slots', {}).setdefault(name, {})
