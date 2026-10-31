@@ -111,10 +111,12 @@ def detect_pose(img, conf=0.25, iou=0.5):
     if ps is None:
         return None
     W, H = img.size
-    s = 640 / max(W, H)
+    shp = ps.get_inputs()[0].shape                                   # V0.5.2：支援長方形輸入（384×640，16:9 畫面少算一半的灰邊，約快 40%）
+    IH, IW = (int(shp[2]), int(shp[3])) if isinstance(shp[2], int) else (640, 640)
+    s = min(IW / W, IH / H)
     nw, nh = round(W * s), round(H * s)
-    px, py = (640 - nw) // 2, (640 - nh) // 2
-    canvas = Image.new("RGB", (640, 640), (114, 114, 114))
+    px, py = (IW - nw) // 2, (IH - nh) // 2
+    canvas = Image.new("RGB", (IW, IH), (114, 114, 114))
     canvas.paste(img.resize((nw, nh), Image.BILINEAR), (px, py))
     x = np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1)[None] / 255.0
     out = ps.run(None, {ps.get_inputs()[0].name: x})[0][0]          # (56, N)：cx,cy,w,h,conf,17*(x,y,v)

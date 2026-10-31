@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta11) - real 3D view
+/* Floorplan V4.1.0 (UI4.0-beta12) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -11,6 +11,12 @@
 const KEY = "floorplan_v4_floor";
 const EVT = "floorplan-v4-floor";
 const LIB = new URL("./lib/", import.meta.url).href;
+// V4.3.7 車燈：程式車模是單一 MeshBasicMaterial（直接換顏色）；glTF 真車模是一組 PBR 材質（用自發光點亮，關燈時回到原本顏色）
+const carLamp = (m, on, onHex, offHex) => {
+  if (!m) return;
+  if (Array.isArray(m)) { for (const x of m) { if (x.emissive) { x.emissive.setHex(on ? onHex : 0x000000); x.emissiveIntensity = on ? 2.2 : 1; } } return; }
+  m.color.setHex(on ? onHex : offHex);
+};
 let threePromise = null;
 const loadThree = () => {
   threePromise = threePromise || Promise.all([
@@ -249,7 +255,7 @@ class FloorplanV43D extends HTMLElement {
                        background:rgba(120,120,128,.16); color:var(--primary-text-color); cursor:pointer; }
         .tabs button.on { background:#FFB900; color:#111; }
         .wrap { position:relative; height:${(cfg.height || "70vh").replace(/dvh/g, "vh")}; height:${cfg.height || "70vh"}; border-radius:16px; overflow:hidden;
-                background:radial-gradient(ellipse at 50% 35%, #2a2f3a 0%, #14161b 70%); }
+                background:radial-gradient(ellipse at 50% 30%, #34322f 0%, #1a1918 72%); }   /* V4.3.6：暖石墨色 */
         canvas { width:100%; height:100%; display:block; touch-action:none; outline:none; }
         .spots { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .pin { position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; --off:24px;
@@ -296,7 +302,7 @@ class FloorplanV43D extends HTMLElement {
           -webkit-tap-highlight-color:transparent; }
         .scn button:active, .zones button:active, .tools button:active, .seg button:active, .chips button:active {
           scale:0.96; filter:brightness(1.15); }
-        .wrap.light { background:radial-gradient(ellipse at 50% 35%, #ffffff 0%, #dde3ec 78%); }
+        .wrap.light { background:radial-gradient(rgba(60,50,40,.07) 1px, transparent 1.2px) 0 0/18px 18px, radial-gradient(ellipse at 8% 6%, #fbe1d3 0%, rgba(251,225,211,0) 46%), radial-gradient(ellipse at 96% 12%, #dbe7f4 0%, rgba(219,231,244,0) 50%), radial-gradient(ellipse at 88% 96%, #edf3d6 0%, rgba(237,243,214,0) 46%), #f7f4ee; }   /* V4.3.6：建築模型風淡色漸層＋點格 */
         .wrap.light .tag { background:rgba(255,255,255,.95); border-color:rgba(0,0,0,.16); color:#16181d; box-shadow:0 2px 8px rgba(0,0,0,.16); }
         .wrap.light .tag:active, .wrap.light .tag.tapping { background:rgba(240,243,248,.98); border-color:rgba(0,0,0,.3); }
         .wrap.light .pin:not(.on):not(.trig):not(.alert):not(.env):not(.stair):not(.cam):not(.ap) .ic { background:#e4e8ef; color:#2b303a; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
@@ -379,7 +385,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta11</div>
+        <div class="ver">UI4.0-beta12</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -554,14 +560,26 @@ class FloorplanV43D extends HTMLElement {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
     renderer.localClippingEnabled = true;
+    // V4.3.6 質感升級（建築模型風）：ACES 色調、柔和陰影、暖白主光＋天空／地面反光，背景改淡色漸層（見 .wrap 樣式）
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this._renderer = renderer;
     const scene = new THREE.Scene();
     this._scene = scene;
-    scene.add(new THREE.HemisphereLight(0xe6edff, 0x2a2e38, 1.05));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+    scene.add(new THREE.HemisphereLight(0xfdfbf7, 0xd2c6b4, 0.88));
+    const sun = new THREE.DirectionalLight(0xfff1dd, 1.85);
     sun.position.set(-300, 650, 420);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 1.2;
+    sun.shadow.radius = 5;
     scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
+    scene.add(sun.target);
+    this._sun = sun;
+    const fill = new THREE.DirectionalLight(0xdfe8ff, 0.32);
     fill.position.set(400, 300, -300);
     scene.add(fill);
     const cam = new THREE.PerspectiveCamera(38, 1, 5, 6000);
@@ -608,6 +626,7 @@ class FloorplanV43D extends HTMLElement {
     const actText = await (await fetch(actFl.plan)).text();
     this._groups[active] = this._buildFloor(THREE, loader, actText, actFl, actIdx);
     scene.add(this._groups[active].group);
+    this._styleGroup(this._groups[active].group);
 
     root.querySelector(".msg")?.remove();
     this._ready = true;
@@ -627,6 +646,7 @@ class FloorplanV43D extends HTMLElement {
         this._groups[n] = this._buildFloor(THREE, loader, await res.text(), fl, names.indexOf(n));
         this._groups[n].group.visible = this._floor === "全棟" || this._floor === n;
         scene.add(this._groups[n].group);
+        this._styleGroup(this._groups[n].group);
         this._applyOverrides(false);
         if (this._floor === "全棟" || this._floor === n) this._applyFloor();
       } catch (e) {
@@ -637,6 +657,205 @@ class FloorplanV43D extends HTMLElement {
     rest.forEach((n) => loadFloor(n));
   }
 
+  // V4.3.6 質感升級：實心模型投射／接收柔和陰影（半透明、線條、標籤、發光貼圖不投影），樓層底下加一塊只顯示陰影的地面，
+  //   並把太陽的陰影範圍調到涵蓋目前已載入的所有樓層
+  _styleGroup(group) {
+    const THREE = this._T;
+    group.updateMatrixWorld(true);
+    group.traverse((o) => {
+      if (!o.isMesh || o.userData.noShadow) return;
+      const m = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!m || m.isMeshBasicMaterial || m.isSpriteMaterial || m.isShadowMaterial) return;
+      o.receiveShadow = true;
+      o.castShadow = !(m.transparent && m.opacity < 0.95);
+    });
+    const bb = new THREE.Box3().setFromObject(group);
+    if (bb.isEmpty()) return;
+    const size = bb.getSize(new THREE.Vector3()), ctr = bb.getCenter(new THREE.Vector3());
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 2.2 + 400, size.z * 2.2 + 400), new THREE.ShadowMaterial({ opacity: 0.22 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(ctr.x - group.position.x, bb.min.y - group.position.y - 0.3, ctr.z - group.position.z);
+    ground.receiveShadow = true; ground.userData.noShadow = true; ground.renderOrder = -1;
+    group.add(ground);
+    group.userData.ground = ground;
+    group.userData.bbLocal = bb.clone().translate(group.position.clone().negate());     // 不含陰影地面的範圍（樓層位置改變時重算陰影用）
+    this._fitSun();
+  }
+
+  // V4.3.7 真車模：Tesla Model 3、Luxgen N7（以外型相近的 Zeekr X 代替）用 Sketchfab CC-BY 的 glTF 車模（www/floorplan/v4/models/），
+  //   載入一次後每個車位各複製一份（幾何共用、材質各自一份，才能各自亮燈）。自動判斷車頭方向（白色頭燈在前、紅色尾燈在後），
+  //   縮放到車位長度、車底貼地；車漆改成實車顏色並加環境反光；尾燈／頭燈／方向燈材質接到原本的車燈狀態（lamps 介面不變）。
+  _queueCarModels(models, L, sx, sy) {
+    (this._carSlots = this._carSlots || []).push({ models, L, sx, sy });
+    if (this._carTpl) { this._applyCarModels(); return; }
+    if (this._carLoading) return;
+    this._carLoading = true;
+    const T = this._T;
+    const base = new URL("./models/", import.meta.url).href;
+    // 車模出處：Tesla＝「Tesla M3 model」by wintrez（sketchfab.com，CC-BY 4.0）；Luxgen N7＝依官方照片與規格程式建模（C:\ai_lab\n7\make_n7.py）
+    const ver = "v438b";
+    const defs = {
+      tesla: { file: "tesla_model3.glb?" + ver, paint: 0xe8ebee, hk: null, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
+      luxgen: { file: "luxgen_n7.glb?" + ver, paint: 0xf3f4f6, hk: 1.08, tail: /hongdeng|n7_tail/i, head: /jinshudeng\.1|n7_head/i, turn: /n7_turn/i, hide: /^floor$/i, trim: true },
+      sedan: { file: "sedan.glb?" + ver, paint: 0xa7b0ba, hk: 0.90, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+      suv: { file: "suv.glb?" + ver, paint: 0x8b98a6, hk: 1.08, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+      moto: { file: "motorcycle.glb?" + ver, paint: 0x3d4b5c, hk: 0.96, lenFrac: 0.45, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
+    };
+    import(LIB + "GLTFLoader.js").then(({ GLTFLoader }) => {
+      const loader = new GLTFLoader();
+      return Promise.all(Object.entries(defs).map(([kind, d]) => new Promise((ok) => {
+        loader.load(base + d.file, (gl) => ok([kind, this._prepCarTpl(T, gl.scene, d)]), undefined, (e) => { console.warn("floorplan-v4-3d: car model load failed", d.file, e); ok([kind, null]); });
+      })));
+    }).then((list) => {
+      this._carTpl = Object.fromEntries(list.filter(([, t]) => t));
+      this._applyCarModels();
+    }).catch((e) => console.warn("floorplan-v4-3d: GLTFLoader unavailable", e));
+  }
+
+  _carEnv(T) {
+    if (this._carEnvMap) return this._carEnvMap;
+    const pm = new T.PMREMGenerator(this._renderer);
+    const sc = new T.Scene();
+    const sky = new T.Mesh(new T.SphereGeometry(50, 32, 16), new T.MeshBasicMaterial({ side: T.BackSide, vertexColors: true }));
+    const pos = sky.geometry.attributes.position, col = [];
+    for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 50; const v = y > 0 ? 0.55 + 0.45 * y : 0.32 + 0.2 * (1 + y); col.push(v, v * 0.99, v * 0.97); }
+    sky.geometry.setAttribute("color", new T.Float32BufferAttribute(col, 3)); sc.add(sky);
+    for (const [x, y, z, w, h] of [[0, 30, 0, 40, 6], [-30, 15, 10, 4, 18], [30, 15, -10, 4, 18], [0, 12, 35, 30, 4]]) {
+      const p = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide }));
+      p.position.set(x, y, z); p.lookAt(0, 0, 0); sc.add(p);
+    }
+    this._carEnvMap = pm.fromScene(sc, 0.04).texture;
+    pm.dispose();
+    return this._carEnvMap;
+  }
+
+  _prepCarTpl(T, root, d) {
+    const piv = new T.Group(); piv.add(root);
+    root.traverse((o) => { if (o.isMesh && d.hide.test(o.material?.name || "")) o.visible = false; });
+    piv.updateMatrixWorld(true);
+    if (d.trim) {        // 車模裡有幾件內裝／裝飾物件超出車身（比車頂還高、比車底還低），會讓縮放和貼地算錯，藏起來
+      const pb = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible && /car_paint|carpaint/i.test(o.material?.name || "")) pb.expandByObject(o); });
+      if (!pb.isEmpty()) {
+        const tol = (pb.max.x - pb.min.x + pb.max.z - pb.min.z) * 0.02;
+        root.traverse((o) => {
+          if (!o.isMesh || !o.visible) return;
+          const b = new T.Box3().setFromObject(o);
+          if (/luntai|lungu|tire|rim/i.test(o.material?.name || "")) return;        // 輪胎、輪圈本來就比車身低
+          if (b.max.y > pb.max.y + tol || b.min.y < pb.min.y - tol * 4) o.visible = false;
+        });
+      }
+    }
+    const boxOf = (re) => { const b = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible && re.test(o.material?.name || "")) b.expandByObject(o); }); return b; };
+    const visBox = () => { piv.updateMatrixWorld(true); const b = new T.Box3(); root.traverse((o) => { if (o.isMesh && o.visible) b.expandByObject(o); }); return b; };   // 只算看得見的（車模附的地板不算）
+    let bb = visBox();
+    let sz = bb.getSize(new T.Vector3());
+    if (sz.z > sz.x) { root.rotation.y += Math.PI / 2; bb = visBox(); sz = bb.getSize(new T.Vector3()); }
+    const tail = boxOf(d.tail), c = bb.getCenter(new T.Vector3());
+    if (!tail.isEmpty() && tail.getCenter(new T.Vector3()).x > c.x) { root.rotation.y += Math.PI; bb = visBox(); }
+    const ctr = bb.getCenter(new T.Vector3());
+    root.position.sub(new T.Vector3(ctr.x, bb.min.y, ctr.z));
+    let fin = visBox();
+    piv.updateMatrixWorld(true);
+    fin = visBox();
+    return { piv, d, len: fin.getSize(new T.Vector3()).x, box: fin, tailBox: boxOf(d.tail), headBox: boxOf(d.head) };
+  }
+
+  _applyCarModels() {
+    const T = this._T, tpls = this._carTpl;
+    if (!T || !tpls) return;
+    const env = this._carEnv(T);
+    const glowTex = window.__fpCarGlow;
+    for (const s of this._carSlots || []) {
+      if (s.done) continue;
+      s.done = true;
+      for (const [kind, tp] of Object.entries(tpls)) {
+        const mdl = s.models[kind];
+        if (!mdl) continue;
+        const k = (s.L * (tp.d.lenFrac || 0.97)) / tp.len, ky = k * (tp.d.hk || Math.min(1, Math.max(0.78, s.sy / s.sx + 0.2)));     // 垂直方向略壓（房子比例），比原本程式車模少壓
+        const car = tp.piv.clone(true);
+        car.scale.set(k, ky, k);
+        car.updateMatrixWorld(true);
+        const lp = { tail: [], brake: [], head: [], turn: [], glow: { tail: [], head: [], turn: [] }, mats: true };
+        let paint = null;
+        car.traverse((o) => {
+          if (!o.isMesh) return;
+          o.castShadow = true; o.receiveShadow = true;
+          const m = o.material.clone(); o.material = m;
+          const n = m.name || "";
+          if (/carpaint|car_paint/i.test(n)) {
+            m.color.setHex(tp.d.paint); m.metalness = 0.3; m.roughness = 0.28;
+            if ("clearcoat" in m) { m.clearcoat = 1; m.clearcoatRoughness = 0.06; }
+            paint = paint || m;
+          }
+          if (m.isMeshStandardMaterial) { m.envMap = env; m.envMapIntensity = /glass|boli/i.test(n) ? 1.4 : 0.9; m.needsUpdate = true; }
+          if (tp.d.tail.test(n)) { m.emissive?.setHex(0x000000); lp.tail.push(m); }
+          else if (tp.d.head.test(n)) { lp.head.push(m); }
+          else if (tp.d.turn.test(n)) {
+            // 只把左側（z <= 0）的方向燈材質加入閃爍清單，避免左轉時左右兩側同時閃成雙黃燈
+            const mc = new T.Box3().setFromObject(o).getCenter(new T.Vector3());
+            if (mc.z <= 0) lp.turn.push(m);
+          }
+        });
+        // 光暈：尾燈／煞車燈／頭燈、左側前後方向燈（車模座標：車頭 +x，左側 -z）
+        const gl = (role, x, y, z, size, color) => {
+          const sp = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+          sp.scale.set(size, size, 1); sp.position.set(x * k, y * ky, z * k); sp.visible = false; mdl.gr.add(sp); lp.glow[role].push(sp);
+        };
+        const bx = tp.box, tb = tp.tailBox.isEmpty() ? null : tp.tailBox, hb = tp.headBox.isEmpty() ? null : tp.headBox;
+        const tY = tb ? (tb.min.y + tb.max.y) / 2 : bx.max.y * 0.6, hY = hb ? (hb.min.y + hb.max.y) / 2 : bx.max.y * 0.5;
+        const wz = (bx.max.z - bx.min.z) / 2;
+        if (kind === "moto") {
+          gl("tail", bx.min.x - 0.04, tY, 0, 22, 0xff2a2a);
+          gl("head", bx.max.x + 0.04, hY, 0, 26, 0xf2f6ff);
+          gl("turn", bx.min.x - 0.04, tY, -wz * 0.65, 18, 0xffb000);
+          gl("turn", bx.max.x + 0.04, hY, -wz * 0.65, 18, 0xffb000);
+        } else {
+          for (const sd of [-1, 1]) {
+            gl("tail", bx.min.x - 0.05, tY, sd * wz * 0.72, 26, 0xff2a2a);
+            gl("head", bx.max.x + 0.05, hY, sd * wz * 0.72, 30, 0xf2f6ff);
+          }
+          gl("tail", bx.min.x + (bx.max.x - bx.min.x) * 0.14, bx.max.y * 0.86, 0, 18, 0xff1a1a);   // 第三煞車燈光暈
+          gl("turn", bx.min.x - 0.05, tY, -wz * 0.85, 24, 0xffb000);
+          gl("turn", bx.max.x + 0.05, hY, -wz * 0.85, 24, 0xffb000);
+        }
+        // 換掉程式車模：保留群組（狀態迴圈用 gr.visible 切換車種），隱藏原本的幾何與光暈
+        for (const ch of [...mdl.gr.children]) if (!lp.glow.tail.includes(ch) && !lp.glow.head.includes(ch) && !lp.glow.turn.includes(ch)) ch.visible = false;
+        mdl.gr.add(car);
+        if (paint) mdl.paint = paint;
+        mdl.lamps = lp;
+        // V4.3.8 充電孔位置：依車模實際外形算（模型座標：車頭 +x、左側 -z）。Tesla Model 3＝左後尾燈內側（朝後）；Luxgen N7＝右前葉子板（朝右側）
+        {
+          const len = bx.max.x - bx.min.x;
+          mdl.port = (kind === "tesla" || kind === "sedan")
+            ? new T.Vector3((tb ? tb.min.x + (tb.max.x - tb.min.x) * 0.35 : bx.min.x + 0.04 * len) * k, tY * ky, -wz * 0.72 * k)
+            : new T.Vector3((bx.max.x - 0.22 * len) * k, bx.max.y * 0.52 * ky, wz * 0.98 * k);
+        }
+      }
+    }
+    this._sync?.();
+    this._dirty = true;
+  }
+
+  _fitSun() {
+    const THREE = this._T;
+    if (!THREE || !this._sun) return;
+    let sb = null;
+    for (const g of Object.values(this._groups || {})) {
+      const gr = g.group;
+      if (!gr || !gr.visible || !gr.userData.bbLocal) continue;
+      const b = gr.userData.bbLocal.clone().translate(gr.position);
+      sb = sb ? sb.union(b) : b;
+    }
+    if (!sb) return;
+    const c = sb.getCenter(new THREE.Vector3()), r = sb.getSize(new THREE.Vector3()).length() / 2 + 80;
+    const sun = this._sun, cam = sun.shadow.camera;
+    sun.target.position.copy(c);
+    sun.position.copy(c).add(new THREE.Vector3(-340, 560, 420).normalize().multiplyScalar(r * 2));
+    cam.left = -r; cam.right = r; cam.top = r; cam.bottom = -r; cam.near = 1; cam.far = r * 4;
+    cam.updateProjectionMatrix();
+    this._dirty = true;
+  }
+
   _buildFloor(THREE, loader, svgText, fl, idx) {
     const group = new THREE.Group();
     const inner = new THREE.Group();            // plan space: x -> x, svg y -> z, height -> y
@@ -645,7 +864,7 @@ class FloorplanV43D extends HTMLElement {
     const lam = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, ...extra });
     const matCache = {};
     const M = (c) => (matCache[c] = matCache[c] || lam(c));
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x1b1d22, transparent: true, opacity: 0.5 });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x5f5850, transparent: true, opacity: 0.18 });   // V4.3.6：細淡暖灰描邊（建築模型風）
     const edges = (mesh, parent = inner) => {
       const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 30), edgeMat);
       e.position.copy(mesh.position); e.rotation.copy(mesh.rotation); e.scale.copy(mesh.scale);
@@ -679,7 +898,7 @@ class FloorplanV43D extends HTMLElement {
       cuts.push({ x0: Math.min(dr.hinge[0], ex) - (c[0] ? 0 : t), x1: Math.max(dr.hinge[0], ex) + (c[0] ? 0 : t),
         y0: Math.min(dr.hinge[1], ey) - (c[1] ? 0 : t), y1: Math.max(dr.hinge[1], ey) + (c[1] ? 0 : t) });
     }
-    const wallHex = fl.wall_color ? parseInt(String(fl.wall_color).replace("#", ""), 16) : 0xe3e7ee;
+    const wallHex = fl.wall_color ? parseInt(String(fl.wall_color).replace("#", ""), 16) : 0xf1ede6;    // V4.3.6：預設牆色改暖白
     const wallMats = new Map();
     let brickTex = null;
     const brick = () => {
@@ -741,8 +960,10 @@ class FloorplanV43D extends HTMLElement {
     }
 
     // plan geometry: walls from black fills; anything inside a modelled item / stair is replaced by the model
+    // V4.3.8：若 chair 在 furniture.yaml 手動移過位置（如 5F 辦公椅對齊雙螢幕），連同平面圖原本畫的舊椅子底圖一併蓋掉，不在地上留灰色殘影
     const inRect = (b, r, pad = 3) => b.x0 >= r.x - pad && b.x1 <= r.x + r.w + pad && b.y0 >= r.y - pad && b.y1 <= r.y + r.h + pad;
-    const covered = (b) => furnitureBoxes.some((r) => inRect(b, r)) || (fl.stairs || []).some((r) => inRect(b, r));
+    const chairShadows = furnitureBoxes.filter((_, i) => (fl.furniture || [])[i]?.type === "chair").map((r) => ({ x: r.x - 30, y: r.y - 40, w: r.w + 60, h: r.h + 85 }));
+    const covered = (b) => furnitureBoxes.some((r) => inRect(b, r)) || chairShadows.some((r) => inRect(b, r)) || (fl.stairs || []).some((r) => inRect(b, r));
     const data = loader.parse(svgText);
     const walls = [];
     for (const path of data.paths) {
@@ -826,7 +1047,7 @@ class FloorplanV43D extends HTMLElement {
     const WALLMOUNT = new Set(["floor_patch", "rug", "deck", "curtain_line", "computer", "printer", "lamp", "whiteboard", "ac_unit", "wall_shelf", "mirror", "tv_wall",
       "noren", "picture", "pendant"]);
     const clearOf = (f) => {
-      if (WALLMOUNT.has(f.type) || f.x == null || f.w * f.h > 40000) return f;
+      if (WALLMOUNT.has(f.type) || f.type === "chair" || f.x == null || f.w * f.h > 40000) return f;      // V4.3.8：椅子跟著桌子，不因窗戶退讓而被推開（5F 椅子跑掉）
       let { x, y } = f; const { w, h } = f;
       for (const s of spans) {
         const lo = s.hz ? x : y, hi = s.hz ? x + w : y + h;
@@ -901,11 +1122,10 @@ class FloorplanV43D extends HTMLElement {
           add(new THREE.CylinderGeometry(2.2, 2.2, 6, 12), glow, ox, 34 - len - 3.5, 0);
         }
       } else if (/車庫主燈/.test(n)) {                            // 1F photo: two flat rectangular LED panels on the ceiling
-        for (const ox of [-55, 55]) {
-          add(new THREE.BoxGeometry(46, 1.2, 24), M(0xdfe2e6), ox, 33.4, 0);
-          add(new THREE.BoxGeometry(42, 0.4, 20), glow, ox, 32.7, 0);
-          add(new THREE.BoxGeometry(40, 0.3, 18), glow, ox, 34.1, 0);                     // lit face also visible from the top-down camera
-        }
+        // V4.3.7：轉 90°、只留一片在主燈位置正中間，並抬高到真車模車頂上方（車高約 60），免得燈板插進車裡
+        add(new THREE.BoxGeometry(24, 1.2, 46), M(0xdfe2e6), 0, 66.4, 0);               // 只留一片，放在主燈位置正中間
+        add(new THREE.BoxGeometry(20, 0.4, 42), glow, 0, 65.7, 0);
+        add(new THREE.BoxGeometry(18, 0.3, 40), glow, 0, 67.1, 0);                       // lit face also visible from the top-down camera
       } else if (/燈組|頂樓燈|主燈/.test(n)) {
         add(new THREE.CylinderGeometry(0.4, 0.4, 6, 6), metal, 0, 31, 0);
         add(new THREE.CylinderGeometry(10, 12, 2.5, 24), glow, 0, 27.5, 0);
@@ -1242,12 +1462,26 @@ class FloorplanV43D extends HTMLElement {
       chg.route = (c, slot, inside) => {
         const yaw = c.baseYaw + (inside ? Math.PI : 0), gp = c.g.position, Y = new THREE.Vector3(0, 1, 0);
         const loc = (a, b, y) => new THREE.Vector3(a, y, b).applyAxisAngle(Y, yaw).add(new THREE.Vector3(gp.x, 0, gp.z));
-        const sd = slot === "tesla_model3" ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, 0.40 * c.W];      // z 負＝車的左側、正＝右側
+        const isTesla = slot === "tesla_model3" || slot === "sedan";
+        const kindKey = slot === "tesla_model3" ? "tesla" : slot === "luxgen_n7" ? "luxgen" : slot === "suv" ? "suv" : slot === "sedan" ? "sedan" : "luxgen";
+        const pl = c.models?.[kindKey]?.port;      // V4.3.8：用車模實際外形算出的孔位；模型還沒載入時退回估算值
+        const sd = pl ? [pl.x, pl.z] : isTesla ? [-0.46 * c.L, -0.40 * c.W] : [0.34 * c.L, 0.40 * c.W];      // z 負＝車的左側、正＝右側
+        const py = pl ? pl.y : 11;
         const sg = Math.sign(sd[1]) || 1;
-        const port = loc(sd[0], sd[1], 11), near = loc(sd[0], sg * (c.W / 2 + 6), 5), out = loc(sd[0], sg * (c.W / 2 + 16), 1.8);
-        const f1 = new THREE.Vector3(start.x + inward[0] * 12, 2, start.z + inward[1] * 12);
-        const mid = f1.clone().lerp(out, 0.5); mid.y = 1.8;
-        return [start, f1, mid, out, near, port];
+        const port = loc(sd[0], sd[1], py);
+        const near = isTesla ? loc(sd[0] - 6, sd[1] - 2, py * 0.65) : loc(sd[0], sd[1] + sg * 6, py * 0.65);
+        const out = isTesla ? loc(sd[0] - 14, sg * (c.W / 2 + 12), 1.8) : loc(sd[0], sg * (c.W / 2 + 14), 1.8);
+        const f1 = new THREE.Vector3(start.x + inward[0] * 10, 1.8, start.z + inward[1] * 10);
+        // 沿著車位與腳踏車／櫃子之間的走道地面走線（z ≈ gp.z + c.W/2 + 28），完全避開左側櫃子、桌子、水桶與腳踏車，也不穿過後車
+        const laneZ = gp.z + c.W / 2 + 28;
+        const p1 = new THREE.Vector3(THREE.MathUtils.lerp(f1.x, out.x, 0.35), 1.8, THREE.MathUtils.lerp(f1.z, laneZ, 0.55));
+        const p2 = new THREE.Vector3(THREE.MathUtils.lerp(f1.x, out.x, 0.72), 1.8, laneZ);
+        if (out.z < gp.z - 5) {
+          // 若充電孔在車位另一側（北側 z < gp.z），先走外車道繞過車頭／車尾轉角再進入
+          const endX = gp.x + (out.x < gp.x ? -(c.L / 2 + 12) : (c.L / 2 + 12));
+          return [start, f1, p1, new THREE.Vector3(endX, 1.8, laneZ), new THREE.Vector3(endX, 1.8, out.z), out, near, port];
+        }
+        return [start, f1, p1, p2, out, near, port];
       };
       chg.setTarget = (key, pts) => {
         if (key === chg.key) return; chg.key = key;
@@ -1611,52 +1845,136 @@ class FloorplanV43D extends HTMLElement {
               else sh.quadraticCurveTo(c[1] * sx, c[2] * sy, c[3] * sx, c[4] * sy);
             }
             const geo = new THREE.ExtrudeGeometry(sh, { depth: width, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 10 });
-            geo.translate(0, 0, -width / 2); const m = new THREE.Mesh(geo, mat); gr.add(m); return m;
+            geo.translate(0, 0, -width / 2);
+            // V4.3.6 擬真：把「側面輪廓擠出」的平板車身捏成車的樣子——前後端在平面上收圓、腰線以上往內收（車窗與車頂比車身窄）、底部微收
+            const pa = geo.attributes.position;
+            for (let i = 0; i < pa.count; i++) {
+              const xm = pa.getX(i) / sx, ym = pa.getY(i) / sy;
+              const end = Math.max(0, (Math.abs(xm) - 1.85) / 0.55);
+              const fx = 1 - 0.20 * end * end;
+              const fy = ym > 0.78 ? 1 - 0.30 * Math.min(1, (ym - 0.78) / 0.85) : (ym < 0.45 ? 1 - 0.07 * Math.min(1, (0.45 - ym) / 0.15) : 1);
+              pa.setZ(i, pa.getZ(i) * Math.max(0.5, fx * fy));
+            }
+            geo.computeVertexNormals();
+            const m = new THREE.Mesh(geo, mat); gr.add(m); return m;
           };
           const box3 = (gr, xm, ym, zm, wm, hm, dm, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(wm * sx, hm * sy, dm * sz), mat); m.position.set(xm * sx, ym * sy, zm * sz); gr.add(m); return m; };
-          const wheels = (gr, rm, xs, track) => {
+          const wheels = (gr, rm, xs, track, rimHex = 0xc9ced6) => {
             for (const xm of xs) for (const sd of [-1, 1]) {
               const r = rm * sy * 1.35;
               const t1 = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.24 * sz, 24), tyreM); t1.rotation.x = Math.PI / 2; t1.position.set(xm * sx, r, sd * track * sz); gr.add(t1);
-              const rim = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.62, r * 0.62, 0.26 * sz, 18), M(0xc9ced6)); rim.rotation.x = Math.PI / 2; rim.position.set(xm * sx, r, sd * track * sz); gr.add(rim);
+              const rim = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.66, r * 0.66, 0.26 * sz, 18), M(rimHex)); rim.rotation.x = Math.PI / 2; rim.position.set(xm * sx, r, sd * track * sz); gr.add(rim);
+              const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.16, r * 0.16, 0.27 * sz, 10), M(0x9aa0a8)); cap.rotation.x = Math.PI / 2; cap.position.set(xm * sx, r, sd * track * sz); gr.add(cap);
             }
           };
-          const red = new THREE.MeshBasicMaterial({ color: 0xff2b2b }), lampM = new THREE.MeshBasicMaterial({ color: 0xdfe9ff });
-          { // Tesla Model 3：低鼻、圓滑、玻璃車頂、溜背式後窗＋短行李廂、左右分開的尾燈
-            prof(baseG, [["M", -2.34, 0.30], ["L", 2.30, 0.30], ["Q", 2.40, 0.35, 2.38, 0.60], ["Q", 2.36, 0.78, 2.0, 0.84], ["L", 1.0, 0.99], ["L", -1.3, 1.0],
-              ["Q", -2.0, 1.0, -2.30, 0.98], ["Q", -2.38, 0.80, -2.34, 0.30]], paint, W - 4, 2);
-            prof(baseG, [["M", 1.0, 0.99], ["L", 0.18, 1.43], ["Q", -0.2, 1.46, -0.6, 1.42], ["Q", -1.2, 1.30, -1.72, 1.01], ["L", 1.0, 0.99]], glassM, W - 10, 1.6);
-            for (const sd of [-1, 1]) box3(baseG, -2.36, 0.92, sd * 0.72, 0.08, 0.10, 0.40, red);      // 左右分開的紅色尾燈（Tesla 沒有貫穿式）
-            for (const sd of [-1, 1]) box3(baseG, 2.33, 0.72, sd * 0.64, 0.14, 0.07, 0.36, lampM);   // 細長頭燈
-            wheels(baseG, 0.335, [-1.4375, 1.4375], 0.81);
+          // V4.3.6：照實車照片擬真（深色車窗、黑色下護板與輪圈、燈組形狀），並加上可依 HA 狀態點亮的車燈：
+          //   tail＝尾燈（車燈亮時變亮紅）、brake＝第三煞車燈、head＝頭燈、turn＝左側方向燈（偵測到左轉燈時一亮一滅）。車頭朝 +x、左側 = -z
+          const darkGlass = new THREE.MeshStandardMaterial({ color: 0x23272d, roughness: 0.18, metalness: 0.35 });
+          const trimM = M(0x17191c), plateM = M(0xeef0f2);
+          const glowTex = window.__fpCarGlow || (window.__fpCarGlow = (() => {
+            const cv2 = document.createElement("canvas"); cv2.width = cv2.height = 64; const cx2 = cv2.getContext("2d");
+            const rg = cx2.createRadialGradient(32, 32, 0, 32, 32, 32);
+            rg.addColorStop(0, "rgba(255,255,255,1)"); rg.addColorStop(0.35, "rgba(255,255,255,0.45)"); rg.addColorStop(1, "rgba(255,255,255,0)");
+            cx2.fillStyle = rg; cx2.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv2);
+          })());
+          const mkLamps = () => ({ tail: new THREE.MeshBasicMaterial({ color: 0x6e1a1a }), brake: new THREE.MeshBasicMaterial({ color: 0x4a1414 }),
+            head: new THREE.MeshBasicMaterial({ color: 0xcdd4de }), turn: new THREE.MeshBasicMaterial({ color: 0x6b4a14 }), glow: { tail: [], head: [], turn: [] } });
+          const glow = (gr, lp, role, xm, ym, zm, size, color) => {
+            const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+            s.scale.set(size, size, 1); s.position.set(xm * sx, ym * sy, zm * sz); s.visible = false; gr.add(s); lp.glow[role].push(s);
+          };
+          const sideZ = (half) => (half + 0.6) / sz;                    // 車身側面（公尺）：寬度一半再往外一點，放側窗黑框、後照鏡
+          { // Tesla Model 3（照片：珍珠白、全景黑玻璃車頂連到後窗、短行李廂＋小鴨尾、左右分開的尾燈、細長頭燈、黑色空力輪圈）
+            const lp = mkLamps(); models.tesla.lamps = lp;
+            prof(baseG, [["M", -2.33, 0.30], ["L", 2.28, 0.30], ["Q", 2.42, 0.34, 2.42, 0.52], ["Q", 2.40, 0.68, 2.22, 0.73], ["Q", 1.75, 0.84, 1.18, 0.88],
+              ["L", -1.52, 0.92], ["Q", -2.00, 0.93, -2.24, 0.93], ["L", -2.31, 0.96], ["Q", -2.40, 0.84, -2.38, 0.62], ["Q", -2.38, 0.36, -2.33, 0.30]], paint, W - 4, 2);
+            prof(baseG, [["M", 1.18, 0.88], ["Q", 0.62, 1.30, 0.28, 1.40], ["Q", -0.30, 1.47, -0.85, 1.40], ["Q", -1.30, 1.22, -1.56, 0.93], ["L", 1.18, 0.88]], darkGlass, W - 9, 1.6);
+            for (const sd of [-1, 1]) {
+              box3(baseG, 1.0, 0.98, sd * sideZ((W - 4) / 2) * 0.93, 0.16, 0.10, 0.14, paint);                 // 後照鏡（白色）
+              box3(baseG, -2.34, 0.86, sd * 0.52, 0.06, 0.08, 0.36, lp.tail);                                    // 左右分開的尾燈（延伸到行李廂蓋）
+              box3(baseG, -2.36, 0.80, sd * 0.66, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));             // 尾燈外側方向燈段（左側會閃）
+              box3(baseG, 2.30, 0.68, sd * 0.54, 0.12, 0.05, 0.34, lp.head);                                    // 細長頭燈
+              box3(baseG, 2.33, 0.60, sd * 0.70, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));             // 前方向燈
+              glow(baseG, lp, "tail", -2.44, 0.86, sd * 0.52, 26, 0xff2a2a);
+              glow(baseG, lp, "head", 2.46, 0.68, sd * 0.54, 30, 0xf2f6ff);
+            }
+            box3(baseG, -1.58, 0.97, 0, 0.04, 0.03, 0.30, lp.brake);                                             // 第三煞車燈（後窗上緣）
+            glow(baseG, lp, "tail", -1.62, 1.0, 0, 18, 0xff2a2a);
+            for (const xm of [-2.42, 2.40]) glow(baseG, lp, "turn", xm, xm < 0 ? 0.80 : 0.60, xm < 0 ? -0.66 : -0.70, 24, 0xffb000);
+            box3(baseG, -2.38, 0.60, 0, 0.03, 0.12, 0.34, plateM);                                               // 後車牌
+            box3(baseG, -2.28, 0.37, 0, 0.10, 0.10, 1.25, trimM);                                                // 後下擾流
+            box3(baseG, 0, 0.33, 0, 3.4, 0.07, 1.84, trimM);                                                     // 側裙
+            wheels(baseG, 0.335, [-1.4375, 1.4375], 0.81, 0x1f2226);                                             // 黑色空力輪圈
           }
-          { // Luxgen N7：休旅（4695×1895×1625）、較高的車頂與行李架、車頭中間黑色格柵帶＋兩側細長尖頭燈、黑色下護板、橫貫尾燈
-            const { gr, pm } = mkModel("luxgen", 0xf7f8fa);
-            prof(gr, [["M", -2.34, 0.28], ["L", 2.30, 0.28], ["Q", 2.38, 0.32, 2.36, 0.62], ["Q", 2.33, 0.86, 1.95, 0.95], ["L", 0.98, 1.08], ["L", -1.60, 1.10],
-              ["Q", -2.20, 1.10, -2.30, 1.0], ["Q", -2.38, 0.80, -2.34, 0.28]], pm, W - 2, 2);
-            prof(gr, [["M", 0.98, 1.08], ["L", 0.22, 1.62], ["Q", -0.2, 1.66, -0.9, 1.62], ["Q", -1.6, 1.56, -2.05, 1.18], ["L", -2.20, 1.10], ["L", 0.98, 1.08]], glassM, W - 8, 1.6);
-            for (const sd of [-1, 1]) box3(gr, -0.75, 1.69, sd * 0.74, 1.9, 0.05, 0.07, M(0x1d1f23));   // 車頂行李架
-            box3(gr, 0, 0.42, 0, 4.5, 0.26, 1.93, M(0x1d1f23));                                          // 黑色下護板（輪拱飾板）
-            box3(gr, 2.37, 0.72, 0, 0.06, 0.20, 1.0, M(0x15171a));                                       // 車頭中間黑色格柵帶（LUXGEN 字樣處）
-            box3(gr, 2.36, 0.95, 0, 0.04, 0.03, 1.2, lampM);                                             // 細亮條
-            for (const sd of [-1, 1]) box3(gr, 2.30, 0.88, sd * 0.68, 0.16, 0.09, 0.42, lampM);           // 兩側細長尖頭燈
-            box3(gr, -2.37, 1.00, 0, 0.05, 0.08, 1.55, red);                                             // 橫貫尾燈
-            wheels(gr, 0.37, [-1.46, 1.46], 0.85);
+          { // Luxgen N7（照片：白色跨界休旅、溜背、車頭貫穿式細燈條＋LUXGEN 字樣、黑色下格柵與輪拱飾板、車尾貫穿燈條＋兩側燈組、黑色多幅輪圈）
+            const { gr, pm } = mkModel("luxgen", 0xf3f5f7);
+            const lp = mkLamps(); models.luxgen.lamps = lp;
+            prof(gr, [["M", -2.30, 0.30], ["L", 2.26, 0.30], ["Q", 2.38, 0.34, 2.38, 0.56], ["Q", 2.37, 0.78, 2.16, 0.86], ["Q", 1.62, 0.98, 1.05, 1.03],
+              ["L", -1.92, 1.06], ["Q", -2.22, 1.06, -2.30, 1.0], ["Q", -2.38, 0.82, -2.36, 0.56], ["Q", -2.36, 0.34, -2.30, 0.30]], pm, W - 2, 2);
+            prof(gr, [["M", 1.05, 1.03], ["Q", 0.52, 1.46, 0.20, 1.56], ["Q", -0.50, 1.63, -1.25, 1.55], ["Q", -1.80, 1.40, -2.10, 1.10], ["L", -1.92, 1.06], ["L", 1.05, 1.03]], darkGlass, W - 8, 1.6);
+            prof(gr, [["M", 0.24, 1.55], ["Q", -0.5, 1.66, -1.30, 1.56], ["L", -1.28, 1.52], ["Q", -0.5, 1.61, 0.22, 1.51], ["L", 0.24, 1.55]], pm, W - 6, 1.2);   // 白色車頂
+            box3(gr, -2.12, 1.14, 0, 0.18, 0.04, 1.30, pm);                                                     // 尾翼
+            box3(gr, 0, 0.40, 0, 3.7, 0.22, 1.92, trimM);                                                        // 黑色下護板（輪拱飾板、側裙）
+            box3(gr, 2.33, 0.46, 0, 0.06, 0.18, 1.10, trimM);                                                    // 車頭下方黑色格柵
+            box3(gr, 2.39, 0.60, 0, 0.03, 0.10, 0.33, plateM);                                                   // 前車牌（n7）
+            box3(gr, 2.34, 0.82, 0, 0.04, 0.02, 1.12, lp.head);                                                  // 車頭貫穿式細燈條
+            box3(gr, 2.345, 0.79, 0, 0.045, 0.02, 0.56, trimM);                                                   // LUXGEN 字樣黑帶
+            box3(gr, -2.31, 1.00, 0, 0.05, 0.035, 1.12, lp.tail);                                                // 車尾貫穿燈條
+            box3(gr, -2.36, 0.62, 0, 0.03, 0.11, 0.34, plateM);                                                  // 後車牌
+            box3(gr, -2.30, 0.42, 0, 0.08, 0.16, 1.40, trimM);                                                   // 後下保桿（黑）
+            box3(gr, -2.08, 1.52, 0, 0.04, 0.025, 0.40, lp.brake);                                               // 第三煞車燈（尾翼上）
+            glow(gr, lp, "tail", -2.12, 1.55, 0, 18, 0xff2a2a);
+            for (const sd of [-1, 1]) {
+              box3(gr, 0.98, 1.12, sd * sideZ((W - 2) / 2) * 0.93, 0.17, 0.11, 0.15, pm);                       // 後照鏡（白色）
+              box3(gr, -2.31, 0.97, sd * 0.56, 0.07, 0.09, 0.32, lp.tail);                                       // 車尾兩側燈組
+              box3(gr, -2.33, 0.92, sd * 0.72, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));                // 尾燈外側方向燈
+              box3(gr, 2.29, 0.84, sd * 0.56, 0.14, 0.06, 0.32, lp.head);                                        // 兩側尖型頭燈
+              box3(gr, 2.29, 0.80, sd * 0.73, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));                 // 前方向燈
+              glow(gr, lp, "tail", -2.40, 0.97, sd * 0.56, 28, 0xff2a2a);
+              glow(gr, lp, "head", 2.44, 0.84, sd * 0.56, 30, 0xf2f6ff);
+            }
+            for (const xm of [-2.42, 2.38]) glow(gr, lp, "turn", xm, xm < 0 ? 0.92 : 0.80, xm < 0 ? -0.72 : -0.73, 24, 0xffb000);
+            wheels(gr, 0.37, [-1.46, 1.46], 0.85, 0x1b1d20);                                                     // 黑色輪圈
           }
           { // 其他：房車（三廂）
             const { gr, pm } = mkModel("sedan", 0xa7b0ba);
+            const lp = mkLamps(); models.sedan.lamps = lp;
             extT(gr, (sh) => { sh.moveTo(X(-0.49), 4.5); sh.lineTo(X(0.49), 4.5); sh.quadraticCurveTo(X(0.53), 8, X(0.47), 10.5); sh.lineTo(X(0.2), 12); sh.lineTo(X(-0.3), 12.4); sh.lineTo(X(-0.49), 12); sh.lineTo(X(-0.49), 4.5); }, W - 6, pm, 2.5);
             extT(gr, (sh) => { sh.moveTo(X(0.16), 12); sh.lineTo(X(0.04), 19.5); sh.lineTo(X(-0.2), 19.7); sh.lineTo(X(-0.3), 12.2); sh.lineTo(X(0.16), 12); }, W - 14, glassM, 2);
+            for (const sd of [-1, 1]) {
+              box3(gr, -2.28, 0.85, sd * 0.52, 0.06, 0.08, 0.34, lp.tail);
+              box3(gr, -2.30, 0.79, sd * 0.66, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              box3(gr, 2.26, 0.68, sd * 0.54, 0.10, 0.06, 0.32, lp.head);
+              box3(gr, 2.28, 0.60, sd * 0.68, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              glow(gr, lp, "tail", -2.38, 0.85, sd * 0.52, 26, 0xff2a2a);
+              glow(gr, lp, "head", 2.40, 0.68, sd * 0.54, 30, 0xf2f6ff);
+            }
+            box3(gr, -1.52, 1.02, 0, 0.04, 0.03, 0.30, lp.brake);
+            glow(gr, lp, "tail", -1.56, 1.05, 0, 18, 0xff2a2a);
+            for (const xm of [-2.36, 2.34]) glow(gr, lp, "turn", xm, xm < 0 ? 0.79 : 0.60, xm < 0 ? -0.66 : -0.68, 24, 0xffb000);
             tyresT(gr, [-0.31, 0.32], 6, W);
           }
           { // 其他：休旅車（方正、車頂高）
             const { gr, pm } = mkModel("suv", 0x8b98a6);
+            const lp = mkLamps(); models.suv.lamps = lp;
             extT(gr, (sh) => { sh.moveTo(X(-0.49), 5); sh.lineTo(X(0.49), 5); sh.quadraticCurveTo(X(0.52), 9, X(0.47), 13); sh.lineTo(X(0.22), 14.2); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(-0.49), 5); }, W - 6, pm, 2.5);
-            extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 26); sh.lineTo(X(-0.47), 26); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
+            extT(gr, (sh) => { sh.moveTo(X(0.2), 14.2); sh.lineTo(X(0.12), 30); sh.lineTo(X(-0.47), 30); sh.lineTo(X(-0.49), 14.6); sh.lineTo(X(0.2), 14.2); }, W - 12, glassM, 2);
+            for (const sd of [-1, 1]) {
+              box3(gr, -2.28, 1.00, sd * 0.56, 0.07, 0.09, 0.34, lp.tail);
+              box3(gr, -2.30, 0.92, sd * 0.70, 0.04, 0.05, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              box3(gr, 2.26, 0.84, sd * 0.56, 0.12, 0.07, 0.32, lp.head);
+              box3(gr, 2.28, 0.78, sd * 0.72, 0.05, 0.04, 0.10, sd < 0 ? lp.turn : M(0x5a3a10));
+              glow(gr, lp, "tail", -2.38, 1.00, sd * 0.56, 28, 0xff2a2a);
+              glow(gr, lp, "head", 2.40, 0.84, sd * 0.56, 30, 0xf2f6ff);
+            }
+            box3(gr, -2.18, 1.56, 0, 0.04, 0.03, 0.38, lp.brake);
+            glow(gr, lp, "tail", -2.22, 1.58, 0, 18, 0xff2a2a);
+            for (const xm of [-2.36, 2.34]) glow(gr, lp, "turn", xm, xm < 0 ? 0.92 : 0.78, xm < 0 ? -0.70 : -0.72, 24, 0xffb000);
             tyresT(gr, [-0.31, 0.32], 7, W);
           }
           { // 其他：機車（比汽車短，雙輪＋龍頭）
             const { gr, pm } = mkModel("moto", 0x3d4b5c);
+            const lp = mkLamps(); models.moto.lamps = lp;
             const ML = L * 0.45, dark = M(0x23262b);
             for (const fx of [-0.38, 0.38]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 3, 20), tyreM); t.rotation.x = Math.PI / 2; t.position.set(ML * fx, 7, 0); gr.add(t); }
             const frame = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.55, 3, 4), dark); frame.position.set(0, 10, 0); gr.add(frame);
@@ -1664,9 +1982,20 @@ class FloorplanV43D extends HTMLElement {
             const seat = new THREE.Mesh(new THREE.BoxGeometry(ML * 0.26, 2.5, 6.5), dark); seat.position.set(-ML * 0.17, 13.5, 0); gr.add(seat);
             const fork = new THREE.Mesh(new THREE.BoxGeometry(1.5, 13, 1.5), dark); fork.position.set(ML * 0.36, 14, 0); fork.rotation.z = -0.25; gr.add(fork);
             const bars = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 22), dark); bars.position.set(ML * 0.33, 21, 0); gr.add(bars);
-            const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff2c0 })); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), lp.head); lamp.position.set(ML * 0.4, 17, 0); gr.add(lamp);
+            const tailM = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 4.2), lp.tail); tailM.position.set(-ML * 0.34, 14.2, 0); gr.add(tailM);
+            for (const sd of [-1, 1]) {
+              const tm = sd < 0 ? lp.turn : M(0x5a3a10);
+              const ft = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 6), tm); ft.position.set(ML * 0.36, 16.5, sd * 6); gr.add(ft);
+              const rt = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 6), tm); rt.position.set(-ML * 0.34, 13.6, sd * 5.5); gr.add(rt);
+            }
+            glow(gr, lp, "tail", -0.82, 0.80, 0, 22, 0xff2a2a);
+            glow(gr, lp, "head", 0.95, 0.96, 0, 26, 0xf2f6ff);
+            glow(gr, lp, "turn", -0.82, 0.77, -0.24, 18, 0xffb000);
+            glow(gr, lp, "turn", 0.86, 0.93, -0.26, 18, 0xffb000);
           }
           cars[f.entity] = { g, paint, f, baseYaw: yaw, ghost: gh, setLabel, spr, models, L, W };
+          this._queueCarModels(models, L, sx, sy);      // V4.3.7：有真車模（models/*.glb）就換上去，載入失敗沿用上面的程式車模
         }
         break;
       }
@@ -2110,7 +2439,9 @@ class FloorplanV43D extends HTMLElement {
       g.visible = all || n === this._floor;
       g.position.y = all ? i * FLOOR_GAP : 0;
       for (const c of this._groups[n].detail || []) c.visible = !all;       // whole-house = light shell only
+      if (g.userData.ground) g.userData.ground.visible = !all || i === 0;   // V4.3.6：全棟時只留最底層的陰影地面（上面樓層的會浮在半空）
     });
+    this._fitSun();
     this._rebuildSpots();
     this._syncTools?.();
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.f === this._floor));
@@ -2740,7 +3071,7 @@ class FloorplanV43D extends HTMLElement {
         const ce = (cs === "front" || cs === "back") ? Object.entries(g.cars || {}).find(([k]) => k.endsWith("_" + cs)) : null;
         if (ce && ch.route) {
           const slotCar = st[ce[0]]?.state, inside = !!ce[1].f.facing_entity && st[ce[1].f.facing_entity]?.state === "inside";
-          ch.setTarget(`${cs}|${slotCar}|${inside}`, ch.route(ce[1], slotCar, inside));
+          ch.setTarget(`${cs}|${slotCar}|${inside}|${ce[1].models?.tesla?.port ? 1 : 0}${ce[1].models?.luxgen?.port ? 1 : 0}`, ch.route(ce[1], slotCar, inside));
         } else if (ch.setTarget) ch.setTarget("none", null);
         const ci = chargerInfo(st);
         const color = ci.key === "error" ? 0xe53935 : ci.key === "done" ? 0x4caf50 : ci.key === "charging" ? 0x2f9bff
@@ -2760,16 +3091,31 @@ class FloorplanV43D extends HTMLElement {
         const facingSt = c.f.facing_entity ? (st[c.f.facing_entity]?.state || "unknown") : "unknown";
         const CARS = { luxgen_n7: ["Luxgen N7｜休旅車", "luxgen", "EAK8030"], tesla_model3: ["Tesla Model 3｜房車", "tesla", "EBH8030"], sedan: ["未知車輛｜房車", "sedan"], suv: ["未知車輛｜休旅車", "suv"], motorcycle: ["未知車輛｜機車", "moto"] };
         const info = CARS[slot], isEmpty = slot === "empty", inside = facingSt === "inside", unk = !info && !isEmpty;
-        const kind = info ? info[1] : "tesla";                    // 認不出是哪種車：半透明的通用車模
+        const kind = info ? info[1] : "sedan";                    // 認不出是哪種車：半透明的通用房車模型
         c.g.visible = !isEmpty; c.ghost.visible = false; c.spr.visible = !isEmpty;      // 沒車：不顯示模型、虛線框與標籤
         for (const [k, m] of Object.entries(c.models || {})) {
           m.gr.visible = k === kind;
-          m.paint.transparent = unk; m.paint.opacity = unk ? 0.5 : 1;
+          m.paint.transparent = unk; m.paint.opacity = unk ? 0.65 : 1;
         }
         c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xd5dae1 : 0xd3d6db);      // 珍珠白／銀（照實車）
         c.g.rotation.y = c.baseYaw + (inside ? Math.PI : 0);      // 車頭朝內（倒車入庫）＝車模轉 180°
-        const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !!info;
+        const dep = st["input_boolean.garage_depart_candidate"]?.state === "on" && st["input_text.garage_depart_car"]?.state === slot && !isEmpty;
         for (const m of Object.values(c.models || {})) m.paint.emissive.setHex(dep ? 0x7a4a00 : 0x000000);
+        // V4.3.6 車燈：車庫分析的「車燈亮」（input_boolean.garage_lamp_<車位>）→ 尾燈／第三煞車燈／頭燈點亮；
+        //   左方向燈偵測（input_datetime.garage_turn_seen_<車位>）30 秒內 → 左側方向燈一亮一滅（_tickFlow 動畫）
+        const sk = eid.replace(/^.*_(front|back)$/, "$1");
+        const lampOn = !isEmpty && st["input_boolean.garage_lamp_" + sk]?.state === "on";
+        const tsRaw = st["input_datetime.garage_turn_seen_" + sk]?.attributes?.timestamp;
+        c.turnUntil = !isEmpty && tsRaw ? tsRaw * 1000 + 30000 : 0;
+        const lp = c.models?.[kind]?.lamps;
+        if (lp) {
+          carLamp(lp.tail, lampOn, 0xff2424, 0x6e1a1a);
+          carLamp(lp.brake, lampOn, 0xff1a1a, 0x4a1414);
+          carLamp(lp.head, lampOn, 0xffffff, 0xcdd4de);
+          for (const s of lp.glow.tail) s.visible = lampOn;
+          for (const s of lp.glow.head) s.visible = lampOn;
+        }
+        c.activeLamps = lp || null;
         const away = ["luxgen_n7", "tesla_model3"].filter((k) => !Object.values(g.cars).some((o) => (st[o.f.entity]?.state) === k)).map((k) => CARS[k][0]);
         const pos = c.f.slot_name || "";
         const faceTxt = facingSt === "inside" ? "車頭朝內" : facingSt === "door" ? "車頭朝鐵門" : "";
@@ -2833,6 +3179,17 @@ class FloorplanV43D extends HTMLElement {
       for (const ch of Object.values(g.chargers || {})) {
         if (!ch.flowing) continue;
         ch.pulses.forEach((p, i) => p.position.copy(ch.curve.getPoint((t * 0.4 + i / ch.pulses.length) % 1)));
+        this._dirty = true;
+      }
+      for (const c of Object.values(g.cars || {})) {                // V4.3.6：左方向燈一亮一滅（約 1.5 Hz，和實車頻率差不多）
+        const lp = c.activeLamps;
+        if (!lp) continue;
+        const blinking = Date.now() < (c.turnUntil || 0);
+        const on = blinking && (t * 1.5) % 1 < 0.5;
+        if (on === lp._turnOn) continue;
+        lp._turnOn = on;
+        carLamp(lp.turn, on, 0xffb000, 0x6b4a14);
+        for (const s of lp.glow.turn) s.visible = on;
         this._dirty = true;
       }
     }

@@ -56,7 +56,7 @@ DEFAULT_CFG = {
     # ── 最後去向（人消失在畫面哪裡）：往左下樓梯口（x≈0.35、腳底貼底）消失＝下樓；在右側房門口區（x≥0.60）消失＝進房，
     #    書房與臥室門的位置差不多，所以用走動方向分辨（往右走到門口＝臥室，從右邊緣往左走到門口＝書房）。區域與門檻可用 topfloor_roi.json 覆蓋
     'exit_gap_s': 2.5,         # 人消失超過這麼久（秒）才判斷去向
-    'exit_min_det': 2,         # 這一段至少要偵測到幾幀
+    'exit_min_det': 4,         # 這一段至少要偵測到幾幀（V4.3.7：2→4。10/30 23:26 從臥室走向樓梯，只拍到 2 幀就判成進書房、樓梯燈被關；回放 120 段：判錯書房 3→2、臥室判成書房 8→5，看不出的改由實體感應器決定）
     'exit_stairs_x': 0.45,     # 最後位置 x 小於這個、腳底 y 不小於 exit_stairs_y → 樓梯口（下樓）
     'exit_stairs_y': 0.90,
     'exit_edge_x': 0.86,       # 最後位置 x 不小於這個 → 右邊緣（臥室側）
@@ -331,7 +331,7 @@ def selftest():
         errors.append('走向樓梯沒判成 down：%s' % f)
     # V4.3.6 框高縮小下樓規則（descend_on）：站在走道（框高 0.65）往左走進樓梯口、框高縮到 0.3（t050 10/27 22:53 實錄的形狀）\n    dcfg = dict(cfg, descend_on=True)\n    f, fin = _run_seq([(0.72, 0.99, 0.65), (0.66, 0.99, 0.62), (0.6, 0.99, 0.55), (0.54, 0.99, 0.5), (0.48, 0.99, 0.42), (0.43, 1.0, 0.36), (0.4, 1.0, 0.3)], dcfg)\n    if not f or f[0][1] != 'down':\n        errors.append('框高縮小下樓沒判成 down：%s' % f)\n    # 走向鏡頭（框高變大）不是下樓\n    f, fin = _run_seq([(0.5, 0.7, 0.3), (0.46, 0.8, 0.4), (0.43, 0.9, 0.5), (0.42, 0.97, 0.62), (0.4, 1.0, 0.7), (0.4, 1.0, 0.75)], dcfg)\n    if f and f[0][1] == 'down':\n        errors.append('走向鏡頭被判成 down：%s' % f)\n    # 最後去向：往右走到房門口消失＝臥室；從右邊緣往左走到房門口消失＝書房；往左下樓梯口消失＝下樓；位移太小不猜
     def exits(seq):
-        tr, out = Tracker(cfg), []
+        tr, out = Tracker(dict(cfg, exit_min_det=2)), []          # 去向規則本身用短序列測；最少幀數另外測
         for i, p in enumerate(seq):
             h = 0.6
             persons = [] if p is None else [{'conf': 0.9, 'box': [p[0] - 0.1, p[1] - h, p[0] + 0.1, p[1]]}]
@@ -353,6 +353,12 @@ def selftest():
     got, tr = exits([(0.35, 0.99), (0.5, 0.99), (0.65, 0.99), (0.74, 0.99)] + [None] * 3)
     if tr.finalize().get('exit', {}).get('dest') != 'bedroom':
         errors.append('動靜結束時要補判去向')
+    # V4.3.7：預設只拍到 2～3 幀的一段不判去向（避免走向樓梯時被誤判成進書房）
+    trs = Tracker(cfg)
+    for i, p in enumerate([(0.94, 0.99), (0.86, 0.99)] + [None] * 7):
+        o = trs.add(i * 0.5, [] if p is None else [{'conf': 0.9, 'box': [p[0] - 0.1, p[1] - 0.6, p[0] + 0.1, p[1]]}])
+        if o.get('exit') and o['exit'].get('dest'):
+            errors.append('只有 2 幀不該判去向：%r' % o['exit'])
     # 沒人：只在 finalize 判
     f, fin = _run_seq([None] * 6, cfg)
     if f or fin['dir'] != 'none':

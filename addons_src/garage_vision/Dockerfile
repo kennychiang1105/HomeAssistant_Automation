@@ -16,6 +16,6 @@ COPY --from=export /w/yolo11m.onnx /models/yolo11m.onnx
 COPY --from=export /w/clip_visual.onnx /models/clip_visual.onnx
 COPY --from=export /w/text_embeds.npy /models/text_embeds.npy
 COPY app.py /app/app.py
-ENV THREADS=3
+ENV THREADS=6
 EXPOSE 8099
 CMD ["python", "-u", "/app/app.py"]

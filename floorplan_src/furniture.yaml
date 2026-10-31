@@ -1,0 +1,260 @@
+# 3D 家具 / 樓梯 / 鐵門 手動標註（座標 = 各樓層 2D 平面圖 SVG 座標，x 向東、y 向南）
+# 由 scripts/generate_floorplan_v4.py build3d 讀取；平面圖上這些範圍內的線條不再自動拉高，改用具象模型。
+# type: bed(head=N/S/E/W) desk table coffee chair(face) sofa(back) wardrobe cabinet shelf counter
+#       toilet(tank) sink shower bathtub car appliance washer stove computer printer plant tv_unit
+# stairs: up = 往上一層（從本層地板升到上層），down = 從本層樓板開口往下（arrow = 上樓方向，由平面圖箭頭判讀）
+
+1F:
+  scenes:                                   # 情境按鈕（顯示在該樓層 3D 圖下方）
+    - {entity: input_boolean.google_scene_chu_men_trigger, name: 離家, icon: "mdi:car-back"}
+    - {entity: input_boolean.google_scene_dao_jia_trigger, name: 到家, icon: "mdi:home-import-outline"}
+    - {entity: input_boolean.google_scene_zao_an_trigger, name: 早安, icon: "mdi:weather-sunny"}
+    - {entity: input_boolean.google_scene_wan_an_trigger, name: 晚安, icon: "mdi:weather-night"}
+  floor_color: "#e6e3dc"                    # 照片：白色方磚地
+  floor_tile: 26                            # 磁磚溝縫
+  wall_color: "#f1ede4"                     # 白／米白牆
+  window_frame: "#2f6b57"                   # 後門窗：綠色鋁框
+  stair_style: tile                         # 窄磁磚樓梯 + 木扶手
+  windows:                                  # 照片：後牆（往後院）兩片式綠框推拉窗，門的北側
+    - {x: 645, y: 205, w: 1, h: 100}
+  furniture:
+    - {type: car, x: 66, y: 124, w: 232, h: 120, axis: x, front: W, entity: input_select.garage_slot_front, facing_entity: input_select.garage_facing_front, slot_name: 前位}      # 車位1（前位，靠鐵門），車頭預設朝西側鐵捲門；車頭朝內時 3D 轉 180°
+    - {type: car, x: 331, y: 124, w: 232, h: 120, axis: x, front: W, entity: input_select.garage_slot_back, facing_entity: input_select.garage_facing_back, slot_name: 後位}     # 車位2（後位，內側）
+    - {type: washer, x: 480, y: 13, w: 77, h: 47}
+    - {type: washer, x: 560, y: 13, w: 79, h: 47}
+    - {type: shelf, x: 595, y: 70, w: 50, h: 125}                        # 縮短，讓出後牆窗戶
+    - {type: bucket, x: 30, y: 18, w: 14, h: 14, color: "#e8792b"}       # 鐵捲門旁水龍頭下的橘色水桶
+    # ── 南側（照片）：木製四門衣櫃 + 頂上紙箱、雜物桌、腳踏車、藍綠水桶
+    - {type: wardrobe, x: 124, y: 359, w: 61, h: 145, color: "#8a5a34"}
+    - {type: boxes, x: 126, y: 362, w: 57, h: 139, z: 33}
+    - {type: table, x: 211, y: 439, w: 90, h: 69, style: wood}
+    - {type: boxes, x: 216, y: 446, w: 40, h: 26}                          # 桌上雜物
+    - {type: bike, x: 196, y: 322, w: 92, h: 16, color: "#2f6fb0"}
+    - {type: bike, x: 205, y: 345, w: 88, h: 16, color: "#c23b3b"}
+    - {type: bucket, x: 304, y: 412, w: 18, h: 18, color: "#2f7fd0"}
+    - {type: bucket, x: 324, y: 414, w: 16, h: 16, color: "#3fa45a"}
+    - {type: counter, x: 397, y: 406, w: 58, h: 33}
+    # ── 樓梯與廁所之間：鐵線鞋架（牆上 Tesla 充電樁）、廁所門口藍色招財貓門簾
+    - {type: shoe_rack, x: 488, y: 416, w: 46, h: 20}
+    - {type: noren, x: 532, y: 391, w: 4, h: 64, color: "#2f5f9e"}
+    - {type: sink, x: 608, y: 410, w: 34, h: 41}
+    - {type: toilet, x: 603, y: 469, w: 42, h: 31, tank: E}
+    - {type: shower, x: 552, y: 462, w: 42, h: 46}
+    # ── 後門內側：堆紙箱的凳子；後院（照片）：晾衣架、梯子、紅色垃圾桶、塑膠椅、門口腳踏墊
+    - {type: stool, x: 610, y: 330, w: 22, h: 22, color: "#3d78c4"}
+    - {type: boxes, x: 611, y: 331, w: 20, h: 20, z: 11.2}
+    - {type: floor_patch, x: 659, y: 322, w: 16, h: 56, color: "#5b4a3a"}
+    - {type: drying_rack, x: 685, y: 40, w: 100, h: 34}
+    - {type: ladder, x: 760, y: 150, w: 20, h: 34}
+    - {type: bucket, x: 765, y: 250, w: 20, h: 20, color: "#c0392b", height: 12, lid: "#8e2a20"}
+    - {type: stool, x: 700, y: 200, w: 24, h: 24, color: "#e6e2d8"}
+    - {type: stool, x: 700, y: 232, w: 24, h: 24, color: "#e6e2d8"}
+  stairs:
+    - {x: 338, y: 439, w: 90, h: 69, axis: x, arrow: 1, role: up, steps: 6}       # 車庫樓梯燈處 → 2F
+  garage_door: {x: 14, y: 39, w: 13, h: 310, color: "#eceef0", slats: 12}      # 外牆 x15.5~25.5，門板放在牆中央；照片：白色鐵捲門
+
+2F:
+  scenes:                                   # 情境按鈕（顯示在該樓層 3D 圖下方）
+    - {entity: input_boolean.google_scene_chu_men_trigger, name: 離家, icon: "mdi:car-back"}
+    - {entity: input_boolean.google_scene_dao_jia_trigger, name: 到家, icon: "mdi:home-import-outline"}
+    - {entity: input_boolean.google_scene_zao_an_trigger, name: 早安, icon: "mdi:weather-sunny"}
+    - {entity: input_boolean.google_scene_wan_an_trigger, name: 晚安, icon: "mdi:weather-night"}
+  doors:                                    # 可動畫的門：hinge = 鉸鏈點，closed = 關門時門板從鉸鏈往哪個方向，open = 開門時往哪個方向
+    - {entity: input_boolean.er_lou_men_suo_tong_bu_kai_guan, name: 二樓門鎖, x: 171, y: 47, w: 8, h: 80,
+       hinge: [177, 47], closed: S, open: W, inside: E, open_when: "on"}      # 平面圖：門板 x170 y47~127，鉸鏈在北端(170,47)，開門往西（朝室外玄關）掃，只留木門、不畫深色外門 80      # on = 開鎖（緊急模式會把它打開）
+  zones:                                    # 分區放大：只顯示該區設備
+    - {name: 客廳, x: 175, y: 0, w: 360, h: 520}
+    - {name: 餐廳, x: 530, y: 0, w: 235, h: 330}
+    - {name: 廚房, x: 760, y: 0, w: 215, h: 365}
+  floor_color: "#d6cec1"                    # 照片：米白大磁磚
+  wall_color: "#efe7d8"                     # 米黃牆、深木飾條
+  window_frame: "#2f6b57"                   # 照片：綠色鋁窗框
+  window_grille:                            # IMG_3523：客廳窗戶是深色菱格裝飾窗
+    - {x: 165, y: 120, w: 25, h: 300}
+  curtains: true
+  curtain_colors:                           # 餐廳白色落地窗簾（客廳外側窗戶不掛窗簾，以玻璃為準）
+    - {x: 530, y: 0, w: 235, h: 330, color: "#f1ece2"}
+  furniture:
+    # ── 客廳（照片 1）：L 型米色沙發木底座、大理石面木箱茶几、深木電視櫃 + 壁掛大電視 + 冷氣、空氣清淨機
+    - {type: tv_wall, x: 236, y: 12, w: 221, h: 73, ac: true}
+    - {type: cabinet, x: 459, y: 12, w: 70, h: 67}
+    - {type: purifier, x: 445, y: 100, w: 22, h: 22}
+    - {type: cabinet, x: 189, y: 140, w: 23, h: 372, height: 11, color: "#6e4a2e"}   # IMG_3523：窗下深木矮櫃，沿牆延伸到大門（退離窗簾）
+    - {type: coffee, x: 298, y: 236, w: 127, h: 114, style: marble}
+    - {type: sofa, x: 213, y: 247, w: 51, h: 261, back: W, style: beige}
+    - {type: sofa, x: 264, y: 402, w: 194, h: 106, back: S, style: beige}
+    - {type: cabinet, x: 459, y: 432, w: 68, h: 75}
+    - {type: spin_bike, x: 470, y: 180, w: 30, h: 64}                             # 照片：黑色飛輪健身車
+    - {type: fan, x: 474, y: 372, w: 22, h: 22, face: W}                          # 白色立扇
+    - {type: fan, x: 220, y: 216, w: 20, h: 20, face: E}
+    - {type: heater, x: 272, y: 360, w: 18, h: 18}                                # 煤油暖爐（沙發轉角前）
+    # ── 餐廳（照片 2）：實木餐桌 + 木條椅背餐椅
+    - {type: table, x: 602, y: 76, w: 101, h: 160, style: wood}
+    - {type: chair, x: 634, y: 54, w: 38, h: 22, face: S, style: wood}
+    - {type: chair, x: 583, y: 118, w: 19, h: 38, face: E, style: wood}
+    - {type: chair, x: 583, y: 176, w: 19, h: 38, face: E, style: wood}
+    - {type: chair, x: 703, y: 118, w: 19, h: 38, face: W, style: wood}
+    - {type: chair, x: 703, y: 176, w: 19, h: 38, face: W, style: wood}
+    - {type: picture, x: 757, y: 110, w: 3, h: 56, face: W, color: "#c9a46a", height: 12}   # 餐桌旁掛畫
+    # ── 廚房（照片 3、4）：亮黑下櫃 + 白檯面 + 酒紅上櫃、水槽在北側窗下、瓦斯爐 + 不鏽鋼排油煙機在東側、
+    #    門口北側深木霧玻璃收納櫃、南側黑色對開冰箱 + 高櫃
+    - {type: hutch, x: 771, y: 12, w: 52, h: 30}
+    - {type: kitchen_run, x: 823, y: 12, w: 140, h: 30, sink_at: 0.45}
+    - {type: kitchen_run, x: 933, y: 42, w: 30, h: 314, cooktop_at: 0.5, hood: true}
+    - {type: fridge, x: 777, y: 302, w: 48, h: 50, front: N}                       # 照片：門口旁黑色大冰箱，門朝廚房內
+    - {type: pantry, x: 827, y: 302, w: 44, h: 50}                               # 冰箱旁亮黑高櫃，頂到天花板
+    - {type: cabinet, x: 648, y: 396, w: 72, h: 28}
+    # ── 廁所（照片 5）：立柱式洗手台 + 鏡子、免治馬桶、淋浴
+    - {type: pedestal_sink, x: 925, y: 372, w: 34, h: 44, back: E}
+    - {type: mirror, x: 958, y: 374, w: 4, h: 40}
+    - {type: toilet, x: 911, y: 452, w: 59, h: 34, tank: E, bidet: true}
+    - {type: shower, x: 855, y: 458, w: 47, h: 49}
+    # ── 玄關陽台
+    - {type: deck, x: 0, y: 40, w: 172, h: 215}                                  # 照片：木棧板地板
+    - {type: garden_table, x: 27, y: 140, w: 40, h: 40}                          # 白色鑄鐵圓桌
+    - {type: garden_chair, x: 22, y: 98, w: 26, h: 26, face: S}                  # 白色鑄鐵椅
+    - {type: garden_chair, x: 22, y: 202, w: 26, h: 26, face: N}
+    - {type: planter, x: 6, y: 290, w: 97, h: 91}                                # 石砌花台 + 樹
+    - {type: pots, x: 4, y: 44, w: 18, h: 46}                                    # 照片：陽台大量盆栽
+    - {type: plant, x: 132, y: 46, w: 30, h: 30}
+    - {type: plant, x: 70, y: 46, w: 22, h: 22, small: true}
+    - {type: plant, x: 136, y: 214, w: 28, h: 28}
+    - {type: plant, x: 60, y: 224, w: 20, h: 20, small: true}
+  stairs:
+    - {x: 0.5, y: 415.76, w: 172, h: 87.38, axis: x, arrow: 1, role: down, steps: 7}     # 大門外側往下
+    - {x: 120.5, y: 249.91, w: 55, h: 164.9, axis: y, arrow: -1, role: down, steps: 7, badge: false}
+    - {x: 112, y: 505, w: 60, h: 98, axis: y, arrow: -1, role: down, steps: 5, badge: false}
+    - {x: 632.5, y: 431.33, w: 210.91, h: 74, axis: x, arrow: 1, role: down, steps: 9}   # 1F 上來的樓梯
+    - {x: 536.5, y: 330.07, w: 92, h: 178.97, axis: y, arrow: 1, role: up, steps: 8}     # 往 3F
+
+3F:                                         # 無照片：沿用 2F/5F 風格（木地板、米黃牆、綠鋁窗框、咖啡色窗簾、深木衣櫃）
+  floor_color: "#9a6438"
+  wall_color: "#efe7d8"
+  window_frame: "#2f6b57"
+  stair_style: tile
+  curtains: true
+  curtain_colors:
+    - {x: 0, y: 0, w: 600, h: 519, color: "#6f5847"}
+  wall_colors:
+    - {x: 600, y: 0, w: 200, h: 300, color: "#e6d9c0"}            # 浴室米色磁磚牆
+  furniture:
+    - {type: floor_patch, x: 600, y: 10, w: 188, h: 290, color: "#e6e2da", grid: 16}   # 浴室磁磚地（不壓到門）
+    - {type: desk, x: 16, y: 13, w: 344, h: 56, style: light}
+    - {type: plant, x: 218, y: 32, w: 16, h: 16, small: true}
+    - {type: plant, x: 336, y: 33, w: 16, h: 16, small: true}
+    - {type: chair, x: 100, y: 74, w: 40, h: 40, face: N, style: wood}
+    - {type: wardrobe, x: 361, y: 7, w: 231, h: 66, color: "#5b3420"}
+    - {type: bed, x: 61, y: 326, w: 199, h: 181, head: S}
+    - {type: ac_unit, x: 125, y: 500, w: 70, h: 7}
+    - {type: chest, x: 268, y: 470, w: 44, h: 34}                 # 床頭邊白色抽屜櫃
+    - {type: fan, x: 280, y: 300, w: 20, h: 20, face: W}
+    - {type: cabinet, x: 456, y: 244, w: 130, h: 59, color: "#6e4a2e"}
+    - {type: sink, x: 617, y: 13, w: 73, h: 47}
+    - {type: bathtub, x: 685, y: 75, w: 94, h: 136}
+    - {type: toilet, x: 617, y: 228, w: 50, h: 67, tank: S}
+    - {type: plant, x: 632, y: 391, w: 55, h: 48}
+  stairs:
+    - {x: 322.5, y: 404.5, w: 271, h: 100, axis: x, arrow: 1, role: up, steps: 11}     # 往 4F（南側）
+    - {x: 322.5, y: 304.5, w: 271, h: 100, axis: x, arrow: -1, role: down, steps: 11}  # 2F 上來（北側）
+
+4F:                                         # 無照片：沿用 2F/5F 風格（木地板、米黃牆、綠鋁窗框、米色窗簾、淺木書桌＋黑色辦公椅）
+  floor_color: "#9a6438"
+  wall_color: "#efe7d8"
+  window_frame: "#2f6b57"
+  stair_style: tile
+  curtains: true
+  curtain_colors:
+    - {x: 0, y: 0, w: 320, h: 519, color: "#d9ccb6"}
+    - {x: 320, y: 180, w: 220, h: 339, color: "#d9ccb6"}
+    - {x: 540, y: 0, w: 360, h: 519, color: "#d9ccb6"}            # 浴室（x320~540 北側）不掛窗簾
+  wall_colors:
+    - {x: 320, y: 0, w: 220, h: 205, color: "#e6d9c0"}            # 浴室米色磁磚牆
+  furniture:
+    - {type: floor_patch, x: 324, y: 10, w: 212, h: 190, color: "#e6e2da", grid: 16}   # 浴室磁磚地（不壓到門）
+    - {type: floor_patch, x: 0, y: 0, w: 45, h: 519, color: "#3a3f4a"}                # 西側外牆外（非室內）不鋪木地板
+    - {type: desk, x: 57, y: 13, w: 243, h: 42, style: light}
+    - {type: computer, x: 161, y: 14, w: 40, h: 35}
+    - {type: chair, x: 161, y: 67, w: 41, h: 51, face: N, style: office}
+    - {type: wardrobe, x: 271, y: 57, w: 29, h: 154, color: "#5b3420"}
+    - {type: cabinet, x: 58, y: 164, w: 45, h: 65}
+    - {type: bed, x: 125, y: 325, w: 128, h: 181, head: S}
+    - {type: ac_unit, x: 155, y: 499, w: 70, h: 7}
+    - {type: cube_shelf, x: 62, y: 280, w: 40, h: 30}
+    - {type: cabinet, x: 62, y: 455, w: 53, h: 51}
+    - {type: wardrobe, x: 284, y: 297, w: 62, h: 209, color: "#5b3420"}
+    - {type: shower, x: 328, y: 16, w: 110, h: 113}
+    - {type: toilet, x: 481, y: 35, w: 50, h: 42, tank: E}
+    - {type: sink, x: 494, y: 127, w: 37, h: 48}
+    - {type: wardrobe, x: 545, y: 13, w: 60, h: 163, color: "#5b3420"}
+    - {type: cabinet, x: 544, y: 180, w: 68, h: 51}
+    - {type: bed, x: 631, y: 20, w: 199, h: 116, head: E}
+    - {type: ac_unit, x: 824, y: 45, w: 7, h: 70}
+    - {type: shelf, x: 804, y: 145, w: 30, h: 160}
+    - {type: desk, x: 527, y: 282, w: 227, h: 50, style: light}
+    - {type: computer, x: 627, y: 285, w: 45, h: 41, back: S}
+    - {type: chair, x: 636, y: 227, w: 41, h: 50, face: S, style: office}
+    - {type: fan, x: 760, y: 200, w: 20, h: 20, face: W}
+    - {type: plant, x: 669, y: 371, w: 56, h: 47}
+  stairs:
+    - {x: 352.5, y: 335.67, w: 271, h: 90, axis: x, arrow: -1, role: down, steps: 11}  # 3F 上來
+    - {x: 352.5, y: 418.67, w: 271, h: 89, axis: x, arrow: 1, role: up, steps: 11}     # 往 5F
+
+5F:
+  scenes:                                   # 情境按鈕（顯示在該樓層 3D 圖上方）
+    - {entity: input_boolean.ding_lou_shang_lou_qing_jing, name: 上樓, icon: "mdi:stairs-up"}
+    - {entity: input_boolean.ding_lou_xia_lou_qing_jing, name: 下樓, icon: "mdi:stairs-down"}
+    - {entity: input_boolean.ding_lou_ye_deng_qing_jing, name: 夜燈, icon: "mdi:weather-night"}
+    - {entity: input_boolean.ding_lou_yue_du_qing_jing, name: 閱讀, icon: "mdi:book-open-page-variant"}
+  windows:                                  # 房間↔前陽台整面落地窗補滿（平面圖只畫了兩端）
+    - {x: 211, y: 132, w: 1, h: 245}
+    - {x: 211, y: 474, w: 1, h: 42}
+  curtains: true
+  floor_color: "#8f5530"                    # 照片：室內深色木地板
+  window_frame: "#2f6b57"                   # 綠色鋁門窗
+  stair_style: tile                         # 白色磁磚樓梯 + 深木扶手、白矮牆木扶手蓋
+  curtain_colors:
+    - {x: 0, y: 0, w: 230, h: 519, color: "#5a2630"}     # 往陽台的落地窗：酒紅色窗簾
+    - {x: 610, y: 0, w: 191, h: 519, color: "#5a2630"}   # 書房窗戶：酒紅色窗簾
+  wall_colors:
+    - {x: 600, y: 0, w: 201, h: 330, color: "#c8743c", texture: brick}   # 書房：橘色磚牆
+  zones:
+    - {name: 前陽台, x: 0, y: 0, w: 212, h: 519}
+    - {name: 房間, x: 212, y: 0, w: 398, h: 519}      # 電腦桌 + 床
+    - {name: 書房, x: 610, y: 0, w: 191, h: 519}      # 右側（書房燈、櫃子）
+  furniture:
+    # ── 前陽台（夜間照片）：米色方磚地、沿女兒牆一排紅陶花槽
+    - {type: floor_patch, x: 0, y: 0, w: 210, h: 519, color: "#d9cfb6", grid: 14}
+    - {type: pots, x: 8, y: 12, w: 22, h: 200}
+    - {type: pots, x: 8, y: 300, w: 22, h: 150}
+    - {type: pots, x: 40, y: 8, w: 120, h: 18}
+    # ── 房間：L 型淺木電腦桌 + 並排雙螢幕（靠北牆）、黑色辦公椅、桌上方冷氣與玻璃白板；床邊紗簾隔間；深木衣櫃、白色抽屜櫃、方格書櫃、印表機桌
+    - {type: desk, x: 225, y: 14, w: 225, h: 69, style: light}
+    - {type: desk, x: 388, y: 83, w: 62, h: 67, style: light}
+    - {type: computer, x: 236, y: 16, w: 110, h: 32, back: N, dual: true}   # 照片：兩台寬螢幕並排靠北牆、冷氣與白板正下方，面向房內
+    - {type: chair, x: 266, y: 96, w: 50, h: 47, face: N, style: office}
+    - {type: ac_unit, x: 250, y: 2, w: 70, h: 7}
+    - {type: whiteboard, x: 250, y: 2, w: 80, h: 2}
+    - {type: table, x: 388, y: 150, w: 62, h: 110, style: light}
+    - {type: wardrobe, x: 456, y: 12, w: 143, h: 50, color: "#5b3420"}
+    - {type: bed, x: 468, y: 65, w: 120, h: 200, head: N}
+    - {type: curtain_line, x: 458, y: 62, w: 2, h: 206, sheer: true, color: "#e6dcc4"}   # 床邊紗簾
+    - {type: chest, x: 368, y: 341, w: 60, h: 33}
+    - {type: cube_shelf, x: 432, y: 341, w: 50, h: 33}
+    - {type: table, x: 225, y: 391, w: 121, h: 66, style: light}
+    - {type: printer, x: 288, y: 400, w: 41, h: 49}
+    - {type: cabinet, x: 225, y: 465, w: 124, h: 41}
+    - {type: curtain_line, x: 221, y: 2, w: 1, h: 515, color: "#5a2630"}              # 房間→前陽台整面落地窗：酒紅色窗簾全拉（照片）
+    - {type: pendant, x: 330, y: 26, w: 44, h: 22, n: 2}                              # 照片圈選：冷氣旁天花板的條紋筒形吊燈
+    - {type: fan, x: 330, y: 296, w: 20, h: 20, face: E}                              # 白色立扇
+    - {type: picture, x: 420, y: 505, w: 46, h: 2, face: N, color: "#8fa7b8", z: 17}   # 樓梯間牆上相框
+    - {type: picture, x: 520, y: 505, w: 34, h: 2, face: N, color: "#c9a46a", z: 19, height: 9}
+    # ── 書房（磚牆照片）：沿牆木桌（嵌圓形不鏽鋼水槽）+ L 轉角、牆上方格吊櫃、窗下綠色鐵抽屜櫃
+    - {type: counter, x: 611, y: 10, w: 40, h: 265, top: "#b8763d", color: "#a8672f"}
+    - {type: sink, x: 614, y: 113, w: 35, h: 39, style: round}
+    - {type: counter, x: 650, y: 10, w: 98, h: 30, top: "#b8763d", color: "#a8672f"}
+    - {type: wall_shelf, x: 652, y: 2, w: 70, h: 10}
+    - {type: chair, x: 670, y: 50, w: 30, h: 30, face: N, style: office}
+    - {type: metal_cabinet, x: 740, y: 120, w: 40, h: 120}   # 退離東側窗戶，窗外看不再擋住
+    - {type: plant, x: 74, y: 452, w: 55, h: 48}
+  stairs:
+    - {x: 360.5, y: 386.22, w: 337, h: 120.28, axis: x, arrow: 1, role: down, steps: 13}  # 4F 上來（頂樓只有往下）
