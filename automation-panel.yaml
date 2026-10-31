@@ -4932,7 +4932,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他（3）"
+        heading: "其他（5）"
         heading_style: title
         card_mod:
           style: |
@@ -4944,8 +4944,12 @@ views:
         entities:
           - entity: input_boolean.garage_turn_detected
             name: "車庫出門偵測｜剛偵測到左方向燈（內部）"
+          - entity: input_datetime.garage_turn_seen_front
+            name: "車庫前位｜最近偵測到左方向燈（內部，3D 顯示）"
           - entity: input_datetime.garage_turn_last
             name: "車庫左方向燈偵測｜上次檢查（內部，30 秒冷卻）"
+          - entity: input_datetime.garage_turn_seen_back
+            name: "車庫後位｜最近偵測到左方向燈（內部，3D 顯示）"
           - entity: input_datetime.garage_id_fix_last
             name: "車庫車輛身分校正｜上次重學樣板（內部）"
         card_mod: *cm
@@ -4960,7 +4964,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 2 個"
+        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 4 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -4980,6 +4984,25 @@ views:
         entities:
           - entity: automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1
             name: "08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "開關（2）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.garage_lamp_front
+            name: "車庫前位｜車燈亮（內部，3D 顯示）"
+          - entity: input_boolean.garage_lamp_back
+            name: "車庫後位｜車燈亮（內部，3D 顯示）"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
