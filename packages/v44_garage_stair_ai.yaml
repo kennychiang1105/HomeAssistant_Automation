@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫樓梯口人流記錄 (V1.0.0，只記錄不控制)
 # 更新紀錄（統一格式）：
+# - V1.1.0（2026-10-31）：模型納入控制：判到「上樓」時啟動 script.garage_stair_up_off（鐵門已關＋樓梯感應器亮起＋模型確認車庫沒人）提早關燈；開關 input_boolean.garage_stair_ai_control_enable。
 # - V1.0.0（2026-10-31）：新增。車庫樓梯人體感應器或車庫攝影機有人時，每秒一張快照送 Garage Vision add-on（人體姿態模型），
 #   scripts/garage_stair_track.py 把多人各自串成軌跡，判斷每個人從樓梯口出來（down）、走進樓梯口（up）或只經過（pass），
 #   寫到 /config/garage_stair/log.jsonl，最近一筆放在 input_text.garage_stair_ai_last。不控制任何燈或門。
@@ -10,6 +11,9 @@ input_boolean:
   garage_stair_ai_enable:
     name: 車庫樓梯口人流記錄｜總開關
     icon: mdi:stairs
+  garage_stair_ai_control_enable:
+    name: 車庫樓梯口人流記錄｜模型判到上樓提早關燈
+    icon: mdi:lightbulb-off-outline
 
 input_text:
   garage_stair_ai_last:
@@ -62,11 +66,51 @@ script:
       - stop: "模型持續看到人"
         response_variable: result
 
+  garage_stair_up_off:
+    alias: 車庫樓梯口｜模型判到上樓且車庫沒人，提早關燈 (V1.0.0)
+    description: >
+      人體模型判到有人走進樓梯口（上樓）後：等鐵門關閉且樓梯感應器亮起（雙重確認，最多 25 秒），
+      再用模型確認車庫畫面沒人，就提早關車庫主燈與樓梯燈。任何一項沒過就不動作，維持 104-1 原本的提早關燈／5 分鐘流程。
+      開關 input_boolean.garage_stair_ai_control_enable 關閉時不動作。
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - condition: state
+        entity_id: input_boolean.garage_stair_ai_control_enable
+        state: "on"
+      - wait_template: "{{ is_state('cover.garage', 'closed') and is_state('binary_sensor.e406bf25cfea_motion', 'on') }}"
+        timeout: "00:00:25"
+        continue_on_timeout: false
+      - condition: template
+        value_template: "{{ is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on') }}"
+      - action: script.garage_presence_confirm_empty
+        data:
+          max_checks: 1
+        response_variable: ps
+      - condition: template
+        value_template: "{{ ps is mapping and ps.get('empty', false) and not ps.get('unknown', true) }}"
+      - action: switch.turn_off
+        target:
+          entity_id:
+            - switch.che_ku_zhu_deng
+            - switch.lou_ti_deng
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.garage_stair_ai_last
+        data:
+          value: "{{ now().strftime('%H:%M:%S') ~ ' 模型判到上樓、車庫沒人，已提早關燈' }}"
+        continue_on_error: true
+
   garage_stair_ai_note:
     alias: 車庫樓梯口人流記錄｜記下結算結果 (V1.0.0)
     mode: queued
     max: 10
     sequence:
+      - if: "{{ closed | selectattr('dir', 'eq', 'up') | list | count > 0 }}"
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: script.garage_stair_up_off
       - repeat:
           for_each: "{{ closed }}"
           sequence:
