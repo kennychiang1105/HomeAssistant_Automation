@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫樓梯口人流記錄 (V1.0.0，只記錄不控制)
 # 更新紀錄（統一格式）：
+# - V1.3.0（2026-10-31）：開燈也納入模型：只要模型在車庫畫面看到人，而樓梯燈或車庫燈沒開，就啟動 script.garage_stair_down_on 開燈；樓梯口記錄迴圈也改成車庫攝影機動態（g6_instant_motion）時啟動。
 # - V1.2.0（2026-10-31）：下樓納入控制：模型一判到有人從樓梯口走出（提早判斷，不等軌跡結束）就啟動 script.garage_stair_down_on，開樓梯燈、隔 0.5 秒再開車庫燈（尊重手動關燈冷卻）。
 # - V1.1.0（2026-10-31）：模型納入控制：判到「上樓」時啟動 script.garage_stair_up_off（鐵門已關＋樓梯感應器亮起＋模型確認車庫沒人）提早關燈；開關 input_boolean.garage_stair_ai_control_enable。
 # - V1.0.0（2026-10-31）：新增。車庫樓梯人體感應器或車庫攝影機有人時，每秒一張快照送 Garage Vision add-on（人體姿態模型），
@@ -103,9 +104,9 @@ script:
         continue_on_error: true
 
   garage_stair_down_on:
-    alias: 車庫樓梯口｜模型判到下樓，開樓梯燈與車庫燈 (V1.0.0)
+    alias: 車庫樓梯口｜模型看到人／判到下樓，開樓梯燈與車庫燈 (V1.1.0)
     description: >
-      人體模型判到有人從樓梯口走進車庫（下樓）：燈沒開就先開樓梯燈、隔 0.5 秒再開車庫主燈；手動關燈冷卻期間不動作。
+      人體模型在車庫畫面看到人（含判到下樓）而燈沒開：先開樓梯燈、隔 0.5 秒再開車庫主燈；手動關燈冷卻期間不動作。
       開關 input_boolean.garage_stair_ai_control_enable。
     mode: single
     max_exceeded: silent
@@ -164,10 +165,12 @@ script:
               value_template: >-
                 {% set a = states.binary_sensor.e406bf25cfea_motion %}
                 {% set b = states.binary_sensor.che_ku_she_ying_ji_person_detected %}
+                {% set c = states.binary_sensor.g6_instant_motion %}
                 {{ repeat.index < 90
-                   and (a.state == 'on' or b.state == 'on'
+                   and (a.state == 'on' or b.state == 'on' or c.state == 'on'
                         or (as_timestamp(now()) - as_timestamp(a.last_changed)) < 6
-                        or (as_timestamp(now()) - as_timestamp(b.last_changed)) < 6) }}
+                        or (as_timestamp(now()) - as_timestamp(b.last_changed)) < 6
+                        or (as_timestamp(now()) - as_timestamp(c.last_changed)) < 6) }}
           sequence:
             # 管線化：拍下一張與分析上一張同時進行（做法同頂樓攝影機）
             - variables:
@@ -192,6 +195,12 @@ script:
                       continue_on_error: true
                     - variables:
                         res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+                    # 模型開燈：畫面看到人，而車庫燈有沒開的 → 開樓梯燈與車庫燈（尊重手動關燈冷卻、控制開關）
+                    - if: "{{ res is mapping and (res.get('persons') or 0) > 0 and (is_state('switch.che_ku_zhu_deng', 'off') or is_state('switch.lou_ti_deng', 'off')) }}"
+                      then:
+                        - action: script.turn_on
+                          target:
+                            entity_id: script.garage_stair_down_on
                     - if: "{{ res is mapping and (res.get('fired') or []) | count > 0 }}"
                       then:
                         - action: script.turn_on
