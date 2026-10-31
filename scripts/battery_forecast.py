@@ -30,6 +30,7 @@ DEVICES = [
     {'k': 'cube', 'e': 'sensor.0x158d00027d8a8e_battery', 'empty': 5},
     {'k': 'toiletm', 'e': 'sensor.e406bf25caa1_battery', 'empty': 5},
     {'k': 'kitchenm', 'e': 'sensor.08b95f06b466_battery', 'empty': 5},
+    {'k': 'garstair', 'e': 'sensor.e406bf25cfea_battery', 'empty': 5},
     {'k': 'bell', 'e': 'sensor.0x00158d0002419b84_battery', 'empty': 5},
     {'k': 'kswitch', 'e': 'sensor.0x00158d00023cd3dc_battery', 'empty': 5},
 ]
