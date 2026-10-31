@@ -242,7 +242,7 @@
 # V4.3.9 家人寬限期：二樓人員辨識到 Iris／Kenny (iPad) 以外的人，或家人（Kenny／Elay／Jerry）的位置變成二樓區域／車庫 → 記錄時間
 - alias: 08-7B二樓夜間防下樓｜記錄家人出現 (V4.3.9)
   id: ai_08_7b_anti_down_family_seen
-  description: 二樓有 Iris 以外的人，或家人位置在客廳／廚房／餐廳／廁所／車庫 → 更新 input_datetime.anti_down_family_seen（寬限期計時用）
+  description: 車庫偵測到人（離家中不算，V4.3.10），或二樓有 Iris 以外的人，或家人位置在客廳／廚房／餐廳／廁所／車庫 → 更新 input_datetime.anti_down_family_seen（寬限期計時用）
   mode: queued
   max: 10
   triggers:
@@ -262,10 +262,22 @@
         - 廁所
         - 車庫
       id: loc
+    - trigger: state
+      entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+      to: "on"
+      id: garage
   conditions:
     - condition: template
       value_template: >-
         {% if trigger.id == 'loc' %}true
+        {# V4.3.10 車庫偵測到任何人也豁免；但離家不豁免：Kenny／Elay／Jerry 任一人正在離家（離家確認中，或 5 分鐘內剛變離家）就不算 #}
+        {% elif trigger.id == 'garage' %}
+          {% set ns = namespace(leaving=false) %}
+          {% for e in ['sensor.at_home_kenny_location', 'sensor.at_home_elay_location', 'sensor.at_home_jerry_location'] %}
+            {% set s = states[e] %}
+            {% if s and (s.state == '離家確認中' or (s.state == '離家' and (now() - s.last_changed).total_seconds() < 300)) %}{% set ns.leaving = true %}{% endif %}
+          {% endfor %}
+          {{ not ns.leaving }}
         {% else %}
           {% set mp = state_attr('binary_sensor.er_lou_ping_mu_gan_ying_zong_he_pan_duan', 'matched_people') %}
           {% set names = [] if mp in [none, '', '無'] else (mp | string).split(', ') %}

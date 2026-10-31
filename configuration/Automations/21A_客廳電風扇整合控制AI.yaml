@@ -80,6 +80,8 @@
       {% else %}1.5{% endif %}
     # V4.3.9：結合室外溫度。室外溫度取 weather.homeweather_zhu_nan_zhen（竹南鎮）；取不到就不加（out_bonus_c＝0、不做季節降檔）。
     outdoor_temp: "{{ state_attr('weather.homeweather_zhu_nan_zhen','temperature') | float(None) }}"
+    # V4.3.10：室外濕度（同一個天氣實體 humidity 屬性）。室外 ≥ 24°C 且相對濕度 > 60% 時，每多 1% 加 0.04°C（上限 +0.6）——外面悶濕時體感散熱差、通風也帶不走熱。
+    outdoor_hum: "{{ state_attr('weather.homeweather_zhu_nan_zhen','humidity') | float(None) }}"
     # ① 室內比室外熱（散熱差）：室內高出室外 1°C 以上，每多 1°C 加 0.25°C（上限 +1.0，室內比室外涼很多則最多 -0.5）；② 室外 ≥ 32°C（熱負荷大）再 +0.4
     out_bonus_c: >-
       {%- if outdoor_temp is none or active_temp is none -%}0
@@ -87,6 +89,7 @@
         {%- set d = active_temp - outdoor_temp -%}
         {%- set b = [[(d - 1.0) * 0.25, -0.5] | max, 1.0] | min -%}
         {%- if outdoor_temp >= 32 -%}{%- set b = b + 0.4 -%}{%- endif -%}
+        {%- if outdoor_hum is not none and outdoor_temp >= 24 and outdoor_hum > 60 -%}{%- set b = b + ([(outdoor_hum - 60) * 0.04, 0.6] | min) -%}{%- endif -%}
         {{- b | round(2) -}}
       {%- endif -%}
     # ③ 非夏季模式原本一律把曲線整體降 10%：改成看室外溫度，室外 < 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降（室外取不到沿用 10%）

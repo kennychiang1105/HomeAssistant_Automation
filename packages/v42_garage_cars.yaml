@@ -635,6 +635,7 @@ script:
           - repeat:
               for_each: [front, back]
               sequence:
+                # V4.3.10：方向燈檢查放寬加速——左／右方向燈、雙黃燈（左右同步閃）任一成立都算出門訊號；短片 3→2 秒、最小間隔 5→3 秒、閃 2 次即成立（原 3 次），雙黃燈兩側互相佐證振幅門檻再降。
                 # 左方向燈（絕對出門訊號）：車頭朝鐵門（或朝向未定的未知車輛）錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；V4.3.6：有動靜（攝影機動作／有人／車燈亮）時每 5 秒最多檢查一次（原 30 秒）。V4.3.5：不必亮煞車燈，只要出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也檢查；未知車輛（房車／休旅車／機車／unknown）一併支援。
                 - if: >-
                     {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present
@@ -645,7 +646,7 @@ script:
                             or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) < 180)
                        and not is_state('input_select.garage_slot_' ~ repeat.item, 'empty')
                        and not is_state('input_select.garage_facing_' ~ repeat.item, 'inside')
-                       and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_turn_last'), 0)) > 5 }}
+                       and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_turn_last'), 0)) > 3 }}
                   then:
                     - action: input_datetime.set_datetime
                       target:
@@ -657,7 +658,7 @@ script:
                         entity_id: camera.g6_instant_high_resolution_channel
                       data:
                         filename: /config/www/snap/turn_clip.mp4
-                        duration: 3
+                        duration: 2
                         lookback: 0
                       continue_on_error: true
                     - action: shell_command.garage_turn_signal
@@ -713,7 +714,7 @@ script:
                         entity_id: input_text.garage_depart_last
                       data:
                         value: >-
-                          {{ (now().strftime('%m-%d %H:%M:%S') ~ ' ' ~ names.get(car, car) ~ '｜' ~ pos[repeat.item] ~ '｜車燈' ~ ('亮' if s.lights_on else '無') ~ '/位移' ~ s.shift_px ~ 'px/可能性' ~ (lk | int) ~ '%' ~ ('｜左方向燈（絕對出門訊號）' if turn else '') ~ ('｜自動開門' if do_open else ''))[:255] }}
+                          {{ (now().strftime('%m-%d %H:%M:%S') ~ ' ' ~ names.get(car, car) ~ '｜' ~ pos[repeat.item] ~ '｜車燈' ~ ('亮' if s.lights_on else '無') ~ '/位移' ~ s.shift_px ~ 'px/可能性' ~ (lk | int) ~ '%' ~ ('｜左／右方向燈或雙黃燈（絕對出門訊號）' if turn else '') ~ ('｜自動開門' if do_open else ''))[:255] }}
                     - if: "{{ is_state('input_boolean.garage_depart_notify_enable', 'on') }}"
                       then:
                         - action: script.notify_dispatch

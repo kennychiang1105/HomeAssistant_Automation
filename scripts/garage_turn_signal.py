@@ -62,7 +62,7 @@ def _decide_window(a, min_swing, min_flashes, max_run):
     return base
 
 
-def decide(series, min_swing=0.005, min_flashes=3, max_run=8, win=30, step=5):
+def decide(series, min_swing=0.005, min_flashes=2, max_run=8, win=30, step=5):
     """series：每幀橘色比例（10fps）。方向燈＝約 1Hz 短促亮暗交替（真實影片：亮約 0.5 秒、暗約 0.4 秒）：3 秒視窗內亮的區段 ≥min_flashes 次，且每段亮／暗都不超過 max_run 幀（0.8 秒）。
     車子移動、陽光反光造成的橘色是「慢慢升高再降低」的長區段，不算。影片比 3 秒長時用滑動視窗，任一視窗成立即可。"""
     a = np.asarray(series, dtype=np.float32)
@@ -74,6 +74,25 @@ def decide(series, min_swing=0.005, min_flashes=3, max_run=8, win=30, step=5):
         if r['blink'] and not best['blink'] or (r['blink'] == best['blink'] and r['flashes'] > best['flashes']):
             best = r
     return best
+
+
+def decide_both(sl, sr):
+    """左方向燈、右方向燈、雙黃燈（危險警示燈，左右同時閃）任一成立即出門訊號（V4.3.10）。
+    雙黃燈左右同步閃，兩側互相佐證，所以門檻放寬（振幅 0.003、閃 2 次）；單邊維持 0.005。"""
+    rl, rr = decide(sl), decide(sr)
+    hl = decide(sl, min_swing=0.003)
+    hr = decide(sr, min_swing=0.003)
+    if hl['blink'] and hr['blink']:
+        out, kind = (rl if rl['flashes'] >= rr['flashes'] else rr), 'hazard'
+        out = dict(out, blink=True)
+    elif rl['blink'] or rr['blink']:
+        out, kind = (rl, 'left') if rl['blink'] else (rr, 'right')
+    else:
+        out, kind = (rl if rl['peak'] >= rr['peak'] else rr), ''
+    out = dict(out)
+    out['kind'] = kind
+    out['peak_left'], out['peak_right'] = rl['peak'], rr['peak']
+    return out
 
 
 def vision_box(url, jpg, roi, slot):
@@ -101,16 +120,25 @@ def analyse_clip(clip, slot, side, vision, box_override=None):
                 box = None
         if not box:
             box = roi['slots'][slot]['body']
-        x0, x1, y0, y1 = REGION[side]
         bw, bh = box[2] - box[0], box[3] - box[1]
-        series = []
+        sides = ['left', 'right'] if side == 'both' else [side]
+        ser = {s: [] for s in sides}
         for f in frames:
             im = Image.open(f).convert('RGB')
             W, H = im.size
-            c = im.crop((int((box[0] + bw * x0) * W), int((box[1] + bh * y0) * H), int((box[0] + bw * x1) * W), int((box[1] + bh * y1) * H)))
-            series.append(round(amber_frac(np.asarray(c)), 4))
-        out = decide(series)
-        out.update({'side': side, 'slot': slot, 'box': [round(v, 3) for v in box], 'series': series})
+            for s in sides:
+                x0, x1, y0, y1 = REGION[s]
+                c = im.crop((int((box[0] + bw * x0) * W), int((box[1] + bh * y0) * H), int((box[0] + bw * x1) * W), int((box[1] + bh * y1) * H)))
+                ser[s].append(round(amber_frac(np.asarray(c)), 4))
+        if side == 'both':
+            out = decide_both(ser['left'], ser['right'])
+            out['series'] = ser['left']
+            out['series_right'] = ser['right']
+        else:
+            out = decide(ser[side])
+            out['kind'] = side if out['blink'] else ''
+            out['series'] = ser[side]
+        out.update({'side': side, 'slot': slot, 'box': [round(v, 3) for v in box]})
         return out
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -133,6 +161,25 @@ def selftest():
     weak = ([0.004] * 3 + [0.0005] * 4) * 5            # 幅度太小
     if decide(weak)['blink']:
         err.append('微弱變化被判成閃爍')
+    hz = ([0.012] * 4 + [0.0015] * 5) * 3               # 雙黃燈：左右同步、幅度較小
+    r = decide_both(hz, hz)
+    if not (r['blink'] and r['kind'] == 'hazard'):
+        err.append('雙黃燈沒被偵測 %s' % r)
+    r = decide_both(([0.03] * 3 + [0.001] * 4) * 5, [0.001] * 35)
+    if not (r['blink'] and r['kind'] == 'left'):
+        err.append('左方向燈 %s' % r)
+    r = decide_both([0.001] * 35, ([0.03] * 3 + [0.001] * 4) * 5)
+    if not (r['blink'] and r['kind'] == 'right'):
+        err.append('右方向燈 %s' % r)
+    r = decide_both([0.001] * 30, [0.001] * 30)
+    if r['blink']:
+        err.append('無燈被判成有')
+    r = decide_both(one, one)
+    if r['blink']:
+        err.append('兩側各只亮一次被判成雙黃燈')
+    two = [0.001] * 4 + ([0.03] * 3 + [0.001] * 5) * 2        # 2 秒短片（20 幀）：閃兩次
+    if not decide(two)['blink']:
+        err.append('2 秒短片閃兩次沒偵測 %s' % decide(two))
     img = np.zeros((20, 20, 3), dtype=np.uint8)
     img[:10, :10] = (255, 170, 30)                     # 橘
     img[10:, :10] = (230, 20, 20)                      # 紅（煞車燈）
@@ -147,7 +194,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--clip')
     ap.add_argument('--slot', default='front')
-    ap.add_argument('--side', default='left', choices=['left', 'right'])
+    ap.add_argument('--side', default='both', choices=['left', 'right', 'both'])
     ap.add_argument('--vision')
     ap.add_argument('--box', help='除錯：直接指定車身框 x0,y0,x1,y1（比例）')
     ap.add_argument('--delete', action='store_true', help='分析完刪掉短片')
