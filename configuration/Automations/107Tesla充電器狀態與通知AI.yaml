@@ -309,7 +309,7 @@
             - service: script.notify_dispatch
               data:
                 level: general
-                line: false
+                line: "{{ is_state('input_boolean.notify_tesla_charge_extra_line_enable', 'on') and (line_bot_target_user_id | string | lower | trim not in ['', 'unknown', 'unavailable', 'none']) }}"
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
@@ -319,39 +319,6 @@
                   手把溫度：{{ handle_temp }}°C
                   MCU 溫度：{{ mcu_temp }}°C
                   PCB 溫度：{{ pcb_temp }}°C
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: input_boolean.notify_line_general_enable
-                      state: "on"
-                    - condition: state
-                      entity_id: input_boolean.notify_tesla_charge_extra_line_enable
-                      state: "on"
-                    - condition: template
-                      value_template: >-
-                        {{ line_bot_target_user_id | string | lower | trim not in ['', 'unknown', 'unavailable', 'none'] }}
-                  sequence:
-                    - service: script.send_line_to_user
-                      data:
-                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
-                        user_id: "{{ line_bot_target_user_id }}"
-                        payload: >-
-                          {{ [
-                              {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🪫 開始充電通知⚡\n充電車輛：' ~ vehicle_name ~ '\n開始時間：' ~ now_time},
-                              {'type':'text','text': '其他資訊：\n手把溫度：' ~ handle_temp ~ '°C\nMCU溫度：' ~ mcu_temp ~ '°C\nPCB溫度：' ~ pcb_temp ~ '°C'}
-                            ] | tojson }}
-              default:
-                - service: script.notify_dispatch
-                  data:
-                    level: general
-                    line: false
-                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
-                    version: "{{ automation_version | default('', true) }}"
-                    title: "【Tesla充電器】LINE 未發送"
-                    message: >-
-                      LINE 未發送：user_id 無效，或必要通知開關未開啟。
-                      user_id={{ line_bot_target_user_id }}、一般={{ states('input_boolean.notify_line_general_enable') }}、重要={{ states('input_boolean.notify_line_important_enable') }}、Tesla額外={{ states('input_boolean.notify_tesla_charge_extra_line_enable') }}。
 
         - conditions:
             - condition: trigger
@@ -373,7 +340,7 @@
             - service: script.notify_dispatch
               data:
                 level: general
-                line: false
+                line: "{{ is_state('input_boolean.notify_tesla_charge_extra_line_enable', 'on') and (line_bot_target_user_id | string | lower | trim not in ['', 'unknown', 'unavailable', 'none']) }}"
                 source: "107Tesla充電器狀態與通知AI (V4.0.0)"
                 version: "{{ automation_version | default('', true) }}"
                 title: "【Tesla充電器】一般 General 🪧"
@@ -388,41 +355,6 @@
                   手把：{{ handle_temp }}°C
                   MCU：{{ mcu_temp }}°C
                   PCB：{{ pcb_temp }}°C
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: input_boolean.notify_line_general_enable
-                      state: "on"
-                    - condition: state
-                      entity_id: input_boolean.notify_tesla_charge_extra_line_enable
-                      state: "on"
-                    - condition: template
-                      value_template: >-
-                        {{ line_bot_target_user_id | string | lower | trim not in ['', 'unknown', 'unavailable', 'none'] }}
-                  sequence:
-                    - service: script.send_line_to_user
-                      data:
-                        source: "107Tesla充電器狀態與通知AI (V4.0.0)"
-                        user_id: "{{ line_bot_target_user_id }}"
-                        payload: >-
-                          {{ [
-                              {'type':'text','text':line_title_general},
-                              {'type':'text','text': '🔋 充電完成通知 ✅\n充電車輛：' ~ vehicle_name ~ '\n開始時間：' ~ start_time ~ '\n結束時間：' ~ now_time ~ '\n充電用時：' ~ charge_duration_text ~ '\n用電量：' ~ session_energy ~ ' kWh（度）'},
-                              {'type':'text','text': '其他資訊：\n手把溫度：' ~ handle_temp ~ '°C\nMCU溫度：' ~ mcu_temp ~ '°C\nPCB溫度：' ~ pcb_temp ~ '°C'}
-                            ] | tojson }}
-              default:
-                - service: script.notify_dispatch
-                  data:
-                    level: general
-                    line: false
-                    source: "107Tesla充電器狀態與通知AI (V4.0.0)"
-                    version: "{{ automation_version | default('', true) }}"
-                    title: "【Tesla充電器】LINE 未發送"
-                    message: >-
-                      LINE 未發送：user_id 無效，或必要通知開關未開啟。
-                      user_id={{ line_bot_target_user_id }}、一般={{ states('input_boolean.notify_line_general_enable') }}、重要={{ states('input_boolean.notify_line_important_enable') }}、Tesla額外={{ states('input_boolean.notify_tesla_charge_extra_line_enable') }}。
-
-
 
         - conditions:
             - condition: trigger

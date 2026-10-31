@@ -14,18 +14,13 @@
   actions:
   - if:
     - condition: template
-      # V4.2.3：地震預警（eq99）要和這則報告是「同一場地震」才算：預警觸發時間 − 報告內文的發生時間 落在 −5 分鐘～＋5 分鐘
-      #（預警在地震發生後幾秒到幾十秒內到，報告時間只到分鐘）。原本只看「1 小時內有預警」，04:48 的小地震預警會讓 04:58 另一場地震的報告被當成同一場。
-      #  報告文字讀不到時間時才退回舊規則。
-      value_template: >-
-        {% set e = as_timestamp(states.script.eq99.attributes.last_triggered, 0) %}
-        {% set m = states('sensor.earthquake') | regex_findall('^\\s*(\\d{1,2})/(\\d{1,2})\\s+(\\d{1,2}):(\\d{2})') %}
-        {% if m | length > 0 %}
-          {% set q = as_timestamp(now().year ~ '-' ~ '%02d' | format(m[0][0] | int) ~ '-' ~ '%02d' | format(m[0][1] | int) ~ 'T' ~ '%02d' | format(m[0][2] | int) ~ ':' ~ m[0][3] ~ ':00+08:00', 0) %}
-          {{ q > 0 and -300 <= (e - q) <= 300 }}
-        {% else %}
-          {{ (now().timestamp() - e) < 3600 }}
-        {% endif %}
+      value_template: "{% set e = as_timestamp(states.script.eq99.attributes.last_triggered,
+        0) %} {% set m = states('sensor.earthquake') | regex_findall('^\\\\s*(\\\\d{1,2})/(\\\\d{1,2})\\\\s+(\\\\d{1,2}):(\\\\d{2})')
+        %} {% if m | length > 0 %}\n  {% set q = as_timestamp(now().year ~ '-' ~ '%02d'
+        | format(m[0][0] | int) ~ '-' ~ '%02d' | format(m[0][1] | int) ~ 'T' ~ '%02d'
+        | format(m[0][2] | int) ~ ':' ~ m[0][3] ~ ':00+08:00', 0) %}\n  {{ q > 0 and
+        -300 <= (e - q) <= 300 }}\n{% else %}\n  {{ (now().timestamp() - e) < 3600
+        }}\n{% endif %}"
     then:
     - parallel:
       - data:
@@ -37,26 +32,23 @@
         enabled: true
         action: script.send_line_to_user
       - data:
-          # V4.2.3：規模 6 以上才是緊急（熟睡中也會閃燈）；其餘重要等級（熟睡中不閃燈、不播頂樓）
-          level: >-
-            {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\\d+(?:\\.\\d+)?)') | float(0)) >= 6 else 'important' }}
+          level: '{{ ''emergency'' if (states(''sensor.earthquake'') | regex_findall_index(''規模(\\d+(?:\\.\\d+)?)'')
+            | float(0)) >= 6 else ''important'' }}'
           line: false
           source: 01地震災害系統
           version: V4.2.0
           title: 最新地震報告
-          message: "{{ states('sensor.earthquake') }}"
+          message: '{{ states(''sensor.earthquake'') }}'
         action: script.notify_dispatch
-      # V4.2.3：地震報告是「已經發生」的資訊，不是緊急：規模 6 以上才維持緊急（不限時段）；其餘只在 07:00–22:00 廣播（改重要等級）。
-      #   晚安情境／頂樓熟睡中，非緊急廣播由 script.announce 整則略過。
       - if:
         - condition: template
-          value_template: >-
-            {{ (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 or 7 <= now().hour < 22 }}
+          value_template: '{{ (states(''sensor.earthquake'') | regex_findall_index(''規模(\d+(?:\.\d+)?)'')
+            | float(0)) >= 6 or 7 <= now().hour < 22 }}'
         then:
         - action: script.announce
           data:
-            level: >-
-              {{ 'emergency' if (states('sensor.earthquake') | regex_findall_index('規模(\d+(?:\.\d+)?)') | float(0)) >= 6 else 'important' }}
+            level: '{{ ''emergency'' if (states(''sensor.earthquake'') | regex_findall_index(''規模(\d+(?:\.\d+)?)'')
+              | float(0)) >= 6 else ''important'' }}'
             kind: quake_report
             message: '地震報告收到以下中央氣象局訊息: {{ states(''sensor.earthquake'') }}'
     else:
@@ -216,7 +208,7 @@
       source: 04苗栗天氣告知系統 (按鈕)
       version: V4.2.0
       title: 氣象與災害告警
-      message: "{{ states('sensor.disaster') }}"
+      message: '{{ states(''sensor.disaster'') }}'
     action: script.notify_dispatch
   - data:
       source: 04苗栗天氣告知系統 (按鈕) (V4.2.0)
@@ -229,9 +221,8 @@
   - action: script.announce
     data:
       level: general
-      message: >-
-        {% from 'notify_body.jinja' import disaster_voice %}{% set v = disaster_voice(states('sensor.disaster')) | trim %}
-        {{ ('天氣告知系統收到政府災害訊息。' ~ v) if v else '目前沒有影響苗栗、新竹的災害告警。' }}
+      message: '{% from ''notify_body.jinja'' import disaster_voice %}{% set v = disaster_voice(states(''sensor.disaster''))
+        | trim %} {{ (''天氣告知系統收到政府災害訊息。'' ~ v) if v else ''目前沒有影響苗栗、新竹的災害告警。'' }}'
   mode: single
 - id: '1645028120962'
   alias: 02地震災害系統 (按鈕) (V4.0.0)
@@ -247,14 +238,17 @@
       source: 02地震災害系統 (按鈕)
       version: V4.2.0
       title: 最新地震報告
-      message: "{{ states('sensor.earthquake') }}\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。"
+      message: '{{ states(''sensor.earthquake'') }}
+
+        發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。'
     action: script.notify_dispatch
   - data:
       source: 02地震災害系統 (按鈕) (V4.2.0)
       user_id: C26ff4e9d30159ba5264a1676f46f8f86
       payload: "[\n      {\n          \"type\":\"text\",\n          \"text\":\"【最新地震報告】緊急
         Urgent ‼️\"\n      },\n      {\n          \"type\":\"text\",\n          \"text\":\"{{
-        states('sensor.earthquake') }}\\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\"\n      }\n  ]\n"
+        states('sensor.earthquake') }}\\n發生地震，請保持冷靜，立即就地趴下、掩護、穩住並抓住桌腳，保護頭頸部。\"\n      }\n
+        \ ]\n"
     enabled: true
     action: script.send_line_to_user
   - action: script.announce
@@ -661,8 +655,7 @@
   max: 10
 - id: '1691820750233'
   alias: 08-3鐵門狀態不穩通知 (V4.1.6)
-  description: >-
-    V4.1.6：鐵門（cover.garage）連線中斷 4 分鐘才通知；若同一時間有 UniFi 網路設備剛重開機（20 分鐘內）或不是「已連線」
+  description: V4.1.6：鐵門（cover.garage）連線中斷 4 分鐘才通知；若同一時間有 UniFi 網路設備剛重開機（20 分鐘內）或不是「已連線」
     （例如更新一樓路由器／AP），先最多等 10 分鐘讓鐵門自己恢復，仍未恢復才通知。改用統一通知（LINE 卡片），移除舊的三段純文字 LINE。
   triggers:
   - entity_id:
@@ -684,23 +677,20 @@
   conditions: []
   actions:
   - variables:
-      net_busy: >-
-        {% set ns = namespace(busy=false) %}
-        {% for s in states.sensor %}
-          {% if s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_uptime$') %}
-            {% set b = as_datetime(s.state, none) %}
-            {% if b is not none and (now() - b).total_seconds() < 1200 %}{% set ns.busy = true %}{% endif %}
-          {% elif s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_state$') %}
-            {% if s.state not in ['connected'] %}{% set ns.busy = true %}{% endif %}
-          {% endif %}
-        {% endfor %}
-        {{ ns.busy }}
+      net_busy: "{% set ns = namespace(busy=false) %} {% for s in states.sensor %}\n
+        \ {% if s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_uptime$')
+        %}\n    {% set b = as_datetime(s.state, none) %}\n    {% if b is not none
+        and (now() - b).total_seconds() < 1200 %}{% set ns.busy = true %}{% endif
+        %}\n  {% elif s.entity_id is match('sensor[.](u6_|udmse|switch_lite|smartpower).*_state$')
+        %}\n    {% if s.state not in ['connected'] %}{% set ns.busy = true %}{% endif
+        %}\n  {% endif %}\n{% endfor %} {{ ns.busy }}"
   - if:
     - condition: template
       value_template: '{{ net_busy }}'
     then:
-    - wait_template: '{{ not is_state(''cover.garage'', [''unavailable'', ''unknown'']) }}'
-      timeout: '00:10:00'
+    - wait_template: '{{ not is_state(''cover.garage'', [''unavailable'', ''unknown''])
+        }}'
+      timeout: 00:10:00
       continue_on_timeout: true
   - condition: state
     entity_id: cover.garage
@@ -713,13 +703,13 @@
       source: 08-3鐵門狀態不穩通知
       version: V4.1.6
       title: 鐵門狀態警告
-      message: |-
-        鐵門連線狀態不穩，請注意。
-        已持續中斷{{ '，網路設備近期有重啟，已等待恢復仍未連上' if net_busy else '' }}。
-        請確認鐵門電源與 Wi-Fi 連線。
+      message: '鐵門連線狀態不穩，請注意。
+
+        已持續中斷{{ ''，網路設備近期有重啟，已等待恢復仍未連上'' if net_busy else '''' }}。
+
+        請確認鐵門電源與 Wi-Fi 連線。'
     action: script.notify_dispatch
   mode: single
-
 - id: '1692271669059'
   alias: 800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家
   description: ''
@@ -1200,6 +1190,9 @@
       btn_events | length > 0 %}\n  {% set btn = btn_events[0] %}\n  {{ state_attr(btn,
       'event_type') != 'long_press' or (now() - states[btn].last_updated).total_seconds()
       > 0.5 }}\n{% else %}\n  true\n{% endif %}"
+  - condition: template
+    alias: V4.3.10 防下樓期間，4 個按鈕（客廳主開關下1、三樓上2／下2、四樓下2）單擊都不開全部樓梯燈；雙擊下3 解除或時段結束即恢復
+    value_template: '{{ not is_state(''binary_sensor.anti_down_window'', ''on'') }}'
   actions:
   - action: script.stage_scene
     data:
@@ -1315,22 +1308,20 @@
     platform: homeassistant
     event: start
   condition:
-  # V4.2.3（SOP-22）：「天黑」＝太陽仰角低於天氣門檻（晴天＝0 度＝地平線下，與原本等價；陰雨天傍晚提前、早上晚一點停用）
   - condition: template
-    value_template: "{{ (state_attr('sun.sun', 'elevation') | float(0)) < (states('sensor.weather_dark_deg') | float(0)) }}"
+    value_template: '{{ (state_attr(''sun.sun'', ''elevation'') | float(0)) < (states(''sensor.weather_dark_deg'')
+      | float(0)) }}'
   action:
-  # SOP-20：HA 重啟後，路燈／門口燈還亮著就接續「大門關上 5 分鐘後關燈」。
-  # 注意：巢狀區塊裡 condition 不成立只會結束該區塊（不會中止整個自動化），所以用 if + stop。
-  # 只有日落後才接手（上面的 sun 條件）；緊急模式（所有燈全開）時不動。
   - choose:
-    - conditions: "{{ trigger.id == 'ha_start' }}"
+    - conditions: '{{ trigger.id == ''ha_start'' }}'
       sequence:
-      - delay: "00:01:00"
+      - delay: 00:01:00
       - if:
         - condition: or
           conditions:
           - condition: template
-            value_template: "{{ not (is_state('switch.lu_deng', 'on') or is_state('switch.men_kou_deng', 'on')) }}"
+            value_template: '{{ not (is_state(''switch.lu_deng'', ''on'') or is_state(''switch.men_kou_deng'',
+              ''on'')) }}'
           - condition: or
             conditions:
             - condition: state
@@ -1346,7 +1337,7 @@
               entity_id: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_iv_shi_ti_an_niu
               state: 'on'
         then:
-        - stop: "HA 重啟：燈沒亮或緊急模式中，不接手關燈"
+        - stop: HA 重啟：燈沒亮或緊急模式中，不接手關燈
     default:
     - service: switch.turn_on
       data: {}
@@ -1502,7 +1493,7 @@
           source: 03E苗栗疏散警報
           version: V4.2.0
           title: 緊急疏散避難警報
-          message: "{{ states('sensor.disaster') }}"
+          message: '{{ states(''sensor.disaster'') }}'
         enabled: true
         action: script.notify_dispatch
     - action: script.announce
@@ -1590,7 +1581,7 @@
           source: 03E苗栗疏散警報
           version: V4.2.0
           title: 緊急疏散避難警報
-          message: "{{ states('sensor.disaster') }}"
+          message: '{{ states(''sensor.disaster'') }}'
         enabled: true
         action: script.notify_dispatch
     - action: script.announce
@@ -2484,12 +2475,14 @@
         source: 800-開關系列-11B 書房燈感應開關長按
         version: V4.0.0
         title: 頂樓感應已暫停
-        message: |-
-          頂樓感應已暫停
+        message: '頂樓感應已暫停
+
           範圍：頂樓感應燈與書房燈
+
           時間：2 小時內不會自動動作
 
-          ※ 時間到會自動恢復；再長按一次可提前恢復。
+
+          ※ 時間到會自動恢復；再長按一次可提前恢復。'
     else:
     - action: input_boolean.turn_off
       target:
@@ -2782,9 +2775,11 @@
           }}'
       sequence:
       - variables:
-          cube_units: >-
-            {% set u = [['living_small', 'light.yeelink_color5_4181_light'], ['living_1', 'light.ke_ting_deng_zu_1_ha'], ['living_2', 'light.ke_ting_deng_zu_2'], ['living_3', 'light.ke_ting_deng_zu_3']] %}
-            {{ u | selectattr('1', 'in', states.light | selectattr('state', 'eq', 'off') | map(attribute='entity_id') | list) | map(attribute='0') | list }}
+          cube_units: '{% set u = [[''living_small'', ''light.yeelink_color5_4181_light''],
+            [''living_1'', ''light.ke_ting_deng_zu_1_ha''], [''living_2'', ''light.ke_ting_deng_zu_2''],
+            [''living_3'', ''light.ke_ting_deng_zu_3'']] %} {{ u | selectattr(''1'',
+            ''in'', states.light | selectattr(''state'', ''eq'', ''off'') | map(attribute=''entity_id'')
+            | list) | map(attribute=''0'') | list }}'
       - if:
         - condition: template
           value_template: '{{ cube_units | count == 0 }}'

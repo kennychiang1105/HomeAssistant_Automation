@@ -770,6 +770,26 @@
 {{- {'lead': ns.lead, 'groups': ns.groups, 'tips': ns.tips, 'extras': ns.extras} | tojson -}}
 {%- endmacro %}
 
+{# V4.3.10 充電通知專用：資訊格（小標＋大字值）與充電器溫度著色 #}
+{% macro ch_tile(label, value, col='#111827', size='sm') -%}
+{{ {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px", "contents": [{"type": "text", "text": label, "size": "xxs", "color": "#6B7280"}, {"type": "text", "text": value, "size": size, "weight": "bold", "color": col, "wrap": true}]} | tojson }}
+{%- endmacro %}
+{% macro ch_temp_col(v, warn, hot) -%}
+{%- set n = (v | regex_findall('-?[0-9.]+') | first | default('', true)) | float(-999) -%}
+{{- '#DC2626' if n >= hot else ('#D97706' if n >= warn else ('#16A34A' if n > -999 else '#6B7280')) -}}
+{%- endmacro %}
+{% macro ch_parse(lines) -%}
+{%- set ns = namespace(d={}) -%}
+{%- for l in lines[1:] -%}
+  {%- set pr = (l | string).split('：', 1) -%}
+  {%- if pr | length == 2 and (pr[1] | trim) != '' -%}{%- set ns.d = dict(ns.d, **{(pr[0] | trim): (pr[1] | trim)}) -%}{%- endif -%}
+{%- endfor -%}
+{{- ns.d | tojson -}}
+{%- endmacro %}
+{% macro ch_when(t) -%}
+{{- (t | string) | regex_replace('^\\d{4}-(\\d{2})-(\\d{2}) (\\d{2}:\\d{2}).*$', '\\1/\\2 \\3') -}}
+{%- endmacro %}
+
 {% macro special_body(title, src, lines0, lv='general', b2='https://family.kteam.tw:8126/local/icons/b2/') -%}
 {%- set lines = (lines0 | from_json([])) if lines0 is string else (lines0 | list) -%}
 {%- set joined = lines | map('string') | join('\n') -%}
@@ -777,7 +797,46 @@
 {#- V4.2.2：卡片種類只看標題與來源（sig_h）和嚴格的訊息格式，不看內文裡剛好出現的字（每日更新紀錄的內文會提到地震預警、災害訊息、燈號，原本被誤認成地震預警卡片）；更新紀錄一律不套專用卡片 -#}
 {%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
 {%- set skip = '更新紀錄' in sig_h -%}
-{%- if (not skip) and ('地震預警' in sig_h) -%}
+{%- set ch_head = (lines[0] | string) if lines | length > 0 else '' -%}
+{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) -%}
+{%- set ch_done = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('充電完成$')) -%}
+{%- if (not skip) and (ch_start or ch_done) -%}
+  {%- set kv = ch_parse(lines) | from_json({}) -%}
+  {%- set veh = ch_head | regex_replace('\\s*(開始充電|充電完成)$', '') | trim -%}
+  {%- set badge, b_col, box_bg, box_bd, val_col, ic = ('充電中', '#2F80ED', '#EFF6FF', '#BFDBFE', '#1D4ED8', 'ev_n') if ch_start else ('充電完成', '#30D158', '#F0FDF4', '#86EFAC', '#16A34A', 'ev_g') -%}
+  {%- set hdr_row = {
+    "type": "box", "layout": "horizontal", "alignItems": "center", "spacing": "6px",
+    "contents": [
+      {"type": "image", "url": b2 ~ ic ~ ".png?v=1", "size": "20px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+      {"type": "text", "text": ("開始充電" if ch_start else "充電完成"), "weight": "bold", "size": "md", "color": "#111827", "flex": 1, "wrap": true},
+      {"type": "box", "layout": "vertical", "backgroundColor": b_col, "cornerRadius": "99px", "paddingTop": "3px", "paddingBottom": "3px", "paddingStart": "10px", "paddingEnd": "10px", "flex": 0,
+       "contents": [{"type": "text", "text": badge, "size": "xxs", "weight": "bold", "color": "#FFFFFF"}]}
+    ]} -%}
+  {%- set t_start = ch_when(kv.get('開始時間', kv.get('時間', '--'))) -%}
+  {%- set t_end = ch_when(kv.get('結束時間', '--')) -%}
+  {%- set vrow = {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('充電車輛', veh, '#111827', 'md') | from_json, dict(ch_tile('開始時間', t_start) | from_json, paddingStart='8px')]} -%}
+  {%- if ch_start -%}
+    {%- set main_rows = [vrow] -%}
+  {%- else -%}
+    {%- set main_rows = [
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('用電量', (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) ~ ' kWh', val_col, 'xl') | from_json, dict(ch_tile('充電用時', kv.get('充電用時', '--') | replace('分鐘', '分'), '#111827', 'md') | from_json, paddingStart='8px')]},
+      {"type": "separator", "color": box_bd},
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('充電車輛', veh, '#111827', 'md') | from_json, dict(ch_tile('開始 → 結束', t_start ~ ' → ' ~ t_end) | from_json, paddingStart='8px')]}
+    ] -%}
+  {%- endif -%}
+  {%- set main_box = {"type": "box", "layout": "vertical", "backgroundColor": box_bg, "borderColor": box_bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "12px", "margin": "md", "spacing": "md", "contents": main_rows} -%}
+  {%- set hv = kv.get('手把溫度', kv.get('手把', '--')) -%}
+  {%- set mv = kv.get('MCU 溫度', kv.get('MCU溫度', kv.get('MCU', '--'))) -%}
+  {%- set pv = kv.get('PCB 溫度', kv.get('PCB溫度', kv.get('PCB', '--'))) -%}
+  {%- set temp_box = {"type": "box", "layout": "vertical", "backgroundColor": "#F3F4F6", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "6px", "contents": [
+      {"type": "text", "text": "充電器溫度", "size": "xxs", "weight": "bold", "color": "#6B7280"},
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [
+        ch_tile('手把', hv, ch_temp_col(hv, 42, 50) | trim, 'sm') | from_json,
+        ch_tile('MCU', mv, ch_temp_col(mv, 60, 75) | trim, 'sm') | from_json,
+        ch_tile('PCB', pv, ch_temp_col(pv, 70, 85) | trim, 'sm') | from_json
+      ]}]} -%}
+  {{- [hdr_row, main_box, temp_box] | tojson -}}
+{%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
   {%- set lv_raw = (m_lv[0] | trim) if m_lv | length > 0 else states('input_text.line_eew_remote_level') -%}
@@ -1190,7 +1249,25 @@
 {#- V4.2.2：卡片種類只看標題與來源（sig_h）和嚴格的訊息格式，不看內文裡剛好出現的字（每日更新紀錄的內文會提到地震預警、災害訊息、燈號，原本被誤認成地震預警卡片）；更新紀錄一律不套專用卡片 -#}
 {%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
 {%- set skip = '更新紀錄' in sig_h -%}
-{%- if (not skip) and ('地震預警' in sig_h) -%}
+{%- set ch_head = (lines[0] | string) if lines | length > 0 else '' -%}
+{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) -%}
+{%- set ch_done = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('充電完成$')) -%}
+{%- if (not skip) and (ch_start or ch_done) -%}
+  {%- set kv = ch_parse(lines) | from_json({}) -%}
+  {%- set veh = ch_head | regex_replace('\\s*(開始充電|充電完成)$', '') | trim -%}
+  {%- set hv = kv.get('手把溫度', kv.get('手把', '--')) -%}
+  {%- set mv = kv.get('MCU 溫度', kv.get('MCU溫度', kv.get('MCU', '--'))) -%}
+  {%- set pv = kv.get('PCB 溫度', kv.get('PCB溫度', kv.get('PCB', '--'))) -%}
+  {%- set col = '#2F80ED' if ch_start else '#16A34A' -%}
+  {%- set parts = ['<img src="' ~ b2 ~ ('ev_n' if ch_start else 'ev_g') ~ '.png" width="20" height="20" style="vertical-align:middle"> **' ~ ('開始充電' if ch_start else '充電完成') ~ '**　<span style="color:' ~ col ~ '"><b>【' ~ ('充電中' if ch_start else '充電完成') ~ '】</b></span>'] -%}
+  {%- if ch_start -%}
+    {%- set parts = parts + ['充電車輛　**' ~ veh ~ '**<br>開始時間　**' ~ ch_when(kv.get('開始時間', kv.get('時間', '--'))) ~ '**'] -%}
+  {%- else -%}
+    {%- set parts = parts + ['用電量　<span style="color:' ~ col ~ '"><b>' ~ (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) ~ ' kWh</b></span>　充電用時　**' ~ (kv.get('充電用時', '--') | replace('分鐘', '分')) ~ '**<br>充電車輛　**' ~ veh ~ '**<br>' ~ ch_when(kv.get('開始時間', '--')) ~ ' → ' ~ ch_when(kv.get('結束時間', '--'))] -%}
+  {%- endif -%}
+  {%- set parts = parts + ['<sub>充電器溫度　手把 ' ~ hv ~ '　MCU ' ~ mv ~ '　PCB ' ~ pv ~ '</sub>'] -%}
+  {{- parts | join('\n\n') -}}
+{%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
   {%- set lv_raw = (m_lv[0] | trim) if m_lv | length > 0 else states('input_text.line_eew_remote_level') -%}
