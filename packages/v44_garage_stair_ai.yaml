@@ -29,9 +29,13 @@ script:
       畫面沒人就回傳 empty＝true；12 次都還有人回傳 empty＝false（呼叫端不關燈）；模型連不上（persons＝-1）視為無法判斷，沿用原本的感應器判斷（empty＝true、unknown＝true）。
     mode: parallel
     max: 3
+    fields:
+      max_checks:
+        description: 最多確認幾次（每次間隔 30 秒），預設 12 次
+        example: 1
     sequence:
       - repeat:
-          count: 12
+          count: "{{ max_checks | default(12) | int(12) }}"
           sequence:
             - action: camera.snapshot
               target:
