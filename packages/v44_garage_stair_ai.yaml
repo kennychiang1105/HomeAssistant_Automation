@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫樓梯口人流記錄 (V1.0.0，只記錄不控制)
 # 更新紀錄（統一格式）：
-# - V1.2.0（2026-10-31）：下樓納入控制：模型一判到有人從樓梯口走出（提早判斷，不等軌跡結束）就啟動 script.garage_stair_down_on，開樓梯燈再開車庫燈（尊重手動關燈冷卻）。
+# - V1.2.0（2026-10-31）：下樓納入控制：模型一判到有人從樓梯口走出（提早判斷，不等軌跡結束）就啟動 script.garage_stair_down_on，開樓梯燈、隔 0.5 秒再開車庫燈（尊重手動關燈冷卻）。
 # - V1.1.0（2026-10-31）：模型納入控制：判到「上樓」時啟動 script.garage_stair_up_off（鐵門已關＋樓梯感應器亮起＋模型確認車庫沒人）提早關燈；開關 input_boolean.garage_stair_ai_control_enable。
 # - V1.0.0（2026-10-31）：新增。車庫樓梯人體感應器或車庫攝影機有人時，每秒一張快照送 Garage Vision add-on（人體姿態模型），
 #   scripts/garage_stair_track.py 把多人各自串成軌跡，判斷每個人從樓梯口出來（down）、走進樓梯口（up）或只經過（pass），
@@ -105,7 +105,7 @@ script:
   garage_stair_down_on:
     alias: 車庫樓梯口｜模型判到下樓，開樓梯燈與車庫燈 (V1.0.0)
     description: >
-      人體模型判到有人從樓梯口走進車庫（下樓）：燈沒開就先開樓梯燈、隔 2 秒再開車庫主燈；手動關燈冷卻期間不動作。
+      人體模型判到有人從樓梯口走進車庫（下樓）：燈沒開就先開樓梯燈、隔 0.5 秒再開車庫主燈；手動關燈冷卻期間不動作。
       開關 input_boolean.garage_stair_ai_control_enable。
     mode: single
     max_exceeded: silent
@@ -121,7 +121,8 @@ script:
           - action: switch.turn_on
             target:
               entity_id: switch.lou_ti_deng
-          - delay: "00:00:02"
+          - delay:
+              milliseconds: 500
       - if: "{{ is_state('switch.che_ku_zhu_deng', 'off') }}"
         then:
           - if: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}"
