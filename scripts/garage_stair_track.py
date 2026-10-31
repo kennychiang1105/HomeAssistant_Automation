@@ -82,6 +82,7 @@ class Tracker:
         self.t_last = s.get('t_last', 0)
         self.max_conc = s.get('max_conc', 0)
         self.done = []          # 這一次呼叫結算出的事件
+        self.fired = []         # 這一次呼叫「提早判斷」出的事件（下樓：人剛走出樓梯口就發，不等軌跡結束）
 
     def dump(self):
         return {'tracks': self.tracks, 'next_id': self.next_id, 't_last': self.t_last, 'max_conc': self.max_conc}
@@ -94,6 +95,7 @@ class Tracker:
 
     def add(self, t, persons):
         cfg = self.cfg
+        self.fired = []
         if self.t_last and t - self.t_last > cfg['idle_reset_s']:
             self.finalize()
             self.tracks, self.max_conc = [], 0
@@ -117,6 +119,11 @@ class Tracker:
                 self.tracks.append(best)
             best['pts'].append(p)
             used.add(best['id'])
+            if not best.get('fired') and len(best['pts']) >= cfg['min_det']:
+                r = classify(best, cfg)
+                if r['dir'] == 'down':
+                    best['fired'] = True
+                    self.fired.append(dict(r, id=best['id']))
         # 結算消失太久的軌跡
         keep = []
         for tr in self.tracks:
@@ -126,7 +133,7 @@ class Tracker:
                 keep.append(tr)
         self.tracks = keep
         self.max_conc = max(self.max_conc, len(ps))
-        return {'persons': len(ps), 'tracks': len(self.tracks), 'closed': self.done}
+        return {'persons': len(ps), 'tracks': len(self.tracks), 'closed': self.done, 'fired': self.fired}
 
     def finalize(self):
         for tr in self.tracks:
@@ -247,6 +254,12 @@ def selftest():
     # 一人出一人進，同時 → 各自一條
     seq = [[box(0.30, 0.9), box(0.70, 0.95)], [box(0.36, 0.9), box(0.55, 0.95)], [box(0.46, 0.9), box(0.42, 0.95)], [box(0.58, 0.9), box(0.32, 0.95)]]
     assert sorted(run(seq)) == ['down', 'up'], run(seq)
+    # 提早判斷：人一走出樓梯口就發 down（只發一次）
+    tr = Tracker(cfg)
+    fires = []
+    for i, ps in enumerate([[box(0.30, 0.9)], [box(0.33, 0.9)], [box(0.38, 0.9)], [box(0.45, 0.9)], [box(0.55, 0.9)]]):
+        fires += tr.add(1000.0 + i, ps)['fired']
+    assert [f['dir'] for f in fires] == ['down'], fires
     # 偵測太少 → unknown
     assert run([[box(0.3, 0.9)], [box(0.4, 0.9)]]) == ['unknown']
     print('selftest PASS')

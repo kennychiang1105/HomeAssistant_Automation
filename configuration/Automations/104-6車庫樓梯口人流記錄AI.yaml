@@ -2,6 +2,7 @@
 # 104-6車庫樓梯口人流記錄AI (V1.0.0)
 # 相容版本：packages/v44_garage_stair_ai.yaml
 # 更新紀錄（統一格式）：
+# - V1.1.0（2026-10-31）：車庫攝影機動態（g6_instant_motion）也啟動模型迴圈（開燈改由模型也能觸發）。
 # - V1.0.0（2026-10-31）：新增。樓梯感應器或車庫攝影機偵測到人時啟動 script.garage_stair_ai_loop（只記錄上下樓與人數，不控制燈或門）。
 #   HA 重啟時若感應器剛好還在有人狀態，啟動 3 分鐘後再接續一次。
 # ─────────────────────────────────────────────────────────────
@@ -11,7 +12,7 @@
   mode: single
   max_exceeded: silent
   variables:
-    automation_version: "V1.0.0"
+    automation_version: "V1.1.0"
   triggers:
     - trigger: state
       id: stair
@@ -20,6 +21,10 @@
     - trigger: state
       id: person
       entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+      to: "on"
+    - trigger: state
+      id: motion
+      entity_id: binary_sensor.g6_instant_motion
       to: "on"
     - trigger: homeassistant
       id: ha_start
@@ -35,7 +40,8 @@
         - condition: template
           value_template: >-
             {{ is_state('binary_sensor.e406bf25cfea_motion', 'on')
-               or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}
+               or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
+               or is_state('binary_sensor.g6_instant_motion', 'on') }}
     - action: script.turn_on
       target:
         entity_id: script.garage_stair_ai_loop
