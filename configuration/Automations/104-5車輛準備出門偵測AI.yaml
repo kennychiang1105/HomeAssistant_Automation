@@ -38,6 +38,10 @@
         {% set fast = not is_state('cover.garage', 'closed') %}
         {{ active or (fast and s % 15 < 5) or s < 5 }}
   actions:
+    # V4.3.10：有動靜時同時啟動方向燈連續檢查（獨立腳本，不等畫面分析；沒動靜或已在跑就略過）
+    - action: script.turn_on
+      target:
+        entity_id: script.garage_turn_fast
     - action: script.garage_car_watch_run
 
 - alias: 104-5B車輛準備出門旗標復歸AI (V4.3.0-beta 1)
