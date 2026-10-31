@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
-# 二樓夜間防下樓＋噪音警告 (V4.3.6)
+# 二樓夜間防下樓＋噪音警告 (V4.3.9)
 # 更新紀錄（統一格式）：
+# - V4.3.9（2026-10-31）：新增「家人寬限期」：家人（Iris 以外）在二樓／車庫出現後 10 分鐘（anti_down_family_grace_min）內不擋。10/31 04:51～06:14 Jerry 在 4 樓房間、客廳、車庫之間來回，二樓人員辨識延遲且人暫時離開感應範圍就變「無」，共 46 次誤關他剛開的燈。
 # - V4.3.6（2026-10-30）：結束時間改為「日出後偏移分鐘」平日 0、假日 30；新增「一律解除時間」anti_down_cutoff（預設 06:20，超過這個時間不論日出一律解除）；
 #   緊急狀況一律不擋：緊急模式快照有效（地震預警／緊急模式啟動後 2 小時）、script.eq99 執行中、緊急模式判斷開關 I～IV 任一開啟、30 分鐘內有地震預警事件、五樓／車庫攝影機煙霧或 CO 警報時，時間窗為 off。
 #   新增 input_boolean.anti_down_override「今晚解除」：客廳主開關下3 連按兩下（08-7B）開啟，時間窗直接解除；再按兩下取消，晚安情境再次執行或中午 12:00 自動復位。
@@ -46,6 +47,10 @@ input_datetime:
     name: 二樓夜間防下樓｜最近一次廣播（內部）
     has_date: true
     has_time: true
+  anti_down_family_seen:
+    name: 二樓夜間防下樓｜家人（Iris 以外）最近一次在二樓／車庫（內部）
+    has_date: true
+    has_time: true
 
 input_number:
   anti_down_sunrise_offset_workday_min:
@@ -64,6 +69,14 @@ input_number:
     initial: 30
     mode: box
     icon: mdi:weather-sunset-up
+  anti_down_family_grace_min:
+    name: 二樓夜間防下樓｜家人出現後不擋的分鐘數
+    min: 0
+    max: 60
+    step: 1
+    initial: 10
+    mode: box
+    icon: mdi:timer-sand
   anti_down_announce_gap_min:
     name: 二樓夜間防下樓｜廣播最短間隔（分鐘）
     min: 1
@@ -121,6 +134,9 @@ template:
           {% set lp_ev = lp.split('|')[0] if '|' in lp else '' %}
           {% set lp_age = (as_timestamp(n) - (lp.split('|')[1] | float(0))) if '|' in lp else 99999 %}
           {% set kenny_down = 'down' in lp_ev and lp_age < 180 %}
+          {# V4.3.9：家人（Iris 以外）最近 N 分鐘在二樓或車庫出現過就不擋。二樓人員辨識有 10～20 秒延遲、人暫時離開感應範圍會變「無」，原本會把家人剛打開的燈關掉（10/31 Jerry 清晨在 4 樓房間、客廳、車庫之間來回，被擋 46 次） #}
+          {% set fam_ago = as_timestamp(n) - as_timestamp(states('input_datetime.anti_down_family_seen'), 0) %}
+          {% set family_recent = fam_ago < (states('input_number.anti_down_family_grace_min') | float(10)) * 60 %}
           {% set eew_ts = as_timestamp(states('input_datetime.eew_last_event'), 0) %}
           {% set emergency = is_state('input_boolean.emergency_snapshot_valid', 'on')
              or is_state('script.eq99', 'on')
@@ -135,6 +151,7 @@ template:
              and start_dt <= n < end_dt
              and sf_ok
              and not kenny_down
+             and not family_recent
              and is_state('input_boolean.mood_alert_active', 'off')
              and is_state('input_boolean.noise_warning', 'off') }}
         attributes:

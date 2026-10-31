@@ -1,4 +1,5 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.3.9（2026-10-31）：自動風速結合室外溫度（weather.homeweather_zhu_nan_zhen）：①室內比室外熱時體感溫度加成（高出 1°C 以上每 1°C +0.25，上限 +1.0；室外 ≥ 32°C 再 +0.4）；②非夏季模式的整體降檔由固定 10% 改為看室外溫度（< 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降）。原因：10/31 室內 29°C／濕度 61%／室外 27°C，體感 29.55°C 剛好卡在 60% 門檻（29.6）下方，遲滯讓風量停在 50%，使用者覺得熱；加上室內比室外熱的加成後體感 29.8°C → 60%。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟後 delay 15 秒重新評估環境溫濕度與兒童鎖／風速調節；保護 trigger.to_state is defined。
 # - V4.1.5（2026-10-11）：自動調速防抖。原本 t_eff 在 28.3／28.4 等門檻上下 0.1°C 抖動就會讓風量每 15～30 秒大小來回（30 小時 67 次變化、86 次快速反轉）。
 #   ① 遲滯：升級要超過門檻 +遲滯（預設 0.3°C）、降級要低於門檻 -遲滯；② 自動調速最短間隔 3 分鐘（timer.living_room_fan_speed_dwell）；
@@ -77,9 +78,26 @@
       {% if active_humidity is none or active_humidity <= 50 %}0
       {% elif active_humidity <= 80 %}{{ ((active_humidity - 50) * 0.05) | round(2) }}
       {% else %}1.5{% endif %}
+    # V4.3.9：結合室外溫度。室外溫度取 weather.homeweather_zhu_nan_zhen（竹南鎮）；取不到就不加（out_bonus_c＝0、不做季節降檔）。
+    outdoor_temp: "{{ state_attr('weather.homeweather_zhu_nan_zhen','temperature') | float(None) }}"
+    # ① 室內比室外熱（散熱差）：室內高出室外 1°C 以上，每多 1°C 加 0.25°C（上限 +1.0，室內比室外涼很多則最多 -0.5）；② 室外 ≥ 32°C（熱負荷大）再 +0.4
+    out_bonus_c: >-
+      {%- if outdoor_temp is none or active_temp is none -%}0
+      {%- else -%}
+        {%- set d = active_temp - outdoor_temp -%}
+        {%- set b = [[(d - 1.0) * 0.25, -0.5] | max, 1.0] | min -%}
+        {%- if outdoor_temp >= 32 -%}{%- set b = b + 0.4 -%}{%- endif -%}
+        {{- b | round(2) -}}
+      {%- endif -%}
+    # ③ 非夏季模式原本一律把曲線整體降 10%：改成看室外溫度，室外 < 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降（室外取不到沿用 10%）
+    season_cut: >-
+      {% if summer_mode %}0
+      {% elif outdoor_temp is none or outdoor_temp < 26 %}10
+      {% elif outdoor_temp < 29 %}5
+      {% else %}0{% endif %}
     t_eff: >-
       {% if active_temp is not none %}
-        {{ active_temp + humidity_bonus_c }}
+        {{ active_temp + humidity_bonus_c + out_bonus_c | float(0) }}
       {% else %}
         none
       {% endif %}
@@ -100,7 +118,7 @@
         {%- elif t > 28.3 -%}{%- set p = 40 -%}
         {%- elif t > 27.8 -%}{%- set p = 30 -%}
         {%- endif -%}
-        {%- if (not summer_mode) and p != 100 -%}{{ [p - 10, 20] | max }}{%- else -%}{{ p }}{%- endif -%}
+        {%- if p != 100 -%}{{ [p - (season_cut | int(10)), 20] | max }}{%- else -%}{{ p }}{%- endif -%}
       {%- endmacro %}
       {% if not t_eff_valid %}{{ fan_pct_now }}
       {% else %}
