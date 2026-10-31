@@ -61,6 +61,9 @@ DEFAULT_CFG = {
     'exit_stairs_y': 0.90,
     'exit_edge_x': 0.86,       # 最後位置 x 不小於這個 → 右邊緣（臥室側）
     'exit_door_x': 0.60,       # 最後位置 x 不小於這個 → 在房門口區消失（書房／臥室）；再用走動方向分辨
+    'dest_lr_on': True,        # V4.3.9：房門口消失時，用學習式分類（邏輯迴歸，10/27～10/31 共 88 段書房／臥室走動，依日期留一驗證：書房判對 59%→83%、臥室 90%）判斷書房 or 臥室；不夠有把握（0.3～0.7）才用下面的位移規則
+    'dest_lr_hi': 0.70,
+    'dest_lr_lo': 0.30,
     'exit_dx': 0.05,           # 房門口區消失時，位移（最後 x － 第一次 x）≥ +這個＝臥室、≤ －這個＝書房
 }
 
@@ -147,6 +150,26 @@ def final_class(frames, cfg, decided):
     return {'dir': 'unknown', 'conf': 0.0, 'reason': '看不出方向（偵測 %d 幀）' % len(det)}
 
 
+DEST_LR = {"mean": [0.71038, 0.865628, 0.578131, 0.186424, 0.523955, -0.003159, 0.045463, 0.190714, 0.773772, 0.997349, 16.295455, 9.341136, 0.387384, 0.5833], "scale": [0.106233, 0.144218, 0.18277, 0.262812, 0.227238, 0.078688, 0.129131, 0.333593, 0.065116, 0.005107, 9.882444, 5.679838, 0.137772, 0.134544], "w": [1.38789, 1.04602, -0.091979, -0.580892, 1.320665, -0.167721, -0.724447, -0.611697, -0.373011, -0.670759, -0.257511, 0.814772, 1.278298, 1.32554], "b": -0.951331, "order": "x_last,y_last,h_last,dx_total,x_first,dx_last3,dx_last6,dh_total,h_max,y_max,n,duration,x_range,x_mean"}
+
+
+def dest_lr_prob(seg):
+    """房門口消失時：用軌跡特徵（最後位置、位移、框高、幀數、時間）估「進書房」的機率；特徵順序見 DEST_LR['order']。seg 不到 4 幀回傳 None"""
+    import math
+    det = [f['p'] for f in seg if f['p']]
+    if len(det) < 4:
+        return None
+    xs = [p['x'] for p in det]
+    ys = [p['y'] for p in det]
+    hs = [p['h'] for p in det]
+    n = len(xs)
+    ts = [f['t'] for f in seg if f['p']]
+    f = [xs[-1], ys[-1], hs[-1], xs[-1] - xs[0], xs[0], xs[-1] - xs[max(0, n - 3)], xs[-1] - xs[max(0, n - 6)], hs[-1] - hs[0], max(hs), max(ys), n,
+         ts[-1] - ts[0], max(xs) - min(xs), sum(xs) / n]
+    z = DEST_LR['b'] + sum(w * (v - m) / sc for w, v, m, sc in zip(DEST_LR['w'], f, DEST_LR['mean'], DEST_LR['scale']))
+    return 1.0 / (1.0 + math.exp(-z))
+
+
 def exit_zone(seg, cfg):
     """seg: 這一段的偵測（[{'t','p'}]，時間順序）。回傳 {'zone','dest','origin','reason'}；zone＝stairs／right_edge／door_mid／unknown"""
     first, last = seg[0]['p'], seg[-1]['p']
@@ -159,6 +182,12 @@ def exit_zone(seg, cfg):
         # 從左側（樓梯側）往右走到門口消失＝臥室；從右邊緣往左走到門口消失＝書房；位移太小就不猜
         zone = 'right_edge' if last['x'] >= cfg['exit_edge_x'] else 'door_mid'
         dest = 'bedroom' if dx >= cfg['exit_dx'] else ('study' if dx <= -cfg['exit_dx'] else '')
+        if cfg.get('dest_lr_on'):
+            pl = dest_lr_prob(seg)
+            if pl is not None and pl >= cfg['dest_lr_hi']:
+                dest = 'study'
+            elif pl is not None and pl <= cfg['dest_lr_lo']:
+                dest = 'bedroom'
     else:
         zone, dest = 'unknown', ''
     return {'zone': zone, 'dest': dest, 'origin': origin, 'dx': round(dx, 2), 'x': last['x'], 'y': last['y'], 'h': last['h'],
@@ -250,7 +279,39 @@ def cmd_frame(a):
     out = tr.add(a.t or time.time(), persons)
     json.dump(tr.dump(), open(sp, 'w', encoding='utf-8'))
     out['ms'] = int((time.time() - t0) * 1000)
+    try:
+        collect_frame(a.frame, a.t or time.time(), persons, out)
+    except Exception:  # noqa: BLE001
+        pass
     print(json.dumps(out, ensure_ascii=False))
+
+
+COLLECT_DIR = '/config/learn_collect/topfloor'
+COLLECT_KEEP_DAYS = 14
+
+
+def collect_frame(src, t, persons, out):
+    """V4.3.9 學習資料自動收集：動靜期間分析過的每一張快照（約 15 KB）＋當下人物框與追蹤判斷，存到 /config/learn_collect/topfloor/<日期>/，
+    之後用 08-5J 實體感應器事件（上樓／進書房／進臥室）當標註，對照模型判斷，挑出不一致的重新學習。保留 14 天。"""
+    import datetime as dt
+    import shutil
+    day = dt.datetime.fromtimestamp(t).strftime('%Y%m%d')
+    d = os.path.join(COLLECT_DIR, day)
+    new_day = not os.path.isdir(d)
+    os.makedirs(d, exist_ok=True)
+    stamp = dt.datetime.fromtimestamp(t).strftime('%H%M%S_%f')[:10]
+    shutil.copyfile(src, os.path.join(d, stamp + '.jpg'))
+    rec = {'t': round(t, 2), 'file': stamp + '.jpg', 'dir': out.get('dir'), 'fire': out.get('fire'), 'reason': out.get('reason'),
+           'persons': [{'c': p.get('conf'), 'b': p.get('box')} for p in (persons or [])]}
+    if out.get('exit'):
+        rec['exit'] = out['exit']
+    with open(os.path.join(d, 'index.jsonl'), 'a', encoding='utf-8') as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + '\n')
+    if new_day:                                   # 每天第一次寫入時清掉超過保留天數的資料夾
+        cut = (dt.datetime.fromtimestamp(t) - dt.timedelta(days=COLLECT_KEEP_DAYS)).strftime('%Y%m%d')
+        for n in os.listdir(COLLECT_DIR):
+            if n.isdigit() and n < cut:
+                shutil.rmtree(os.path.join(COLLECT_DIR, n), ignore_errors=True)
 
 
 def cmd_finalize(a):
