@@ -2,6 +2,11 @@
 # 104-1車庫鐵門感應燈AI (V4.2.0)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.0（2026-10-31）：整合車庫樓梯人體感應器（binary_sensor.e406bf25cfea_motion，米家 Motion Sensor 2s）：二樓開樓梯門走進樓梯口有動靜就開車庫主燈與樓梯燈（與攝影機人／車／動態同一個開燈路徑，手動關燈冷卻仍有效）；
+#           關燈前（鐵門已關＋5 分鐘無活動後）先等樓梯感應器恢復無人（最多再等 10 分鐘），最後檢核加入樓梯感應器，確認樓梯口沒人才關燈。
+# - V4.3.1（2026-10-31）：提早關燈。① 樓梯感應器觸發 30 秒後，車庫攝影機沒人車動態且人體模型看不到人（沒人走下樓）就直接關燈；② 一般情況鐵門關閉後 1 分鐘內車庫與樓梯都沒有動靜就不再等滿 5 分鐘，仍要通過模型確認才關。
+#           樓梯感應器觸發時開燈順序：先樓梯燈、隔 2 秒再車庫主燈；其他觸發（鐵門、攝影機）維持原本順序。
+#           另外關燈前呼叫 script.garage_presence_confirm_empty：用 Garage Vision 人體姿態模型看車庫畫面，確認沒有人才關（最多確認約 6 分鐘，仍有人就不關）。
 # - V4.2.2（2026-10-23）：修正「HA 重新啟動後車庫燈一直亮」：關燈倒數（5 分鐘）只存在記憶體，2026-10-23 11:29 HA 重啟時剛好在倒數，重啟後沒有任何動作接手，主燈與樓梯燈一直亮著
 #           （104-1C 全員離家關燈只在沒人在家時才動作）。現在 HA 啟動 1 分鐘後，若車庫主燈或樓梯燈亮著，就重新進入「鐵門關閉＋5 分鐘無人車活動」的關燈流程。
 # - V4.2.0（2026-10-18）：修正「手動開燈後立刻被離家情境關掉，卻被當成手動關燈而啟動冷卻」：2026-10-18 16:28 實體開關長按餐廳燈啟動離家情境，約 1 秒後按車庫主燈單擊開燈，情境最後一環又把車庫主燈關掉，
@@ -46,6 +51,7 @@
         - binary_sensor.che_ku_she_ying_ji_person_detected
         - binary_sensor.che_ku_she_ying_ji_vehicle_detected
         - binary_sensor.g6_instant_motion
+        - binary_sensor.e406bf25cfea_motion
       to: "on"
 
     # 3. 鐵門關閉事件 (門關上後啟動關燈倒數)
@@ -70,7 +76,7 @@
     # （V4.1.5 移除）燈具關閉觸發改由 104-1B 處理：此觸發會讓 restart 模式的本自動化重啟，中止關燈倒數，造成主燈沒關
 
   variables:
-    automation_version: "V4.2.0"
+    automation_version: "V4.3.1"
     cooldown_sec: "{{ states('input_number.garage_light_cooldown_sec') | int(30) }}"
     is_cooling_down: "{{ not is_state('timer.garage_light_manual_off_cooldown', 'idle') }}"
     # 判斷是否為外部人工操作（實體按鈕或 App 均無 parent_id；自動化產生的動作會有 parent_id）
@@ -121,6 +127,20 @@
               then:
                 - stop: "處於手動關閉冷卻期間，不重複自動開燈"
               else:
+                # 0. 樓梯感應器觸發：人在樓梯口，先開樓梯燈，隔 2 秒再開車庫主燈（走下樓時先照亮腳下，再亮車庫）
+                - if:
+                    - condition: template
+                      value_template: "{{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' }}"
+                  then:
+                    - if:
+                        - condition: state
+                          entity_id: switch.lou_ti_deng
+                          state: "off"
+                      then:
+                        - service: switch.turn_on
+                          target:
+                            entity_id: switch.lou_ti_deng
+                    - delay: "00:00:02"
                 # 1. 車庫主燈 5 秒防切換小燈保護：若主燈剛關閉未滿 5 秒，等待補滿 5 秒後始開燈
                 - if:
                     - condition: state
@@ -173,7 +193,53 @@
           entity_id: cover.garage
           state: "closed"
 
-        - delay: "00:05:00"
+        # 2a. 提早關燈（V4.3.1）
+        #   ① 樓梯感應器觸發後 30 秒：車庫攝影機沒人／車／動態、人體模型也看不到人 → 沒人走下樓，直接關燈（不等 5 分鐘）。
+        #      （米家感應器亮起後會保持約 1.5～3 分鐘才熄，所以「樓梯沒人」改用「30 秒內沒人出現在車庫」判斷；之後樓梯口再有動靜會重新開燈）
+        - if:
+            - condition: template
+              value_template: "{{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' }}"
+          then:
+            - delay: "00:00:30"
+            - if:
+                - condition: template
+                  value_template: >-
+                    {{ states('cover.garage') == 'closed'
+                      and states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on'
+                      and states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on'
+                      and states('binary_sensor.g6_instant_motion') != 'on' }}
+              then:
+                - action: script.garage_presence_confirm_empty
+                  data:
+                    max_checks: 1
+                  response_variable: ps
+                - if:
+                    - condition: template
+                      value_template: "{{ ps is mapping and ps.get('empty', false) and not ps.get('unknown', true) }}"
+                  then:
+                    - service: switch.turn_off
+                      target:
+                        entity_id:
+                          - switch.che_ku_zhu_deng
+                          - switch.lou_ti_deng
+                    - stop: "樓梯感應器觸發 30 秒後車庫沒人、沒人下樓，已關燈"
+
+        # 2a-2. 一般情況：鐵門已關後先等 1 分鐘；這 1 分鐘車庫攝影機與樓梯感應器都沒有人車動靜，就不再等滿 5 分鐘（之後仍要通過模型確認才關）
+        - delay: "00:01:00"
+        - if:
+            - condition: template
+              value_template: >-
+                {{ not (states('cover.garage') == 'closed'
+                      and states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on'
+                      and states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on'
+                      and states('binary_sensor.g6_instant_motion') != 'on' and states('binary_sensor.e406bf25cfea_motion') != 'on') }}
+          then:
+            - delay: "00:04:00"
+
+        # 2b. 樓梯感應器仍有人（或剛有動靜）就等它恢復無人，最多再等 10 分鐘
+        - wait_template: "{{ not is_state('binary_sensor.e406bf25cfea_motion', 'on') }}"
+          timeout: "00:10:00"
+          continue_on_timeout: true
 
         # 3. 5 分鐘倒數結束前進行最終安全檢核
         - condition: state
@@ -184,7 +250,14 @@
           value_template: >-
             {{ states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on' and
                states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on' and
-               states('binary_sensor.g6_instant_motion') != 'on' }}
+               states('binary_sensor.g6_instant_motion') != 'on' and
+               states('binary_sensor.e406bf25cfea_motion') != 'on' }}
+
+        # 3b. 人體姿態模型確認：每 30 秒看一次車庫攝影機畫面，最多約 6 分鐘，畫面還有人就不關燈（模型連不上則沿用上面的感應器判斷）
+        - action: script.garage_presence_confirm_empty
+          response_variable: pc
+        - condition: template
+          value_template: "{{ pc is mapping and pc.get('empty', true) }}"
 
         # 4. 關閉車庫主燈與樓梯燈
         - service: switch.turn_off

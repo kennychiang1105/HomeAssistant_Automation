@@ -191,6 +191,8 @@ input_datetime:
 
 shell_command:
   garage_turn_signal: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/turn_clip.mp4 --slot {{ slot }} --vision http://local-garage-vision:8099 --delete'
+  # V4.3.10 連續檢查：每段短片獨立檔名，最後一個車位分析完才刪檔
+  garage_turn_signal_fast: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/{{ clip }} --slot {{ slot }} --vision http://local-garage-vision:8099 {{ "--delete" if last else "" }}'
   garage_car_watch: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 --csv {{ gate }} {{ nolearn }}'
   garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 {{ arg }}'
 
@@ -639,6 +641,7 @@ script:
                 # 左方向燈（絕對出門訊號）：車頭朝鐵門（或朝向未定的未知車輛）錄 3 秒影片檢查車尾左後角橘色是否一亮一滅（至少 3 次）；V4.3.6：有動靜（攝影機動作／有人／車燈亮）時每 5 秒最多檢查一次（原 30 秒）。V4.3.5：不必亮煞車燈，只要出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也檢查；未知車輛（房車／休旅車／機車／unknown）一併支援。
                 - if: >-
                     {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present
+                       and not is_state('script.garage_turn_fast', 'on')
                        and (res.slots[repeat.item].lights_on or states('sensor.garage_depart_likelihood') | float(0) >= 30
                             or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
                             or is_state('binary_sensor.che_ku_che_ku_she_ying_ji_motion', 'on')
@@ -749,6 +752,158 @@ script:
                               slot: "{{ repeat.item }}"
                               car: "{{ car }}"
                     - stop: "已判斷準備出門"
+
+  garage_turn_fast:
+    alias: 車庫方向燈連續檢查AI (V4.3.10)
+    description: 車庫有人或有動靜（鐵門關著）時，連續錄 2 秒短片、邊錄邊分析（不等上一段分析完），偵測左／右方向燈或雙黃燈。偵測到就交給 script.garage_turn_act 開門。沒動靜 20 秒或超過 2 分鐘結束。
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and is_state('input_boolean.garage_depart_watch_enable', 'on')
+             and is_state('cover.garage', 'closed') }}
+      - repeat:
+          while:
+            - condition: template
+              value_template: "{{ is_state('cover.garage', 'closed') and repeat.index <= 40 }}"
+            - condition: template
+              alias: 還有動靜：攝影機動作／有人／出去可能性 ≥ 30%，或 20 秒內剛有動靜
+              value_template: >-
+                {% set m = 'binary_sensor.che_ku_che_ku_she_ying_ji_motion' %}
+                {% set pp = 'binary_sensor.che_ku_she_ying_ji_person_detected' %}
+                {{ is_state(m, 'on') or is_state(pp, 'on') or states('sensor.garage_depart_likelihood') | float(0) >= 30
+                   or (as_timestamp(now()) - as_timestamp(states[m].last_changed)) < 20
+                   or (as_timestamp(now()) - as_timestamp(states[pp].last_changed)) < 20 }}
+          sequence:
+            - variables:
+                clip: "turn_fast_{{ ['a', 'b', 'c'][repeat.index % 3] }}.mp4"
+                slots: >-
+                  {% set ns = namespace(o=[]) %}
+                  {% for sl in ['front', 'back'] %}{% if not is_state('input_select.garage_slot_' ~ sl, 'empty') and not is_state('input_select.garage_facing_' ~ sl, 'inside') %}{% set ns.o = ns.o + [sl] %}{% endif %}{% endfor %}
+                  {{ ns.o | tojson }}
+            - if: "{{ slots | length == 0 }}"
+              then:
+                - delay: "00:00:02"
+              else:
+                - action: camera.record
+                  target:
+                    entity_id: camera.g6_instant_high_resolution_channel
+                  data:
+                    filename: "/config/www/snap/{{ clip }}"
+                    duration: 2
+                    lookback: 0
+                  continue_on_error: true
+                - action: script.turn_on
+                  target:
+                    entity_id: script.garage_turn_analyze
+                  data:
+                    variables:
+                      clip: "{{ clip }}"
+                      slots: "{{ slots }}"
+
+  garage_turn_analyze:
+    alias: 車庫方向燈分析（單段短片）AI (V4.3.10)
+    description: 分析一段短片的左／右方向燈與雙黃燈（每個車位各一次）；偵測到就呼叫 script.garage_turn_act。可同時跑多段（連續檢查不等這裡）。
+    mode: parallel
+    max: 6
+    fields:
+      clip:
+        description: /config/www/snap 下的短片檔名
+        required: true
+      slots:
+        description: 要檢查的車位清單（front／back）
+        required: true
+    sequence:
+      - repeat:
+          for_each: "{{ slots }}"
+          sequence:
+            - action: shell_command.garage_turn_signal_fast
+              data:
+                clip: "{{ clip }}"
+                slot: "{{ repeat.item }}"
+                last: "{{ repeat.last }}"
+              response_variable: tr
+              continue_on_error: true
+            - variables:
+                tres: "{{ (tr.stdout | from_json({})) if (tr is defined and tr is mapping and tr.get('stdout')) else {} }}"
+            - if: "{{ tres is mapping and tres.get('blink') == true }}"
+              then:
+                - action: script.garage_turn_act
+                  data:
+                    slot: "{{ repeat.item }}"
+                    kind: "{{ tres.get('kind', '') }}"
+                - stop: "已偵測到方向燈／雙黃燈"
+
+  garage_turn_act:
+    alias: 車庫方向燈偵測後開門AI (V4.3.10)
+    description: 偵測到左／右方向燈或雙黃燈後，標記準備出門並自動開鐵門（沿用原本的條件：自動開門與方向燈開門開關、5 分鐘內不重複開）。
+    mode: single
+    max_exceeded: silent
+    fields:
+      slot:
+        description: front／back
+        required: true
+      kind:
+        description: left／right／hazard
+        required: false
+    variables:
+      car: "{{ states('input_select.garage_slot_' ~ slot) }}"
+      names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛}
+      pos: {front: 前位, back: 後位}
+      kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈}
+      do_open: >-
+        {{ is_state('input_boolean.garage_depart_auto_open_enable', 'on') and is_state('input_boolean.garage_turn_signal_open_enable', 'on')
+           and ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_depart_last_open'), 0)) > 300) }}
+    sequence:
+      - condition: template
+        value_template: "{{ car != 'empty' and not is_state('input_select.garage_facing_' ~ slot, 'inside') and is_state('cover.garage', 'closed') }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "input_datetime.garage_turn_seen_{{ slot }}"
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.garage_depart_car
+        data:
+          value: "{{ car }}"
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.garage_depart_candidate
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.garage_depart_last
+        data:
+          value: >-
+            {{ (now().strftime('%m-%d %H:%M:%S') ~ ' ' ~ names.get(car, car) ~ '｜' ~ pos[slot] ~ '｜' ~ kinds.get(kind, '方向燈') ~ '（絕對出門訊號，連續檢查）' ~ ('｜自動開門' if do_open else ''))[:255] }}
+      - if: "{{ do_open }}"
+        then:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.garage_depart_last_open
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          - action: cover.open_cover
+            target:
+              entity_id: cover.garage
+          - action: script.turn_on
+            target:
+              entity_id: script.garage_open_followup
+            data:
+              variables:
+                slot: "{{ slot }}"
+                car: "{{ car }}"
+          - if: "{{ is_state('input_boolean.garage_depart_notify_enable', 'on') }}"
+            then:
+              - action: script.notify_dispatch
+                data:
+                  level: info
+                  line: false
+                  source: 車庫車輛畫面分析AI
+                  version: V4.3.10
+                  title: "{{ names.get(car, car) }} 準備出門"
+                  message: "{{ pos[slot] }}的 {{ names.get(car, car) }}：偵測到{{ kinds.get(kind, '方向燈') }}，→ 已自動開啟車庫鐵門。"
 
   garage_open_followup:
     alias: 車庫自動開門後追蹤 (V4.3.6)

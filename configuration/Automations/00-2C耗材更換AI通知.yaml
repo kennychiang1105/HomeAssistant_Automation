@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 00-2C耗材更換AI通知 (V4.1.6)
+# 00-2C耗材更換AI通知 (V4.1.7)
 # 相容版本：Helpers V4.1.0（packages/v41_supply.yaml）
 # 更新紀錄（統一格式）：
+# - V4.1.7（2026-10-31）：加入車庫樓梯人體感應器（sensor.e406bf25cfea_battery，代碼 garstair）到電量監控。
 # - V4.1.6（2026-10-17）：定期摘要改版：電量以顏色標在百分比上、下一行縮排淡色顯示預估還能用多久（sensor.battery_forecast，依長短綠黃紅）、已排除改為備註、名稱縮短、最後附顏色說明；分階段提醒附預估天數。
 # - V4.1.0（2026-10-10）：整合與修復。
 #           1. 濾網：只通知一次（壽命 ≤10% 且尚未通知 → 發一次並記在 input_boolean.supply_filter_notified；壽命 >50% 視為已換濾網才清旗標）。
@@ -32,6 +33,7 @@
         - sensor.0x158d00027d8a8e_battery        # 客廳 Aqara 魔方
         - sensor.e406bf25caa1_battery            # 二樓廁所人體感應器
         - sensor.08b95f06b466_battery            # 廚房小米人體傳感器
+        - sensor.e406bf25cfea_battery            # 車庫樓梯人體感應器
         - sensor.0x00158d0002419b84_battery      # 二樓門口電鈴
         - sensor.0x00158d00023cd3dc_battery      # 廚房無線開關
       for: "00:00:10"
@@ -53,7 +55,7 @@
       trigger: state
       entity_id: input_button.battery_system_test_trigger
   variables:
-    automation_version: "V4.1.6"
+    automation_version: "V4.1.7"
     src_name: "00-2C耗材更換AI通知"
     extra_line: "{{ is_state('input_boolean.notify_supply_extra_line_enable', 'on') }}"
     # 單一對照表：k＝記錄用短代碼、e＝電量感測器、n＝顯示名稱
@@ -65,6 +67,7 @@
         {'k':'cube',    'e':'sensor.0x158d00027d8a8e_battery',           'n':'客廳魔方'},
         {'k':'toiletm', 'e':'sensor.e406bf25caa1_battery',               'n':'廁所人體感應'},
         {'k':'kitchenm','e':'sensor.08b95f06b466_battery',               'n':'廚房人體感應'},
+        {'k':'garstair','e':'sensor.e406bf25cfea_battery',               'n':'車庫樓梯人體感應'},
         {'k':'bell',    'e':'sensor.0x00158d0002419b84_battery',         'n':'門口電鈴'},
         {'k':'kswitch', 'e':'sensor.0x00158d00023cd3dc_battery',         'n':'廚房無線開關'}
       ] }}
