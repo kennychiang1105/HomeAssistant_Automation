@@ -629,6 +629,44 @@ def selftest():
     return 1 if errors else 0
 
 
+COLLECT_DIR = '/config/learn_collect/garage'
+COLLECT_KEEP_DAYS = 14
+
+
+def collect_garage(a, out, state):
+    """V4.3.9 學習資料自動收集：每 60 秒存一張縮小的車庫快照（1344 寬、約 60 KB），車位狀態（有車／身分／朝向）一變就立刻多存一張，
+    連同當下的分析結果存成 index.jsonl。使用者更正（「前位其實沒車」「Luxgen 是朝外」）時，用這些資料標註重學。保留 14 天。"""
+    import datetime as dt
+    import shutil
+    now = time.time()
+    sig = '|'.join('%s:%s:%s:%s' % (n, int(r['present']), r['identity'], r['facing']) for n, r in sorted(out['slots'].items()))
+    cs = state.setdefault('collect', {})
+    if sig == cs.get('sig') and now - cs.get('ts', 0) < 60:
+        return
+    cs['sig'], cs['ts'] = sig, now
+    day = dt.datetime.fromtimestamp(now).strftime('%Y%m%d')
+    d = os.path.join(COLLECT_DIR, day)
+    new_day = not os.path.isdir(d)
+    os.makedirs(d, exist_ok=True)
+    stamp = dt.datetime.fromtimestamp(now).strftime('%H%M%S')
+    im = Image.open(a.snapshot).convert('RGB')
+    if im.size[0] > 1344:
+        im = im.resize((1344, int(im.size[1] * 1344 / im.size[0])), Image.BILINEAR)
+    im.save(os.path.join(d, stamp + '.jpg'), quality=85)
+    rec = {'ts': int(now), 'file': stamp + '.jpg', 'sig': sig, 'slots': {n: {k: r.get(k) for k in ('present', 'identity', 'facing', 'lights_on', 'moved', 'occupied_diff', 'vision_empty')}
+                                                                      for n, r in out['slots'].items()}}
+    v = out.get('vision') or {}
+    if isinstance(v, dict) and v.get('slots'):
+        rec['vision'] = v['slots']
+    with open(os.path.join(d, 'index.jsonl'), 'a', encoding='utf-8') as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + '\n')
+    if new_day:
+        cut = (dt.datetime.fromtimestamp(now) - dt.timedelta(days=COLLECT_KEEP_DAYS)).strftime('%Y%m%d')
+        for n in os.listdir(COLLECT_DIR):
+            if n.isdigit() and n < cut:
+                shutil.rmtree(os.path.join(COLLECT_DIR, n), ignore_errors=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--snapshot')
@@ -695,6 +733,10 @@ def main():
     if not a.no_learn:
         save_json(state_path, state)
     if a.csv:
+        try:
+            collect_garage(a, out, state)
+        except Exception:  # noqa: BLE001
+            pass
         path = os.path.join(a.dir, 'metrics.csv')
         new = not os.path.exists(path)
         with open(path, 'a', newline='', encoding='utf-8') as f:
