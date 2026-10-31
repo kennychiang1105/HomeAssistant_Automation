@@ -12,13 +12,11 @@
   max: 30
   max_exceeded: silent
   variables:
-    roles: {"cover.garage": "garage", "binary_sensor.28d1273dc0c0_motion": "interior", "binary_sensor.28d1273d78cf_motion": "interior", "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "er_lou", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_left": "interior", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_right": "interior", "binary_sensor.unknown_zhan_kong": "interior", "binary_sensor.g6_instant_motion": "interior", "binary_sensor.che_ku_she_ying_ji_person_detected": "interior", "binary_sensor.wu_lou_she_ying_ji_motion": "interior", "binary_sensor.wu_lou_she_ying_ji_person_detected": "interior", "binary_sensor.0x54ef4410007ac23c_door_state": "lock", "binary_sensor.0x54ef4410007ac23c_latch_state": "lock", "binary_sensor.0x54ef4410007ac23c_lock_by_handle": "lock", "binary_sensor.kitchen_motion": "interior", "binary_sensor.e406bf25caa1_motion": "interior", "binary_sensor.ding_lou_ding_lou_she_ying_ji_motion": "interior", "binary_sensor.che_ku_che_ku_she_ying_ji_motion": "interior"}
+    roles: {"cover.garage": "garage", "input_boolean.er_lou_men_suo_tong_bu_kai_guan": "er_lou", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_left": "interior", "binary_sensor.shu_fang_gan_ying_kai_guan_motion_right": "interior", "binary_sensor.unknown_zhan_kong": "interior", "binary_sensor.g6_instant_motion": "interior", "binary_sensor.che_ku_she_ying_ji_person_detected": "interior", "binary_sensor.wu_lou_she_ying_ji_motion": "interior", "binary_sensor.wu_lou_she_ying_ji_person_detected": "interior", "binary_sensor.0x54ef4410007ac23c_door_state": "lock", "binary_sensor.0x54ef4410007ac23c_latch_state": "lock", "binary_sensor.0x54ef4410007ac23c_lock_by_handle": "lock", "binary_sensor.kitchen_motion": "interior", "binary_sensor.e406bf25caa1_motion": "interior", "binary_sensor.ding_lou_ding_lou_she_ying_ji_motion": "interior", "binary_sensor.che_ku_che_ku_she_ying_ji_motion": "interior"}
   triggers:
     - trigger: state
       id: interior
       entity_id:
-        - binary_sensor.28d1273d78cf_motion
-        - binary_sensor.28d1273dc0c0_motion
         - binary_sensor.che_ku_che_ku_she_ying_ji_motion
         - binary_sensor.che_ku_she_ying_ji_person_detected
         - binary_sensor.ding_lou_ding_lou_she_ying_ji_motion
