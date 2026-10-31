@@ -672,7 +672,7 @@ def battery_forecast_section():
   const names = {
     'gar': '鐵門感應器', 'door': '客廳門鎖', 'study': '書房感應開關',
     'cube': '客廳魔方', 'toiletm': '二樓廁所感應', 'kitchenm': '廚房人體感應',
-    'nightl': '廁所夜燈', 'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
+    'bell': '二樓門口電鈴', 'kswitch': '廚房無線開關'
   };
 
   const getBatteryIcon = (lvl) => {

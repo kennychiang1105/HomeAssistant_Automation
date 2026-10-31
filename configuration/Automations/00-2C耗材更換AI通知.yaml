@@ -32,7 +32,6 @@
         - sensor.0x158d00027d8a8e_battery        # 客廳 Aqara 魔方
         - sensor.e406bf25caa1_battery            # 二樓廁所人體感應器
         - sensor.08b95f06b466_battery            # 廚房小米人體傳感器
-        - sensor.28d1273d78cf_battery            # 廁所夜燈
         - sensor.0x00158d0002419b84_battery      # 二樓門口電鈴
         - sensor.0x00158d00023cd3dc_battery      # 廚房無線開關
       for: "00:00:10"
@@ -66,7 +65,6 @@
         {'k':'cube',    'e':'sensor.0x158d00027d8a8e_battery',           'n':'客廳魔方'},
         {'k':'toiletm', 'e':'sensor.e406bf25caa1_battery',               'n':'廁所人體感應'},
         {'k':'kitchenm','e':'sensor.08b95f06b466_battery',               'n':'廚房人體感應'},
-        {'k':'nightl',  'e':'sensor.28d1273d78cf_battery',               'n':'廁所夜燈'},
         {'k':'bell',    'e':'sensor.0x00158d0002419b84_battery',         'n':'門口電鈴'},
         {'k':'kswitch', 'e':'sensor.0x00158d00023cd3dc_battery',         'n':'廚房無線開關'}
       ] }}
