@@ -371,6 +371,7 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, {"ts": int(time.time()), "size": list(img.size), "persons": LAST.get("persons", []),
                                             "ms": int((time.time() - t0) * 1000)})
                 if u.path == "/learn":
+                    dets = merge_ft(dets, img)          # V0.5.1：學習也用合併後的偵測（原模型看不到紅外線車尾大特寫的前位 Luxgen）
                     slot, label = q.get("slot", [""])[0], q.get("label", [""])[0]
                     d = pick(dets, slots[slot]) if slot in slots else None
                     if not d or not label:
