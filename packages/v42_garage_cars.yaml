@@ -690,10 +690,10 @@ script:
                       {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
                          or ((as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) < 120)
                          or ('車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')]) }}
-                    # V4.3.9：左方向燈直接開鐵門只限家裡兩輛車（Luxgen／Tesla）；未知車輛（訪客、外送）只記錄與通知，不自動開門
+                    # V4.3.9：未知車輛（房車／休旅車／機車）打左方向燈也可自動開鐵門：這是家裡車庫的攝影機，只會看到停在自家車位的車（使用者確認）
                     do_open: >-
                       {{ is_state('input_boolean.garage_depart_auto_open_enable', 'on')
-                         and ((strong and who_in_garage and is_state('input_boolean.sleep_silent_active', 'off') and is_state('input_boolean.aqara_wan_an', 'off')) or (turn and car in ['luxgen_n7', 'tesla_model3'] and is_state('input_boolean.garage_turn_signal_open_enable', 'on')))
+                         and ((strong and who_in_garage and is_state('input_boolean.sleep_silent_active', 'off') and is_state('input_boolean.aqara_wan_an', 'off')) or (turn and is_state('input_boolean.garage_turn_signal_open_enable', 'on')))
                          and ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_depart_last_open'), 0)) > 300) }}
                 - action: input_boolean.turn_off
                   target:
