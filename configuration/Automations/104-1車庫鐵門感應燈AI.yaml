@@ -4,6 +4,7 @@
 # 更新紀錄（統一格式）：
 # - V4.3.0（2026-10-31）：整合車庫樓梯人體感應器（binary_sensor.e406bf25cfea_motion，米家 Motion Sensor 2s）：二樓開樓梯門走進樓梯口有動靜就開車庫主燈與樓梯燈（與攝影機人／車／動態同一個開燈路徑，手動關燈冷卻仍有效）；
 #           關燈前（鐵門已關＋5 分鐘無活動後）先等樓梯感應器恢復無人（最多再等 10 分鐘），最後檢核加入樓梯感應器，確認樓梯口沒人才關燈。
+#           樓梯感應器觸發時開燈順序：先樓梯燈、隔 2 秒再車庫主燈；其他觸發（鐵門、攝影機）維持原本順序。
 #           另外關燈前呼叫 script.garage_presence_confirm_empty：用 Garage Vision 人體姿態模型看車庫畫面，確認沒有人才關（最多確認約 6 分鐘，仍有人就不關）。
 # - V4.2.2（2026-10-23）：修正「HA 重新啟動後車庫燈一直亮」：關燈倒數（5 分鐘）只存在記憶體，2026-10-23 11:29 HA 重啟時剛好在倒數，重啟後沒有任何動作接手，主燈與樓梯燈一直亮著
 #           （104-1C 全員離家關燈只在沒人在家時才動作）。現在 HA 啟動 1 分鐘後，若車庫主燈或樓梯燈亮著，就重新進入「鐵門關閉＋5 分鐘無人車活動」的關燈流程。
@@ -125,6 +126,20 @@
               then:
                 - stop: "處於手動關閉冷卻期間，不重複自動開燈"
               else:
+                # 0. 樓梯感應器觸發：人在樓梯口，先開樓梯燈，隔 2 秒再開車庫主燈（走下樓時先照亮腳下，再亮車庫）
+                - if:
+                    - condition: template
+                      value_template: "{{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' }}"
+                  then:
+                    - if:
+                        - condition: state
+                          entity_id: switch.lou_ti_deng
+                          state: "off"
+                      then:
+                        - service: switch.turn_on
+                          target:
+                            entity_id: switch.lou_ti_deng
+                    - delay: "00:00:02"
                 # 1. 車庫主燈 5 秒防切換小燈保護：若主燈剛關閉未滿 5 秒，等待補滿 5 秒後始開燈
                 - if:
                     - condition: state
