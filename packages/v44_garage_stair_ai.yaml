@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫樓梯口人流記錄 (V1.0.0，只記錄不控制)
 # 更新紀錄（統一格式）：
+# - V1.4.0（2026-11-01）：加強上樓提早關燈的保護（2026-11-01 15:24 人還在車庫燈卻被關）：① 2 分鐘內有人用按鈕／App 動過燈或手動關燈冷卻中不關；② 攝影機人體與動態都恢復無人（最多等 40 秒）才進行；
+#           ③ 模型連續兩張（間隔 3 秒）都看不到人才關；④ 同一批軌跡裡最後結束的不是「上樓」（例如上樓後又有人走出來）就不啟動。
 # - V1.3.0（2026-10-31）：開燈也納入模型：只要模型在車庫畫面看到人，而樓梯燈或車庫燈沒開，就啟動 script.garage_stair_down_on 開燈；樓梯口記錄迴圈也改成車庫攝影機動態（g6_instant_motion）時啟動。
 # - V1.2.0（2026-10-31）：下樓納入控制：模型一判到有人從樓梯口走出（提早判斷，不等軌跡結束）就啟動 script.garage_stair_down_on，開樓梯燈、隔 0.5 秒再開車庫燈（尊重手動關燈冷卻）。
 # - V1.1.0（2026-10-31）：模型納入控制：判到「上樓」時啟動 script.garage_stair_up_off（鐵門已關＋樓梯感應器亮起＋模型確認車庫沒人）提早關燈；開關 input_boolean.garage_stair_ai_control_enable。
@@ -85,12 +87,34 @@ script:
         continue_on_timeout: false
       - condition: template
         value_template: "{{ is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on') }}"
+      # 保護①：2 分鐘內有人用實體按鈕／App 動過車庫燈，代表人還在操作，不提早關
+      - condition: template
+        value_template: >-
+          {% set m = states('input_text.terncy_btn_last').split('|') %}
+          {{ not ((m | length == 2 and (as_timestamp(now()) - (m[1] | float(0))) < 120)
+                  or not is_state('timer.garage_light_manual_off_cooldown', 'idle')) }}
+      # 保護②：攝影機的人體／動態都要先恢復無人（人走進樓梯後通常 10～20 秒），最多等 40 秒；等不到就不動作，交給 104-1 原本流程
+      - wait_template: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off') and is_state('binary_sensor.g6_instant_motion', 'off') }}"
+        timeout: "00:00:40"
+        continue_on_timeout: false
+      # 保護③：模型連續兩張（間隔 3 秒）都看不到人才關
       - action: script.garage_presence_confirm_empty
         data:
           max_checks: 1
         response_variable: ps
       - condition: template
         value_template: "{{ ps is mapping and ps.get('empty', false) and not ps.get('unknown', true) }}"
+      - delay: "00:00:03"
+      - action: script.garage_presence_confirm_empty
+        data:
+          max_checks: 1
+        response_variable: ps2
+      - condition: template
+        value_template: >-
+          {{ ps2 is mapping and ps2.get('empty', false) and not ps2.get('unknown', true)
+             and is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off')
+             and is_state('binary_sensor.g6_instant_motion', 'off')
+             and (is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on')) }}
       - action: switch.turn_off
         target:
           entity_id:
@@ -138,7 +162,8 @@ script:
     mode: queued
     max: 10
     sequence:
-      - if: "{{ closed | selectattr('dir', 'eq', 'up') | list | count > 0 }}"
+      # 這一批裡最後結束的軌跡是「上樓」才提早關；上樓後又有人走出來（下樓／經過）代表人還在車庫，不關
+      - if: "{{ (closed | sort(attribute='t1') | last).dir == 'up' and closed | selectattr('dir', 'eq', 'up') | list | count > 0 }}"
         then:
           - action: script.turn_on
             target:
