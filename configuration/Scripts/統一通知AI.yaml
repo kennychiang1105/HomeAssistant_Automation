@@ -2,6 +2,7 @@
 # 統一通知與廣播AI (V4.1.6)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-11-01）：頂樓 HomePod 合成語音重送改為等 7 秒（原 4 秒），且重送前確認送出後 HomePod 狀態從未變動；修正 21:16 上樓廣播 HomePod 第 4 秒才開始播放被誤判沒播而連播兩次。
 # - V4.3.5（2026-10-29）：announce 新增選填 mood_flash（預設 true＝行為不變；false＝重要／緊急廣播不呼叫內建 mood_alert），給噪音警告自己控制二樓閃燈用。
 # - V4.2.3（2026-10-25）：announce 新增選填 volume（指定這次廣播音量）。
 # - V4.2.3（2026-10-25）：卡片大圖與第二張圖都可以點擊放大（LINE 開啟原圖）。
@@ -220,7 +221,7 @@ notify_dispatch:
             message: "{{ voice }}"
 
 announce:
-  alias: 統一廣播AI (V4.3.5)
+  alias: 統一廣播AI (V4.3.6)
   description: 依等級播放提示音，待提示音結束後再播 TTS，播完恢復喇叭音量（SOP-11）；序列執行避免互相蓋台
   mode: queued
   max: 6
@@ -420,6 +421,8 @@ announce:
         sequence:
           - if: "{{ merged_ok }}"
             then:
+              - variables:
+                  t_play: "{{ as_timestamp(now()) }}"
               - action: media_player.play_media
                 target:
                   entity_id: "{{ target_all }}"
@@ -436,9 +439,11 @@ announce:
                       count: 2
                       sequence:
                         - wait_template: "{{ is_state(target_player, 'playing') }}"
-                          timeout: "00:00:04"
+                          timeout: "00:00:07"
                           continue_on_timeout: true
-                        - if: "{{ not wait.completed }}"
+                        # V4.3.6：重送前再確認 HomePod 在送出之後真的沒有播過（狀態沒有變動過）；2026-11-01 21:16 上樓廣播
+                        #   HomePod 在第 4 秒才回報開始播放，剛好卡在原本 4 秒的等待邊界，被誤判沒播而重送，連播兩次
+                        - if: "{{ not wait.completed and as_timestamp(states[target_player].last_changed, 0) < t_play }}"
                           then:
                             - delay: "00:00:03"
                             - action: media_player.play_media
