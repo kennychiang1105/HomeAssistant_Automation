@@ -3,6 +3,7 @@
 # 104-2車輛動態辨識系統AI (V4.3.0-beta 5)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.11（2026-11-01）：自動關門改呼叫 script.garage_close_confirmed（淨空確認→車庫喇叭廣播→8 秒後再確認→才關）。
 # - V4.3.0-beta 5（2026-10-28，測試中）：車在車庫內挪位置（一個車位變空、另一車位同時變成有車）不算駛出憑證；淨空確認新增「車位 3 分鐘內變成有車＝車上可能還有人」。實際事件：10/28 10:28 Luxgen 由後位挪到前位準備出門，10:30 開門後 104-2 把後位剛變空當成已駛出，10:30:52 自動把鐵門關上，車還在車庫裡。
 # - V4.3.0-beta 4（2026-10-28，測試中）：自動關門前先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因（交給 104-3）。
 # - V4.3.0-beta 3（2026-10-28，測試中）：車庫有人（攝影機看到人或家人手機連在車庫 AP）而車還沒開走時，不再照 45 秒關門，改等車位真的變空（不設上限，車一直沒走就由 104-3 鐵門未關處理）、車走後再等一次緩衝。
@@ -427,17 +428,16 @@
                                         title: "⛔ 已取消自動關門 (淨空確認未通過)"
                                         message: "{{ '、'.join(sf2.reasons) if (sf2 is mapping and sf2.get('reasons')) else '無法確認' }}。5 分鐘內仍未淨空，不自動關門，交給 104-3 鐵門未關處理。"
                                 - stop: "淨空確認未通過或鐵門已不是開啟狀態"
-                            - service: cover.close_cover
-                              target:
-                                entity_id: cover.garage
+                            - action: script.garage_close_confirmed
+                              response_variable: cc
                             - service: script.notify_dispatch
                               data:
                                 level: info
                                 line: false
                                 source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
                                 version: "{{ automation_version | default('', true) }}"
-                                title: "🤖 自動關門已執行 ({{ automation_version }})"
-                                message: "倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已下達關門。"
+                                title: "{{ '🤖 自動關門已執行' if (cc is mapping and cc.get('closed')) else '⛔ 已取消自動關門（廣播後確認未通過）' }} ({{ automation_version }})"
+                                message: "{{ '倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已廣播並再確認無人無車後下達關門。' if (cc is mapping and cc.get('closed')) else ('原因：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '。交給 104-3 鐵門未關處理。') }}"
                         - conditions:
                             - condition: template
                               value_template: "{{ (not (auto_close_enabled | bool(false))) and (debug_on | bool(false)) }}"
