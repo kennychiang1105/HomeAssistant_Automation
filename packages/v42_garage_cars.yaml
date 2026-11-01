@@ -2,6 +2,9 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：新增 input_boolean.garage_lamp_front／back（車燈亮）與 input_datetime.garage_turn_seen_front／back（最近偵測到左方向燈），給 3D 車模顯示煞車燈／頭燈與左方向燈閃爍。
+# - V4.3.11（2026-11-01）：①新增 script.garage_close_confirmed：所有自動關門先淨空確認→車庫攝影機喇叭廣播「車庫鐵門即將關閉」→等 8 秒再確認一次（廣播期間有人／車出現、車位狀態變動就取消）才關；沒關成會交給重試關門。
+#           ②garage_close_safety_check 新增「攝影機車輛偵測（20 秒內）」與「車位狀態 30 秒內剛變動／準備出門」為不可關門原因（2026-11-01 19:04 Tesla 停門口、Luxgen 正要出去時鐵門關下來差點夾車）。
+#           ③準備出門判斷：該車位或鐵門 3 分鐘內剛變動時不算出門（2026-11-01 19:06 換位後 Tesla 車燈亮＋位移被誤判出門，鐵門自己打開）；左／右方向燈、雙黃燈不受影響。
 # - V4.3.0-beta 8（2026-10-29）：左方向燈偵測不再要求亮煞車燈：出去可能性 ≥ 30%、或車庫有人（偵測到人員／剛離開 3 分鐘內）也錄 3 秒影片檢查（每 30 秒最多一次）。原本只打方向燈沒踩煞車時 lights_on 為否，完全不會檢查，鐵門不會開（10/29 10:57 實測）。
 # - V4.3.0-beta 6：新增 script.garage_close_safety_check（關門前淨空確認：模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）；104-2、104-3 自動關門與本檔的誤判關門都先過這關。
 # - V4.3.0-beta 7：開關類 helper（出門偵測總開關、左方向燈偵測、自動開鐵門、左方向燈可直接開門、出門通知）拿掉 initial，HA 重啟後保留使用者設定（SOP-20）。原本 initial: false 讓 10/28 HAOS 重開機後自動開鐵門與左轉燈開門被歸零，左轉燈出門時鐵門沒開。
@@ -306,6 +309,10 @@ script:
             {% set ns = namespace(l=[]) %}{% if model_ok %}{% for k, s in res.slots.items() %}{% if s.present and s.moved %}{% set ns.l = ns.l + [({'front': '前位', 'back': '後位'}.get(k, k))] %}{% endif %}{% endfor %}{% endif %}{{ ns.l | join('、') }}
           cam_person: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}"
           cam_motion: "{{ is_state('binary_sensor.g6_instant_motion', 'on') }}"
+          # V1.1：攝影機車輛偵測（含 20 秒內剛有）與車位狀態剛變動（30 秒內／準備出門中）＝車子正在進出，不能關門
+          cam_vehicle: "{{ is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'on') or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed, 0)) < 20 }}"
+          cars_moving: >-
+            {% set ns = namespace(l=[]) %}{% for e in ['sensor.garage_car_luxgen_n7', 'sensor.garage_car_tesla_model3'] %}{% if (as_timestamp(now()) - as_timestamp(states[e].last_changed, 0)) < 30 or states(e) == 'departing' %}{% set ns.l = ns.l + [state_attr(e, 'friendly_name') or e] %}{% endif %}{% endfor %}{{ ns.l | join('、') }}
           phone_in: "{{ '車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] }}"
           # 車位在最近 3 分鐘內「變成有車」（車子在車庫內挪位置、剛倒車進來／換位置）＝車上可能還有人，車庫攝影機人員偵測看不到車裡的人
           moved_in: >-
@@ -317,12 +324,85 @@ script:
             {% if mov | trim != '' %}{% set r = r + [mov ~ '車輛在移動'] %}{% endif %}
             {% if cam_person %}{% set r = r + ['攝影機偵測到人員'] %}{% endif %}
             {% if cam_motion %}{% set r = r + ['攝影機偵測到動作'] %}{% endif %}
+            {% if cam_vehicle %}{% set r = r + ['攝影機偵測到車輛（或 20 秒內剛有車輛）'] %}{% endif %}
+            {% if cars_moving | trim != '' %}{% set r = r + ['車位狀態剛變動或準備出門：' ~ cars_moving] %}{% endif %}
             {% if phone_in %}{% set r = r + ['家人手機連在車庫 AP'] %}{% endif %}
             {% if moved_in | trim != '' %}{% set r = r + [moved_in ~ '剛有車輛挪動／進入（3 分鐘內），車上可能還有人'] %}{% endif %}
             {{ r | to_json }}
           rs: "{{ reasons | from_json([]) }}"
           result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok} }}"
       - stop: 淨空確認完成
+        response_variable: result
+
+  garage_close_confirmed:
+    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V1.0.0)
+    description: >
+      所有「自動」關鐵門都走這支：①先跑淨空確認（人／車／車燈／位移／攝影機人車偵測／車位剛變動）；②通過後用車庫攝影機喇叭廣播「車庫鐵門即將關閉，請注意安全」；
+      ③等廣播播完（約 8 秒）再確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
+      回傳 closed（是否已下達關門）與 reasons（沒關的原因）。人工按鈕關門（automation.tie_men_kai_guan）不經過這裡。
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - variables:
+          t0: "{{ as_timestamp(now()) }}"
+      - if: "{{ not is_state('cover.garage', 'open') }}"
+        then:
+          - variables:
+              result: "{{ {'closed': false, 'reasons': ['鐵門不是開啟狀態']} }}"
+          - stop: "鐵門不是開啟狀態"
+            response_variable: result
+      # 鐵門剛開啟（到全開不到 90 秒）不自動關：2026-11-01 15:44 自動開門後 12 秒就被腳本關上
+      - if: "{{ (as_timestamp(now()) - as_timestamp(states.cover.garage.last_changed, 0)) < 90 }}"
+        then:
+          - variables:
+              result: "{{ {'closed': false, 'reasons': ['鐵門剛開啟不到 90 秒']} }}"
+          - stop: "鐵門剛開啟不到 90 秒，不自動關"
+            response_variable: result
+      - action: script.garage_close_safety_check
+        response_variable: sf1
+      - if: "{{ not (sf1 is mapping and sf1.get('safe') == true) }}"
+        then:
+          - variables:
+              result: "{{ {'closed': false, 'reasons': (sf1.get('reasons') if (sf1 is mapping and sf1.get('reasons')) else ['無法確認淨空'])} }}"
+          - stop: "廣播前淨空確認未通過"
+            response_variable: result
+      - action: script.turn_on
+        target:
+          entity_id: script.announce
+        data:
+          variables:
+            level: general
+            chime: false
+            message: 車庫鐵門即將關閉，請注意安全。
+            player: media_player.che_ku_she_ying_ji_speaker
+            adjust_volume: false
+      - delay: "00:00:08"
+      - action: script.garage_close_safety_check
+        response_variable: sf2
+      - variables:
+          late: >-
+            {% set ns = namespace(r=[]) %}
+            {% for e, n in [('binary_sensor.che_ku_she_ying_ji_person_detected', '人員'), ('binary_sensor.che_ku_she_ying_ji_vehicle_detected', '車輛')] %}
+            {% if is_state(e, 'on') or as_timestamp(states[e].last_changed, 0) >= t0 %}{% set ns.r = ns.r + ['廣播期間攝影機偵測到' ~ n] %}{% endif %}
+            {% endfor %}
+            {% for e in ['sensor.garage_car_luxgen_n7', 'sensor.garage_car_tesla_model3'] %}
+            {% if as_timestamp(states[e].last_changed, 0) >= t0 - 30 %}{% set ns.r = ns.r + ['車位狀態剛變動'] %}{% endif %}
+            {% endfor %}
+            {{ ns.r | unique | list | to_json }}
+          reasons2: >-
+            {{ ((sf2.get('reasons') if (sf2 is mapping and sf2.get('reasons')) else []) + (late | from_json([]))) | unique | list | to_json }}
+      - if: "{{ not (sf2 is mapping and sf2.get('safe') == true) or (late | from_json([])) | length > 0 or not is_state('cover.garage', 'open') }}"
+        then:
+          - variables:
+              result: "{{ {'closed': false, 'reasons': (reasons2 | from_json([])) or ['無法確認淨空']} }}"
+          - stop: "廣播後再確認未通過，不關門"
+            response_variable: result
+      - action: cover.close_cover
+        target:
+          entity_id: cover.garage
+      - variables:
+          result: "{{ {'closed': true, 'reasons': []} }}"
+      - stop: "已廣播並確認無人無車，下達關門"
         response_variable: result
 
   garage_gate_close_retry:
@@ -354,19 +434,20 @@ script:
                   response_variable: sf
                 - if: "{{ sf is mapping and sf.get('safe') == true and is_state('cover.garage', 'open') }}"
                   then:
-                    - action: automation.trigger
-                      target:
-                        entity_id: automation.tie_men_kai_guan
-                    - action: script.notify_dispatch
-                      data:
-                        level: important
-                        line: false
-                        source: "鐵門未關重試關門AI (V4.3.1)"
-                        version: V4.3.1
-                        title: "鐵門已自動關閉（重試）"
-                        message: |-
-                          第 {{ repeat.index }} 次重試：人車安靜、車庫 AP 無人，模型淨空確認通過，已下達關門。
-                    - stop: "重試成功"
+                    - action: script.garage_close_confirmed
+                      response_variable: cc
+                    - if: "{{ cc is mapping and cc.get('closed') == true }}"
+                      then:
+                        - action: script.notify_dispatch
+                          data:
+                            level: important
+                            line: false
+                            source: "鐵門未關重試關門AI (V4.3.1)"
+                            version: V4.3.1
+                            title: "鐵門已自動關閉（重試）"
+                            message: |-
+                              第 {{ repeat.index }} 次重試：人車安靜、車庫 AP 無人，模型淨空確認通過，已廣播並再確認無人無車後下達關門。
+                        - stop: "重試成功"
       - if: "{{ is_state('cover.garage', 'open') }}"
         then:
           - action: script.notify_dispatch
@@ -688,7 +769,10 @@ script:
                     lk: "{{ states('sensor.garage_depart_likelihood') | float(0) }}"
                     lk_min: "{{ states('input_number.garage_depart_likelihood_min') | float(70) }}"
                     turn: "{{ is_state('input_boolean.garage_turn_detected', 'on') and s.present and car != 'empty' }}"
-                    cand: "{{ turn or (s.present and car != 'empty' and n >= 2 and lk >= lk_min and not res.exposure_changed) }}"
+                    # V4.3.11：換車位／剛挪車（該車位 3 分鐘內剛變動）或鐵門 3 分鐘內剛關上時，車燈亮與位移是換位造成的，不算出門（左／右方向燈、雙黃燈例外）
+                    slot_recent: "{{ (as_timestamp(now()) - as_timestamp(states['input_select.garage_slot_' ~ repeat.item].last_changed, 0)) < 180 }}"
+                    gate_recent: "{{ (as_timestamp(now()) - as_timestamp(states.cover.garage.last_changed, 0)) < 180 }}"
+                    cand: "{{ turn or (s.present and car != 'empty' and n >= 2 and lk >= lk_min and not res.exposure_changed and not slot_recent and not gate_recent) }}"
                     strong: "{{ (s.lights_on and s.moved) or n >= 3 }}"
                     who_in_garage: >-
                       {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
@@ -922,13 +1006,13 @@ script:
         continue_on_timeout: true
       - if: "{{ not is_state('input_select.garage_slot_' ~ slot, 'empty') }}"
         then:
-          - action: script.garage_close_safety_check
-            response_variable: sf
-          - if: "{{ sf is mapping and sf.get('safe') == true }}"
+          - action: script.garage_close_confirmed
+            response_variable: cc
+          - if: "{{ not (cc is mapping and cc.get('closed') == true) and is_state('cover.garage', 'open') }}"
             then:
-              - action: cover.close_cover
+              - action: script.turn_on
                 target:
-                  entity_id: cover.garage
+                  entity_id: script.garage_gate_close_retry
           - action: script.notify_dispatch
             data:
               level: important
@@ -936,7 +1020,7 @@ script:
               source: 車庫車輛畫面分析AI
               version: V4.3.6
               title: 車庫自動開門後車輛沒有出去
-              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '未知房車', 'suv': '未知休旅車', 'motorcycle': '未知機車', 'unknown': '未知車輛'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空，已嘗試關門（車庫無人時）。請確認。"
+              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '未知房車', 'suv': '未知休旅車', 'motorcycle': '未知機車', 'unknown': '未知車輛'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空。{{ '已廣播並確認無人無車後關門。' if (cc is mapping and cc.get('closed')) else ('未關門：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '，已交給重試關門（每 10 分鐘）。') }} 請確認。"
 
   garage_car_learn_apply:
     alias: 車庫車輛樣板學習AI (V4.3.0-beta 1)
