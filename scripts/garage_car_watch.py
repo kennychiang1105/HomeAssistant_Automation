@@ -189,6 +189,41 @@ def match_plate(text, conf, plates):
     return None
 
 
+def _box_iou(a_, b_):
+    ix = max(0.0, min(a_[2], b_[2]) - max(a_[0], b_[0]))
+    iy = max(0.0, min(a_[3], b_[3]) - max(a_[1], b_[1]))
+    inter = ix * iy
+    u = (a_[2] - a_[0]) * (a_[3] - a_[1]) + (b_[2] - b_[0]) * (b_[3] - b_[1]) - inter
+    return inter / u if u > 0 else 0.0
+
+
+def moving_vehicles(dets_now, dets_prev, min_conf=0.5, shift=0.015):
+    """前後兩張（約 2 秒）的車輛框比對：框邊緣位移超過 shift、這張新出現、或上一張有這張不見＝車輛正在動（進出／挪位）。
+    2026-11-01 19:04 換車實測：車在車庫裡挪位時框每秒移 0.1 以上；停好的車兩張之間 ≤ 0.01。"""
+    now_ = [d for d in (dets_now or []) if d.get('conf', 0) >= min_conf and d.get('box')]
+    prev_ = [d for d in (dets_prev or []) if d.get('conf', 0) >= min_conf and d.get('box')]
+    moving, used = [], set()
+    for d in now_:
+        best, bj = 0.0, None
+        for j, q in enumerate(prev_):
+            if j in used:
+                continue
+            v = _box_iou(d['box'], q['box'])
+            if v > best:
+                best, bj = v, j
+        if bj is None or best < 0.3:
+            moving.append({'cls': d.get('cls'), 'why': 'new', 'box': d['box']})
+            continue
+        used.add(bj)
+        sh = max(abs(x - y) for x, y in zip(d['box'], prev_[bj]['box']))
+        if sh > shift:
+            moving.append({'cls': d.get('cls'), 'why': 'shift', 'shift': round(sh, 3), 'box': d['box']})
+    for j, q in enumerate(prev_):
+        if j not in used:
+            moving.append({'cls': q.get('cls'), 'why': 'gone', 'box': q['box']})
+    return moving
+
+
 def apply_vision(a, roi, state, out, jpg, now):
     """本機 YOLO＋CLIP（Garage Vision add-on）補強：框出車、認出是哪輛車與車頭朝向、粗分車型。
     平常 vision_every 秒一次；有車燈／位移證據或身分不明時馬上多問一次。add-on 連不上就略過（保持原本的分析）。"""
@@ -299,6 +334,31 @@ def apply_vision(a, roi, state, out, jpg, now):
                 r['vehicle_type'] = 'motorcycle'
             s['type'] = typ
         summary['slots'][name] = s
+    # V4.3.11：車位以外的車輛（鐵門口／車道上正在進出的車）：模型框到的車和任何車位框的重疊都很低（停好的車約 0.7～0.9）。關門前淨空確認用。
+    def _iou(a_, b_):
+        ix = max(0.0, min(a_[2], b_[2]) - max(a_[0], b_[0]))
+        iy = max(0.0, min(a_[3], b_[3]) - max(a_[1], b_[1]))
+        inter = ix * iy
+        u = (a_[2] - a_[0]) * (a_[3] - a_[1]) + (b_[2] - b_[0]) * (b_[3] - b_[1]) - inter
+        return inter / u if u > 0 else 0.0
+    stray = []
+    for dd in (res.get('dets') or []):
+        if dd.get('conf', 0) < 0.35 or not dd.get('box'):
+            continue
+        best = max((_iou(dd['box'], sl['body']) for sl in roi['slots'].values()), default=0.0)
+        if best < 0.3:
+            stray.append({'cls': dd.get('cls'), 'conf': dd.get('conf'), 'box': dd['box'], 'iou': round(best, 2)})
+    summary['stray_vehicles'] = stray
+    # 前一張快照（--prev，約 2 秒前）→ 車輛正在動的判斷；沒有前一張就不判斷（空清單）
+    mv = []
+    prev_path = getattr(a, 'prev', None)
+    if prev_path and os.path.exists(prev_path):
+        try:
+            pres = vision_call(a.vision, '/analyze', slots_query(roi) + '&plate=0', open(prev_path, 'rb').read())
+            mv = moving_vehicles(res.get('dets'), pres.get('dets'))
+        except Exception as e:  # noqa: BLE001
+            summary['prev_error'] = str(e)[:80]
+    summary['moving_vehicles'] = mv
     summary['plates'] = [{'text': p['text'], 'conf': p['conf']} for p in (res.get('plates') or [])]
     return summary
 
@@ -677,6 +737,7 @@ def main():
     ap.add_argument('--learn-cable', help='hanging（沒接車，線垂掛）／to_near（線接到畫面前景那台車）／hidden（線被擋住拍不到＝接到後方那台車）／to_luxgen_in（Luxgen 車頭朝內充電）')
     ap.add_argument('--no-learn', action='store_true', help='只分析，不更新滾動基準（除錯用）')
     ap.add_argument('--csv', action='store_true', help='附加一列指標到 metrics.csv（P0 資料收集）')
+    ap.add_argument('--prev', default=None, help='關門前淨空確認用：約 2 秒前的快照，比對車輛框是否在動')
     ap.add_argument('--safety', action='store_true', help='關門前確認淨空：一定問一次 add-on（含人物偵測），結果放在 vision.persons')
     ap.add_argument('--gate-recent', action='store_true', help='鐵門最近 10 分鐘內開過（啟用「車位自動學成空」）')
     ap.add_argument('--vision', help='Garage Vision add-on 網址，例如 http://local-garage-vision:8099（沒給就不用）')
