@@ -360,7 +360,7 @@
                     source: "104-3鐵門判斷未關提醒及作動AI (V4.3.1)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "鐵門自動關門已取消（廣播後確認未通過）"
-                    message: "原因：{{ (cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認淨空' }}。已交給重試關門（每 10 分鐘）。"
+                    message: "原因：{{ (cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認淨空' }}。已交給重試關門（每 3 分鐘）。"
                 - action: script.turn_on
                   target:
                     entity_id: script.garage_gate_close_retry

@@ -2,6 +2,7 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：新增 input_boolean.garage_lamp_front／back（車燈亮）與 input_datetime.garage_turn_seen_front／back（最近偵測到左方向燈），給 3D 車模顯示煞車燈／頭燈與左方向燈閃爍。
+# - V4.3.12（2026-11-01）：鐵門重試關門（garage_gate_close_retry）間隔 10 分鐘 → 3 分鐘，最多 40 次（維持約 2 小時）。
 # - V4.3.11（2026-11-01）：①新增 script.garage_close_confirmed：所有自動關門先淨空確認→車庫攝影機喇叭廣播「車庫鐵門即將關閉」→等 8 秒再確認一次（廣播期間有人／車出現、車位狀態變動就取消）才關；沒關成會交給重試關門。
 #           ②garage_close_safety_check 新增「攝影機車輛偵測（20 秒內）」與「車位狀態 30 秒內剛變動／準備出門」為不可關門原因（2026-11-01 19:04 Tesla 停門口、Luxgen 正要出去時鐵門關下來差點夾車）。
 #           ④關門淨空確認再加：模型看到車位以外的車（鐵門口／車道）、或兩張快照（隔 2 秒）車輛框在動（garage_car_watch.py --prev），攝影機車輛偵測放寬為 45 秒內。
@@ -421,18 +422,18 @@ script:
 
   garage_gate_close_retry:
     alias: 鐵門未關重試關門AI (V4.3.1)
-    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 10 分鐘重判一次，最多 12 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，並一律廣播（客廳 HomePod＋車庫攝影機喇叭），請自己關門。
+    description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 3 分鐘重判一次，最多 40 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，並一律廣播（客廳 HomePod＋車庫攝影機喇叭），請自己關門。
     mode: single
     sequence:
       - repeat:
-          count: 12
+          count: 40
           sequence:
             - wait_for_trigger:
                 - trigger: state
                   entity_id: cover.garage
                   to: "closed"
               timeout:
-                minutes: 10
+                minutes: 3
               continue_on_timeout: true
             - if: "{{ wait.trigger is not none or not is_state('cover.garage', 'open') }}"
               then:
@@ -472,7 +473,7 @@ script:
               title: "鐵門開超過 2 小時仍無法自動關閉"
               user_id: "{{ states('sensor.line_bot_target_user_id') }}"
               message: |-
-                鐵門仍開啟，已重試 12 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
+                鐵門仍開啟，已重試 40 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
                 系統不會再自動關門，請自己關門（若是刻意開著工作，忽略即可）。
           # 同時廣播：客廳 HomePod ＋ 車庫攝影機喇叭（一律廣播，不看熟睡／晚安）
           - action: script.announce
@@ -1034,7 +1035,7 @@ script:
               source: 車庫車輛畫面分析AI
               version: V4.3.6
               title: 車庫自動開門後車輛沒有出去
-              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '未知房車', 'suv': '未知休旅車', 'motorcycle': '未知機車', 'unknown': '未知車輛'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空。{{ '已廣播並確認無人無車後關門。' if (cc is mapping and cc.get('closed')) else ('未關門：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '，已交給重試關門（每 10 分鐘）。') }} 請確認。"
+              message: "{{ {'luxgen_n7': 'Luxgen N7', 'tesla_model3': 'Tesla Model 3', 'sedan': '未知房車', 'suv': '未知休旅車', 'motorcycle': '未知機車', 'unknown': '未知車輛'}.get(car, car) }} 判斷為準備出門而自動開了鐵門，但 3 分鐘內車位沒有變空。{{ '已廣播並確認無人無車後關門。' if (cc is mapping and cc.get('closed')) else ('未關門：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '，已交給重試關門（每 3 分鐘）。') }} 請確認。"
 
   garage_car_learn_apply:
     alias: 車庫車輛樣板學習AI (V4.3.0-beta 1)
