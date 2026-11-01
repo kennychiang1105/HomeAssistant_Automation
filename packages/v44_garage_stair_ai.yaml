@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫樓梯口人流記錄 (V1.0.0，只記錄不控制)
 # 更新紀錄（統一格式）：
+# - V1.4.1（2026-11-01）：模型開燈時，主燈剛關閉未滿 10 秒就等補滿 10 秒再開（原 5 秒；15:24 隔 8 秒再開燈變小燈）。
 # - V1.4.0（2026-11-01）：加強上樓提早關燈的保護（2026-11-01 15:24 人還在車庫燈卻被關）：① 2 分鐘內有人用按鈕／App 動過燈或手動關燈冷卻中不關；② 攝影機人體與動態都恢復無人（最多等 40 秒）才進行；
 #           ③ 模型連續兩張（間隔 3 秒）都看不到人才關；④ 同一批軌跡裡最後結束的不是「上樓」（例如上樓後又有人走出來）就不啟動。
 # - V1.3.0（2026-10-31）：開燈也納入模型：只要模型在車庫畫面看到人，而樓梯燈或車庫燈沒開，就啟動 script.garage_stair_down_on 開燈；樓梯口記錄迴圈也改成車庫攝影機動態（g6_instant_motion）時啟動。
@@ -150,9 +151,9 @@ script:
               milliseconds: 500
       - if: "{{ is_state('switch.che_ku_zhu_deng', 'off') }}"
         then:
-          - if: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 5 }}"
+          - if: "{{ (as_timestamp(now()) - as_timestamp(states.switch.che_ku_zhu_deng.last_changed, 0)) < 10 }}"
             then:
-              - delay: "00:00:05"
+              - delay: "00:00:10"
           - action: switch.turn_on
             target:
               entity_id: switch.che_ku_zhu_deng
