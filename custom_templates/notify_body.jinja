@@ -285,7 +285,7 @@
     {%- if ns.out | length > 0 -%}
       {%- set ns.out = ns.out + [{"type": "separator", "margin": "lg", "color": "#E5E7EB"}] -%}
     {%- endif -%}
-    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "paddingStart": "2px", "color": "#2F80ED"}] -%}
+    {%- set ns.out = ns.out + [{"type": "text", "text": it.t, "size": "sm", "weight": "bold", "wrap": true, "margin": ("lg" if ns.out | length > 1 else "xxl"), "color": "#2F80ED"}] -%}
   {%- elif it.k == 'ent' -%}
     {%- set sepd = (it.sec or it.gap) and (ns.out | length > 0) -%}
     {%- if sepd -%}
