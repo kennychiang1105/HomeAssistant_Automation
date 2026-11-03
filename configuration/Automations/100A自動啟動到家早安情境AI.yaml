@@ -1,6 +1,7 @@
 # ──────────────────────────────────────────────
 # 100A自動啟動到家早安情境AI (V4.2.0)
 # 更新紀錄：
+# - V4.3.6（2026-11-03）：自動啟動到家／早安情境不再發 HA 資訊通知（使用者要求）。
 # - V4.3.5（2026-10-29）：二樓夜間防下樓時間窗（binary_sensor.anti_down_window，見 08-7B）期間不自動啟動到家／早安情境，避免 Iris 夜間下樓、開燈被誤判成早安或在家。
 # - V4.2.3（2026-10-25）：網關同步鎖期間（106C 解除流程）不自動啟動到家／早安情境（解除流程中網關短暫變成「解除」，會被誤判成要到家）。
 # - V4.2.0（2026-10-18）：移除影子模式（auto_scene_shadow 已於 2026-10-10 核准關閉，程式碼與 helper 一併刪除），行為不變。
@@ -22,7 +23,7 @@
 #   防重複沿用 aqara_last_away_goodnight_triggered（180 秒）；自動啟動後發 HA 資訊通知（不發 LINE），並寫 input_text.auto_scene_last。
 # ──────────────────────────────────────────────
 - id: ai_100a_auto_arrive_morning_v41
-  alias: 100A自動啟動到家早安情境AI (V4.3.5)
+  alias: 100A自動啟動到家早安情境AI (V4.3.6)
   description: >
     家裡有活動跡象（燈、風扇、鐵門關閉）且保全不是在家模式時，自動啟動早安或到家情境。
   mode: single
@@ -202,16 +203,3 @@
         entity_id: "{{ 'automation.101zao_an_qing_jing' if is_morning else 'automation.103dao_jia_qing_jing' }}"
       data:
         skip_condition: true
-    - if:
-        - condition: state
-          entity_id: input_boolean.auto_scene_notify_enable
-          state: "on"
-      then:
-        - action: script.notify_dispatch
-          data:
-            level: info
-            line: false
-            source: 100A自動啟動到家早安情境AI
-            version: V4.3.5
-            title: "自動啟動{{ scene_name }}情境"
-            message: "偵測到「{{ reason }}」，已自動啟動{{ scene_name }}情境。"

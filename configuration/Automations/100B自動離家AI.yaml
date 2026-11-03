@@ -1,8 +1,9 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 100B自動離家AI (V4.2.2)
+# 100B自動離家AI (V4.2.3)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-11-03）：修正離家通知被擋：離家情境（HomeKit）比最後一人離家早開超過 3 分鐘時，V4.2.0 的防重發規則把第一次通知也擋掉（11-03 08:12 漏發）。改成「這一輪已發過通知（input_boolean.leave_notice_sent）」才擋；有人回家滿 1 分鐘清除旗標。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟後 delay 4 分 10 秒重新檢查「全員不在家＋離家情境未開（或剛開過未滿 3 分鐘）」，成立才接續執行離家情境。
 # - V4.2.0（2026-10-22）：修正範本／person 重新載入後重複發離家通知：離家情境（aqara_li_jia）已經開著超過 3 分鐘就不再重發（重載時 at_home_*_location 短暫 unavailable，4 分 10 秒計時重新開始）。
 # - V4.1.6（2026-10-13）：離家時「門鎖／鐵門有未上鎖或未關」通知改成說清楚是哪一個（鐵門開著、或二樓門鎖同步開關顯示未上鎖）與狀態更新時間，等級維持緊急。（2026-10-13 誤報原因：二樓門鎖同步開關的 on／off 設定相反，已由使用者修正。）
@@ -18,7 +19,7 @@
 # - V3.1：LINE 通知等級調整（一般→重要、緊急維持緊急且強制檢查開關）；新增「網關未離家時僅通知一次」邏輯，並顯示已自動切換離家情境與目前情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 100B自動離家AI (V4.2.2)
+- alias: 100B自動離家AI (V4.2.3)
   id: ai_auto_leave_system
   description: "AI離家 V3.4.1"
   mode: single
@@ -49,7 +50,8 @@
             - condition: template
               value_template: >-
                 {{ not is_state('input_boolean.aqara_li_jia', 'on')
-                   or (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() < 180 }}
+                   or (now() - states.input_boolean.aqara_li_jia.last_changed).total_seconds() < 180
+                   or not is_state('input_boolean.leave_notice_sent', 'on') }}
             - condition: template
               value_template: >-
                 {{ states('sensor.at_home_kenny_location') == '離家'
@@ -58,7 +60,7 @@
                    and states('sensor.at_home_iris_location') == '離家' }}
 
   variables:
-    automation_version: "V4.2.2"
+    automation_version: "V4.2.3"
     helpers_compat: "Helpers V3.17"
     notif_title_base: "【AI離家系統 {{ automation_version }}】"
     notif_title_general: >-
@@ -204,6 +206,11 @@
               value_template: "{{ not debounce_ok }}"
           sequence:
             - stop: "防抖中（{{ debounce_sec }} 秒內重複觸發）—已跳過通知"
+
+    # V4.2.3：記下這一輪離家已發過通知（有人回家滿 1 分鐘才清除），之後重載造成的重複觸發才擋
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.leave_notice_sent
 
     - event: ai_leave_confirmed
       event_data:
@@ -427,3 +434,21 @@
                   {{ batt_line_text_line }}
 
                   {{ outdoor_brief }}
+
+- alias: 100B離家通知旗標清除 (V4.2.3)
+  id: ai_leave_notice_flag_reset
+  mode: single
+  triggers:
+    - platform: template
+      value_template: >-
+        {{ [states('sensor.at_home_kenny_location'), states('sensor.at_home_elay_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_iris_location')] | reject('in', ['離家','unavailable','unknown']) | list | count > 0 }}
+      for:
+        minutes: 1
+  conditions:
+    - condition: state
+      entity_id: input_boolean.leave_notice_sent
+      state: 'on'
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.leave_notice_sent
