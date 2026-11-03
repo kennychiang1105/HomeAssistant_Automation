@@ -916,3 +916,7 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 
 - Google Home 情境觸發橋接（2026-04）：新增 `100C_GoogleHome情境虛擬按鈕橋接AI`，以 `input_boolean.google_scene_*` 觸發 `100/101/102/103` 情境自動化，並在觸發後自動復位。
 - Helper 升級至 `V3.9`：新增 Google Home 情境虛擬按鈕 helpers（早安/晚安/到家/出門）。
+
+## 離家通知漏發修正（100B自動離家AI V4.2.3，2026-11-03）
+- 11-03 08:00 離家情境由 HomeKit 先開啟，08:08 最後一人才離家，08:12 觸發時被 V4.2.0「離家情境已開超過 3 分鐘不重發」擋掉，離家通知與門鎖／鐵門檢查都沒發。
+- 改成以 `input_boolean.leave_notice_sent`（這一輪是否已發過）判斷；有人回家滿 1 分鐘清除（`packages/v44_leave_notice.yaml`、100B 內新增清除自動化）。

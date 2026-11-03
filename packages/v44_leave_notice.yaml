@@ -1,0 +1,5 @@
+# 離家通知旗標（100B自動離家AI V4.2.3）：這一輪離家已發過通知；有人回家滿 1 分鐘清除
+input_boolean:
+  leave_notice_sent:
+    name: 離家通知已發送
+    icon: mdi:bell-check
