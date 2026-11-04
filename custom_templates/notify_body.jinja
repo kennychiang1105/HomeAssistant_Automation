@@ -836,6 +836,21 @@
         ch_tile('PCB', pv, ch_temp_col(pv, 70, 85) | trim, 'sm') | from_json
       ]}]} -%}
   {{- [hdr_row, main_box, temp_box] | tojson -}}
+{%- elif (not skip) and ('電視無回應' in sig_h) -%}
+  {#- V4.2.4：電視無回應卡片（橘色注意）：已做的處置、目前狀態、後續提醒、請你確認的事 -#}
+  {%- set hdr_row = {"type": "box", "layout": "horizontal", "alignItems": "center", "spacing": "6px", "contents": [
+      {"type": "image", "url": b2 ~ "tv_o.png?v=1", "size": "20px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+      {"type": "text", "text": "電視無回應", "weight": "bold", "size": "md", "color": "#111827", "flex": 1, "wrap": true},
+      {"type": "box", "layout": "vertical", "backgroundColor": "#EA580C", "cornerRadius": "99px", "paddingTop": "3px", "paddingBottom": "3px", "paddingStart": "10px", "paddingEnd": "10px", "flex": 0,
+       "contents": [{"type": "text", "text": "請注意", "size": "xxs", "weight": "bold", "color": "#FFFFFF"}]}]} -%}
+  {%- set main_box = {"type": "box", "layout": "vertical", "backgroundColor": "#FFF7ED", "borderColor": "#FED7AA", "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "12px", "margin": "md", "spacing": "md", "contents": [
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('已執行', '紅外線喚醒', '#111827', 'md') | from_json, dict(ch_tile('目前狀態', '仍連不上網路', '#C2410C', 'md') | from_json, paddingStart='8px')]},
+      {"type": "separator", "color": "#FED7AA"},
+      ch_tile('後續', '不再重送（避免把電視關掉）', '#111827', 'sm') | from_json]} -%}
+  {%- set act_box = {"type": "box", "layout": "horizontal", "backgroundColor": "#F3F4F6", "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "8px", "alignItems": "center", "contents": [
+      {"type": "image", "url": b2 ~ "check_n.png?v=1", "size": "18px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+      {"type": "text", "text": "請確認紅外線開關情境與電視電源", "size": "xs", "weight": "bold", "color": "#374151", "wrap": true, "flex": 1}]} -%}
+  {{- [hdr_row, main_box, act_box] | tojson -}}
 {%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
@@ -1267,6 +1282,10 @@
   {%- endif -%}
   {%- set parts = parts + ['<sub>充電器溫度　手把 ' ~ hv ~ '　MCU ' ~ mv ~ '　PCB ' ~ pv ~ '</sub>'] -%}
   {{- parts | join('\n\n') -}}
+{%- elif (not skip) and ('電視無回應' in sig_h) -%}
+  {{- ['<img src="' ~ b2 ~ 'tv_o.png" width="20" height="20" style="vertical-align:middle"> **電視無回應**　<span style="color:#EA580C"><b>【請注意】</b></span>',
+       '已執行　**紅外線喚醒**　目前狀態　<span style="color:#C2410C">**仍連不上網路**</span><br>後續　不再重送（避免把電視關掉）',
+       '☑️ **請確認紅外線開關情境與電視電源**'] | join('\n\n') -}}
 {%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
