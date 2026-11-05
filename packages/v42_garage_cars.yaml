@@ -2,6 +2,7 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：新增 input_boolean.garage_lamp_front／back（車燈亮）與 input_datetime.garage_turn_seen_front／back（最近偵測到左方向燈），給 3D 車模顯示煞車燈／頭燈與左方向燈閃爍。
+# - V4.3.13（2026-11-05）：garage_close_confirmed（V1.0.1）鐵門「剛開啟不到 90 秒」改成等滿 90 秒再繼續判斷，不再直接放棄。11-05 10:40 自動開門、車開走，10:41 第一次自動關門被這條擋掉後一直沒再試，到 10:50 才由 104-3 接手，鐵門多開了約 11 分鐘。
 # - V4.3.12（2026-11-01）：鐵門重試關門（garage_gate_close_retry）間隔 10 分鐘 → 3 分鐘，最多 40 次（維持約 2 小時）。
 # - V4.3.11（2026-11-01）：①新增 script.garage_close_confirmed：所有自動關門先淨空確認→車庫攝影機喇叭廣播「車庫鐵門即將關閉」→等 8 秒再確認一次（廣播期間有人／車出現、車位狀態變動就取消）才關；沒關成會交給重試關門。
 #           ②garage_close_safety_check 新增「攝影機車輛偵測（20 秒內）」與「車位狀態 30 秒內剛變動／準備出門」為不可關門原因（2026-11-01 19:04 Tesla 停門口、Luxgen 正要出去時鐵門關下來差點夾車）。
@@ -350,7 +351,7 @@ script:
         response_variable: result
 
   garage_close_confirmed:
-    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V1.0.0)
+    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V1.0.1)
     description: >
       所有「自動」關鐵門都走這支：①先跑淨空確認（人／車／車燈／位移／攝影機人車偵測／車位剛變動）；②通過後用車庫攝影機喇叭廣播「車庫鐵門即將關閉，請注意安全」；
       ③等廣播播完（約 8 秒）再確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
@@ -367,12 +368,17 @@ script:
           - stop: "鐵門不是開啟狀態"
             response_variable: result
       # 鐵門剛開啟（到全開不到 90 秒）不自動關：2026-11-01 15:44 自動開門後 12 秒就被腳本關上
+      # V1.0.1：以前直接放棄，11-05 10:41 車開走後這次被擋掉就一直開到 10 分鐘後才由 104-3 接手（開了 11 分鐘）；改成等滿 90 秒再繼續
       - if: "{{ (as_timestamp(now()) - as_timestamp(states.cover.garage.last_changed, 0)) < 90 }}"
         then:
-          - variables:
-              result: "{{ {'closed': false, 'reasons': ['鐵門剛開啟不到 90 秒']} }}"
-          - stop: "鐵門剛開啟不到 90 秒，不自動關"
-            response_variable: result
+          - delay:
+              seconds: "{{ [90 - (as_timestamp(now()) - as_timestamp(states.cover.garage.last_changed, 0)), 1] | max | round(0) }}"
+          - if: "{{ not is_state('cover.garage', 'open') or (as_timestamp(now()) - as_timestamp(states.cover.garage.last_changed, 0)) < 85 }}"
+            then:
+              - variables:
+                  result: "{{ {'closed': false, 'reasons': ['鐵門狀態在等待期間變動']} }}"
+              - stop: "鐵門在等待期間狀態變動，不自動關"
+                response_variable: result
       - action: script.garage_close_safety_check
         response_variable: sf1
       - if: "{{ not (sf1 is mapping and sf1.get('safe') == true) }}"
