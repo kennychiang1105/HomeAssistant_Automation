@@ -23,7 +23,8 @@ SERVICES = {"turn_on","turn_off","toggle","set_value","reload","trigger","start"
             "media_pause","media_next_track","media_previous_track","select_next","select_previous","set_options","remove",
             "update","check_config","restart","stop_tts","clear","dismiss","mark_read","turn_on_all","set_cover_position",
             "set_cover_tilt_position","start_pause","return_to_base","locate","set_hvac","set_swing_mode"}
-IGNORE = {"binary_sensor.template_sidebar_update_color"}  # themes.yaml 的樣式變數，不是實體
+IGNORE = {"binary_sensor.template_sidebar_update_color",  # themes.yaml 的樣式變數，不是實體
+          "device_tracker.xxx"}  # 00-2S／v41_person_main_device 的輸入範例文字，不是實體
 pat = re.compile(r"\b(%s)\.([a-z0-9_]+)\b" % DOMAINS)
 
 files = (glob.glob(f"{CFG}/configuration/Automations/*.yaml") + glob.glob(f"{CFG}/Automations/*.yaml")
