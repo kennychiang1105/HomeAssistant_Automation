@@ -3,6 +3,7 @@
 # 104-3鐵門判斷未關提醒及作動AI (V4.3.1)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.2（2026-11-05）：觀察期內「車庫主燈狀態變化」只算人為開關（手按、HomeKit、手機），自動化／腳本開燈不取消自動關門（11-05 10:51 系統自己開燈做快照，反而把自動關門取消）；新增 104-3B 記錄人為開關時間。
 # - V4.3.11（2026-11-01）：自動關門改呼叫 script.garage_close_confirmed（淨空確認→車庫喇叭廣播→8 秒後再確認→才關）；沒關成交給重試關門。
 # - V4.3.1（2026-10-28）：取消自動關門（有人車活動、AP 有人、淨空確認未通過）後，交給 script.garage_gate_close_retry 每 10 分鐘重判一次、最多 6 次（約 1 小時），通過就關，最後仍沒關再發緊急通知。
 # - V4.3.1（2026-10-28）：10 分鐘提醒後的自動關門前，先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因。
@@ -194,15 +195,10 @@
           platform: state
           entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
           to: "on"
+        # V4.3.2：只看「人為」開關主燈（記錄自動化 104-3B 寫入）；自動化／腳本（快照補光、感應燈）開燈不取消關門
         - id: garage_light_changed
           platform: state
-          entity_id: switch.che_ku_zhu_deng
-          not_to:
-            - unknown
-            - unavailable
-          not_from:
-            - unknown
-            - unavailable
+          entity_id: input_datetime.garage_light_manual_last
         - id: garage_wifi_occupied
           platform: state
           entity_id: binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan
@@ -474,3 +470,27 @@
         entity_id: input_datetime.garage_gate_opened_at
       data:
         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') if trigger.id == 'opened' else '1970-01-01 00:00:00' }}"
+
+# 車庫主燈人為開關記錄（context 沒有 parent_id＝不是自動化／腳本呼叫的：實體開關、HomeKit、App 都算）
+- alias: 104-3B車庫主燈人為開關記錄AI (V4.3.2)
+  id: ai_104_3b_garage_light_manual
+  description: 車庫主燈狀態變化且不是自動化／腳本造成的，才記錄時間，給 104-3 觀察期判斷用
+  mode: queued
+  triggers:
+    - trigger: state
+      entity_id: switch.che_ku_zhu_deng
+      not_from:
+        - unavailable
+        - unknown
+      not_to:
+        - unavailable
+        - unknown
+  conditions:
+    - condition: template
+      value_template: "{{ trigger.to_state is not none and trigger.to_state.context.parent_id is none }}"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.garage_light_manual_last
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

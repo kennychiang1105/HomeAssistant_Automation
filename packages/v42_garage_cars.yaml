@@ -2,6 +2,7 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：新增 input_boolean.garage_lamp_front／back（車燈亮）與 input_datetime.garage_turn_seen_front／back（最近偵測到左方向燈），給 3D 車模顯示煞車燈／頭燈與左方向燈閃爍。
+# - V4.3.14（2026-11-05）：新增 input_datetime.garage_light_manual_last（車庫主燈最近一次「人為」開關時間，由 104-3 內的記錄自動化寫入；自動化／腳本開關不算）。
 # - V4.3.13（2026-11-05）：garage_close_confirmed（V1.0.1）鐵門「剛開啟不到 90 秒」改成等滿 90 秒再繼續判斷，不再直接放棄。11-05 10:40 自動開門、車開走，10:41 第一次自動關門被這條擋掉後一直沒再試，到 10:50 才由 104-3 接手，鐵門多開了約 11 分鐘。
 # - V4.3.12（2026-11-01）：鐵門重試關門（garage_gate_close_retry）間隔 10 分鐘 → 3 分鐘，最多 40 次（維持約 2 小時）。
 # - V4.3.11（2026-11-01）：①新增 script.garage_close_confirmed：所有自動關門先淨空確認→車庫攝影機喇叭廣播「車庫鐵門即將關閉」→等 8 秒再確認一次（廣播期間有人／車出現、車位狀態變動就取消）才關；沒關成會交給重試關門。
@@ -173,6 +174,10 @@ input_datetime:
   # V4.3.6：最近一次偵測到左方向燈閃爍（3D 車模左方向燈閃 30 秒）
   garage_turn_seen_front:
     name: 車庫前位｜最近偵測到左方向燈（內部，3D 顯示）
+    has_date: true
+    has_time: true
+  garage_light_manual_last:
+    name: 車庫主燈｜最近一次人為開關（內部，排除自動化／腳本開關）
     has_date: true
     has_time: true
   garage_turn_seen_back:
