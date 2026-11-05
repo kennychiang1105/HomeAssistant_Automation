@@ -1034,8 +1034,8 @@
     {%- set main_box = cd_box([ch_tile('取消原因', (reason if reason != '' else '無法確認淨空'), '#C2410C', 'md') | from_json], '#FFF7ED', '#FED7AA') | from_json -%}
     {{- ([cd_hdr('gateopen_o', '已取消自動關門', '鐵門仍開著', '#EA580C', b2) | from_json, main_box] + ([cd_gray('說明', nt.r) | from_json] if nt.r | length > 0 else [])) | tojson -}}
   {%- elif early -%}
-    {%- set tiles = cd_pair(ch_tile('結果', '已關閉', '#16A34A', 'md') | from_json, ch_tile('系統處置', '不再自動關門', '#111827', 'md') | from_json) | from_json -%}
-    {{- [cd_hdr('gate_g', '鐵門已關閉', '提前關閉', '#30D158', b2) | from_json, cd_box([tiles, cd_row('check_g', '2 分鐘觀察期內，鐵門已先被關上', b2, '#374151', 'xs') | from_json], '#F0FDF4', '#86EFAC') | from_json] | tojson -}}
+    {%- set tiles = cd_pair(ch_tile('結果', '已關閉', '#16A34A', 'md') | from_json, ch_tile('自動關門', '不執行', '#111827', 'md') | from_json) | from_json -%}
+    {{- [cd_hdr('gate_g', '鐵門已關閉', '提前關閉', '#30D158', b2) | from_json, cd_box([tiles, cd_row('check_g', '觀察期內已先被關上', b2, '#374151', 'xs') | from_json], '#F0FDF4', '#86EFAC') | from_json] | tojson -}}
   {%- else -%}
     {%- set tiles = cd_pair(ch_tile('結果', '已關閉', '#16A34A', 'md') | from_json, ch_tile('方式', '系統自動關門', '#111827', 'md') | from_json) | from_json -%}
     {%- set crow = [cd_row('check_g', '觀察期內無人車移動', b2, '#374151', 'sm') | from_json, cd_row('check_g', '車庫主燈狀態未變化', b2, '#374151', 'sm') | from_json, cd_row('check_g', '車庫 AP 判定無人', b2, '#374151', 'sm') | from_json] -%}
