@@ -1,5 +1,6 @@
 {# ──────────────────────────────────────────────────────
    通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
+   - V4.3.13（2026-11-06）：第二批專屬卡片：五樓保全、離家保全、疑似入侵、門鎖電量分級／換電池、網關情境衝突、充電器異常、大門門鈴、電風扇連線異常、LINE Bot 額度、濾芯／耗材電量、空氣品質、一氧化碳、環境異常讀數、情境檢查、鐵門重試未關、地震詳情；自動離家補「網關未切到離家」與鐵門／門鎖英文狀態中文化；修正「仍未開始充電」被當成開始充電卡片。
    - V4.3.12（2026-11-06）：新增專屬卡片：自動離家（綠／紅）、鐵門未關（紅）、鐵門自動關門結果（提前關閉／已自動關閉／已取消）；共用零件 cd_hdr／cd_box／cd_row／cd_gray／cd_note／cd_pair。
    - V4.1.6：圖示只放在「小標題（冒號結尾）」「名稱：數值」與「警告」行（標題行不放，保持單行）；圖示顏色依重要度（紅=緊急、橘=警告、綠=正常完成、藍=一般），共 70 款（www/icons/b2/<名稱>_<n|g|o|r>.png）（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
              「名稱：數值」拆成灰色小字名稱＋粗體數值（例如 客廳門鎖電量　76%）；一般句子用正常粗細。
@@ -832,6 +833,42 @@
 {%- set ns = namespace(o=[]) -%}{%- for r in rows -%}{%- if r.s | regex_search(pat) -%}{%- set ns.o = ns.o + [r] -%}{%- endif -%}{%- endfor -%}{{- ns.o | tojson -}}
 {%- endmacro %}
 
+{# V4.3.13：第二批卡片零件：兩欄資訊格、提示條、名稱：數值解析、狀態中文化 #}
+{% macro cd_grid(pairs, col='#111827', size='sm') -%}
+{%- set ns = namespace(o=[], cur=[]) -%}
+{%- for p in pairs -%}
+  {%- set tl = ch_tile(p[0], p[1], (p[2] if (p | length > 2 and p[2]) else col), size) | from_json -%}
+  {%- if ns.cur | length == 0 -%}{%- set ns.cur = [tl] -%}
+  {%- else -%}{%- set ns.o = ns.o + [{"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ns.cur[0], dict(tl, paddingStart='8px')]}] -%}{%- set ns.cur = [] -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if ns.cur | length > 0 -%}{%- set ns.o = ns.o + [ns.cur[0]] -%}{%- endif -%}
+{{- ns.o | tojson -}}
+{%- endmacro %}
+{% macro cd_call(ic, text, b2, col='#374151', bg='#F3F4F6') -%}
+{{ {"type": "box", "layout": "horizontal", "backgroundColor": bg, "cornerRadius": "10px", "paddingAll": "10px", "margin": "sm", "spacing": "8px", "alignItems": "center", "contents": [
+  {"type": "image", "url": b2 ~ ic ~ ".png?v=1", "size": "18px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
+  {"type": "text", "text": text, "size": "xs", "weight": "bold", "color": col, "wrap": true, "flex": 1}]} | tojson }}
+{%- endmacro %}
+{% macro kv_of(lines) -%}
+{%- set ns = namespace(d={}) -%}
+{%- for l in lines -%}
+  {%- set c = clean(l | string) | trim -%}
+  {%- set m = c | regex_findall('^([^：:。，]{1,14})[：:]\\s*(.+)$') -%}
+  {%- if m | length > 0 and (m[0][0] | trim) not in ns.d -%}{%- set ns.d = dict(ns.d, **{(m[0][0] | trim): (m[0][1] | trim)}) -%}{%- endif -%}
+{%- endfor -%}
+{{- ns.d | tojson -}}
+{%- endmacro %}
+{% macro st_zh(v) -%}
+{%- set s = (v | string) | trim -%}
+{{- {'charging': '充電中', 'connected': '已連接', 'plugged': '已插槍', 'disconnected': '未連接', 'unplugged': '未插槍', 'error': '異常', 'fault': '故障',
+     'complete': '充電完成', 'completed': '充電完成', 'charging_completed': '充電完成', 'finished': '充電完成', 'idle': '待機', 'standby': '待機',
+     'ready': '待機', 'waiting': '等待中', 'paused': '暫停', 'unavailable': '無法連線', 'unknown': '未知'}.get(s | lower, s if s else '--') -}}
+{%- endmacro %}
+{% macro tag_col(c) -%}
+{{- {'g': '#16A34A', 'o': '#D97706', 'r': '#DC2626'}.get(c, '#111827') -}}
+{%- endmacro %}
+
 {% macro special_body(title, src, lines0, lv='general', b2='https://family.kteam.tw:8126/local/icons/b2/') -%}
 {%- set lines = (lines0 | from_json([])) if lines0 is string else (lines0 | list) -%}
 {%- set joined = lines | map('string') | join('\n') -%}
@@ -840,7 +877,7 @@
 {%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
 {%- set skip = '更新紀錄' in sig_h -%}
 {%- set ch_head = (lines[0] | string) if lines | length > 0 else '' -%}
-{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) -%}
+{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) and not (ch_head | regex_search('未開始充電')) -%}
 {%- set ch_done = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('充電完成$')) -%}
 {%- if (not skip) and (ch_start or ch_done) -%}
   {%- set kv = ch_parse(lines) | from_json({}) -%}
@@ -893,7 +930,7 @@
       {"type": "image", "url": b2 ~ "check_n.png?v=1", "size": "18px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
       {"type": "text", "text": "請確認紅外線開關情境與電視電源", "size": "xs", "weight": "bold", "color": "#374151", "wrap": true, "flex": 1}]} -%}
   {{- [hdr_row, main_box, act_box] | tojson -}}
-{%- elif (not skip) and (('自動離家' in sig_h) or ('100B' in sig_h)) and (joined | regex_search('已離家')) -%}
+{%- elif (not skip) and (('自動離家' in sig_h) or ('100B' in sig_h)) and (joined | regex_search('已離家|判定離家')) -%}
   {#- V4.3.12：自動離家卡片：綠＝已離家一切就緒；紅＝已離家但門鎖／鐵門有未鎖未關。下方依序是門鎖電量、戶外狀況、氣象告警小框 -#}
   {%- set ns = namespace(sec='', top=[], scene='', rows=[], tips=[]) -%}
   {%- for l0 in lines -%}
@@ -917,21 +954,32 @@
   {%- set batt = ro_sec(ns.rows, '電量') | from_json([]) -%}
   {%- set outd = ro_sec(ns.rows, '戶外') | from_json([]) -%}
   {%- set warn = ro_sec(ns.rows, '氣象') | from_json([]) -%}
-  {%- set unsafe = (joined | regex_search('未上鎖或未關')) -%}
-  {%- if unsafe -%}
+  {%- set gwfail = (joined | regex_search('網關未成功設定')) -%}
+  {%- set unsafe = (joined | regex_search('未上鎖或未關')) or gwfail -%}
+  {%- if gwfail -%}
+    {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '網關未切到離家模式', '請確認', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
+  {%- elif unsafe -%}
     {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '已離家，但有未鎖／未關', '請立即確認', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
   {%- else -%}
     {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'homeout_g', '所有人已離家', '離家模式', '#30D158', '#F0FDF4', '#86EFAC', '#15803D' -%}
   {%- endif -%}
   {%- set scene_v = ns.scene if ns.scene != '' else '離家情境' -%}
   {%- set it = namespace(r=[]) -%}
-  {%- for l in ns.top[1:] -%}
-    {%- for p in (l | replace('。', '')).split('；') if ((p | trim) != '' and not ((p | trim) | regex_search('^已啟動離家模式$'))) -%}
-      {%- set bad = unsafe and not (p | trim).startswith('本次已') -%}
+  {%- for l in (ns.top if gwfail else ns.top[1:]) -%}
+    {%- set gm = l | regex_findall('^車庫鐵門[：:]\\s*([a-z_]+)[、，,]\\s*二樓門鎖同步開關[：:]\\s*([a-z_]+)') -%}
+    {%- if gm | length > 0 -%}
+      {%- set gs = {'closed': '已關閉', 'open': '開著', 'opening': '開啟中', 'closing': '關閉中'}.get(gm[0][0], gm[0][0]) -%}
+      {%- set ls = {'off': '已上鎖', 'on': '未上鎖'}.get(gm[0][1], gm[0][1]) -%}
+      {%- set it.r = it.r + [cd_row(('check_g' if gm[0][0] == 'closed' else 'alarm_o'), '車庫鐵門：' ~ gs, b2, '#374151', 'sm') | from_json,
+                             cd_row(('check_g' if gm[0][1] == 'off' else 'alarm_o'), '二樓門鎖：' ~ ls, b2, '#374151', 'sm') | from_json] -%}
+    {%- else -%}
+    {%- for p in (l | replace('。', '') | regex_replace('^但\\s*', '') | regex_replace('[，,]$', '')).split('；') if ((p | trim) != '' and not ((p | trim) | regex_search('^已啟動離家模式$'))) -%}
+      {%- set bad = unsafe and not (p | trim).startswith('本次已') and not (p | trim).startswith('已判定') -%}
       {%- set it.r = it.r + [cd_row(('alarm_r' if bad else 'check_g'), (p | trim), b2, ('#B91C1C' if bad else '#374151'), 'sm', bad) | from_json] -%}
     {%- endfor -%}
+    {%- endif -%}
   {%- endfor -%}
-  {%- set tiles = cd_pair(ch_tile('目前情境', scene_v, vc, 'md') | from_json, ch_tile('離家模式', ('尚未完成' if unsafe else '已啟動'), vc, 'md') | from_json) | from_json -%}
+  {%- set tiles = cd_pair(ch_tile('目前情境', scene_v, vc, 'md') | from_json, ch_tile('離家模式', ('網關未設定' if gwfail else ('尚未完成' if unsafe else '已啟動')), vc, 'md') | from_json) | from_json -%}
   {%- set main_box = cd_box([tiles] + ([{"type": "separator", "color": bx_bd}] if it.r | length > 0 else []) + it.r, bx_bg, bx_bd) | from_json -%}
   {%- set out = namespace(c=[cd_hdr(hd_ic, hd_t, hd_badge, hd_col, b2) | from_json, main_box]) -%}
   {#- 門鎖電量：最多三格；第一格（電量 %）依高低上色 -#}
@@ -988,7 +1036,7 @@
       {%- endif -%}
     {%- endfor -%}
     {%- for tp in ns.tips -%}
-      {%- set wr.r = wr.r + [{"type": "text", "text": "", "size": "xs", "wrap": true, "color": "#92400E", "contents": (mspans(tp, '#92400E') | from_json([]))}] -%}
+      {%- set wr.r = wr.r + [{"type": "text", "size": "xs", "wrap": true, "color": "#92400E", "contents": (mspans(tp, '#92400E') | from_json([]))}] -%}
     {%- endfor -%}
     {%- set whead = {"type": "box", "layout": "horizontal", "alignItems": "center", "spacing": "6px", "contents": [
           {"type": "image", "url": b2 ~ "weather_o.png?v=1", "size": "16px", "aspectRatio": "1:1", "aspectMode": "fit", "flex": 0},
@@ -1041,6 +1089,280 @@
     {%- set crow = [cd_row('check_g', '觀察期內無人車移動', b2, '#374151', 'sm') | from_json, cd_row('check_g', '車庫主燈狀態未變化', b2, '#374151', 'sm') | from_json, cd_row('check_g', '車庫 AP 判定無人', b2, '#374151', 'sm') | from_json] -%}
     {{- [cd_hdr('gate_g', '鐵門已自動關閉', '自動關門', '#30D158', b2) | from_json, cd_box([tiles], '#F0FDF4', '#86EFAC') | from_json, cd_gray('關門前確認', crow) | from_json] | tojson -}}
   {%- endif -%}
+{%- elif (not skip) and ('五樓保全' in sig_h or '五樓保全' in joined) and (joined | regex_search('闖入|有人員進入|已離開|無動靜')) -%}
+  {#- V4.3.13：五樓保全：手動防守遭闖入（紅）／無人在家盯防有人進入（橘）／自動解除（綠） -#}
+  {%- set mn = (joined | regex_findall('(\\d+)\\s*分鐘') | first | default('2', true)) -%}
+  {%- if joined | regex_search('闖入') -%}
+    {%- set bx = cd_grid([['防守模式', '手動強防禦'], ['判定方式', '跨線時間鏈']], '#111827', 'md') | from_json -%}
+    {{- [cd_hdr('shieldoff_r', '五樓房間防區遭闖入', '手動防守中', '#DC2626', b2) | from_json,
+         cd_box(bx + [{"type": "separator", "color": "#FCA5A5"}, cd_row('alarm_r', '已播放警報與語音警告', b2, '#B91C1C', 'sm', true) | from_json], '#FEF2F2', '#FCA5A5') | from_json,
+         cd_call('camera_n', '請盡快確認五樓狀況；稍後補傳五樓攝影機短片', b2) | from_json] | tojson -}}
+  {%- elif joined | regex_search('有人員進入') -%}
+    {%- set bx = cd_grid([['防守模式', '自動盯防（無人在家）'], ['判定方式', '跨線時間鏈']], '#111827', 'md') | from_json -%}
+    {{- [cd_hdr('shield_o', '五樓房間防區有人進入', '請確認', '#EA580C', b2) | from_json,
+         cd_box(bx + [{"type": "separator", "color": "#FED7AA"}, cd_row('info_n', '只用跨線時間鏈判定，已避開一般感應器誤報', b2, '#4B5563', 'xs') | from_json], '#FFF7ED', '#FED7AA') | from_json,
+         cd_call('camera_n', '稍後補傳五樓攝影機短片', b2) | from_json] | tojson -}}
+  {%- else -%}
+    {%- set bx = cd_grid([['解除原因', '防區 ' ~ mn ~ ' 分鐘無動靜'], ['目前狀態', '重新盯防中', '#15803D']], '#111827', 'md') | from_json -%}
+    {{- [cd_hdr('shieldlock_g', '五樓警報已自動解除', '回復盯防', '#30D158', b2) | from_json,
+         cd_box(bx + [{"type": "separator", "color": "#86EFAC"}, cd_row('check_g', '疑似人員已離開，警報已停止', b2, '#374151', 'sm') | from_json], '#F0FDF4', '#86EFAC') | from_json] | tojson -}}
+  {%- endif -%}
+{%- elif (not skip) and (joined | regex_search('地震預警系統作動')) -%}
+  {#- V4.3.13：離家保全轉發的地震預警（管理者）：預估震度／抵達秒數，大於 4 級啟動緊急模式 -#}
+  {%- set m = joined | regex_findall('預估地震\\s*([^\\s，,級]+)\\s*級[，,]\\s*([^\\s秒]+)\\s*秒') -%}
+  {%- set lvq = m[0][0] if m | length > 0 else '未知' -%}
+  {%- set sq = m[0][1] if m | length > 0 else '未知' -%}
+  {%- set bx = cd_grid([['預估震度', lvq ~ ' 級', '#DC2626'], ['預計抵達', sq ~ ' 秒後']], '#111827', 'xl') | from_json -%}
+  {{- [cd_hdr('quake_r', '地震預警系統作動', '緊急模式', '#DC2626', b2) | from_json,
+       cd_box(bx + [{"type": "separator", "color": "#FCA5A5"}, cd_row('alarm_r', '預估大於 4 級，將啟動緊急模式因應', b2, '#B91C1C', 'sm', true) | from_json], '#FEF2F2', '#FCA5A5') | from_json] | tojson -}}
+{%- elif (not skip) and ('離家保全' in sig_h) and (joined | regex_search('離家情境中')) -%}
+  {#- V4.3.13：離家保全：鐵門開著（橘）／二樓門鎖被打開（紅）／兩者都開（紅） -#}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- set both = joined | regex_search('鐵門與.*門鎖') -%}
+  {%- set lock = (not both) and (joined | regex_search('二樓門鎖')) -%}
+  {%- if both -%}{%- set ic, ttl, bdg, what = 'alarm_r', '離家中鐵門與門鎖都開著', '緊急', '鐵門＋二樓門鎖' -%}
+  {%- elif lock -%}{%- set ic, ttl, bdg, what = 'unlock_r', '離家中二樓門鎖被打開', '緊急', '二樓門鎖' -%}
+  {%- else -%}{%- set ic, ttl, bdg, what = 'gateopen_o', '離家中鐵門開著', '請確認', '車庫鐵門' -%}{%- endif -%}
+  {%- set red = both or lock -%}
+  {%- set act = (joined | regex_findall('(請[^\\n。]+)') | first | default('請盡速確認現場狀況', true)) -%}
+  {%- set bx = cd_grid([['異常項目', what, ('#DC2626' if red else '#C2410C')], ['目前情境', kv.get('目前情境', '--')]], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr(ic, ttl, bdg, ('#DC2626' if red else '#EA580C'), b2) | from_json,
+       cd_box(bx, ('#FEF2F2' if red else '#FFF7ED'), ('#FCA5A5' if red else '#FED7AA')) | from_json,
+       cd_call(('alarm_r' if red else 'announce_o'), act, b2, ('#B91C1C' if red else '#9A3412')) | from_json] | tojson -}}
+{%- elif (not skip) and ('疑似入侵' in sig_h) and (joined | regex_search('入侵|測試通知')) -%}
+  {#- V4.3.13：離家中疑似入侵：偵測時間、警報倒數、觸發感應器；家人回來的取消方式 -#}
+  {%- set test = ('測試' in sig_h) or (joined | regex_search('這是測試通知')) -%}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- set tm = ch_when(kv.get('時間', '--')) | trim -%}
+  {%- set cdn = joined | regex_findall('倒數[：:]\\s*⟦r:(\\d+)\\s*秒⟧') -%}
+  {%- set bx = cd_grid([['偵測時間', tm], ['警報倒數', ((cdn[0] ~ ' 秒') if cdn | length > 0 else ('測試，不響警報' if test else '--')), '#DC2626']], '#111827', 'md') | from_json -%}
+  {%- set rows = bx + [{"type": "separator", "color": "#FCA5A5"}, ch_tile('觸發的感應器', kv.get('觸發的感應器', '--'), '#111827', 'sm') | from_json] -%}
+  {%- if cdn | length > 0 -%}
+    {%- set rows = rows + [cd_row('alarm_r', cdn[0] ~ ' 秒後家裡仍沒有人，就會觸發網關警報', b2, '#B91C1C', 'xs', true) | from_json] -%}
+  {%- endif -%}
+  {{- ([cd_hdr('shieldoff_r', '疑似入侵', ('測試' if test else '離家中'), ('#6B7280' if test else '#DC2626'), b2) | from_json,
+        cd_box(rows, '#FEF2F2', '#FCA5A5') | from_json,
+        cd_call('homein_g', '家人回來了？到「家庭」App 點「早安」或「到家」情境就會取消，不會響警報', b2, '#15803D', '#F0FDF4') | from_json]
+       + ([cd_note('這是測試通知，不會響警報。') | from_json] if test else [])) | tojson -}}
+{%- elif (not skip) and (lines | length > 0) and ((clean(lines[0] | string) | trim) | regex_search('^門鎖電量(完全沒電|低於|\\s*35%)')) -%}
+  {#- V4.3.13：客廳門鎖電量分級（0%／<5%／<15%／≤35%）：大字電量＋預估天數＋建議 -#}
+  {%- set hd = clean(lines[0] | string) | trim -%}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- if hd | regex_search('^門鎖電量完全沒電') -%}{%- set ic, ttl, bdg, c1, bg, bd, dflt = 'battery_r', '門鎖完全沒電', '0%', '#DC2626', '#FEF2F2', '#FCA5A5', '0%' -%}
+  {%- elif hd | regex_search('低於\\s*5%') -%}{%- set ic, ttl, bdg, c1, bg, bd, dflt = 'battery_r', '門鎖電量極低', '低於 5%', '#DC2626', '#FEF2F2', '#FCA5A5', '低於 5%' -%}
+  {%- elif hd | regex_search('低於\\s*15%') -%}{%- set ic, ttl, bdg, c1, bg, bd, dflt = 'battery_o', '門鎖電量偏低', '低於 15%', '#EA580C', '#FFF7ED', '#FED7AA', '低於 15%' -%}
+  {%- else -%}{%- set ic, ttl, bdg, c1, bg, bd, dflt = 'battery_o', '門鎖電量提醒', '35% 以下', '#CA8A04', '#FEFCE8', '#FDE047', '35% 以下' -%}{%- endif -%}
+  {%- set adv = namespace(r=[]) -%}
+  {%- for p in (hd | regex_replace('^[^，]*[，！!]?', '') | replace('！', '。')).split('。') if (p | trim) != '' and (p | trim) != '，' -%}
+    {%- set adv.r = adv.r + [p | trim | regex_replace('^[，,]', '')] -%}
+  {%- endfor -%}
+  {%- for l in lines[1:] -%}
+    {%- set c = clean(l | string) | trim -%}
+    {%- if c == '' or '摘要' in c -%}{%- break -%}{%- endif -%}
+    {%- set adv.r = adv.r + [c | regex_replace('。$', '')] -%}
+  {%- endfor -%}
+  {%- set bx = cd_grid([['目前電量', kv.get('客廳門鎖電量', dflt), c1], ['預估可用', kv.get('預估天數', '--')]], '#111827', 'lg') | from_json -%}
+  {%- set ar = namespace(r=[]) -%}
+  {%- for a in adv.r if a != '' -%}{%- set ar.r = ar.r + [cd_row(('alarm_r' if c1 == '#DC2626' else 'alarm_o'), a, b2, '#374151', 'sm') | from_json] -%}{%- endfor -%}
+  {{- ([cd_hdr(ic, ttl, bdg, c1, b2) | from_json, cd_box(bx + ([{"type": "separator", "color": bd}] if ar.r | length > 0 else []) + ar.r, bg, bd) | from_json]
+       + ([cd_gray('電池款式（當前／上次）', [{"type": "text", "text": kv.get('當前/上次款式'), "size": "sm", "weight": "bold", "color": "#111827", "wrap": true}]) | from_json] if kv.get('當前/上次款式') else [])) | tojson -}}
+{%- elif (not skip) and (joined | regex_search('門鎖電量已由低回升')) -%}
+  {#- V4.3.13：門鎖換電池完成（自動校正） -#}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- set bx = cd_grid([['新電池款式', kv.get('新電池款式', '--')], ['校正後日耗電率', kv.get('校正後日耗電率', '--')]], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('battery_g', '門鎖已換新電池', '已校正', '#30D158', b2) | from_json,
+       cd_box(bx + [{"type": "separator", "color": "#86EFAC"}, cd_row('check_g', '電量回升到 80% 以上，視為已換電池', b2, '#374151', 'sm') | from_json, cd_row('check_g', '已更新校正款式與日耗電率，通知等級已重置', b2, '#374151', 'sm') | from_json], '#F0FDF4', '#86EFAC') | from_json] | tojson -}}
+{%- elif (not skip) and (joined | regex_search('多個情境同時開啟')) -%}
+  {#- V4.3.13：網關情境衝突（多個情境同時開啟）→ 已由在家情境接管 -#}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {{- [cd_hdr('shield_r', '網關情境衝突', '已自動處理', '#DC2626', b2) | from_json,
+       cd_box([ch_tile('同時開啟的情境', kv.get('目前狀態', '--'), '#B91C1C', 'md') | from_json, {"type": "separator", "color": "#FCA5A5"},
+               cd_row('check_g', '已改由「在家」情境接管', b2, '#374151', 'sm') | from_json, cd_row('check_g', '網關已同步回到在家警戒', b2, '#374151', 'sm') | from_json], '#FEF2F2', '#FCA5A5') | from_json] | tojson -}}
+{%- elif (not skip) and (('Tesla' in sig_h) or ('充電器' in sig_h)) and (joined | regex_search('未開始充電|狀態異常|沒有在充電|充電通知測試')) -%}
+  {#- V4.3.13：充電器異常類（仍未開始充電、充電器異常、插槍沒在充電、測試） -#}
+  {%- set hd = clean(lines[0] | string) | trim -%}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- set test = '測試' in hd -%}
+  {%- set err = '異常' in hd -%}
+  {%- set cc = '#6B7280' if test else ('#DC2626' if err else '#EA580C') -%}
+  {%- set bg, bd = ('#F3F4F6', '#E5E7EB') if test else (('#FEF2F2', '#FCA5A5') if err else ('#FFF7ED', '#FED7AA')) -%}
+  {%- set st = st_zh(kv.get('目前狀態', '')) | trim -%}
+  {%- set tm = ch_when(kv.get('通知時間', kv.get('測試時間', '--'))) | trim -%}
+  {%- set pairs = [['目前狀態', st, ('#111827' if test else cc)], ['通知時間', tm]] -%}
+  {%- if kv.get('充電器回報') -%}{%- set pairs = pairs + [['充電器回報', kv.get('充電器回報')]] -%}{%- endif -%}
+  {%- if kv.get('充電車輛') -%}{%- set pairs = pairs + [['充電車輛', kv.get('充電車輛')]] -%}{%- endif -%}
+  {%- set hv = kv.get('手把溫度', '') -%}{%- set mv = kv.get('MCU溫度', kv.get('MCU 溫度', '')) -%}{%- set pv = kv.get('PCB溫度', kv.get('PCB 溫度', '')) -%}
+  {%- set rows = cd_grid(pairs, '#111827', 'md') | from_json -%}
+  {%- set ex = namespace(r=[]) -%}
+  {%- if kv.get('說明') -%}{%- set ex.r = ex.r + [cd_row('info_n', kv.get('說明'), b2, '#374151', 'sm') | from_json] -%}{%- endif -%}
+  {%- if kv.get('可能原因') -%}{%- set ex.r = ex.r + [cd_row('info_n', '可能原因：' ~ kv.get('可能原因'), b2, '#374151', 'sm') | from_json] -%}{%- endif -%}
+  {%- set out2 = [cd_hdr(('ev_n' if test else ('ev_r' if err else 'ev_o')), hd | regex_replace('^說明[：:].*$', ''), ('測試' if test else ('異常' if err else '請檢查')), cc, b2) | from_json,
+                  cd_box(rows + ([{"type": "separator", "color": bd}] if ex.r | length > 0 else []) + ex.r, bg, bd) | from_json] -%}
+  {%- if hv or mv or pv -%}
+    {%- set out2 = out2 + [cd_gray('充電器溫度', [{"type": "box", "layout": "horizontal", "spacing": "md", "contents": [
+          ch_tile('手把', (hv if hv else '--'), ch_temp_col(hv, 42, 50) | trim, 'sm') | from_json,
+          ch_tile('MCU', (mv if mv else '--'), ch_temp_col(mv, 60, 75) | trim, 'sm') | from_json,
+          ch_tile('PCB', (pv if pv else '--'), ch_temp_col(pv, 70, 85) | trim, 'sm') | from_json]}]) | from_json] -%}
+  {%- endif -%}
+  {{- out2 | tojson -}}
+{%- elif (not skip) and (('門鈴' in sig_h) or (joined | regex_search('按門鈴'))) -%}
+  {#- V4.3.13：大門門鈴：按鈴時間、家中人數（0 人標紅）；照片在卡片上方 -#}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- set tr = kv.get('觸發時間', '') -%}
+  {%- set tt = (tr | regex_findall('(\\d{2}:\\d{2}:\\d{2})') | first | default(tr if tr else '--', true)) -%}
+  {%- set n = (kv.get('目前家中成員數量', '') | regex_findall('\\d+') | first | default('', true)) -%}
+  {%- set ntxt = ('家中無人' if n == '0' else (n ~ ' 人')) if n != '' else '--' -%}
+  {%- set bx = cd_grid([['按鈴時間', tt], ['家中人數', ntxt, ('#DC2626' if n == '0' else '#111827')]], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('doorbell_o', '大門有人按門鈴', '請應門', '#EA580C', b2) | from_json, cd_box(bx, '#FFF7ED', '#FED7AA') | from_json,
+       cd_call('camera_n', '請確認大門攝影機或應門', b2) | from_json] | tojson -}}
+{%- elif (not skip) and (joined | regex_search('電風扇電源連線異常')) -%}
+  {#- V4.3.13：客廳電風扇電源／連線異常 -#}
+  {%- set bx = cd_grid([['裝置', '客廳電風扇'], ['狀態', '電源連線異常', '#C2410C']], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('fan_o', '客廳電風扇連線異常', '請確認', '#EA580C', b2) | from_json, cd_box(bx, '#FFF7ED', '#FED7AA') | from_json,
+       cd_call('plug_n', '請確認電源與連線狀態', b2) | from_json] | tojson -}}
+{%- elif (not skip) and (('LINE Bot' in sig_h) or ('Bot0' in sig_h) or ('所有 Bot' in sig_h)) and (joined | regex_search('Bot')) -%}
+  {#- V4.3.13：LINE Bot 額度：自動切換／偏低／用盡 -#}
+  {%- set sw = joined | regex_findall('Bot(\\d+)\\s*已達切換門檻，已自動改用\\s*Bot(\\d+)') -%}
+  {%- set low = joined | regex_findall('Bot(\\d+)\\s*剩餘\\s*(\\d+)\\s*/\\s*(\\d+)\\s*次（已用\\s*(\\d+)）') -%}
+  {%- if sw | length > 0 -%}
+    {%- set bx = cd_grid([['原本使用', 'Bot' ~ sw[0][0]], ['改用', 'Bot' ~ sw[0][1] ~ ('（緊急）' if sw[0][1] == '0' else ''), '#2563EB']], '#111827', 'md') | from_json -%}
+    {{- [cd_hdr('chat_o', 'LINE Bot 已自動切換', '額度門檻', '#EA580C', b2) | from_json, cd_box(bx, '#FFF7ED', '#FED7AA') | from_json] | tojson -}}
+  {%- elif low | length > 0 -%}
+    {%- set bx = cd_grid([['剩餘額度', low[0][1] ~ ' / ' ~ low[0][2], '#D97706'], ['已使用', low[0][3] ~ ' 次']], '#111827', 'md') | from_json -%}
+    {{- [cd_hdr('chat_o', 'Bot' ~ low[0][0] ~ ' 額度偏低', '剩 ' ~ low[0][1] ~ ' 次', '#EA580C', b2) | from_json, cd_box(bx, '#FFF7ED', '#FED7AA') | from_json,
+         cd_call('key_n', '請預備更換 Token', b2) | from_json] | tojson -}}
+  {%- else -%}
+    {%- set hd = clean(lines[0] | string) | trim -%}
+    {%- set parts = hd.split('，') -%}
+    {%- set callt = (parts[-1] | regex_replace('。$', '')) if (parts | length > 1 and parts[-1] | regex_search('^請')) else '' -%}
+    {%- set body = (parts[:-1] | join('，')) if callt else (hd | regex_replace('。$', '')) -%}
+    {{- ([cd_hdr('chat_r', ((title | string) if (title | string | trim) != '' else 'LINE Bot 額度用盡'), '已用盡', '#DC2626', b2) | from_json,
+          cd_box([cd_row('alarm_r', body, b2, '#B91C1C', 'sm', true) | from_json], '#FEF2F2', '#FCA5A5') | from_json]
+         + ([cd_call('key_r', callt, b2, '#B91C1C') | from_json] if callt else [])) | tojson -}}
+  {%- endif -%}
+{%- elif (not skip) and ('濾芯' in sig_h) and (joined | regex_search('濾芯壽命剩')) -%}
+  {#- V4.3.13：空氣清淨機濾芯需更換 -#}
+  {%- set m = joined | regex_findall('壽命剩\\s*(\\d+)%（已使用\\s*([0-9.]+)\\s*小時）') -%}
+  {%- set lf = (m[0][0] ~ '%') if m | length > 0 else '--' -%}
+  {%- set us = (m[0][1] ~ ' 小時') if m | length > 0 else '--' -%}
+  {%- set bx = cd_grid([['濾芯壽命', lf, '#C2410C'], ['已使用', us]], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('air_o', '空氣清淨機濾芯需更換', '剩 ' ~ lf, '#EA580C', b2) | from_json,
+       cd_box(bx + [{"type": "separator", "color": "#FED7AA"}, cd_row('tool_o', '請更換濾芯', b2, '#374151', 'sm', true) | from_json], '#FFF7ED', '#FED7AA') | from_json,
+       cd_note('此提醒只通知一次；換好後壽命回升會自動重置。') | from_json] | tojson -}}
+{%- elif (not skip) and (sig_h | regex_search('裝置電量緊急|請更換電池|準備電池備品')) -%}
+  {#- V4.3.13：耗材電量分級（緊急／請更換／準備備品） -#}
+  {%- set hd = clean(lines[0] | string) | trim -%}
+  {%- set m = hd | regex_findall('^(.+?)\\s*電量\\s*(\\d+)\\s*%') -%}
+  {%- set nm = m[0][0] if m | length > 0 else '裝置' -%}
+  {%- set v = (m[0][1] ~ '%') if m | length > 0 else '--' -%}
+  {%- set kv = kv_of(lines) | from_json({}) -%}
+  {%- if '緊急' in sig_h -%}{%- set ic, bdg, cc, bg, bd = 'battery_r', '電量緊急', '#DC2626', '#FEF2F2', '#FCA5A5' -%}
+  {%- elif '請更換' in sig_h -%}{%- set ic, bdg, cc, bg, bd = 'battery_o', '請更換電池', '#EA580C', '#FFF7ED', '#FED7AA' -%}
+  {%- else -%}{%- set ic, bdg, cc, bg, bd = 'battery_o', '準備備品', '#CA8A04', '#FEFCE8', '#FDE047' -%}{%- endif -%}
+  {%- set age = joined | regex_findall('（資料\\s*(\\d+)\\s*天前）') -%}
+  {%- set adv = (joined | regex_findall('((?:請|電量偏低)[^。\\n（]*)') | first | default('', true)) -%}
+  {%- set bx = cd_grid([['目前電量', v, cc], ['預估還能用', kv.get('預估還能用', '--')]], '#111827', 'lg') | from_json -%}
+  {{- ([cd_hdr(ic, nm, bdg, cc, b2) | from_json, cd_box(bx + ([{"type": "separator", "color": bd}, cd_row(('alarm_r' if cc == '#DC2626' else 'alarm_o'), adv, b2, '#374151', 'sm', true) | from_json] if adv else []), bg, bd) | from_json]
+       + ([cd_note('電量資料為 ' ~ age[0] ~ ' 天前的最後讀數') | from_json] if age | length > 0 else [])) | tojson -}}
+{%- elif (not skip) and (sig_h | regex_search('空氣品質嚴重變差|空氣品質非常差')) -%}
+  {#- V4.3.13：空氣清淨機整合：空氣品質嚴重變差／非常差 -#}
+  {%- set pm = joined | regex_findall('PM2\\.5\\s*(\\d+)') | first | default('', true) -%}
+  {%- set very = '非常差' in sig_h -%}
+  {%- set tg = (env_tag('pm', pm) | trim)[1:2] if pm != '' else 'o' -%}
+  {%- set tip = namespace(t='') -%}
+  {%- for l in lines[1:] -%}{%- set c = clean(l | string) | trim -%}{%- if c != '' and tip.t == '' -%}{%- set tip.t = c | regex_replace('。$', '') -%}{%- endif -%}{%- endfor -%}
+  {%- set bx = cd_grid([['PM2.5', (pm ~ ' μg/m³') if pm else '--', tag_col(tg) | trim], ['空氣清淨機', ('已加強運作' if very else '已自動運作'), '#16A34A']], '#111827', 'md') | from_json -%}
+  {{- ([cd_hdr(('air_r' if very else 'air_o'), ('空氣品質非常差' if very else '空氣品質變差'), 'PM2.5 ' ~ (pm if pm else '--'), ('#DC2626' if very else '#EA580C'), b2) | from_json,
+        cd_box(bx, ('#FEF2F2' if very else '#FFF7ED'), ('#FCA5A5' if very else '#FED7AA')) | from_json]
+       + ([cd_call('air_n', tip.t, b2) | from_json] if tip.t else [])) | tojson -}}
+{%- elif (not skip) and ('一氧化碳危險' in sig_h) and ('緊急模式' in sig_h) -%}
+  {#- V4.3.13：一氧化碳危險 → 已啟動緊急模式 -#}
+  {%- set al = joined | regex_findall('一氧化碳危險（([^）]+)）') | first | default('一氧化碳感測器', true) -%}
+  {%- set bx = cd_grid([['偵測來源', al], ['系統處置', '已啟動緊急模式', '#DC2626']], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('alarm_r', '一氧化碳危險', '緊急模式', '#DC2626', b2) | from_json, cd_box(bx, '#FEF2F2', '#FCA5A5') | from_json,
+       cd_call('alarm_r', '請立即確認現場，離開並開窗通風', b2, '#B91C1C', '#FEF2F2') | from_json] | tojson -}}
+{%- elif (not skip) and ('06環境異常' in sig_h) -%}
+  {#- V4.3.13：環境異常（廚房感測器、戶外空氣、失聯）：重點句＋各段讀數兩欄格（紅黃綠沿用原標記） -#}
+  {%- set e = namespace(sec='', lead=[], secs=[], cur=[], notes=[]) -%}
+  {%- for l0 in lines -%}
+    {%- set t0 = (l0 | string) | trim -%}
+    {%- if t0 == '' -%}
+    {%- elif t0.startswith('※') -%}{%- set e.notes = e.notes + [t0[1:] | trim | regex_replace('^~\\s*', '')] -%}
+    {%- elif t0 | regex_search('^[^：:。，]{1,8}[：:]$') -%}
+      {%- if e.sec != '' and e.cur | length > 0 -%}{%- set e.secs = e.secs + [{'t': e.sec, 'r': e.cur}] -%}{%- endif -%}
+      {%- set e.sec = t0[:-1] -%}{%- set e.cur = [] -%}
+    {%- elif e.sec != '' -%}
+      {%- set m = t0 | regex_findall('^([^：:]{1,12})[：:]\\s*(.+?)\\s*(?:⟦([rog])⟧)?\\s*$') -%}
+      {%- if t0.startswith('超過門檻') and e.cur | length > 0 -%}
+        {%- set e.cur = e.cur[:-1] + [dict(e.cur[-1], th=(t0 | replace('超過門檻', '') | trim))] -%}
+      {%- elif m | length > 0 -%}{%- set e.cur = e.cur + [{'k': m[0][0], 'v': m[0][1], 'c': m[0][2], 'th': ''}] -%}
+      {%- else -%}{%- set e.cur = e.cur + [{'k': '', 'v': t0, 'c': '', 'th': ''}] -%}
+      {%- endif -%}
+    {%- else -%}{%- set e.lead = e.lead + [t0] -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if e.sec != '' and e.cur | length > 0 -%}{%- set e.secs = e.secs + [{'t': e.sec, 'r': e.cur}] -%}{%- endif -%}
+  {%- set tl = title | string -%}
+  {%- set ic = 'alarm' if '一氧化碳' in tl else ('thermo' if '溫度' in tl else ('humid' if '濕度' in tl else ('network' if (joined | regex_search('失聯')) else 'air'))) -%}
+  {%- set tn = 'r' if lv == 'emergency' else 'o' -%}
+  {%- set cc, bg, bd = ('#DC2626', '#FEF2F2', '#FCA5A5') if tn == 'r' else ('#EA580C', '#FFF7ED', '#FED7AA') -%}
+  {%- set bdg = '失聯' if (joined | regex_search('失聯')) else {'emergency': '危險', 'important': '警示'}.get(lv, '注意') -%}
+  {%- set lr = namespace(r=[]) -%}
+  {%- for s in e.lead -%}{%- for p in s.split('。') if (p | trim) != '' -%}
+    {%- set lr.r = lr.r + [{"type": "text", "size": "sm", "wrap": true, "color": "#111827", "weight": ("bold" if lr.r | length == 0 else "regular"), "contents": (mspans((p | trim) ~ '。', '#111827') | from_json([]))}] -%}
+  {%- endfor -%}{%- endfor -%}
+  {%- set out3 = namespace(c=[cd_hdr(ic ~ '_' ~ tn, tl, bdg, cc, b2) | from_json]) -%}
+  {%- if lr.r | length > 0 -%}{%- set out3.c = out3.c + [cd_box(lr.r, bg, bd) | from_json] -%}{%- endif -%}
+  {%- for s in e.secs -%}
+    {%- set pr = namespace(p=[], t=[]) -%}
+    {%- for r in s.r -%}
+      {%- if r.k != '' -%}{%- set pr.p = pr.p + [[r.k ~ (('（門檻 ' ~ r.th ~ '）') if r.th else ''), r.v, tag_col(r.c) | trim]] -%}
+      {%- else -%}{%- set pr.t = pr.t + [{"type": "text", "text": r.v, "size": "xs", "wrap": true, "color": "#374151"}] -%}{%- endif -%}
+    {%- endfor -%}
+    {%- set out3.c = out3.c + [cd_gray(s.t, (cd_grid(pr.p, '#111827', 'sm') | from_json) + pr.t) | from_json] -%}
+  {%- endfor -%}
+  {%- for n in e.notes -%}{%- set out3.c = out3.c + [cd_note(n | regex_replace('⟦[rogn]:([^⟧]*)⟧', '\\1')) | from_json] -%}{%- endfor -%}
+  {{- out3.c | tojson -}}
+{%- elif (not skip) and ('情境檢查' in sig_h) and (joined | regex_search('仍未到位')) -%}
+  {#- V4.3.13：情境補救後仍未到位的裝置清單 -#}
+  {%- set hd = clean(lines[0] | string) | trim -%}
+  {%- set sc = hd | regex_findall('^(.+?)情境') | first | default('', true) -%}
+  {%- set it = namespace(r=[]) -%}
+  {%- for l in lines[1:] -%}
+    {%- for p in (clean(l | string) | trim).split('、') if (p | trim) != '' -%}
+      {%- set it.r = it.r + [cd_row('alarm_o', p | trim, b2, '#374151', 'sm') | from_json] -%}
+    {%- endfor -%}
+  {%- endfor -%}
+  {{- [cd_hdr('gear_o', (sc ~ '情境未完全到位'), '請留意', '#EA580C', b2) | from_json,
+       cd_box([{"type": "text", "text": "已自動補救，仍未到位：", "size": "xxs", "weight": "bold", "color": "#9A3412"}] + (it.r if it.r | length > 0 else [cd_row('alarm_o', '（沒有列出裝置）', b2, '#374151', 'sm') | from_json]), '#FFF7ED', '#FED7AA') | from_json] | tojson -}}
+{%- elif (not skip) and ('鐵門開超過' in sig_h) and (joined | regex_search('不會再自動關門|不符合自動關門條件')) -%}
+  {#- V4.3.13：鐵門重試關門 2 小時仍未關（交給人工） -#}
+  {%- set n = joined | regex_findall('已重試\\s*(\\d+)\\s*次') | first | default('--', true) -%}
+  {%- set hr = joined | regex_findall('約\\s*(\\d+)\\s*小時') | first | default('2', true) -%}
+  {%- set why = joined | regex_findall('條件（([^）]+)）') | first | default('', true) -%}
+  {%- set bx = cd_grid([['已重試關門', n ~ ' 次'], ['結果', '仍不符合條件', '#C2410C']], '#111827', 'md') | from_json -%}
+  {{- ([cd_hdr('gateopen_o', '鐵門仍開著', '已開逾 ' ~ hr ~ ' 小時', '#EA580C', b2) | from_json,
+        cd_box(bx + ([{"type": "separator", "color": "#FED7AA"}, ch_tile('沒關的原因', why, '#111827', 'sm') | from_json] if why else []), '#FFF7ED', '#FED7AA') | from_json,
+        cd_call('person_n', '系統不會再自動關門，請自己關門', b2) | from_json,
+        cd_note('若是刻意開著工作，忽略即可。') | from_json]) | tojson -}}
+{%- elif (not skip) and ('地震詳情' in sig_h) -%}
+  {#- V4.3.13：地震詳情（氣象署報告）：規模、最大震度、深度、時間、震央、各縣市震度（竹南紅／苗栗藍／新竹綠） -#}
+  {%- set test = '【測試】' in joined -%}
+  {%- set tm = joined | regex_findall('發生時間\\s*([^）)\\n]+)') | first | default('--', true) -%}
+  {%- set mg = joined | regex_findall('規模[：:]\\s*([0-9.]+)') | first | default('--', true) -%}
+  {%- set dp = joined | regex_findall('深度[：:]\\s*([0-9.]+)') | first | default('--', true) -%}
+  {%- set mx = joined | regex_findall('最大震度[：:]\\s*([^\\n]+)') | first | default('--', true) | trim -%}
+  {%- set ep = joined | regex_findall('震央[：:]\\s*([^（(\\n]+)') | first | default('--', true) | trim -%}
+  {%- set ar = joined | regex_findall('各縣市震度[：:]\\s*([^\\n]+)') | first | default('', true) -%}
+  {%- set mi = (mx | regex_findall('\\d+') | first | default('0', true)) | int(0) -%}
+  {%- set cc, bg, bd, ic = ('#DC2626', '#FEF2F2', '#FCA5A5', 'quake_r') if mi >= 4 else (('#EA580C', '#FFF7ED', '#FED7AA', 'quake_o') if mi == 3 else ('#2563EB', '#EFF6FF', '#BFDBFE', 'quake_n')) -%}
+  {%- set bx = cd_grid([['規模', mg, cc], ['最大震度', mx, cc], ['深度', dp ~ ' 公里'], ['發生時間', ch_when(tm) | trim]], '#111827', 'md') | from_json -%}
+  {%- set out4 = [cd_hdr(ic, '地震報告', ('測試' if test else ('最大 ' ~ mx)), ('#6B7280' if test else cc), b2) | from_json,
+                  cd_box(bx + [{"type": "separator", "color": bd}, ch_tile('震央', ep, '#111827', 'sm') | from_json], bg, bd) | from_json] -%}
+  {%- if ar -%}
+    {%- set out4 = out4 + [cd_gray('各縣市震度', [{"type": "text", "size": "sm", "wrap": true, "lineSpacing": "4px", "contents": (hl_spans(ar, 'regular') | from_json([]))}]) | from_json] -%}
+  {%- endif -%}
+  {{- out4 | tojson -}}
 {%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
@@ -1455,7 +1777,7 @@
 {%- set sig_h = (title | string) ~ ' ' ~ (src | string) -%}
 {%- set skip = '更新紀錄' in sig_h -%}
 {%- set ch_head = (lines[0] | string) if lines | length > 0 else '' -%}
-{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) -%}
+{%- set ch_start = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('開始充電$')) and not (ch_head | regex_search('未開始充電')) -%}
 {%- set ch_done = ('107Tesla' in sig_h or '充電器' in sig_h) and (ch_head | regex_search('充電完成$')) -%}
 {%- if (not skip) and (ch_start or ch_done) -%}
   {%- set kv = ch_parse(lines) | from_json({}) -%}
