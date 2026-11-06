@@ -3,6 +3,7 @@
 # 107Tesla充電器狀態與通知AI (V4.3.0)
 # 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.1（2026-11-06）：開始充電通知的車名改等車輛鎖定確認（最多 90 秒）再取，避免 Tesla 以 charging_reduced 開始時被先驗誤判成 Luxgen（11-06 05:17 Tesla 充電被通知成 Luxgen）。
 # - V4.3.0（2026-10-26）：隨 AI 4.3.0 發布統一版號（異動內容見下方 V4.2.x 條目）。
 # - V4.1.6（2026-10-15）：LINE 內文的「名稱 值」改成「名稱：值」，套用新卡片的名稱／數值排版。
 # - V4.1.6（2026-10-11）：修正充飽後 00:02 誤報「仍未開始充電」：「這次連接後是否已充過電」的判斷是 start_time（只到秒）大於 vehicle_connected.last_changed（含毫秒），插槍同一秒就開始充電時 start_time 反而略小，被判成沒充過電；改成容許 10 秒誤差。
@@ -31,7 +32,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V4.3.0)
+- alias: 107Tesla充電器狀態與通知AI (V4.3.1)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -40,7 +41,7 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V4.3.0"
+    automation_version: "V4.3.1"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -306,6 +307,29 @@
                 entity_id: input_datetime.tesla_charger_start_time
               data:
                 datetime: "{{ now_time }}"
+            # V4.3.1：開始充電通知的車名要等「車輛鎖定確認」（電流爬升到平台才分得出 Tesla 約 24 A／Luxgen 約 31 A）。
+            #   剛開始充電時電流還在爬升，只能先用狀態先驗（charging_reduced 當 Luxgen），Tesla 也常以 charging_reduced 開始，
+            #   11-06 05:17 Tesla 充電被通知成 Luxgen（鎖定在 05:18:34 才更正，通知 05:18:19 已送出）。
+            #   最多等 90 秒；等到後重新取車名。
+            - wait_template: "{{ is_state('input_boolean.garage_vehicle_confirmed', 'on') }}"
+              timeout: "00:01:30"
+              continue_on_timeout: true
+            - variables:
+                vehicle_name: >-
+                  {% set v = states('input_select.garage_vehicle_latch') %}
+                  {% set car = v if v in ['luxgen_n7', 'tesla_model3'] else 'none' %}
+                  {% set st = states('sensor.tesla_wall_connector_status') | string | lower | trim %}
+                  {% if car == 'luxgen_n7' %}
+                    Luxgen
+                  {% elif car == 'tesla_model3' %}
+                    Tesla
+                  {% elif st in ['charging_reduced', 'charging (reduced)', '充電（降壓）'] %}
+                    Luxgen
+                  {% elif st in ['charging', '充電中'] %}
+                    Tesla
+                  {% else %}
+                    車輛
+                  {% endif %}
             - service: script.notify_dispatch
               data:
                 level: general
