@@ -2,6 +2,7 @@
 # 08-5C頂樓樓梯感應燈AI (V4.0.0)
 # 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-11-06）：攝影機開樓梯燈的「剛進房間」防呆改看動線事件（剛進書房／臥室 45 秒內且沒有樓梯跨線不開），不再只靠左側 PIR（11-02 起故障，防呆形同虛設）；左側 PIR 超過 2 天沒動作時，「右側比左側晚」的放行條件停用。
 # - V4.1.5（2026-10-11）：修補版（僅「解除深夜亮度AI」）；兩盞樓梯燈同時被打開時（例如手動上樓情境），兩輪排隊執行，先跑完的那一輪會把旗標清掉，
 #           第二盞（頂樓樓梯燈）等 3 秒後因旗標已關而被跳過，一直停在深夜亮度（60%／3000K），之後感應開燈沿用該亮度而偏暗。
 #           改為等 3 秒後不再看旗標，而是看那盞燈是否仍亮著且仍是深夜亮度／色溫（讀不到亮度視為仍是深夜）才調成平常亮度；感應或實體按鈕已先處理的燈（已不是深夜亮度）仍不會重複調整。
@@ -66,9 +67,23 @@
     - condition: template
       value_template: "{{ trigger.id != 'pir_out' or (now().timestamp() - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0)) <= 8 }}"
     - condition: template
-      value_template: "{{ trigger.id != 'cam_on' or is_state('timer.topfloor_room_arrived', 'idle')
-         or is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
-         or as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) > as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) }}"
+      value_template: >-
+        {% set t = now().timestamp() %}
+        {% set pl = as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) %}
+        {% set pr = as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) %}
+        {% set left_alive = (t - pl) < 172800 %}
+        {{ trigger.id != 'cam_on' or is_state('timer.topfloor_room_arrived', 'idle')
+           or is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
+           or (left_alive and pr > pl) }}
+    # V4.1.6：剛進書房／臥室 45 秒內（之後沒有樓梯跨線），攝影機看到人（在走道上走動）不開樓梯燈。
+    #   原防呆靠左側 PIR，左側 PIR 11-02 起故障，「右側比左側晚觸發」永遠成立 → 防呆完全失效（11-06 23:31～23:34 人在書房與臥室之間，樓梯燈被攝影機開關 4 次）。
+    - condition: template
+      value_template: >-
+        {% set lp = states('input_text.topfloor_last_path') | string %}
+        {% set name = lp.split('|')[0] if '|' in lp else '' %}
+        {% set age = now().timestamp() - ((lp.split('|')[1] | float(0)) if '|' in lp else 0) %}
+        {% set st = now().timestamp() - as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) %}
+        {{ trigger.id != 'cam_on' or not (name in ['enter_study', 'enter_bedroom', 'leave_study_bedroom'] and age <= 45 and st > age) }}
   actions:
     - variables:
         night: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"

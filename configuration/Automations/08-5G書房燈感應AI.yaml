@@ -2,6 +2,7 @@
 # 08-5G書房燈感應AI (V4.1.5)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-11-06）：新增「書房燈離開佐證關燈」：書房感應燈開著、進書房後攝影機又看到人（走道上走動）、之後書房側 PIR 右沒有再觸發、攝影機清空 15 秒 → 關書房燈（頂樓少於 2 位家人）。房間側 PIR 左 11-02 起故障、房門線又常漏抓，「離開書房回臥室」沒有任何訊號，書房燈要等無人檢查 3～5 分鐘才關。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.1.3（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac；其餘邏輯不變。
 # - V4.1.2（2026-10-10）：「書房回房間關燈」加兩道防呆（燈剛亮 10 秒內不處理；08-5J 剛判定 enter_study 10 秒內不處理）。7 天紀錄顯示 10-07 起 60 秒內的書房燈亮了又關幾乎都是此規則造成（進書房時房間側 PIR 跟著觸發）。
@@ -296,3 +297,59 @@
         key: "13b8"
     - delay: "00:00:02"
     - action: script.topfloor_kandeng_off_if_auto
+
+- alias: 08-5G 書房燈離開佐證關燈AI (V4.1.6)
+  id: ai_08_5g_study_left_by_cam
+  description: >
+    房間側 PIR(左) 故障、房門線漏抓時，離開書房沒有任何訊號。改用攝影機佐證：進書房後攝影機又看到人（走到走道）、
+    之後書房側 PIR 右沒有再觸發，攝影機清空 15 秒 → 關「感應自己開的」書房燈。人回書房 PIR 右一動，08-5G 開燈邏輯會再把燈開起來。
+  mode: restart
+  max_exceeded: silent
+  triggers:
+    - id: cam_clear
+      alias: "[影像] 攝影機人體離開滿 15 秒"
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "off"
+      for:
+        seconds: 15
+  conditions:
+    - condition: state
+      alias: "全域感應防護：未處於暫停模式"
+      entity_id: input_boolean.topfloor_motion_pause
+      state: "off"
+    - condition: state
+      alias: "書房燈亮著且是感應開的（手動開的不動）"
+      entity_id: switch.shu_fang_deng
+      state: "on"
+    - condition: state
+      entity_id: input_boolean.topfloor_study_auto
+      state: "on"
+    - condition: template
+      alias: "頂樓少於 2 位家人（避免別人還在書房）"
+      value_template: >-
+        {% set people = ['kenny', 'jerry', 'iris', 'elay']
+             | map('regex_replace', '^(.*)$', 'sensor.at_home_\\1_location')
+             | map('states') | select('match', '頂樓') | list | length %}
+        {{ people < 2 }}
+    - condition: template
+      alias: "進書房 25 秒後攝影機才又看到人，且之後 PIR 右沒有再觸發"
+      value_template: >-
+        {% set t = now().timestamp() %}
+        {% set cam_on = as_timestamp(states('input_datetime.topfloor_cam_last_on'), 0) %}
+        {% set pr = as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0) %}
+        {% set ent = as_timestamp(states('input_datetime.topfloor_path_enter_study'), 0) %}
+        {{ (t - ent) >= 25 and cam_on >= ent + 8 and pr < cam_on
+           and not is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on') }}
+  actions:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.shu_fang_deng
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.topfloor_study_auto
+    - action: logbook.log
+      data:
+        name: 頂樓動線
+        message: "{{ now().strftime('%H:%M:%S') }} 進書房後攝影機在走道看到人、書房側沒有再動靜，已關書房燈（離開佐證）"
+      continue_on_error: true
