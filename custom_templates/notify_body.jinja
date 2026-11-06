@@ -1,5 +1,6 @@
 {# ──────────────────────────────────────────────────────
    通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
+   - V4.3.14（2026-11-06）：版面不換行：充電完成改「用電量（大字＋小單位）／充電用時／車輛／開始／結束」各自一格；自動離家標題改短、細節放膠囊；門鎖款式獨立一行（原廠 / 原廠 → 原廠）；戶外狀況拆成天氣／最高溫／降雨機率／紫外線／空氣品質。
    - V4.3.13（2026-11-06）：第二批專屬卡片：五樓保全、離家保全、疑似入侵、門鎖電量分級／換電池、網關情境衝突、充電器異常、大門門鈴、電風扇連線異常、LINE Bot 額度、濾芯／耗材電量、空氣品質、一氧化碳、環境異常讀數、情境檢查、鐵門重試未關、地震詳情；自動離家補「網關未切到離家」與鐵門／門鎖英文狀態中文化；修正「仍未開始充電」被當成開始充電卡片。
    - V4.3.12（2026-11-06）：新增專屬卡片：自動離家（綠／紅）、鐵門未關（紅）、鐵門自動關門結果（提前關閉／已自動關閉／已取消）；共用零件 cd_hdr／cd_box／cd_row／cd_gray／cd_note／cd_pair。
    - V4.1.6：圖示只放在「小標題（冒號結尾）」「名稱：數值」與「警告」行（標題行不放，保持單行）；圖示顏色依重要度（紅=緊急、橘=警告、綠=正常完成、藍=一般），共 70 款（www/icons/b2/<名稱>_<n|g|o|r>.png）（警告、異常、未關、未上鎖、離線、不穩…），一般項目不放圖示以免干擾閱讀；
@@ -897,10 +898,15 @@
   {%- if ch_start -%}
     {%- set main_rows = [vrow] -%}
   {%- else -%}
+    {%- set kwh = (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) -%}
+    {%- set kwh_tile = {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px", "contents": [
+          {"type": "text", "text": "用電量", "size": "xxs", "color": "#6B7280"},
+          {"type": "text", "wrap": false, "contents": [{"type": "span", "text": kwh, "size": "xxl", "weight": "bold", "color": val_col}, {"type": "span", "text": " kWh", "size": "sm", "weight": "bold", "color": val_col}]}]} -%}
+    {%- set d1 = t_start[:5] -%}{%- set h1 = t_start[-5:] -%}{%- set d2 = t_end[:5] -%}{%- set h2 = t_end[-5:] -%}
     {%- set main_rows = [
-      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('用電量', (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) ~ ' kWh', val_col, 'xl') | from_json, dict(ch_tile('充電用時', kv.get('充電用時', '--') | replace('分鐘', '分'), '#111827', 'md') | from_json, paddingStart='8px')]},
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [kwh_tile, dict(ch_tile('充電用時', kv.get('充電用時', '--') | replace('分鐘', '分'), '#111827', 'md') | from_json, paddingStart='8px')]},
       {"type": "separator", "color": box_bd},
-      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('充電車輛', veh, '#111827', 'md') | from_json, dict(ch_tile('開始 → 結束', t_start ~ ' → ' ~ t_end) | from_json, paddingStart='8px')]}
+      {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [ch_tile('充電車輛', veh, '#111827', 'sm') | from_json, dict(ch_tile('開始 ' ~ d1, h1, '#111827', 'sm') | from_json, paddingStart='8px'), dict(ch_tile('結束 ' ~ d2, h2, '#111827', 'sm') | from_json, paddingStart='8px')]}
     ] -%}
   {%- endif -%}
   {%- set main_box = {"type": "box", "layout": "vertical", "backgroundColor": box_bg, "borderColor": box_bd, "borderWidth": "1px", "cornerRadius": "12px", "paddingAll": "12px", "margin": "md", "spacing": "md", "contents": main_rows} -%}
@@ -957,9 +963,9 @@
   {%- set gwfail = (joined | regex_search('網關未成功設定')) -%}
   {%- set unsafe = (joined | regex_search('未上鎖或未關')) or gwfail -%}
   {%- if gwfail -%}
-    {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '網關未切到離家模式', '請確認', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
+    {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '網關未切離家', '請確認', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
   {%- elif unsafe -%}
-    {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '已離家，但有未鎖／未關', '請立即確認', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
+    {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'alarm_r', '已離家', '有未鎖／未關', '#DC2626', '#FEF2F2', '#FCA5A5', '#DC2626' -%}
   {%- else -%}
     {%- set hd_ic, hd_t, hd_badge, hd_col, bx_bg, bx_bd, vc = 'homeout_g', '所有人已離家', '離家模式', '#30D158', '#F0FDF4', '#86EFAC', '#15803D' -%}
   {%- endif -%}
@@ -975,7 +981,7 @@
     {%- else -%}
     {%- for p in (l | replace('。', '') | regex_replace('^但\\s*', '') | regex_replace('[，,]$', '')).split('；') if ((p | trim) != '' and not ((p | trim) | regex_search('^已啟動離家模式$'))) -%}
       {%- set bad = unsafe and not (p | trim).startswith('本次已') and not (p | trim).startswith('已判定') -%}
-      {%- set it.r = it.r + [cd_row(('alarm_r' if bad else 'check_g'), (p | trim), b2, ('#B91C1C' if bad else '#374151'), 'sm', bad) | from_json] -%}
+      {%- set it.r = it.r + [cd_row(('alarm_r' if bad else 'check_g'), ((p | trim) | replace('二樓門鎖同步開關', '二樓門鎖')), b2, ('#B91C1C' if bad else '#374151'), 'sm', bad) | from_json] -%}
     {%- endfor -%}
     {%- endif -%}
   {%- endfor -%}
@@ -984,39 +990,39 @@
   {%- set out = namespace(c=[cd_hdr(hd_ic, hd_t, hd_badge, hd_col, b2) | from_json, main_box]) -%}
   {#- 門鎖電量：最多三格；第一格（電量 %）依高低上色 -#}
   {%- if batt | length > 0 -%}
-    {%- set bt = namespace(t=[]) -%}
-    {%- for r in batt if r.k != '' and bt.t | length < 3 -%}
-      {%- set n = (r.v | regex_findall('[0-9]+') | first | default('', true)) | int(-1) -%}
-      {%- set col = ('#DC2626' if (0 <= n < 20) else ('#D97706' if (0 <= n < 50) else '#16A34A')) if ('電量' in r.k and '%' in r.v) else '#111827' -%}
-      {%- set lab = '電量' if ('電量' in r.k) else ('預估可用' if r.k == '預估天數' else r.k) -%}
-      {%- set tl = ch_tile(lab, r.v, col, 'sm') | from_json -%}
-      {%- set bt.t = bt.t + [tl if bt.t | length == 0 else dict(tl, paddingStart='8px')] -%}
+    {%- set bp = namespace(p=[], m='') -%}
+    {%- for r in batt if r.k != '' -%}
+      {%- if '款式' in r.k -%}{%- set bp.m = r.v -%}
+      {%- else -%}
+        {%- set n = (r.v | regex_findall('[0-9]+') | first | default('', true)) | int(-1) -%}
+        {%- set col = ('#DC2626' if (0 <= n < 20) else ('#D97706' if (0 <= n < 50) else '#16A34A')) if ('電量' in r.k and '%' in r.v) else '#111827' -%}
+        {%- set lab = '電量' if ('電量' in r.k) else ('預估可用' if r.k == '預估天數' else r.k) -%}
+        {%- set bp.p = bp.p + [[lab, r.v, col]] -%}
+      {%- endif -%}
     {%- endfor -%}
-    {%- if bt.t | length > 0 -%}
-      {%- set out.c = out.c + [cd_gray('客廳門鎖', [{"type": "box", "layout": "horizontal", "spacing": "md", "contents": bt.t}]) | from_json] -%}
-    {%- endif -%}
+    {%- set mp = bp.m.split('/') | map('trim') | list -%}
+    {%- set mtxt = '' if bp.m == '' else ((mp[0] ~ '（上次 ' ~ mp[1] ~ '）') if (mp | length > 1 and mp[0] != mp[1]) else mp[0]) -%}
+    {%- set brows = cd_grid(bp.p, '#111827', 'sm') | from_json -%}
+    {%- if mtxt != '' -%}{%- set brows = brows + [ch_tile('電池款式', mtxt, '#111827', 'sm') | from_json] -%}{%- endif -%}
+    {%- if brows | length > 0 -%}{%- set out.c = out.c + [cd_gray('客廳門鎖', brows) | from_json] -%}{%- endif -%}
   {%- endif -%}
   {#- 戶外狀況：天氣／降雨機率／紫外線／空氣品質（顏色沿用原訊息標記） -#}
   {%- if outd | length > 0 -%}
     {%- set wv = ro_get(outd, '天氣') | trim -%}
     {%- set rain = wv | regex_findall('降雨機率\\s*([0-9]+%)') -%}
-    {%- set wtxt = mk_txt(wv | regex_replace('[、，,]?\\s*降雨機率.*$', '')) -%}
-    {%- set wmax = wtxt | regex_findall('最高\\s*([0-9.]+\\s*°?C?)') -%}
-    {%- set wmain = wtxt | regex_replace('[，,]\\s*最高.*$', '') -%}
+    {%- set wt = mk_txt(wv | regex_replace('[、，,]?\\s*降雨機率.*$', '')) -%}
+    {%- set wmax = wt | regex_findall('(最高|最低)\\s*([0-9.]+\\s*°?\\s*C?)') -%}
+    {%- set wmain = wt | regex_replace('\\s*[（(，,]\\s*(?:最高|最低)[^）)]*[）)]?', '') | trim -%}
     {%- set uv = ro_get(outd, '紫外線') | trim -%}
     {%- set aq = ro_get(outd, '空氣品質') | trim -%}
-    {%- set orow = namespace(r=[]) -%}
-    {%- if wv != '' -%}
-      {%- set ta = ch_tile('天氣' ~ ((' ・ 最高 ' ~ wmax[0]) if wmax | length > 0 else ''), wmain, mk_col(wv) | trim, 'sm') | from_json -%}
-      {%- set orow.r = orow.r + [cd_pair(ta, ch_tile('降雨機率', (rain[0] if rain | length > 0 else '--'), '#111827', 'sm') | from_json) | from_json if rain | length > 0 else ta] -%}
-    {%- endif -%}
-    {%- if uv != '' or aq != '' -%}
-      {%- set tb = ch_tile('紫外線', mk_txt(uv), mk_col(uv) | trim, 'sm') | from_json -%}
-      {%- set tc = ch_tile('空氣品質', mk_txt(aq), mk_col(aq) | trim, 'sm') | from_json -%}
-      {%- set orow.r = orow.r + [(cd_pair(tb, tc) | from_json) if (uv != '' and aq != '') else (tb if uv != '' else tc)] -%}
-    {%- endif -%}
-    {%- if orow.r | length > 0 -%}
-      {%- set out.c = out.c + [cd_gray('戶外狀況', orow.r) | from_json] -%}
+    {%- set op = namespace(p=[]) -%}
+    {%- if wv != '' -%}{%- set op.p = op.p + [['天氣', wmain, mk_col(wv) | trim]] -%}{%- endif -%}
+    {%- if wmax | length > 0 -%}{%- set op.p = op.p + [[wmax[0][0] ~ '溫', (wmax[0][1] | trim) ~ ('' if ('C' in wmax[0][1]) else '°C')]] -%}{%- endif -%}
+    {%- if rain | length > 0 -%}{%- set op.p = op.p + [['降雨機率', rain[0]]] -%}{%- endif -%}
+    {%- if uv != '' -%}{%- set op.p = op.p + [['紫外線', mk_txt(uv), mk_col(uv) | trim]] -%}{%- endif -%}
+    {%- if aq != '' -%}{%- set op.p = op.p + [['空氣品質', mk_txt(aq), mk_col(aq) | trim]] -%}{%- endif -%}
+    {%- if op.p | length > 0 -%}
+      {%- set out.c = out.c + [cd_gray('戶外狀況', cd_grid(op.p, '#111827', 'sm') | from_json) | from_json] -%}
     {%- endif -%}
   {%- endif -%}
   {#- 氣象告警：燈號顏色＋竹南（紅）／苗栗（藍）／新竹（綠）標示；※ 提醒放在框內 -#}
