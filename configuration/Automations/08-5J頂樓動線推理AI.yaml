@@ -2,6 +2,7 @@
 # 08-5J頂樓動線推理AI (V4.3.4-beta 3)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.4-beta 4（2026-11-06）：①「下樓開始」不再只靠攝影機：剛進書房／臥室（90 秒內）、之後沒有樓梯跨線時，攝影機看到人（走道上在書房與臥室之間走動）不判下樓（11-06 23:32 書房走回臥室，被判 down_start→down，樓梯燈跟著亮滅、書房燈沒關）；②新增 08-5J 感應器失聯檢查（書房感應開關左側 PIR 超過 72 小時沒動作，右側仍有動作 → HA 通知）。
 # - V4.3.4-beta 3（2026-10-28，測試中）：新增模型「最後去向」觸發 cam_exit（事件 topfloor_cam_exit）：人消失在畫面哪裡＋走動方向 → 進書房／回臥室／下樓梯。消失後等 6 秒對照實體訊號（PIR 右、書房線、房門線、床頭燈）：①進書房＋PIR 右／書房線有動靜 → 補發 enter_study（沒有跨線時補漏）；②回臥室（往右走到門口、位移 ≥0.08）且沒有書房訊號 → 提早發 enter_bedroom；③每次都統計一致／不一致（input_number.topfloor_ai_exit_*），下樓梯只記錄。獨立開關 input_boolean.topfloor_cam_ai_exit_enable。
 # - V4.3.4-beta 2（2026-10-28，測試中）：上樓情境開啟 20 秒內，床頭燈／檯燈被開啟（情境自己開的）不再誤判為進臥室（10/28 21:16 上樓時樓梯燈亮了 5 秒就關、跨線到達後又亮）。
 # - V4.3.4-beta 1（2026-10-28，測試中）：新增模型判斷觸發 cam_ai（事件 topfloor_cam_ai，由 08-5M頂樓攝影機模型分析AI 逐秒分析後發出）：模型判上樓／下樓時，若 8 秒內沒有跨線、近 30 秒沒發過同方向，就提早發出 arrive_up／down_start（補漏、提速）；以既有跨線為準，總開關 input_boolean.topfloor_cam_ai_enable。
@@ -18,14 +19,14 @@
 #           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
 #           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
 # ────────────────────────────────────────────────────────
-- alias: 08-5J頂樓動線推理AI (V4.3.4-beta 3)
+- alias: 08-5J頂樓動線推理AI (V4.3.4-beta 4)
   id: ai_08_5j_topfloor_path_inference
   description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
   mode: parallel
   max: 30
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.4-beta 3"
+    automation_version: "V4.3.4-beta 4"
     src: "{{ trigger.event.data.source if (trigger.id is defined and trigger.id == 'test' and trigger.event is defined) else (trigger.id if trigger.id is defined else 'unknown') }}"
     W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
     deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
@@ -416,7 +417,8 @@
                 evidence: "{{ ev }}"
         - alias: "動線分支 3：下樓開始起步 (down_start)"
           conditions: >-
-            {{ (src == 'cam_on' and (a_bd <= 15 or a_sd <= 15))
+            {{ (src == 'cam_on' and (a_bd <= 15 or a_sd <= 15)
+                and not (last_path in ['enter_study', 'enter_bedroom', 'leave_study_bedroom'] and a_last_path <= 90 and p_st > a_last_path))
                or (src == 'stairs_line' and (p_bd <= 10 or p_sd <= 10)) }}
           sequence:
             - action: script.topfloor_publish_path
@@ -556,3 +558,34 @@
           - counter.topfloor_miss_line
           - counter.topfloor_fallback_off
           - counter.topfloor_study_max_off
+
+- alias: 08-5J頂樓感應器失聯檢查AI (V4.3.4-beta 4)
+  id: ai_08_5j_sensor_health
+  description: 書房感應開關左側（房間側）PIR 超過 72 小時沒有任何動作、右側 24 小時內仍有動作 → 判定疑似故障（電池／配對），發 HA 通知（每天最多提醒一次，不發 LINE）
+  mode: single
+  triggers:
+    - trigger: time
+      at: "10:20:00"
+  conditions:
+    - condition: template
+      alias: "左側 PIR 72 小時沒動作、右側 24 小時內有動作"
+      value_template: >-
+        {% set t = now().timestamp() %}
+        {{ (t - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0)) > 259200
+           and (t - as_timestamp(states('input_datetime.topfloor_pir_right_last'), 0)) < 86400 }}
+  actions:
+    - action: script.notify_dispatch
+      data:
+        level: info
+        line: false
+        source: "08-5J頂樓動線推理AI (V4.3.4-beta 4)"
+        version: "V4.3.4-beta 4"
+        title: 頂樓書房感應器左側疑似故障
+        message: |-
+          書房感應開關左側（房間側）PIR 已 {{ ((now().timestamp() - as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0)) / 86400) | round(1) }} 天沒有任何動作，右側仍正常
+
+          影響：
+          書房回臥室不會立刻關書房燈
+          攝影機「剛進房間」防呆失效
+
+          ※ 請檢查書房感應開關的電池（目前 {{ states('sensor.shu_fang_gan_ying_kai_guan_battery') }}%）或重新配對。

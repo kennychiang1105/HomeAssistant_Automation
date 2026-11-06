@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-環境部開放資料（V4.1.6，2026-10-18）
+環境部開放資料（V4.1.7，2026-11-06：aqf_p_01 於 2026-11-10 新增 timeperiod 欄位、預報改 4 天，預報挑「全日」）
 在 HA 容器內執行：python3 /config/scripts/moenv_fetch.py   → 寫出 /config/moenv_air.json（由 sensor.moenv_air 讀取）
 API 金鑰放在 /config/secrets.yaml 的 moenv_api_key（不進 git）。
 
@@ -58,6 +58,40 @@ def aqi_level(a):
     return 1 if a <= 50 else 2 if a <= 100 else 3 if a <= 150 else 4 if a <= 200 else 5 if a <= 300 else 6
 
 
+
+def pick_forecast(recs, today):
+    """空品預報（aqf_p_01）每個預報日取一筆「全日」：
+    2026-11-10 起資料集新增 timeperiod 欄位（全日／上午／下午）、預報由 3 天改 4 天，第 1 天同一次發布會有 3 筆（全日、上午、下午），
+    舊程式只依發布時間挑一筆，同時間的三筆會挑到哪一筆是看順序（可能是上午或下午）。
+    規則：同一預報日先看發布時間（越新越好）；timeperiod 是上午／下午的另外存成 am／pm，不當作當天預報；
+    沒有 timeperiod 欄位的舊格式照舊可用。"""
+    best = {}
+    part = {}
+    for r in recs:
+        d = r.get('forecastdate')
+        if not d:
+            continue
+        t = (r.get('timeperiod') or '').strip()
+        pub = r.get('publishtime', '') or ''
+        if t in ('上午', '下午'):
+            k = (d, t)
+            if k not in part or pub > (part[k].get('publishtime', '') or ''):
+                part[k] = r
+            continue
+        cur = best.get(d)
+        if cur is None or pub > (cur.get('publishtime', '') or ''):
+            best[d] = r
+    fc = []
+    for d in [x for x in sorted(best) if x >= today][:4]:
+        r = best[d]
+        item = {'date': d, 'aqi': num(r.get('aqi')), 'major': r.get('majorpollutant') or '', 'minor': r.get('minorpollutant') or '', 'publish': r.get('publishtime')}
+        for label, key in (('上午', 'am'), ('下午', 'pm')):
+            p = part.get((d, label))
+            if p and (p.get('publishtime') or '') >= (r.get('publishtime') or ''):
+                item[key] = {'aqi': num(p.get('aqi')), 'major': p.get('majorpollutant') or ''}
+        fc.append(item)
+    return fc
+
 def main():
     prev = {}
     if os.path.exists(OUT):
@@ -99,17 +133,8 @@ def main():
         errs.append('uv: %s %s' % (type(e).__name__, str(e)[:80]))
     # ---- forecast ----
     try:
-        recs = [r for r in api('aqf_p_01', '&limit=300') if r.get('area') == AREA]
-        latest = {}
-        for r in recs:
-            d = r.get('forecastdate')
-            if d and (d not in latest or r.get('publishtime', '') > latest[d].get('publishtime', '')):
-                latest[d] = r
-        fc = []
-        today = datetime.datetime.now(TZ).strftime('%Y-%m-%d')
-        for d in [x for x in sorted(latest) if x >= today][:4]:
-            r = latest[d]
-            fc.append({'date': d, 'aqi': num(r.get('aqi')), 'major': r.get('majorpollutant') or '', 'minor': r.get('minorpollutant') or '', 'publish': r.get('publishtime')})
+        recs = [r for r in api('aqf_p_01', '&limit=500') if r.get('area') == AREA]
+        fc = pick_forecast(recs, datetime.datetime.now(TZ).strftime('%Y-%m-%d'))
         if fc:
             out['forecast'] = fc
     except Exception as e:

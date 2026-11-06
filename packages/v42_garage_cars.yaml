@@ -2,6 +2,7 @@
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
 # - V4.3.6（2026-10-30）：新增 input_boolean.garage_lamp_front／back（車燈亮）與 input_datetime.garage_turn_seen_front／back（最近偵測到左方向燈），給 3D 車模顯示煞車燈／頭燈與左方向燈閃爍。
+# - V4.3.15（2026-11-06）：①garage_car_watch.py 快照檔超過 90 秒沒更新就不分析（攝影機快照逾時時，原本每 14 秒拿舊圖分析，車位／車燈／位移停在最後值，關門前淨空確認也看舊圖）；②曝光劇變那一張畫面，空位不立刻變成「有車」（鐵門關上瞬間前位 30 秒內空→suv 來回跳 4 次）。
 # - V4.3.14（2026-11-05）：新增 input_datetime.garage_light_manual_last（車庫主燈最近一次「人為」開關時間，由 104-3 內的記錄自動化寫入；自動化／腳本開關不算）。
 # - V4.3.13（2026-11-05）：garage_close_confirmed（V1.0.1）鐵門「剛開啟不到 90 秒」改成等滿 90 秒再繼續判斷，不再直接放棄。11-05 10:40 自動開門、車開走，10:41 第一次自動關門被這條擋掉後一直沒再試，到 10:50 才由 104-3 接手，鐵門多開了約 11 分鐘。
 # - V4.3.12（2026-11-01）：鐵門重試關門（garage_gate_close_retry）間隔 10 分鐘 → 3 分鐘，最多 40 次（維持約 2 小時）。
@@ -557,7 +558,9 @@ script:
                   {% if not s.present %}empty{% elif s.identity_src | default('') == 'foreign_plate' %}{{ s.vehicle_type if s.vehicle_type in ['sedan', 'suv', 'motorcycle'] else 'sedan' }}{% elif dup_res and cur in ['luxgen_n7', 'tesla_model3'] %}{{ cur }}{% elif s.identity != 'unknown' %}{{ s.identity }}{% elif s.vehicle_type != 'unknown' and cur in ['empty', 'unknown', 'sedan', 'suv', 'motorcycle'] %}{{ s.vehicle_type }}{% elif cur in ['empty', 'unknown'] %}unknown{% else %}{{ cur }}{% endif %}
                 ev: "{{ s.present and (s.lights_on or (s.moved and protect_recent)) and not res.exposure_changed }}"
                 n_prev: "{{ states('input_number.garage_ev_' ~ repeat.item) | int(0) }}"
-            - if: "{{ new | trim != cur }}"
+            # V4.3.15：曝光劇變（鐵門開關、紅外線切換）的那一張畫面，空位不立刻變成「有車」——11-06 09:15 鐵門關上後前位在 30 秒內空→suv→空→suv→空 來回跳；
+            #   變成空位、換成另一輛車照舊即時；真的有車進來，下一張（約 14 秒後）曝光穩定就會更新。
+            - if: "{{ new | trim != cur and not (cur == 'empty' and new | trim != 'empty' and res.exposure_changed) }}"
               then:
                 - action: input_select.select_option
                   target:

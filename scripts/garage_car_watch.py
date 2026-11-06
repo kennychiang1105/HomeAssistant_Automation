@@ -742,6 +742,7 @@ def main():
     ap.add_argument('--gate-recent', action='store_true', help='鐵門最近 10 分鐘內開過（啟用「車位自動學成空」）')
     ap.add_argument('--vision', help='Garage Vision add-on 網址，例如 http://local-garage-vision:8099（沒給就不用）')
     ap.add_argument('--vision-every', type=int, default=300, help='平常多久問一次 add-on（秒）')
+    ap.add_argument('--max-age', type=int, default=90, help='快照檔超過幾秒沒更新就視為舊圖、不分析（攝影機／Protect 斷線時 camera.snapshot 逾時，檔案不會更新）')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
@@ -783,6 +784,15 @@ def main():
                 res['vision_error'] = str(e)[:120]
         save_json(state_path, state)
         print(json.dumps(res))
+        return
+    # V4.2.6：快照檔太舊（camera.snapshot 逾時沒寫新檔）就不分析。11-06 17:00～20:37 攝影機快照一直逾時，
+    #   每 14 秒仍拿舊圖分析，車位／車燈／位移停在最後一次的值，關門前淨空確認也是拿舊圖當現況。
+    try:
+        age = time.time() - os.path.getmtime(a.snapshot)
+    except OSError:
+        age = 0
+    if age > a.max_age:
+        print(json.dumps({'error': 'stale snapshot', 'age': int(age)}))
         return
     out = analyse(img, roi, state, a.dir, learn=not a.no_learn, gate_recent=a.gate_recent)
     if a.vision:
