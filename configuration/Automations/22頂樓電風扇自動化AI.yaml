@@ -3,6 +3,7 @@
 # 22頂樓電風扇自動化AI (V4.1.5)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.6（2026-11-07）：睡眠降速（-10%）除了手動熟睡鎖，晚安情境開著時也套用（11-07 01:05 晚安情境中 29°C 開到 67%，太大）。
 # - V4.1.5（2026-10-11）：步驟 5 不再重複送風速。上樓情境「介於門檻」那一段已在同一次執行內設過風速，步驟 5 又用開頭讀到的舊風量再算一次，
 #   會在約 0.2 秒後送出同一個風速（4 天內 81 次調速指令中有 21 組相同指令成對出現，其中約 7 組是這個原因，其餘是事件紀錄重複）。
 #   新增 step1_set_speed：上樓情境開啟且 t_eff 介於開／關門檻之間時，步驟 5 略過。
@@ -15,14 +16,14 @@
 # - V3.1：體感濕度改平滑線性、t_eff 夏季模式邏輯重構、新增手動關機 3 小時防護罩。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 22頂樓電風扇自動化AI (V4.1.5)
+- alias: 22頂樓電風扇自動化AI (V4.1.6)
   id: ai_topfloor_fan_automation
   description: AI 管理自動化（已完成欄位標準化）
   mode: restart
   max: 10
 
   variables:
-    automation_version: "V4.1.5"
+    automation_version: "V4.1.6"
   trigger:
     - platform: state
       entity_id:
@@ -135,7 +136,8 @@
           {{ (not hp_valid_now) and ((age_t < 900) or (age_h < 900)) }}
 
         # ---- 睡眠靜默：改由手動熟睡鎖控制 ----
-        is_sleep: "{{ is_state('input_boolean.sleep_silent_active','on') }}"
+        # V4.1.6：晚安情境開著（已就寢）也算睡眠，風量 -10%；原本只看手動熟睡鎖，11-07 01:05 晚安情境中 29°C 開到 67%，使用者覺得太大
+        is_sleep: "{{ is_state('input_boolean.sleep_silent_active','on') or is_state('input_boolean.aqara_wan_an','on') }}"
 
         # ---- 上樓必開門檻（固定 26.1°C）----
         enter_high_open_c_dyn: 26.1
@@ -269,7 +271,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已自動解除（1 小時）"
                     message: "⏱️ 手動保留超過 1 小時，已恢復溫控自動判斷。"
@@ -294,7 +296,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動關機防護罩已自動解除（3 小時）"
                     message: "⏱️ 手動關機防護罩超過 3 小時，已恢復溫控自動開機判斷。"
@@ -330,7 +332,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "已偵測手動關機（含 HomeKit）→ 啟用手動關機防護罩"
                     message: |-
@@ -362,7 +364,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動保留已提前解除"
                     message: "🙋‍♂️ 在手動保留期間關閉風扇，已立即解除保留狀態。"
@@ -376,7 +378,7 @@
           data:
             level: info
             line: false
-            source: "22頂樓電風扇自動化AI (V4.1.5)"
+            source: "22頂樓電風扇自動化AI (V4.1.6)"
             version: "{{ automation_version | default('', true) }}"
             title: "HomePod 溫濕度短暫失效（≤15 分）— 已凍結溫控"
             message: |-
@@ -466,7 +468,7 @@
                           data:
                             level: info
                             line: false
-                            source: "22頂樓電風扇自動化AI (V4.1.5)"
+                            source: "22頂樓電風扇自動化AI (V4.1.6)"
                             version: "{{ automation_version | default('', true) }}"
                             title: "頂樓風扇自動開啟（上樓）"
                             message: >
@@ -501,7 +503,7 @@
                                   data:
                                     level: info
                                     line: false
-                                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                                     version: "{{ automation_version | default('', true) }}"
                                     title: "頂樓風扇微風開啟（上樓介於門檻）"
                                     message: >
@@ -544,7 +546,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "手動開啟 — 已啟用保留 1 小時"
                     message: |-
@@ -579,7 +581,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動關閉（過冷）"
                     message: >
@@ -612,7 +614,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（回溫）"
                     message: >
@@ -635,7 +637,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇自動開啟（冷氣同步）"
                     message: "❄️ 冷氣=COOL，ac_temp={{ ac_temp }}°C"
@@ -658,7 +660,7 @@
           data:
             level: info
             line: false
-            source: "22頂樓電風扇自動化AI (V4.1.5)"
+            source: "22頂樓電風扇自動化AI (V4.1.6)"
             version: "{{ automation_version | default('', true) }}"
             title: "手動調速防護罩啟用中"
             message: "🙋‍♂️ 偵測到人為調速，將跳過 AI 自動調速，直到風扇下次開機。"
@@ -695,7 +697,7 @@
                   data:
                     level: info
                     line: false
-                    source: "22頂樓電風扇自動化AI (V4.1.5)"
+                    source: "22頂樓電風扇自動化AI (V4.1.6)"
                     version: "{{ automation_version | default('', true) }}"
                     title: "頂樓風扇風速調整"
                     message: >
