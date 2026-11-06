@@ -1,8 +1,9 @@
 ﻿# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-2車輛動態辨識系統AI (V4.3.0-beta 5)
+# 104-2車輛動態辨識系統AI (V4.3.0-beta 7)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.0-beta 7（2026-11-06）：車已駛出、45 秒緩衝後若還沒進離家情境（全員離家約 3～4 分鐘才 Arm Away），改為等進入離家情境（最多 8 分鐘）再確認淨空關門；原本直接放棄，鐵門要等 10 分鐘提醒才處理。
 # - V4.3.11（2026-11-01）：自動關門改呼叫 script.garage_close_confirmed（淨空確認→車庫喇叭廣播→8 秒後再確認→才關）。
 # - V4.3.0-beta 5（2026-10-28，測試中）：車在車庫內挪位置（一個車位變空、另一車位同時變成有車）不算駛出憑證；淨空確認新增「車位 3 分鐘內變成有車＝車上可能還有人」。實際事件：10/28 10:28 Luxgen 由後位挪到前位準備出門，10:30 開門後 104-2 把後位剛變空當成已駛出，10:30:52 自動把鐵門關上，車還在車庫裡。
 # - V4.3.0-beta 4（2026-10-28，測試中）：自動關門前先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因（交給 104-3）。
@@ -23,7 +24,7 @@
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車輛動態辨識系統AI (V4.3.0-beta 5)
+- alias: 104-2車輛動態辨識系統AI (V4.3.0-beta 7)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、EBH8030）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -51,7 +52,7 @@
       to: "open"
 
   variables:
-    automation_version: "V4.3.0-beta 5"
+    automation_version: "V4.3.0-beta 7"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -142,7 +143,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "✅ LPR 開門指令已執行 ({{ automation_version }})"
                                 message: >-
@@ -163,7 +164,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "ℹ️ LPR 事件通知 ({{ automation_version }})"
                                 message: >-
@@ -202,7 +203,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🛗 鐵門已完全打開（{{ automation_version }}）"
                         message: |-
@@ -273,7 +274,7 @@
                                               data:
                                                 level: info
                                                 line: false
-                                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                                 version: "{{ automation_version | default('', true) }}"
                                                 title: "⛔ 已取消自動關門 (車輛未駛出)"
                                                 message: |-
@@ -294,7 +295,7 @@
                                       data:
                                         level: info
                                         line: false
-                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "✅ 已取得駛出憑證"
                                         message: |-
@@ -335,7 +336,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "⛔ 已取消自動關門 (偵測到人)"
                                 message: "等待期間攝影機偵測到人員活動，為保護安全已暫停關門。"
@@ -380,6 +381,26 @@
                 - delay:
                     seconds: "{{ states('input_number.lpr_close_buffer_sec') | int(45) }}"
 
+            # V4.3.0-beta 7：車已開走、45 秒緩衝結束時還沒進離家情境（全員離家要再等 1 分鐘＋判斷，通常出門後 3～4 分鐘才會 Arm Away），
+            #   原本這裡「Arm Away 不成立」就直接結束，鐵門要等 10 分鐘提醒才處理（11-06 09:10 出門，鐵門多開了 4.5 分鐘）。
+            #   改成：鐵門還開著、尚未 Arm Away 就等進入離家情境（最多 8 分鐘，早於 104-3 的 10 分鐘提醒），之後再給 20 秒緩衝、照原本流程確認淨空後關門。
+            #   家人還有人在家、一直沒進離家情境 ⇒ 等滿 8 分鐘照舊不關，交給 104-3。
+            - if: "{{ is_state('cover.garage', 'open') and not is_state('input_boolean.aqara_li_jia', 'on') and is_state('input_boolean.lpr_auto_close_enable', 'on') }}"
+              then:
+                - wait_for_trigger:
+                    - platform: state
+                      entity_id: input_boolean.aqara_li_jia
+                      to: "on"
+                    - platform: state
+                      entity_id: cover.garage
+                      to: "closed"
+                  timeout: "00:08:00"
+                  continue_on_timeout: true
+                - if: "{{ not is_state('cover.garage', 'open') }}"
+                  then:
+                    - stop: "等待離家情境期間鐵門已關閉"
+                - delay: "00:00:20"
+
             # 視窗結束 ⇒ 條件式判斷
             - variables:
                 arm_away_later: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
@@ -423,7 +444,7 @@
                                       data:
                                         level: info
                                         line: false
-                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "⛔ 已取消自動關門 (淨空確認未通過)"
                                         message: "{{ '、'.join(sf2.reasons) if (sf2 is mapping and sf2.get('reasons')) else '無法確認' }}。5 分鐘內仍未淨空，不自動關門，交給 104-3 鐵門未關處理。"
@@ -434,7 +455,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "{{ '🤖 自動關門已執行' if (cc is mapping and cc.get('closed')) else '⛔ 已取消自動關門（廣播後確認未通過）' }} ({{ automation_version }})"
                                 message: "{{ '倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已廣播並再確認無人無車後下達關門。' if (cc is mapping and cc.get('closed')) else ('原因：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '。交給 104-3 鐵門未關處理。') }}"
@@ -446,7 +467,7 @@
                               data:
                                 level: info
                                 line: false
-                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                                source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
                                 title: "🤖（預備）條件式關門：會關"
                                 message: "預判會關門。目前僅通知；開啟『LPR自動關門』即可生效。"
@@ -459,7 +480,7 @@
                       data:
                         level: info
                         line: false
-                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 5)"
+                        source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                         version: "{{ automation_version | default('', true) }}"
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
