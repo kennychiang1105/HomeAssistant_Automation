@@ -3,7 +3,7 @@
 # 104-2車輛動態辨識系統AI (V4.3.0-beta 7)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
-# - V4.3.0-beta 7（2026-11-06）：車已駛出、45 秒緩衝後若還沒進離家情境（全員離家約 3～4 分鐘才 Arm Away），改為等進入離家情境（最多 8 分鐘）再確認淨空關門；原本直接放棄，鐵門要等 10 分鐘提醒才處理。
+# - V4.3.0-beta 7（2026-11-06）：自動關門不再要求離家情境（Arm Away）：車已駛出、鐵門還開著、車庫無人車動靜（再加車庫模型淨空確認、廣播、再確認）就關。原本要等全員離家＋判斷（出門後約 3～4 分鐘）才會關，11-06 09:10 出門鐵門多開了約 4.5 分鐘。
 # - V4.3.11（2026-11-01）：自動關門改呼叫 script.garage_close_confirmed（淨空確認→車庫喇叭廣播→8 秒後再確認→才關）。
 # - V4.3.0-beta 5（2026-10-28，測試中）：車在車庫內挪位置（一個車位變空、另一車位同時變成有車）不算駛出憑證；淨空確認新增「車位 3 分鐘內變成有車＝車上可能還有人」。實際事件：10/28 10:28 Luxgen 由後位挪到前位準備出門，10:30 開門後 104-2 把後位剛變空當成已駛出，10:30:52 自動把鐵門關上，車還在車庫裡。
 # - V4.3.0-beta 4（2026-10-28，測試中）：自動關門前先呼叫 script.garage_close_safety_check（車庫模型人物偵測＋車燈／煞車燈＋位移＋攝影機人員／動作＋手機位置）確認淨空；不安全每 30 秒重判、最多 10 次，仍不安全就不關並通知原因（交給 104-3）。
@@ -381,26 +381,6 @@
                 - delay:
                     seconds: "{{ states('input_number.lpr_close_buffer_sec') | int(45) }}"
 
-            # V4.3.0-beta 7：車已開走、45 秒緩衝結束時還沒進離家情境（全員離家要再等 1 分鐘＋判斷，通常出門後 3～4 分鐘才會 Arm Away），
-            #   原本這裡「Arm Away 不成立」就直接結束，鐵門要等 10 分鐘提醒才處理（11-06 09:10 出門，鐵門多開了 4.5 分鐘）。
-            #   改成：鐵門還開著、尚未 Arm Away 就等進入離家情境（最多 8 分鐘，早於 104-3 的 10 分鐘提醒），之後再給 20 秒緩衝、照原本流程確認淨空後關門。
-            #   家人還有人在家、一直沒進離家情境 ⇒ 等滿 8 分鐘照舊不關，交給 104-3。
-            - if: "{{ is_state('cover.garage', 'open') and not is_state('input_boolean.aqara_li_jia', 'on') and is_state('input_boolean.lpr_auto_close_enable', 'on') }}"
-              then:
-                - wait_for_trigger:
-                    - platform: state
-                      entity_id: input_boolean.aqara_li_jia
-                      to: "on"
-                    - platform: state
-                      entity_id: cover.garage
-                      to: "closed"
-                  timeout: "00:08:00"
-                  continue_on_timeout: true
-                - if: "{{ not is_state('cover.garage', 'open') }}"
-                  then:
-                    - stop: "等待離家情境期間鐵門已關閉"
-                - delay: "00:00:20"
-
             # 視窗結束 ⇒ 條件式判斷
             - variables:
                 arm_away_later: "{{ is_state('input_boolean.aqara_li_jia','on') }}"
@@ -416,7 +396,7 @@
                 # 符合條件
                 - conditions:
                     - condition: template
-                      value_template: "{{ (gate_still_open | bool(false)) and (arm_away_later | bool(false)) and (nobody_later | bool(false)) }}"
+                      value_template: "{{ (gate_still_open | bool(false)) and (nobody_later | bool(false)) }}"
                   sequence:
                     - choose:
                         - conditions:
@@ -474,7 +454,7 @@
                 # 不符合條件
                 - conditions:
                     - condition: template
-                      value_template: "{{ (not ((gate_still_open | bool(false)) and (arm_away_later | bool(false)) and (nobody_later | bool(false)))) and (debug_on | bool(false)) }}"
+                      value_template: "{{ (not ((gate_still_open | bool(false)) and (nobody_later | bool(false)))) and (debug_on | bool(false)) }}"
                   sequence:
                     - service: script.notify_dispatch
                       data:
@@ -484,6 +464,6 @@
                         version: "{{ automation_version | default('', true) }}"
                         title: "🙂（預備）條件式關門：不關"
                         message: >-
-                          條件未滿足：保全={{ 'Arm Away' if (arm_away_later | bool(false)) else '非 Arm Away' }}、
+                          條件未滿足：
                           現場動靜={{ '平靜無人' if (nobody_later | bool(false)) else '有動靜' }}、鐵門={{ '仍開啟' if (gate_still_open | bool(false)) else '已關閉' }}。
       default: []
