@@ -1,5 +1,6 @@
 {# ──────────────────────────────────────────────────────
    通知內文排版 (V4.1.6)：LINE Flex 與 HA 通知共用同一份「行模型」，版面一致。
+   - V4.3.15（2026-11-06）：第三批專屬卡片：二樓門鎖虛掩、鐵門連線不穩、05A 緊急模式（舊版）、伺服器維護預告、通知測試（資訊／一般／重要／緊急）、手動通知（依重要性上色）。
    - V4.3.14（2026-11-06）：版面不換行：充電完成改「用電量（大字＋小單位）／充電用時／車輛／開始／結束」各自一格；自動離家標題改短、細節放膠囊；門鎖款式獨立一行（原廠 / 原廠 → 原廠）；戶外狀況拆成天氣／最高溫／降雨機率／紫外線／空氣品質。
    - V4.3.13（2026-11-06）：第二批專屬卡片：五樓保全、離家保全、疑似入侵、門鎖電量分級／換電池、網關情境衝突、充電器異常、大門門鈴、電風扇連線異常、LINE Bot 額度、濾芯／耗材電量、空氣品質、一氧化碳、環境異常讀數、情境檢查、鐵門重試未關、地震詳情；自動離家補「網關未切到離家」與鐵門／門鎖英文狀態中文化；修正「仍未開始充電」被當成開始充電卡片。
    - V4.3.12（2026-11-06）：新增專屬卡片：自動離家（綠／紅）、鐵門未關（紅）、鐵門自動關門結果（提前關閉／已自動關閉／已取消）；共用零件 cd_hdr／cd_box／cd_row／cd_gray／cd_note／cd_pair。
@@ -1369,6 +1370,46 @@
     {%- set out4 = out4 + [cd_gray('各縣市震度', [{"type": "text", "size": "sm", "wrap": true, "lineSpacing": "4px", "contents": (hl_spans(ar, 'regular') | from_json([]))}]) | from_json] -%}
   {%- endif -%}
   {{- out4 | tojson -}}
+{%- elif (not skip) and (joined | regex_search('二樓大門沒有完全關閉|二樓大門未完全關閉|虛掩狀態')) -%}
+  {#- V4.3.15：二樓門鎖虛掩警告（重要）：門沒有完全關好 -#}
+  {%- set bx = cd_grid([['門', '二樓大門'], ['狀態', '虛掩（沒有完全關好）', '#C2410C']], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('door_o', '二樓大門虛掩', '請注意', '#EA580C', b2) | from_json,
+       cd_box(bx, '#FFF7ED', '#FED7AA') | from_json,
+       cd_call('lock_o', '請到門口確認，把門關好並上鎖', b2, '#9A3412') | from_json] | tojson -}}
+{%- elif (not skip) and (joined | regex_search('鐵門連線狀態不穩')) -%}
+  {#- V4.3.15：鐵門連線狀態不穩（一般） -#}
+  {%- set bx = cd_grid([['裝置', '車庫鐵門'], ['狀態', '連線不穩', '#C2410C']], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('network_o', '鐵門連線不穩', '請注意', '#EA580C', b2) | from_json,
+       cd_box(bx, '#FFF7ED', '#FED7AA') | from_json,
+       cd_call('gate_n', '請以鐵門現場實際狀況為準', b2) | from_json] | tojson -}}
+{%- elif (not skip) and (joined | regex_search('緊急模式已被啟動')) -%}
+  {#- V4.3.15：05A 緊急模式（舊版通知）：所有照明開啟、電源關閉 -#}
+  {{- [cd_hdr('alarm_r', '緊急模式已啟動', '緊急', '#DC2626', b2) | from_json,
+       cd_box([cd_row('check_g', '所有照明已開啟', b2, '#374151', 'sm', true) | from_json, cd_row('check_g', '電源已關閉', b2, '#374151', 'sm', true) | from_json], '#FEF2F2', '#FCA5A5') | from_json,
+       cd_call('alarm_r', '請保持冷靜，確認家人安全', b2, '#B91C1C', '#FEF2F2') | from_json] | tojson -}}
+{%- elif (not skip) and (joined | regex_search('將在五分鐘後進行維護更新')) -%}
+  {#- V4.3.15：伺服器及網路系統維護更新預告 -#}
+  {%- set bx = cd_grid([['開始時間', '5 分鐘後', '#C2410C'], ['預計影響', '約 15～20 分鐘']], '#111827', 'md') | from_json -%}
+  {{- [cd_hdr('server_o', '系統即將維護更新', '5 分鐘後', '#EA580C', b2) | from_json,
+       cd_box(bx + [{"type": "separator", "color": "#FED7AA"}, cd_row('network_o', '伺服器及網路系統連線不穩或斷線', b2, '#374151', 'sm') | from_json], '#FFF7ED', '#FED7AA') | from_json] | tojson -}}
+{%- elif (not skip) and (('通知測試' in sig_h) and (joined | regex_search('測試通知'))) -%}
+  {#- V4.3.15：通知測試（資訊／一般／重要／緊急）：各級顏色、列出測試項目 -#}
+  {%- set cc, bg, bd, lb = {'info': ('#6B7280', '#F3F4F6', '#E5E7EB', '資訊'), 'general': ('#2563EB', '#EFF6FF', '#BFDBFE', '一般'), 'important': ('#EA580C', '#FFF7ED', '#FED7AA', '重要'), 'emergency': ('#DC2626', '#FEF2F2', '#FCA5A5', '緊急')}.get(lv, ('#2563EB', '#EFF6FF', '#BFDBFE', '一般')) -%}
+  {%- set tr = namespace(r=[]) -%}
+  {%- for l in lines[1:] -%}
+    {%- set c = clean(l | string) | trim -%}
+    {%- if c != '' -%}{%- set tr.r = tr.r + [cd_row('check_n', (c | regex_replace('^項目[一二三四五六七八九十]+[：:]\\s*', '')), b2, '#374151', 'sm') | from_json] -%}{%- endif -%}
+  {%- endfor -%}
+  {{- [cd_hdr('bell_' ~ ({'info': 'n', 'general': 'n', 'important': 'o', 'emergency': 'r'}.get(lv, 'n')), lb ~ '級通知測試', '測試', cc, b2) | from_json, cd_box(tr.r if tr.r | length > 0 else [cd_row('check_n', '通知測試', b2, '#374151', 'sm') | from_json], bg, bd) | from_json] | tojson -}}
+{%- elif (not skip) and (('系統通知訊息' in sig_h) or ('手動通知' in sig_h)) -%}
+  {#- V4.3.15：手動通知（自動化管理面板輸入的文字）：依重要性上色，每行一段，不換行破版 -#}
+  {%- set cc, bg, bd, lb, ic = {'general': ('#2563EB', '#EFF6FF', '#BFDBFE', '一般', 'announce_n'), 'important': ('#EA580C', '#FFF7ED', '#FED7AA', '重要', 'announce_o'), 'emergency': ('#DC2626', '#FEF2F2', '#FCA5A5', '緊急', 'alarm_r')}.get(lv, ('#2563EB', '#EFF6FF', '#BFDBFE', '一般', 'announce_n')) -%}
+  {%- set mr = namespace(r=[]) -%}
+  {%- for l in lines -%}
+    {%- set c = (l | string) | trim -%}
+    {%- if c != '' -%}{%- set mr.r = mr.r + [{"type": "text", "text": c, "size": "sm", "wrap": true, "color": "#111827", "lineSpacing": "4px", "weight": ("bold" if mr.r | length == 0 else "regular")}] -%}{%- endif -%}
+  {%- endfor -%}
+  {{- [cd_hdr(ic, '系統通知', '手動・' ~ lb, cc, b2) | from_json, cd_box(mr.r if mr.r | length > 0 else [{"type": "text", "text": "（沒有內容）", "size": "sm", "color": "#6B7280"}], bg, bd) | from_json] | tojson -}}
 {%- elif (not skip) and ('地震預警' in sig_h) -%}
   {%- set m_lv = joined | regex_findall('預估(?:地震|震度)[：:\\s]*([^，,\\n級]+)\\s*級') -%}
   {%- set m_sec = joined | regex_findall('([\\d]+|未知)\\s*秒後') -%}
