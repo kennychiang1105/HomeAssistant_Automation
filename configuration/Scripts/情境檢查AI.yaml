@@ -2,6 +2,7 @@
 # 情境檢查AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.8（2026-11-06）：離家情境補救後仍未到位只發 HA 通知、不發 LINE（使用者要求）；晚安／早安／到家照舊。
 # - V4.1.7（2026-11-03）：情境首次未到位、自動補救成功時不再發 HA 資訊通知（使用者要求；補救失敗仍發重要級）。
 # - V4.2.0（2026-10-18）：早安／到家廣播加上目前室內空氣狀況（廚房 PM1.0／2.5／10、CO2、TVOC、甲醛、CO 取最差一項；稍高或偏高時說明是哪項並建議開空氣清淨機，偏高時依戶外空氣建議開窗或先不要開窗）；晚安廣播加上明天天氣（天氣、氣溫範圍、降雨機率，必要時提醒帶傘、防曬或加衣）。
 # - V4.1.6（2026-10-14）：① 保全模式複檢前再等最多 10 秒（網關切換有時要 6 秒以上才回報，11:31 的「離家情境補救後仍未到位（保全模式）」就是只等 5 秒造成的誤報）；② 106C 解除網關警報的重置流程期間（input_datetime.scene_verify_skip_alarm_until 之前）略過保全模式檢查，因為離家情境後馬上會解除網關。
@@ -18,7 +19,7 @@
 #           離線(unavailable) 設備略過並於 HA 通知標示；60 秒內重複呼叫靜默略過（mode single）。
 # ────────────────────────────────────────────────────────
 scene_verify:
-  alias: 情境檢查AI (V4.1.7)
+  alias: 情境檢查AI (V4.1.8)
   description: 情境執行後檢查設備是否符合預期，落差補動作，結果以 HA 一般通知（失敗另發 LINE 重要）
   mode: single
   max_exceeded: silent
@@ -27,7 +28,7 @@ scene_verify:
       description: goodnight / leave / morning / arrive
       required: true
   variables:
-    automation_version: 'V4.1.7'
+    automation_version: 'V4.1.8'
     notif_title: "【情境檢查 {{ automation_version }}】"
     scene_name: "{{ {'goodnight':'晚安','leave':'離家','morning':'早安','arrive':'到家'}.get(scene, scene) }}"
     base_off: >-
@@ -145,6 +146,8 @@ scene_verify:
         - action: script.notify_dispatch
           data:
             level: important
+            # V4.1.8：離家情境補救後仍未到位只發 HA 通知，不發 LINE（使用者要求）；其他情境照舊 HA＋LINE
+            line: "{{ scene != 'leave' }}"
             title: "{{ scene_name }}情境檢查"
             message: "{{ scene_name }}情境補救後仍未到位，請留意\n{{ fail_names | trim }}"
             source: 情境檢查AI
