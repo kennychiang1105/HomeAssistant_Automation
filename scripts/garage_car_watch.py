@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""車庫車輛畫面分析（V4.2.5）
+"""車庫車輛畫面分析（V4.2.5；V4.2.7：車牌依位置重新判定屬於哪個車位、兩個車位不會是同一輛車）
 
 讀一張車庫快照，依 garage_roi.json 的「車位」區域算出每個車位：
   occupied   車位有沒有車（與「空車位基準」比對；沒學過空車位基準時為 null）
@@ -189,6 +189,66 @@ def match_plate(text, conf, plates):
     return None
 
 
+def assign_plates(res):
+    """V4.2.7：車牌 → 車位，依車牌在車身框裡的位置重新判定（不用 add-on 給的歸屬）。
+    add-on 只看車牌中心落在哪個車位框；前位 Luxgen 朝外時的後車牌，因透視剛好落在後位 Tesla 車身框的右上角（相對高度約 0.22、最右緣），
+    被算給後位 → 後位被車牌改成 Luxgen、前位被擠成 Tesla（11-06～11-07 前位 Luxgen／後位 Tesla 時一再對調）。
+    規則：車牌中心要在該車位「偵測到的車身框」內，且在車身下半部（相對高度 0.45～0.98，車牌在保險桿上）、不在左右最邊緣（0.05～0.95）；
+    兩個車位都符合時取相對高度最接近 0.72 的。回傳 {slot: {'text', 'conf'}}。"""
+    out = {}
+    for p in res.get('plates') or []:
+        b = p.get('box')
+        cx = p.get('cx', ((b[0] + b[2]) / 2) if b else None)
+        cy = p.get('cy', ((b[1] + b[3]) / 2) if b else None)
+        if cx is None or cy is None or not p.get('text'):
+            continue
+        best = None
+        for name, vr in (res.get('slots') or {}).items():
+            d = vr.get('det')
+            if not d or not d.get('box'):
+                continue
+            vb = d['box']
+            if not (vb[0] <= cx <= vb[2] and vb[1] <= cy <= vb[3]):
+                continue
+            ry = (cy - vb[1]) / max(1e-6, vb[3] - vb[1])
+            rx = (cx - vb[0]) / max(1e-6, vb[2] - vb[0])
+            if not (0.45 <= ry <= 0.98 and 0.05 <= rx <= 0.95):
+                continue
+            sc = abs(ry - 0.72)
+            if best is None or sc < best[0]:
+                best = (sc, name)
+        if best and (best[1] not in out or p.get('conf', 0) > out[best[1]].get('conf', 0)):
+            out[best[1]] = {'text': p['text'], 'conf': p.get('conf', 0)}
+    return out
+
+
+FAMILY = ('luxgen_n7', 'tesla_model3')
+
+
+def enforce_exclusive(out):
+    """V4.2.7：前後兩個車位不會是同一輛家用車。兩邊認成同一輛、而且只有一邊有車牌證據時，沒有車牌的那一邊改成另一輛家用車
+    （這個車庫只停自家兩輛車，使用者確認）。兩邊都沒有車牌時不動，交給 HA 端的 dup_res（維持目前車位狀態）。"""
+    sl = out.get('slots') or {}
+    fr, bk = sl.get('front'), sl.get('back')
+    if not fr or not bk or not (fr.get('present') and bk.get('present')):
+        return None
+    same = fr.get('identity')
+    if same not in FAMILY or bk.get('identity') != same:
+        return None
+    vs = (out.get('vision') or {}).get('slots') or {}
+    pf, pb = fr.get('identity_src') == 'plate', bk.get('identity_src') == 'plate'
+    if pf == pb:
+        return None
+    loser, ln = (bk, 'back') if pf else (fr, 'front')
+    other = FAMILY[1 - FAMILY.index(same)]
+    loser['id_conflict'] = same
+    loser['identity'] = other
+    loser['identity_src'] = 'exclusive'
+    if isinstance(vs.get(ln), dict):
+        vs[ln]['id'] = other
+    return ln
+
+
 def _box_iou(a_, b_):
     ix = max(0.0, min(a_[2], b_[2]) - max(a_[0], b_[0]))
     iy = max(0.0, min(a_[3], b_[3]) - max(a_[1], b_[1]))
@@ -240,6 +300,7 @@ def apply_vision(a, roi, state, out, jpg, now):
         return {'error': str(e)[:120]}
     v['ts'] = now
     summary = {'ms': res.get('ms'), 'slots': {}, 'persons': res.get('persons')}
+    plate_owner = assign_plates(res)
     for name, vr in (res.get('slots') or {}).items():
         r = out['slots'].get(name)
         if r is None:
@@ -311,7 +372,7 @@ def apply_vision(a, roi, state, out, jpg, now):
                 s['id'] = idr['identity']
                 s['score'] = idr['score']
             # 車牌文字辨識（add-on 的 RapidOCR）：車牌在這輛車身上讀到，是比影像樣板更直接的身分證據
-            pl = vr.get('plate')
+            pl = plate_owner.get(name)      # V4.2.7：不用 add-on 給的 vr['plate']（只看車牌中心落在哪個車位框，前位車牌常被算給後位）
             if pl and pl.get('conf', 0) >= thr.get('plate_conf', 0.7):
                 r['plate'] = pl['text']
                 s['plate'] = pl['text']
@@ -685,6 +746,29 @@ def selftest():
         c2 = analyse(Image.fromarray(tofront), roi_c, state, d, learn=False, now=6100)['cable']
         if c1['state'] != 'hanging' or c2['state'] != 'to_near':
             errors.append('充電線分類失敗 %s %s' % (c1, c2))
+    # V4.2.7：車牌歸屬（11-07 16:37 實際畫面：前位 Luxgen 朝外、後位 Tesla；EAK8030 中心 0.57,0.61 同時落在兩個車身框）
+    res = {'plates': [{'text': 'EAK8030', 'conf': 0.956, 'cx': 0.5698, 'cy': 0.6076}],
+           'slots': {'front': {'det': {'box': [0.47, 0.12, 0.96, 0.80]}}, 'back': {'det': {'box': [0.0, 0.50, 0.60, 0.99]}}}}
+    po = assign_plates(res)
+    if list(po) != ['front']:
+        errors.append('車牌歸屬錯誤（應屬前位）%s' % po)
+    res2 = {'plates': [{'text': 'EBH8030', 'conf': 0.9, 'cx': 0.40, 'cy': 0.58}], 'slots': {'front': {'det': {'box': [0.34, 0.18, 0.91, 0.94]}}, 'back': {}}}
+    if list(assign_plates(res2)) != ['front']:
+        errors.append('前位 Tesla 車牌歸屬錯誤 %s' % assign_plates(res2))
+    # 互斥：兩邊都認成 Tesla、後位是車牌證據 → 前位改 Luxgen；都靠影像模型 → 分數低的那邊改
+    o = {'slots': {'front': {'present': True, 'identity': 'tesla_model3', 'identity_src': 'vision'},
+                   'back': {'present': True, 'identity': 'tesla_model3', 'identity_src': 'plate'}}, 'vision': {'slots': {'front': {'score': 0.85}}}}
+    enforce_exclusive(o)
+    if o['slots']['front']['identity'] != 'luxgen_n7' or o['slots']['back']['identity'] != 'tesla_model3':
+        errors.append('互斥（車牌優先）失敗 %s' % o['slots'])
+    o = {'slots': {'front': {'present': True, 'identity': 'tesla_model3', 'identity_src': 'vision'},
+                   'back': {'present': True, 'identity': 'tesla_model3', 'identity_src': 'vision'}},
+         'vision': {'slots': {'front': {'score': 0.85}, 'back': {'score': 0.957}}}}
+    if enforce_exclusive(o) is not None:
+        errors.append('兩邊都沒車牌時不該改（交給 HA 維持目前狀態）')
+    o = {'slots': {'front': {'present': True, 'identity': 'luxgen_n7'}, 'back': {'present': True, 'identity': 'tesla_model3'}}}
+    if enforce_exclusive(o) is not None:
+        errors.append('不同車不該被改')
     print(json.dumps({'selftest': 'FAIL' if errors else 'PASS', 'errors': errors}, ensure_ascii=False))
     return 1 if errors else 0
 
@@ -801,6 +885,9 @@ def main():
             for n, r in out['slots'].items():
                 if r.get('vision_empty'):
                     cmd_learn_empty(img, roi, n, a.dir)
+    ex = enforce_exclusive(out)
+    if ex:
+        out['exclusive_fix'] = ex
     if not a.no_learn:
         save_json(state_path, state)
     if a.csv:

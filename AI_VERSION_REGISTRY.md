@@ -948,3 +948,5 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - 22頂樓電風扇自動化AI V4.1.6（2026-11-07）：晚安情境開著也套用睡眠降速（-10%）
 - v42_garage_cars.yaml V4.3.16／garage_turn_signal.py（2026-11-07）：方向燈自動開門加「等人上車」：短片裡車外還有人（模型信心 ≥ 0.6，排除隔著車窗看到、坐在車裡的人）或 4 秒內剛看到人就先不開，等人都上車、下一段短片仍偵測到方向燈才開；新增 script.garage_board_check、input_boolean.garage_turn_wait_board_enable、input_datetime.garage_board_seen_last
 - 08-5C頂樓樓梯感應燈AI V4.1.7／v43_topfloor_cam_ai.yaml V4.3.10／topfloor_track.py --presence（2026-11-07）：自動關樓梯燈前用攝影機畫面模型確認，畫面還有人就等人消失才關（最多 5 分鐘）；新增 script.topfloor_stairs_wait_clear、input_boolean.topfloor_stairs_off_cam_hold_enable
+- garage_car_watch.py V4.2.7（2026-11-07）：車牌依位置重新判定屬於哪個車位（車身框下半部、不在左右最邊緣），不再用 add-on 的歸屬；只有一邊讀到車牌而兩邊認成同一輛時，另一邊改成另一輛家用車。修正前位 Luxgen／後位 Tesla 時，Luxgen 車牌被算給後位、兩台對調
+- 104-1車庫鐵門感應燈AI V4.3.6（2026-11-07）：樓梯感應器提早關燈等待 30→60 秒，3 分鐘內有人按過樓梯燈／車庫主燈按鈕就不提早關（11-07 14:31 下樓時人還在樓梯上燈被關）
