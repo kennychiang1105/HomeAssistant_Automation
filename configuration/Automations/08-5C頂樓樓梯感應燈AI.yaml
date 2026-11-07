@@ -2,6 +2,8 @@
 # 08-5C頂樓樓梯感應燈AI (V4.0.0)
 # 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.7（2026-11-07）：自動關燈（抵達書房／臥室、下樓、樓梯口清空、保底）前先用攝影機畫面模型確認：畫面還有人就延後，等人消失才關（最多等 5 分鐘，仍有人就交給保底計時）；
+#           保底關燈另外要等攝影機人員偵測恢復無人。腳本 script.topfloor_stairs_wait_clear，開關 input_boolean.topfloor_stairs_off_cam_hold_enable。
 # - V4.1.6（2026-11-06）：攝影機開樓梯燈的「剛進房間」防呆改看動線事件（剛進書房／臥室 45 秒內且沒有樓梯跨線不開），不再只靠左側 PIR（11-02 起故障，防呆形同虛設）；左側 PIR 超過 2 天沒動作時，「右側比左側晚」的放行條件停用。
 # - V4.1.5（2026-10-11）：修補版（僅「解除深夜亮度AI」）；兩盞樓梯燈同時被打開時（例如手動上樓情境），兩輪排隊執行，先跑完的那一輪會把旗標清掉，
 #           第二盞（頂樓樓梯燈）等 3 秒後因旗標已關而被跳過，一直停在深夜亮度（60%／3000K），之後感應開燈沿用該亮度而偏暗。
@@ -235,6 +237,25 @@
           sequence:
             - delay:
                 seconds: "{{ states('input_number.topfloor_arrive_off_delay_s') | int(15) }}"
+            # V4.1.7：關燈前用攝影機畫面模型確認沒人；還有人就等人消失（最多 5 分鐘），仍有人交給保底計時
+            - action: script.topfloor_stairs_wait_clear
+              data:
+                need_cam_off: false
+              response_variable: wc
+              continue_on_error: true
+            - if: "{{ wc is defined and wc is mapping and wc.get('clear') == false }}"
+              then:
+                - action: timer.start
+                  target:
+                    entity_id: timer.topfloor_stairs_max
+                - stop: "攝影機畫面持續有人，不關，交給保底計時"
+            - if: "{{ wc is defined and wc is mapping and (wc.get('waited', 0) | int(0)) >= 2 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 頂樓動線
+                    message: "{{ now().strftime('%H:%M:%S') }} 關樓梯燈前攝影機畫面還有人，等 {{ wc.waited }} 秒人離開後才關（抵達書房／臥室）"
+                  continue_on_error: true
             - action: script.topfloor_stairs_off_one
               data:
                 key: "0fb7"
@@ -247,6 +268,25 @@
         # 下樓：5F 先關，4F 稍晚
         - conditions: "{{ trigger.id == 'down' }}"
           sequence:
+            # V4.1.7：關燈前用攝影機畫面模型確認沒人；還有人就等人消失（最多 5 分鐘），仍有人交給保底計時
+            - action: script.topfloor_stairs_wait_clear
+              data:
+                need_cam_off: false
+              response_variable: wc
+              continue_on_error: true
+            - if: "{{ wc is defined and wc is mapping and wc.get('clear') == false }}"
+              then:
+                - action: timer.start
+                  target:
+                    entity_id: timer.topfloor_stairs_max
+                - stop: "攝影機畫面持續有人，不關，交給保底計時"
+            - if: "{{ wc is defined and wc is mapping and (wc.get('waited', 0) | int(0)) >= 2 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 頂樓動線
+                    message: "{{ now().strftime('%H:%M:%S') }} 關樓梯燈前攝影機畫面還有人，等 {{ wc.waited }} 秒人離開後才關（下樓）"
+                  continue_on_error: true
             - action: script.topfloor_stairs_off_one
               data:
                 key: "13b8"
@@ -260,6 +300,25 @@
         # 樓梯口清空：兩盞一起關
         - conditions: "{{ trigger.id == 'vacant' }}"
           sequence:
+            # V4.1.7：關燈前用攝影機畫面模型確認沒人；還有人就等人消失（最多 5 分鐘），仍有人交給保底計時
+            - action: script.topfloor_stairs_wait_clear
+              data:
+                need_cam_off: false
+              response_variable: wc
+              continue_on_error: true
+            - if: "{{ wc is defined and wc is mapping and wc.get('clear') == false }}"
+              then:
+                - action: timer.start
+                  target:
+                    entity_id: timer.topfloor_stairs_max
+                - stop: "攝影機畫面持續有人，不關，交給保底計時"
+            - if: "{{ wc is defined and wc is mapping and (wc.get('waited', 0) | int(0)) >= 2 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 頂樓動線
+                    message: "{{ now().strftime('%H:%M:%S') }} 關樓梯燈前攝影機畫面還有人，等 {{ wc.waited }} 秒人離開後才關（樓梯口清空）"
+                  continue_on_error: true
             - action: script.topfloor_stairs_off_one
               data:
                 key: "0fb7"
@@ -268,16 +327,28 @@
                 key: "13b8"
             - delay: "00:00:02"
             - action: script.topfloor_kandeng_off_if_auto
-        # 保底計時結束：仍有人（攝影機有人或 30 秒內走道 PIR 有動作）就續，否則關
+        # 保底計時結束：攝影機人員偵測或畫面模型還看到人就等人消失（最多 5 分鐘，仍有人保底計時重新開始），否則關
         - conditions: "{{ trigger.id == 'max' }}"
           sequence:
-            - if: >-
-                {{ is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'on') }}
+            # V4.1.7：關燈前用攝影機畫面模型確認沒人；還有人就等人消失（最多 5 分鐘），仍有人交給保底計時
+            - action: script.topfloor_stairs_wait_clear
+              data:
+                need_cam_off: true
+              response_variable: wc
+              continue_on_error: true
+            - if: "{{ wc is defined and wc is mapping and wc.get('clear') == false }}"
               then:
                 - action: timer.start
                   target:
                     entity_id: timer.topfloor_stairs_max
-                - stop: "仍有人，保底計時重新開始"
+                - stop: "攝影機畫面持續有人，不關，交給保底計時"
+            - if: "{{ wc is defined and wc is mapping and (wc.get('waited', 0) | int(0)) >= 2 }}"
+              then:
+                - action: logbook.log
+                  data:
+                    name: 頂樓動線
+                    message: "{{ now().strftime('%H:%M:%S') }} 關樓梯燈前攝影機畫面還有人，等 {{ wc.waited }} 秒人離開後才關（保底）"
+                  continue_on_error: true
             - if: >-
                 {{ is_state('input_boolean.topfloor_0fb7_auto', 'on') or is_state('input_boolean.topfloor_13b8_auto', 'on') }}
               then:

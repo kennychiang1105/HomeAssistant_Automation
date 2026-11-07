@@ -2,6 +2,8 @@
 # 104-1車庫鐵門感應燈AI (V4.2.0)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-11-07）：樓梯感應器提早關燈：等待 30 秒 → 60 秒，且 3 分鐘內有人按過樓梯燈／車庫主燈按鈕（要下樓）就不提早關，改走一般關燈流程。
+#           11-07 14:31 按樓梯燈下樓，感應器亮起 41 秒後才走進車庫，第 32 秒燈就被關（人還在樓梯上）；近 7 天下樓 45 次，感應器亮到走進車庫多為 10～33 秒，超過 30 秒的有 8 次（最長 41 秒，另有一次 123 秒）。
 # - V4.3.5（2026-11-06）：104-1B 手動關燈冷卻忽略「從 unavailable／unknown 變 off」：小燕網關看門狗每 2 小時（xx:15）重載，車庫主燈與樓梯燈 unavailable→unknown→off 被當成人按的，每次啟動 2 分鐘冷卻（06:15、08:15、10:15、12:15… 都有）。
 # - V4.3.4（2026-11-01）：車庫主燈「剛關閉再開」的防小燈保護由 5 秒加長為 10 秒：2026-11-01 15:24 模型提早關燈後隔 8 秒又開燈，硬體切到小燈（5 秒不夠）。
 # - V4.3.3（2026-11-01）：修正「樓梯感應器亮了只開樓梯燈、車庫主燈晚 13～33 秒才由攝影機開」：樓梯燈被本自動化開啟的事件又觸發本自動化（restart 模式），
@@ -210,13 +212,17 @@
           state: "closed"
 
         # 2a. 提早關燈（V4.3.1）
-        #   ① 樓梯感應器觸發後 30 秒：車庫攝影機沒人／車／動態、人體模型也看不到人 → 沒人走下樓，直接關燈（不等 5 分鐘）。
-        #      （米家感應器亮起後會保持約 1.5～3 分鐘才熄，所以「樓梯沒人」改用「30 秒內沒人出現在車庫」判斷；之後樓梯口再有動靜會重新開燈）
+        #   ① 樓梯感應器觸發後 60 秒（V4.3.6：原 30 秒）：車庫攝影機沒人／車／動態、人體模型也看不到人 → 沒人走下樓，直接關燈（不等 5 分鐘）。
+        #      （米家感應器亮起後會保持約 1.5～3 分鐘才熄，所以「樓梯沒人」改用「60 秒內沒人出現在車庫」判斷；之後樓梯口再有動靜會重新開燈）
+        #      V4.3.6：3 分鐘內有人按過樓梯燈／車庫主燈按鈕（input_text.terncy_btn_last）＝要下樓，不提早關，改走下面的一般流程。
         - if:
             - condition: template
-              value_template: "{{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' }}"
+              value_template: >-
+                {% set m = states('input_text.terncy_btn_last').split('|') %}
+                {% set manual = m | length == 2 and ('lou_ti_deng' in m[0] or 'che_ku_zhu_deng' in m[0]) and (as_timestamp(now()) - (m[1] | float(0))) < 180 %}
+                {{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' and not manual }}
           then:
-            - delay: "00:00:30"
+            - delay: "00:01:00"
             - if:
                 - condition: template
                   value_template: >-

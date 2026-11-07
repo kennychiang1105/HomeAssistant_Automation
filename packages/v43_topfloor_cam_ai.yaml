@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
 # 頂樓攝影機模型判斷 (V4.3.4-beta 3)
 # 更新紀錄（統一格式）：
+# - V4.3.10（2026-11-07）：新增 script.topfloor_stairs_wait_clear：08-5C 自動關樓梯燈前先抓一張快照用人物模型確認，畫面還有人就每 2 秒再看，等人消失才關（最多等 5 分鐘）；
+#   模型只看到人、攝影機 60 秒內沒有任何動作／人員偵測＝視為靜物誤判。開關 input_boolean.topfloor_stairs_off_cam_hold_enable。
 # - V4.3.4-beta 3（2026-10-28，測試中）：新增「最後去向」判斷：人消失超過 2.5 秒就依消失位置＋走動方向判斷去向（下樓梯／進書房／回臥室），發事件 topfloor_cam_exit 給 08-5J，
 #   由 08-5J 等實體訊號對照後才補發動線。獨立開關 input_boolean.topfloor_cam_ai_exit_enable；統計 input_number.topfloor_ai_exit／_agree／_disagree／_published。
 # - V4.3.4-beta 1（2026-10-28，測試中）：新增。頂樓攝影機有動靜（motion 或 person_detected）期間，每秒抓一張快照送 Garage Vision add-on（persons_only，只跑人物偵測），
@@ -15,6 +17,9 @@ input_boolean:
   topfloor_cam_ai_exit_enable:
     name: 頂樓攝影機模型判斷｜最後去向開關
     icon: mdi:door-open
+  topfloor_stairs_off_cam_hold_enable:
+    name: 頂樓樓梯燈｜自動關燈前畫面有人就等人消失
+    icon: mdi:account-eye
 
 input_text:
   topfloor_cam_ai_last:
@@ -81,8 +86,75 @@ input_number:
 shell_command:
   topfloor_track_frame: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --frame {{ frame | default('/config/www/snap/tf_cur.jpg') }} --t {{ ts }} {{ reset }}"
   topfloor_track_final: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --finalize"
+  topfloor_presence: "env OMP_NUM_THREADS=1 python3 /config/scripts/topfloor_track.py --presence --frame {{ frame }}"
 
 script:
+  topfloor_stairs_wait_clear:
+    alias: 頂樓樓梯燈關燈前｜攝影機畫面確認沒人 (V4.3.10)
+    description: >
+      08-5C 自動關樓梯燈前呼叫：抓一張頂樓攝影機快照，用人物模型（信心 ≥ 0.5）看畫面有沒有人；有人就每 2 秒再看一次，人消失才回傳 clear＝true（呼叫端接著關燈），
+      最多等 max_s 秒（預設 300）仍有人回傳 clear＝false（呼叫端不關，交給保底計時）。模型看到人、但攝影機 60 秒內完全沒有動作／人員偵測＝視為靜物誤判，不算有人；
+      模型連不上時改看攝影機人員偵測。need_cam_off＝true 時另外要等攝影機人員偵測也恢復無人（保底關燈用，維持原本「攝影機有人就續」）。
+      開關 input_boolean.topfloor_stairs_off_cam_hold_enable 關閉時直接回傳 clear＝true。
+    mode: parallel
+    max: 6
+    max_exceeded: silent
+    fields:
+      max_s:
+        description: 最多等幾秒（預設 300）
+        example: 300
+      need_cam_off:
+        description: 是否也要等攝影機人員偵測恢復無人
+        example: false
+    sequence:
+      - variables:
+          t0: "{{ now().timestamp() }}"
+          lim: "{{ max_s | default(300) | int(300) }}"
+          need_cam: "{{ need_cam_off | default(false) | bool(false) }}"
+      # 開關關閉：回到原本行為（保底關燈時攝影機有人＝不關，其餘直接關）
+      - if: "{{ is_state('input_boolean.topfloor_stairs_off_cam_hold_enable', 'off') }}"
+        then:
+          - variables:
+              result: "{{ {'clear': not (need_cam and is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'on')), 'waited': 0, 'skipped': true} }}"
+          - stop: 未啟用
+            response_variable: result
+      - repeat:
+          while:
+            - condition: template
+              value_template: "{{ now().timestamp() - t0 < lim }}"
+          sequence:
+            - action: camera.snapshot
+              target:
+                entity_id: camera.wu_lou_she_ying_ji_medium
+              data:
+                filename: /config/www/snap/tf_off_chk.jpg
+              continue_on_error: true
+            - action: shell_command.topfloor_presence
+              data:
+                frame: /config/www/snap/tf_off_chk.jpg
+              response_variable: pr
+              continue_on_error: true
+            - variables:
+                n: "{{ ((pr.stdout | from_json({})).get('persons', -1)) if (pr is defined and pr is mapping and pr.get('stdout')) else -1 }}"
+                cam_p: "{{ is_state('binary_sensor.wu_lou_she_ying_ji_person_detected', 'on') }}"
+                active: >-
+                  {% set a = states.binary_sensor.wu_lou_she_ying_ji_motion %}
+                  {% set b = states.binary_sensor.wu_lou_she_ying_ji_person_detected %}
+                  {{ (a is not none and (a.state == 'on' or (now().timestamp() - as_timestamp(a.last_changed)) < 60))
+                     or (b is not none and (b.state == 'on' or (now().timestamp() - as_timestamp(b.last_changed)) < 60)) }}
+                busy: "{{ (n | int(-1) > 0 and active) or (n | int(-1) < 0 and cam_p) or (need_cam and cam_p) }}"
+            - if: "{{ not busy }}"
+              then:
+                - variables:
+                    result: "{{ {'clear': true, 'waited': (now().timestamp() - t0) | round(0) | int, 'persons': n | int(-1)} }}"
+                - stop: 畫面沒有人
+                  response_variable: result
+            - delay: "00:00:02"
+      - variables:
+          result: "{{ {'clear': false, 'waited': (now().timestamp() - t0) | round(0) | int} }}"
+      - stop: 等太久仍有人
+        response_variable: result
+
   topfloor_cam_ai_exit:
     alias: 頂樓攝影機模型｜記錄最後去向 (V4.3.4-beta 3)
     description: 記錄模型判斷的最後去向（下樓梯／進書房／回臥室）並發事件 topfloor_cam_exit。由 topfloor_cam_ai_loop 呼叫，傳入 ex（topfloor_track.py 的 exit 結果）。
