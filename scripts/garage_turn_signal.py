@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """車尾左方向燈偵測（V4.3.0-beta 4）：看 3 秒短片，車尾左後角（車頭朝鐵門時＝畫面上車身的左側）的橘色像素比例隨時間一亮一滅＝打左方向燈。
 用法：garage_turn_signal.py --clip /config/www/snap/x.mp4 --slot front [--vision http://local-garage-vision:8099] [--side left]
-輸出 JSON：{blink, flashes, peak, floor, series, box, side}。--selftest 用合成序列驗證。只讀影片，不碰 HA。"""
+輸出 JSON：{blink, flashes, peak, floor, series, box, side, people}。--selftest 用合成序列驗證。只讀影片，不碰 HA。
+V4.3.16（2026-11-07）：查車身框的同一次 add-on 呼叫順便數畫面上「車外的人」（people，信心 ≥ PERSON_MIN；偵測到閃爍時再補看最後一幀，取較多者；add-on 連不上＝-1），
+  給 HA 判斷「人還沒全部上車」先不開鐵門。"""
 import argparse
 import glob
 import json
@@ -20,6 +22,25 @@ FPS = 10
 # 左後角區域（相對車身偵測框）：x 0～22%、y 18～56%
 # 真實影片校正（2026-10-27 Luxgen 左方向燈在尾燈長條最左端，約車身框左 4%、高度 31%）
 REGION = {'left': (0.0, 0.10, 0.24, 0.40), 'right': (0.90, 1.0, 0.24, 0.40)}
+# 「車外有人在走動」的信心門檻：11-07 14:33～14:34 實測，走動的人 0.84～0.93；坐在車內（隔著車窗）0.27～0.45；牆角靜物 0.25～0.33
+PERSON_MIN = 0.60
+VEHICLE_CLS = ('car', 'truck', 'bus', 'motorcycle')
+
+
+def in_car(pb, vb):
+    """人框是不是「坐在車裡」：85% 以上落在車身框內、頭在車頂以下、框底在車底以上（腳沒踩在地上）。
+    後位的車離鏡頭近，隔著車窗看到的駕駛信心可到 0.68～0.79（11-02 07:42）；站在車旁／後車廂的人頭會高過車頂或框底到地面，不會被排除
+    （11-07 05:37 搬後車廂、11-04 07:48 站在副駕門邊、11-07 14:34 走向副駕都保留）。"""
+    ix = max(0.0, min(pb[2], vb[2]) - max(pb[0], vb[0]))
+    iy = max(0.0, min(pb[3], vb[3]) - max(pb[1], vb[1]))
+    pa = max(1e-6, (pb[2] - pb[0]) * (pb[3] - pb[1]))
+    vh = vb[3] - vb[1]
+    return (ix * iy / pa) >= 0.85 and pb[1] >= vb[1] + 0.03 * vh and pb[3] <= vb[3] - 0.08 * vh
+
+
+def outside_people(persons, vboxes):
+    """車外的人：信心 ≥ PERSON_MIN、而且不是坐在任何一輛車裡。"""
+    return [p for p in persons if p.get('conf', 0) >= PERSON_MIN and p.get('box') and not any(in_car(p['box'], v) for v in vboxes)]
 
 
 def amber_frac(rgb):
@@ -95,12 +116,28 @@ def decide_both(sl, sr):
     return out
 
 
-def vision_box(url, jpg, roi, slot):
+def vision_query(url, jpg, roi, slot):
+    """車身框＋畫面上的人＋所有車輛框（同一次 add-on 呼叫）。回傳 (box 或 None, persons 清單, 車輛框清單)。"""
     q = 'slots=' + ';'.join('%s=%s' % (n, ','.join(str(x) for x in s['body'])) for n, s in roi['slots'].items()) + '&plate=0'
     req = urllib.request.Request(url.rstrip('/') + '/analyze?' + q, data=jpg, method='POST', headers={'Content-Type': 'image/jpeg'})
     with urllib.request.urlopen(req, timeout=30) as r:
-        d = ((json.loads(r.read().decode()).get('slots') or {}).get(slot) or {}).get('det')
-    return d['box'] if d else None
+        res = json.loads(r.read().decode())
+    d = ((res.get('slots') or {}).get(slot) or {}).get('det')
+    vboxes = [s['det']['box'] for s in (res.get('slots') or {}).values() if s.get('det') and s['det'].get('box')]
+    vboxes += [x['box'] for x in (res.get('dets') or []) if x.get('cls') in VEHICLE_CLS and x.get('conf', 0) >= 0.3 and x.get('box')]
+    return (d['box'] if d else None), (res.get('persons') or []), vboxes
+
+
+def vision_box(url, jpg, roi, slot):
+    return vision_query(url, jpg, roi, slot)[0]
+
+
+def vision_people(url, jpg):
+    """只跑人物偵測（較快），回傳 persons 清單。"""
+    req = urllib.request.Request(url.rstrip('/') + '/analyze?slots=front=0,0,1,1&plate=0&persons_only=1', data=jpg, method='POST',
+                                 headers={'Content-Type': 'image/jpeg'})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.loads(r.read().decode()).get('persons') or []
 
 
 def analyse_clip(clip, slot, side, vision, box_override=None):
@@ -113,11 +150,15 @@ def analyse_clip(clip, slot, side, vision, box_override=None):
         if r.returncode != 0 or len(frames) < 8:
             return {'error': 'ffmpeg: %s frames=%d %s' % (r.returncode, len(frames), r.stderr[:100])}
         box = box_override
-        if vision and not box:
+        people = None                      # None＝無法判斷（沒有 add-on 或連不上）
+        vboxes = []
+        if vision:
             try:
-                box = vision_box(vision, open(frames[len(frames) // 2], 'rb').read(), roi, slot)
+                vb, ps, vboxes = vision_query(vision, open(frames[len(frames) // 2], 'rb').read(), roi, slot)
+                box = box or vb
+                people = outside_people(ps, vboxes)
             except Exception:  # noqa: BLE001
-                box = None
+                pass
         if not box:
             box = roi['slots'][slot]['body']
         bw, bh = box[2] - box[0], box[3] - box[1]
@@ -138,7 +179,17 @@ def analyse_clip(clip, slot, side, vision, box_override=None):
             out = decide(ser[side])
             out['kind'] = side if out['blink'] else ''
             out['series'] = ser[side]
-        out.update({'side': side, 'slot': slot, 'box': [round(v, 3) for v in box]})
+        # 偵測到閃爍才補看最後一幀（最接近現在），兩幀取人數多的
+        if vision and out.get('blink') and people is not None:
+            try:
+                last = outside_people(vision_people(vision, open(frames[-1], 'rb').read()), vboxes)
+                if len(last) > len(people):
+                    people = last
+            except Exception:  # noqa: BLE001
+                pass
+        out.update({'side': side, 'slot': slot, 'box': [round(v, 3) for v in box],
+                    'people': len(people) if people is not None else -1,
+                    'people_conf': [round(p.get('conf', 0), 2) for p in (people or [])]})
         return out
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -186,6 +237,19 @@ def selftest():
     f = amber_frac(img)
     if not 0.2 < f < 0.3:
         err.append('橘色比例不對 %s（紅色不該算）' % f)
+    # 車內／車外的人（真實畫面的框，11-02、11-04、11-07）
+    lux, tes_b, tes_near = [0.48, 0.0, 0.96, 0.81], [0.0, 0.5, 0.6, 0.99], [0.0, 0.27, 0.83, 0.99]
+    for pb, vb, want, name in [([0.0, 0.48, 0.18, 0.78], tes_near, True, '11-02 後位駕駛（隔車窗）'),
+                               ([0.13, 0.35, 0.31, 0.68], [0.0, 0.19, 0.84, 0.99], True, '11-02 後位駕駛 2'),
+                               ([0.48, 0.09, 0.68, 0.86], lux, False, '11-07 05:37 搬後車廂'),
+                               ([0.87, 0.18, 1.0, 0.78], [0.34, 0.18, 0.91, 0.94], False, '11-04 站在副駕門邊'),
+                               ([0.27, 0.08, 0.40, 0.62], tes_b, False, '11-07 14:34 走向副駕'),
+                               ([0.60, 0.17, 0.66, 0.49], tes_near, False, '11-02 站在櫃子前')]:
+        if in_car(pb, vb) != want:
+            err.append('in_car 判斷錯：%s' % name)
+    ps = [{'conf': 0.9, 'box': [0.0, 0.48, 0.18, 0.78]}, {'conf': 0.88, 'box': [0.48, 0.09, 0.68, 0.86]}, {'conf': 0.4, 'box': [0.1, 0.28, 0.14, 0.52]}]
+    if len(outside_people(ps, [tes_near, lux])) != 1:
+        err.append('outside_people 應只剩搬後車廂的人 %s' % outside_people(ps, [tes_near, lux]))
     print(json.dumps({'selftest': 'PASS' if not err else 'FAIL', 'errors': err}, ensure_ascii=False))
     return 0 if not err else 1
 

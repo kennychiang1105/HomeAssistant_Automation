@@ -946,3 +946,5 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - 104-1車庫鐵門感應燈AI V4.3.5（2026-11-06）：104-1B 手動關燈冷卻忽略 unavailable／unknown→off（小燕網關每 2 小時重載造成的假手動關燈）
 - notify_body.jinja V4.3.15（2026-11-06）：LINE 專屬卡片第三批：二樓門鎖虛掩、鐵門連線不穩、05A 緊急模式（舊版）、伺服器維護預告、通知測試、手動通知
 - 22頂樓電風扇自動化AI V4.1.6（2026-11-07）：晚安情境開著也套用睡眠降速（-10%）
+- v42_garage_cars.yaml V4.3.16／garage_turn_signal.py（2026-11-07）：方向燈自動開門加「等人上車」：短片裡車外還有人（模型信心 ≥ 0.6，排除隔著車窗看到、坐在車裡的人）或 4 秒內剛看到人就先不開，等人都上車、下一段短片仍偵測到方向燈才開；新增 script.garage_board_check、input_boolean.garage_turn_wait_board_enable、input_datetime.garage_board_seen_last
+- 08-5C頂樓樓梯感應燈AI V4.1.7／v43_topfloor_cam_ai.yaml V4.3.10／topfloor_track.py --presence（2026-11-07）：自動關樓梯燈前用攝影機畫面模型確認，畫面還有人就等人消失才關（最多 5 分鐘）；新增 script.topfloor_stairs_wait_clear、input_boolean.topfloor_stairs_off_cam_hold_enable

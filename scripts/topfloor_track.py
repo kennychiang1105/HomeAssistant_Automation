@@ -13,6 +13,7 @@ V4.3.6：改用人體姿態模型找人（Garage Vision 0.4.0 pose=1，近 3 天
   python3 topfloor_track.py --finalize                                                                      # 動靜結束：輸出最後分類並清掉軌跡
   python3 topfloor_track.py --replay-clip clip.mp4 [--fps 1]                                                # 回放錄影（和上線同一套邏輯）
   python3 topfloor_track.py --selftest
+  python3 topfloor_track.py --presence --frame /config/www/snap/tf_off_chk.jpg [--min-conf 0.5]                # V4.3.10：關樓梯燈前確認這張快照有沒有人（輸出 persons 數，-1＝模型連不上）
 """
 import argparse
 import glob
@@ -286,6 +287,18 @@ def cmd_frame(a):
     print(json.dumps(out, ensure_ascii=False))
 
 
+def cmd_presence(a):
+    """V4.3.10：08-5C 自動關樓梯燈前確認畫面有沒有人。只看人物偵測，不碰軌跡狀態（track.json）。"""
+    cfg = load_cfg(a.dir)
+    mc = a.min_conf if a.min_conf is not None else max(cfg['min_conf'], 0.5)
+    try:
+        persons = [p for p in vision_persons(a.vision, a.frame) if p.get('conf', 0) >= mc]
+    except Exception as e:  # noqa: BLE001
+        print(json.dumps({'persons': -1, 'error': str(e)[:120]}))
+        return
+    print(json.dumps({'persons': len(persons), 'boxes': [[round(v, 3) for v in (p.get('box') or [])] + [round(p.get('conf', 0), 2)] for p in persons]}))
+
+
 COLLECT_DIR = '/config/learn_collect/topfloor'
 COLLECT_KEEP_DAYS = 14
 
@@ -453,9 +466,13 @@ def main():
     ap.add_argument('--replay-clip')
     ap.add_argument('--fps', type=float, default=1.0)
     ap.add_argument('--selftest', action='store_true')
+    ap.add_argument('--presence', action='store_true', help='只確認這張快照有沒有人（關燈前用）')
+    ap.add_argument('--min-conf', type=float, help='--presence 的人物信心門檻（預設 max(min_conf, 0.5)）')
     a = ap.parse_args()
     if a.selftest:
         sys.exit(selftest())
+    if a.presence and a.frame:
+        return cmd_presence(a)
     if a.replay_clip:
         return cmd_replay(a)
     if a.finalize:
