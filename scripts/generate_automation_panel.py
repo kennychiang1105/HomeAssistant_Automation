@@ -862,9 +862,13 @@ EARTHQUAKE_JS = r"""[[[
 ]]]"""
 
 
+class PinnedBlock(list):
+    """標記「要固定在右欄最上面、而且同一欄」的區塊（view() 會特別處理）。"""
+
+
 def disaster_blocks():
-    return [section(heading("氣象與災害告警", "mdi:weather-hurricane") + _text_card("sensor.disaster", DISASTER_JS)),
-            section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]
+    return [PinnedBlock(x) for x in [section(heading("氣象與災害告警", "mdi:weather-hurricane") + _text_card("sensor.disaster", DISASTER_JS)),
+            section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]]
 
 
 FAMILY_OTHER = "其他（自訂，在下方欄位輸入 device_tracker）"   # 必須和 scripts/gen_person_main_device.py 的 OTHER 一樣
@@ -1057,7 +1061,7 @@ LISTCARD_RECENT = r"""[[[
   const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
   const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
     <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-    <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
   const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
 
   const now = Date.now();
@@ -1066,7 +1070,7 @@ LISTCARD_RECENT = r"""[[[
     .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
   const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
   const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join(''), '最近 24 小時沒有自動化被觸發。');
+  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details style="border-top:.5px solid rgba(128,128,128,.28)"><summary style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
 ]]]"""
 LISTCARD_OFF = r"""[[[
   const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1074,7 +1078,7 @@ LISTCARD_OFF = r"""[[[
   const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
   const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
     <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-    <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
   const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
 
   const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
@@ -1222,10 +1226,30 @@ def view(title, path, icon, blocks):
     L = [f"  - title: {q(title)}", f"    path: {path}", f"    icon: {icon}", "    type: custom:vertical-layout",
          "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}",
          "      mediaquery:", "        '(min-width: 1000px)':", "          width: 460", "    cards:"]
+    pinned = [b for b in blocks if isinstance(b, PinnedBlock)]
+    blocks = [b for b in blocks if not isinstance(b, PinnedBlock)]
     units = [[b] for b in blocks]
     if len(units) > 1:                     # 開頭的說明卡永遠跟下一張卡片放在同一欄，不會自己佔一欄
         units = [units[0] + units[1]] + units[2:]
-    parts = partition([sum(est_height(b) for b in u) for u in units], COLS)
+    hs = [sum(est_height(b) for b in u) for u in units]
+    if pinned and COLS >= 2 and len(units) >= 2:
+        # 災害告警＋地震報告固定在「右欄最上面」且同一欄；其餘卡片切成左右兩欄，讓右欄（含這兩張）和左欄高度盡量接近
+        hp = sum(est_height(b) for b in pinned)
+        k = min(range(1, len(units)), key=lambda i: max(sum(hs[:i]), sum(hs[i:]) + hp))
+        for u in units[:k]:
+            for blk in u:
+                L += blk
+        L.append("    - type: custom:layout-break")
+        for blk in pinned:
+            L += blk
+        for u in units[k:]:
+            for blk in u:
+                L += blk
+        return L
+    for blk in pinned:
+        units.append([blk])
+        hs.append(est_height(blk))
+    parts = partition(hs, COLS)
     for n, (a, b) in enumerate(parts):
         if n:
             L.append("    - type: custom:layout-break")

@@ -491,6 +491,7 @@ views:
             - justify-self: start
             - color: '#34C759'
             - font-weight: 600
+    - type: custom:layout-break
     - type: vertical-stack
       card_mod:
         style: |
@@ -578,7 +579,6 @@ views:
               const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '';
               return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
             ]]]
-    - type: custom:layout-break
     - type: vertical-stack
       card_mod:
         style: |
@@ -807,7 +807,7 @@ views:
               const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
               const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
                 <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-                <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
               const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
             
               const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
@@ -856,7 +856,7 @@ views:
               const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
               const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
                 <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-                <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
               const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
             
               const now = Date.now();
@@ -865,7 +865,7 @@ views:
                 .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
               const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
               const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-              return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join(''), '最近 24 小時沒有自動化被觸發。');
+              return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details style="border-top:.5px solid rgba(128,128,128,.28)"><summary style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
             ]]]
   - title: "耗材與額度"
     path: supply
@@ -2404,6 +2404,69 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
+        heading: "平常開著（23）"
+        heading_style: title
+        icon: mdi:toggle-switch
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: custom:button-card
+        template: prows
+        variables:
+          items: [["automation.di_zhen_zai_hai_xi_tong", "01地震災害系統", "on"], ["automation.di_zhen_zai_hai_xi_tong_an_niu", "02地震災害系統 (按鈕)", "on"], ["automation.03emiao_li_shu_san_jing_bao", "03E苗栗疏散警報", "on"], ["automation.ai_miaoli_weather_disaster_notify", "03苗栗天氣告知系統AI", "on"], ["automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "04苗栗天氣告知系統 (按鈕)", "on"], ["automation.jin_ji_mo_shi", "05A緊急模式", "on"], ["automation.ai_05b_emergency_mode_notify_v3", "05B緊急模式通知AI", "on"], ["automation.ai_05c_emergency_button_auto_reset_v3", "05C按鈕自動復位AI", "on"], ["automation.ai_05d_emergency_virtual_button_bridge_v3", "05D緊急模式虛擬按鈕AI", "on"], ["automation.a05ejin_ji_shi_ti_an_niu", "05E緊急實體按鈕", "on"], ["automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "05F緊急模式快照到期AI"], ["automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "05G緊急三擊維修暫停AI"], ["automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "TREM 預警客戶端看門狗AI"], ["automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "地牛 add-on 預警接收AI"], ["input_boolean.notify_line_emergency_enable", "LINE通知啟用_緊急", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒_緊急級", "on"], ["input_boolean.notify_ha_disaster_emergency_enable", "災害訊息 HA 通知｜緊急類", "on"], ["input_boolean.notify_ha_disaster_important_enable", "災害訊息 HA 通知｜重要類", "on"], ["input_boolean.notify_line_disaster_emergency_enable", "災害訊息 LINE 通知｜緊急類", "on"], ["input_boolean.notify_line_disaster_important_enable", "災害訊息 LINE 通知｜重要類", "on"], ["input_boolean.announce_disaster_emergency_enable", "災害訊息廣播｜緊急類", "on"], ["input_boolean.announce_disaster_important_enable", "災害訊息廣播｜重要類", "on"], ["input_boolean.emergency_restore_enable", "緊急模式快照還原（總開關）", "on"]]
+        triggers_update: ["automation.di_zhen_zai_hai_xi_tong", "automation.di_zhen_zai_hai_xi_tong_an_niu", "automation.03emiao_li_shu_san_jing_bao", "automation.ai_miaoli_weather_disaster_notify", "automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "automation.jin_ji_mo_shi", "automation.ai_05b_emergency_mode_notify_v3", "automation.ai_05c_emergency_button_auto_reset_v3", "automation.ai_05d_emergency_virtual_button_bridge_v3", "automation.a05ejin_ji_shi_ti_an_niu", "automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "input_boolean.notify_line_emergency_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.notify_ha_disaster_emergency_enable", "input_boolean.notify_ha_disaster_important_enable", "input_boolean.notify_line_disaster_emergency_enable", "input_boolean.notify_line_disaster_important_enable", "input_boolean.announce_disaster_emergency_enable", "input_boolean.announce_disaster_important_enable", "input_boolean.emergency_restore_enable"]
+    - type: vertical-stack
+      card_mod:
+        style: |
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      cards:
+      - type: heading
+        heading: "平常關著（1）"
+        heading_style: title
+        icon: mdi:toggle-switch-off-outline
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: custom:button-card
+        template: prows
+        variables:
+          items: [["input_boolean.emergency_triple_press_pause", "緊急三擊維修暫停", "off"]]
+        triggers_update: ["input_boolean.emergency_triple_press_pause"]
+    - type: vertical-stack
+      card_mod:
+        style: |
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      cards:
+      - type: heading
+        heading: "災害訊息通知與廣播"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_button.di_zhen_xi_tong_guang_bo
+            name: "地震系統廣播"
+          - entity: input_button.tian_qi_jing_xun_guang_bo
+            name: "天氣警訊廣播"
+          - entity: input_number.disaster_item_memory_hr
+            name: "非急迫災害訊息｜同一項目不重複通知的時間（小時）"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      card_mod:
+        style: |
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      cards:
+      - type: heading
         heading: "氣象與災害告警"
         heading_style: title
         icon: mdi:weather-hurricane
@@ -2565,69 +2628,6 @@ views:
               }
               return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
             ]]]
-    - type: vertical-stack
-      card_mod:
-        style: |
-          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
-          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
-      cards:
-      - type: heading
-        heading: "平常開著（23）"
-        heading_style: title
-        icon: mdi:toggle-switch
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        template: prows
-        variables:
-          items: [["automation.di_zhen_zai_hai_xi_tong", "01地震災害系統", "on"], ["automation.di_zhen_zai_hai_xi_tong_an_niu", "02地震災害系統 (按鈕)", "on"], ["automation.03emiao_li_shu_san_jing_bao", "03E苗栗疏散警報", "on"], ["automation.ai_miaoli_weather_disaster_notify", "03苗栗天氣告知系統AI", "on"], ["automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "04苗栗天氣告知系統 (按鈕)", "on"], ["automation.jin_ji_mo_shi", "05A緊急模式", "on"], ["automation.ai_05b_emergency_mode_notify_v3", "05B緊急模式通知AI", "on"], ["automation.ai_05c_emergency_button_auto_reset_v3", "05C按鈕自動復位AI", "on"], ["automation.ai_05d_emergency_virtual_button_bridge_v3", "05D緊急模式虛擬按鈕AI", "on"], ["automation.a05ejin_ji_shi_ti_an_niu", "05E緊急實體按鈕", "on"], ["automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "05F緊急模式快照到期AI"], ["automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "05G緊急三擊維修暫停AI"], ["automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "TREM 預警客戶端看門狗AI"], ["automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "地牛 add-on 預警接收AI"], ["input_boolean.notify_line_emergency_enable", "LINE通知啟用_緊急", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒_緊急級", "on"], ["input_boolean.notify_ha_disaster_emergency_enable", "災害訊息 HA 通知｜緊急類", "on"], ["input_boolean.notify_ha_disaster_important_enable", "災害訊息 HA 通知｜重要類", "on"], ["input_boolean.notify_line_disaster_emergency_enable", "災害訊息 LINE 通知｜緊急類", "on"], ["input_boolean.notify_line_disaster_important_enable", "災害訊息 LINE 通知｜重要類", "on"], ["input_boolean.announce_disaster_emergency_enable", "災害訊息廣播｜緊急類", "on"], ["input_boolean.announce_disaster_important_enable", "災害訊息廣播｜重要類", "on"], ["input_boolean.emergency_restore_enable", "緊急模式快照還原（總開關）", "on"]]
-        triggers_update: ["automation.di_zhen_zai_hai_xi_tong", "automation.di_zhen_zai_hai_xi_tong_an_niu", "automation.03emiao_li_shu_san_jing_bao", "automation.ai_miaoli_weather_disaster_notify", "automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "automation.jin_ji_mo_shi", "automation.ai_05b_emergency_mode_notify_v3", "automation.ai_05c_emergency_button_auto_reset_v3", "automation.ai_05d_emergency_virtual_button_bridge_v3", "automation.a05ejin_ji_shi_ti_an_niu", "automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "input_boolean.notify_line_emergency_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.notify_ha_disaster_emergency_enable", "input_boolean.notify_ha_disaster_important_enable", "input_boolean.notify_line_disaster_emergency_enable", "input_boolean.notify_line_disaster_important_enable", "input_boolean.announce_disaster_emergency_enable", "input_boolean.announce_disaster_important_enable", "input_boolean.emergency_restore_enable"]
-    - type: custom:layout-break
-    - type: vertical-stack
-      card_mod:
-        style: |
-          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
-          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
-      cards:
-      - type: heading
-        heading: "平常關著（1）"
-        heading_style: title
-        icon: mdi:toggle-switch-off-outline
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:button-card
-        template: prows
-        variables:
-          items: [["input_boolean.emergency_triple_press_pause", "緊急三擊維修暫停", "off"]]
-        triggers_update: ["input_boolean.emergency_triple_press_pause"]
-    - type: vertical-stack
-      card_mod:
-        style: |
-          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
-          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
-      cards:
-      - type: heading
-        heading: "災害訊息通知與廣播"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_button.di_zhen_xi_tong_guang_bo
-            name: "地震系統廣播"
-          - entity: input_button.tian_qi_jing_xun_guang_bo
-            name: "天氣警訊廣播"
-          - entity: input_number.disaster_item_memory_hr
-            name: "非急迫災害訊息｜同一項目不重複通知的時間（小時）"
-        card_mod: *cm
     - type: vertical-stack
       card_mod:
         style: |
