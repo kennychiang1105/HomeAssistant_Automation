@@ -121,8 +121,8 @@ stage_scene:
               handover: >-
                 {{ scene == 'stairs_off'
                    and 'light.yeelink_color5_0fb7_light' in (repeat.item if repeat.item is iterable and repeat.item is not string else [repeat.item])
-                   and is_state('input_boolean.topfloor_13b8_auto', 'on')
-                   and is_state('light.yeelink_color5_13b8_light', 'on')
+                   and (is_state('input_boolean.topfloor_0fb7_auto', 'on')
+                        or (is_state('input_boolean.topfloor_13b8_auto', 'on') and is_state('light.yeelink_color5_13b8_light', 'on')))
                    and is_state('input_boolean.topfloor_stairs_keep_on', 'off')
                    and is_state('light.yeelink_color5_0fb7_light', 'on') }}
               ring_items: >-
