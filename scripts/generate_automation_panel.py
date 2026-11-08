@@ -735,79 +735,19 @@ def supply_control_section():
 
 
 def supply_view(title, path, icon, autos):
-    """耗材與額度分頁（依裝置尺寸響應式排版）：
-    - 三欄（橫向寬螢幕）：Col 1 LINE Bot 全套、Col 2 電池壽命+耗材設定、Col 3 清淨機濾網+自動化（三欄維持不變）
-    - 雙欄（iPad 直向/中寬度）：Col 1 LINE Bot 全套、Col 2 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
-    - 單欄（手機/窄視窗）：LINE Bot 全套 ➔ 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
-    採用 custom:grid-layout 搭配 mediaquery 精準達成各裝置尺寸響應排版。
-    """
+    """耗材與額度分頁：和其他分頁一樣用 view()（custom:vertical-layout）排版，欄寬、置中、分區底色區塊完全一致。"""
     auto_rows = [(eid, fn) for fn, eid in sorted(autos.get("supply", []))]
-    has_auto = bool(auto_rows)
-
-    col1_cards = (
-        heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
-        + linebot_forecast_banner()
-        + quota_section()
-        + quota_settings()
-    )
-    battery_cards = battery_forecast_section()
-    filter_cards = filter_life_section()
-    settings_cards = supply_control_section()
-    auto_cards = heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if has_auto else []
-
-    if has_auto:
-        areas_3col = '        "col1 battery"\n        "col1 filter"\n        "col1 settings"\n        "col1 auto"'
-        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"\n            "col1 auto"'
-        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"\n            "auto"'
-    else:
-        areas_3col = '        "col1 battery"\n        "col1 filter"\n        "col1 settings"'
-        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"'
-        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"'
-
-    L = [
-        f"  - title: {q(title)}",
-        f"    path: {path}",
-        f"    icon: {icon}",
-        "    type: custom:grid-layout",
-        "    layout:",
-        "      grid-template-columns: repeat(2, minmax(0, 480px))",
-        "      justify-content: center",
-        "      grid-gap: 8px",
-        "      margin: 0",
-        "      align-items: start",
-        "      grid-template-areas: |",
-        areas_3col,
-        "      mediaquery:",
-        '        "(max-width: 768px)":',
-        "          grid-template-columns: minmax(0, 1fr)",
-        "          grid-template-areas: |",
-        areas_1col,
-        '        "(max-width: 900px)":',
-        "          grid-template-columns: minmax(0, 1fr)",
-        "          grid-template-areas: |",
-        areas_1col,
-        "    cards:",
-    ]
-
-    def _grid_stack(area, cards_lines):
-        out = [
-            "      - type: vertical-stack",
-            "        view_layout:",
-            f"          grid-area: {area}",
-            "        cards:",
-        ]
-        for ln in cards_lines:
-            out.append("  " + ln)
-        return out
-
-    L += _grid_stack("col1", col1_cards)
-    L += _grid_stack("battery", battery_cards)
-    L += _grid_stack("filter", filter_cards)
-    L += _grid_stack("settings", settings_cards)
-    if has_auto:
-        L += _grid_stack("auto", auto_cards)
-
-    return L
+    desc = next((d for k, t, ic, d in CATS if k == "supply"), "")
+    B = [section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS),
+         section(heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant") + linebot_forecast_banner()),
+         section(quota_section()),
+         section(quota_settings()),
+         section(battery_forecast_section()),
+         section(filter_life_section()),
+         section(supply_control_section())]
+    if auto_rows:
+        B.append(section(heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows)))
+    return view(title, path, icon, B)
 
 
 def _text_card(entity, js):
