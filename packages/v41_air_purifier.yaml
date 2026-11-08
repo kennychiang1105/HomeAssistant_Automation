@@ -1,6 +1,11 @@
 # 空氣清淨機整合 AI 輔助項目（V4.1.0，2026-10-10；C／項目 6）
 # 由 07空氣清淨機整合AI 使用。濾網壽命不在這裡（由 00-2C 負責）。
 # V4.2.0：移除 air_ai_shadow（影子模式，2026-10-10 已核准關閉，新 07 實際運作）。
+# V4.3.0（2026-11-08）：新增 input_boolean.air_door_pause_enable（二樓大門開著不自動開、運轉中門開 3 分鐘先關、關門後恢復）。
+input_boolean:
+  air_door_pause_enable:
+    name: 空氣清淨機｜二樓大門開著不自動運轉
+    icon: mdi:door-open
 input_number:
   air_pm_start:
     name: PM2.5 啟動門檻

@@ -1,13 +1,17 @@
 # ──────────────────────────────────────────────
 # 07空氣清淨機整合AI (V4.2.0)
 # 更新紀錄：
+# - V4.3.0（2026-11-08）：二樓大門開著不浪費：①一般情況（PM2.5 超過啟動門檻、一般通知）門開著不自動開，記錄原因、通知改說「關門後會自動啟動」；
+#           ②運轉中二樓大門打開超過 3 分鐘先關（最近一次是手動開的不關；PM2.5 達嚴重門檻也不關）；③關門 1 分鐘後空氣仍不好（超過啟動門檻，或剛因開門暫停且仍高於關閉門檻）自動恢復；
+#           ④嚴重（>150）、非常嚴重（>300）照樣啟動（健康優先），通知加提醒關門。門狀態＝binary_sensor.0x54ef4410007ac23c_door_state（門鎖 Door is open／closed）；
+#           HA 重啟後是 unknown，改看門鎖狀態 sensor.0x54ef4410007ac23c_lock 是否 open，都不知道就當作關著（照原本運作）。開關 input_boolean.air_door_pause_enable。
 # - V4.2.0（2026-10-18）：移除影子模式（air_ai_shadow 已於 2026-10-10 核准關閉，程式碼與 helper 一併刪除），行為不變；舊 07／07-1～07-4 已不存在。
 # - V4.1.0（2026-10-10）：新增。整合舊 07／07-1／07-2／07-3／07-4（device 觸發）為單一自動化、具名分支，門檻全改 helper（packages/v41_air_purifier.yaml）。
 #   分支：start（PM2.5 超過啟動門檻或回到在家）／notice（>30 持續10分鐘）／severe（>150 持續10分鐘，LINE）／very_severe（>300 即時，加強運作）／stop（<10 持續5分鐘）／manual_off（記錄手動關機）。
 #   同等級通知冷卻 30 分鐘；手動關機（非自動化造成，parent_id 為空）後 30 分鐘不自動重啟。濾網壽命不在這裡（由 00-2C 負責）。
 # ──────────────────────────────────────────────
 - id: ai_07_air_purifier_v41
-  alias: 07空氣清淨機整合AI (V4.2.0)
+  alias: 07空氣清淨機整合AI (V4.3.0)
   description: >
     PM2.5 啟動／一般通知／嚴重通知／非常嚴重加強／自動關閉整合版。
   mode: queued
@@ -32,6 +36,11 @@
       {{ (now_ts - (cd_map.get(trigger.id, 0) | int(0))) >= cooldown_s }}
     manual_hold: "{{ (now_ts - (cd_map.get('manual_off', 0) | int(0))) < hold_s }}"
     night: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"
+    # V4.3.0：二樓大門開著（門鎖門狀態；重啟後未知時看門鎖狀態是否 open）
+    door_open: >-
+      {% set d = states('binary_sensor.0x54ef4410007ac23c_door_state') %}
+      {{ d == 'on' or (d in ['unknown', 'unavailable'] and is_state('sensor.0x54ef4410007ac23c_lock', 'open')) }}
+    door_block: "{{ is_state('input_boolean.air_door_pause_enable', 'on') and door_open }}"
   triggers:
     - trigger: numeric_state
       id: start
@@ -72,6 +81,26 @@
       entity_id: fan.kong_qi_qing_jing_ji
       to: "off"
       from: "on"
+    # V4.3.0：二樓大門
+    - trigger: state
+      id: manual_on
+      alias: "[風扇] 開啟（判斷是否手動）"
+      entity_id: fan.kong_qi_qing_jing_ji
+      to: "on"
+      from: "off"
+    - trigger: state
+      id: door_opened
+      alias: "[二樓大門] 開著 3 分鐘"
+      entity_id: binary_sensor.0x54ef4410007ac23c_door_state
+      to: "on"
+      for: "00:03:00"
+    - trigger: state
+      id: door_closed
+      alias: "[二樓大門] 關上 1 分鐘"
+      entity_id: binary_sensor.0x54ef4410007ac23c_door_state
+      from: "on"
+      to: "off"
+      for: "00:01:00"
   conditions: []
   actions:
     - choose:
@@ -93,6 +122,103 @@
                 name: 07空氣清淨機整合AI
                 message: "偵測到手動關機，{{ (hold_s / 60) | int }} 分鐘內不自動重啟"
                 entity_id: fan.kong_qi_qing_jing_ji
+        - alias: "手動開機：記錄時間（開門時不自動關手動開的）"
+          conditions:
+            - condition: trigger
+              id: manual_on
+            - condition: template
+              value_template: "{{ trigger.to_state.context.parent_id is none }}"
+          sequence:
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.air_ai_state
+              data:
+                value: >-
+                  {% for k, v in dict(cd_map, **{'manual_on': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
+        - alias: "二樓大門開著 3 分鐘：先關空氣清淨機（手動開的、PM2.5 嚴重時不關）"
+          conditions:
+            - condition: trigger
+              id: door_opened
+            - condition: state
+              entity_id: input_boolean.air_door_pause_enable
+              state: "on"
+            - condition: state
+              entity_id: fan.kong_qi_qing_jing_ji
+              state: "on"
+            - condition: template
+              value_template: "{{ (cd_map.get('manual_on', 0) | int(0)) <= (cd_map.get('auto_on', 0) | int(0)) }}"
+            - condition: template
+              value_template: "{{ pm < (states('input_number.air_pm_severe') | float(150)) }}"
+          sequence:
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.air_ai_state
+              data:
+                value: >-
+                  {% for k, v in dict(cd_map, **{'door_paused': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
+            - action: logbook.log
+              data:
+                name: 07空氣清淨機整合AI
+                message: "二樓大門開著超過 3 分鐘，先關空氣清淨機（PM2.5 {{ pm | int }}），關門後會恢復"
+                entity_id: fan.kong_qi_qing_jing_ji
+            - action: fan.turn_off
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji
+        - alias: "二樓大門關上 1 分鐘：空氣仍不好就恢復"
+          conditions:
+            - condition: trigger
+              id: door_closed
+            - condition: state
+              entity_id: input_boolean.air_door_pause_enable
+              state: "on"
+            - condition: state
+              entity_id: input_boolean.aqara_zai_jia
+              state: "on"
+            - condition: state
+              entity_id: fan.kong_qi_qing_jing_ji
+              state: "off"
+            - condition: template
+              value_template: "{{ not manual_hold }}"
+            - condition: template
+              value_template: >-
+                {% set paused = (now_ts - (cd_map.get('door_paused', 0) | int(0))) < 10800 %}
+                {{ pm > (states('input_number.air_pm_start') | float(25))
+                   or (paused and pm >= (states('input_number.air_pm_stop') | float(10))) }}
+          sequence:
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.air_ai_state
+              data:
+                value: >-
+                  {% for k, v in dict(cd_map, **{'auto_on': now_ts, 'door_paused': 0}).items() %}{{ k }}={{ v | int }};{% endfor %}
+            - action: logbook.log
+              data:
+                name: 07空氣清淨機整合AI
+                message: "二樓大門關上，空氣清淨機恢復運作（PM2.5 {{ pm | int }}）"
+                entity_id: fan.kong_qi_qing_jing_ji
+            - action: fan.turn_on
+              target:
+                entity_id: fan.kong_qi_qing_jing_ji
+        - alias: "啟動條件成立但二樓大門開著：不啟動，只記錄"
+          conditions:
+            - condition: trigger
+              id: start
+            - condition: template
+              value_template: "{{ door_block }}"
+            - condition: state
+              entity_id: input_boolean.aqara_zai_jia
+              state: "on"
+            - condition: template
+              value_template: "{{ pm > (states('input_number.air_pm_start') | float(25)) }}"
+            - condition: state
+              entity_id: fan.kong_qi_qing_jing_ji
+              state: "off"
+          sequence:
+            - action: logbook.log
+              data:
+                name: 07空氣清淨機整合AI
+                message: "PM2.5 {{ pm | int }} 超過啟動門檻，但二樓大門開著，先不開空氣清淨機（關門後會自動啟動）"
+                entity_id: fan.kong_qi_qing_jing_ji
         - alias: "啟動：在家、PM2.5 高、風扇關、非手動關機保護期"
           conditions:
             - condition: trigger
@@ -113,6 +239,12 @@
                 name: 07空氣清淨機整合AI
                 message: "已啟動空氣清淨機（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.air_ai_state
+              data:
+                value: >-
+                  {% for k, v in dict(cd_map, **{'auto_on': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
             - action: fan.turn_on
               target:
                 entity_id: fan.kong_qi_qing_jing_ji
@@ -126,24 +258,23 @@
             - condition: template
               value_template: "{{ cd_ok }}"
           sequence:
+            - variables:
+                will_on: "{{ is_state('fan.kong_qi_qing_jing_ji', 'off') and not manual_hold and not door_block }}"
             - alias: "記錄通知時間（冷卻用）"
               action: input_text.set_value
               target:
                 entity_id: input_text.air_ai_state
               data:
                 value: >-
-                  {% for k, v in dict(cd_map, **{'notice': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
+                  {% for k, v in dict(cd_map, **({'notice': now_ts, 'auto_on': now_ts} if will_on else {'notice': now_ts})).items() %}{{ k }}={{ v | int }};{% endfor %}
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
-                message: "已發一般通知並啟動（PM2.5 {{ pm | int }}）"
+                message: "{{ '已發一般通知並啟動' if will_on else ('已發一般通知，二樓大門開著先不啟動' if door_block and is_state('fan.kong_qi_qing_jing_ji', 'off') else '已發一般通知') }}（PM2.5 {{ pm | int }}）"
                 entity_id: fan.kong_qi_qing_jing_ji
             - if:
-                - condition: state
-                  entity_id: fan.kong_qi_qing_jing_ji
-                  state: "off"
                 - condition: template
-                  value_template: "{{ not manual_hold }}"
+                  value_template: "{{ will_on }}"
               then:
                 - action: fan.turn_on
                   target:
@@ -153,10 +284,12 @@
                 level: general
                 line: false
                 source: 07空氣清淨機整合AI
-                version: V4.2.0
+                version: V4.3.0
                 title: 空氣品質變差
-                message: "偵測到空氣品質變差（PM2.5 {{ pm | int }}），空氣清淨機運作中。"
-                voice: "{{ none if night else '智慧家庭通知，偵測到空氣品質變差，空氣清淨機運作中。' }}"
+                message: >-
+                  {% if door_block and not is_state('fan.kong_qi_qing_jing_ji', 'on') and not will_on %}偵測到空氣品質變差（PM2.5 {{ pm | int }}）。二樓大門開著，先不開空氣清淨機，關門後會自動啟動。{% else %}偵測到空氣品質變差（PM2.5 {{ pm | int }}），空氣清淨機運作中。{% endif %}
+                voice: >-
+                  {% if night %}{{ none }}{% elif door_block and not is_state('fan.kong_qi_qing_jing_ji', 'on') and not will_on %}智慧家庭通知，偵測到空氣品質變差，二樓大門開著，關門後空氣清淨機會自動啟動。{% else %}智慧家庭通知，偵測到空氣品質變差，空氣清淨機運作中。{% endif %}
         - alias: "嚴重通知：>150 持續10分鐘（LINE）"
           conditions:
             - condition: trigger
@@ -183,6 +316,12 @@
                   entity_id: fan.kong_qi_qing_jing_ji
                   state: "off"
               then:
+                - action: input_text.set_value
+                  target:
+                    entity_id: input_text.air_ai_state
+                  data:
+                    value: >-
+                      {% for k, v in dict(cd_map, **{'severe': now_ts, 'auto_on': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
                 - action: fan.turn_on
                   target:
                     entity_id: fan.kong_qi_qing_jing_ji
@@ -191,9 +330,9 @@
                 level: important
                 line: true
                 source: 07空氣清淨機整合AI
-                version: V4.2.0
+                version: V4.3.0
                 title: 空氣品質嚴重變差
-                message: "空氣品質較差（PM2.5 {{ pm | int }}），空氣清淨機已運作。\n請留意門窗與室內空氣。"
+                message: "空氣品質較差（PM2.5 {{ pm | int }}），空氣清淨機已運作。\n{{ '二樓大門開著，建議關門。' if door_open else '請留意門窗與室內空氣。' }}"
                 voice: "{{ none if night else '智慧家庭通知，請注意，偵測到空氣品質較差，空氣清淨機運作中。' }}"
         - alias: "非常嚴重：>300 即時，加強運作"
           conditions:
@@ -210,7 +349,7 @@
                 entity_id: input_text.air_ai_state
               data:
                 value: >-
-                  {% for k, v in dict(cd_map, **{'very_severe': now_ts}).items() %}{{ k }}={{ v | int }};{% endfor %}
+                  {% for k, v in dict(cd_map, **({'very_severe': now_ts, 'auto_on': now_ts} if is_state('fan.kong_qi_qing_jing_ji', 'off') else {'very_severe': now_ts})).items() %}{{ k }}={{ v | int }};{% endfor %}
             - action: logbook.log
               data:
                 name: 07空氣清淨機整合AI
@@ -230,9 +369,9 @@
                 level: important
                 line: true
                 source: 07空氣清淨機整合AI
-                version: V4.2.0
+                version: V4.3.0
                 title: 空氣品質非常差
-                message: "空氣品質非常差（PM2.5 {{ pm | int }}），空氣清淨機已加強運作。"
+                message: "空氣品質非常差（PM2.5 {{ pm | int }}），空氣清淨機已加強運作。{{ '\n二樓大門開著，建議關門。' if door_open else '' }}"
                 voice: "智慧家庭通知，請注意，偵測到空氣品質非常差，空氣清淨機將加強運作。"
         - alias: "自動關閉：<10 持續5分鐘（遲滯）"
           conditions:
