@@ -3600,7 +3600,7 @@ class FloorplanV4Sidebar extends HTMLElement {
         .box:not(.compact) > .sec { flex:2.2 1 auto; }
         .box:not(.compact) .sec .row2 { flex:1 1 auto; max-height:64px; }
         .box:not(.compact) .sec .cams button { min-height:40px; }
-        .box:not(.compact) > .nav { flex:2 1 auto; grid-auto-rows:minmax(44px, 1fr); max-height:170px; }
+        .box:not(.compact) > .nav { flex:0 0 auto; grid-auto-rows:minmax(40px, auto); }
         .box:not(.compact) > .ppl { flex:1.2 1 auto; align-content:space-evenly; }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
@@ -3895,7 +3895,9 @@ class FloorplanV4Sidebar extends HTMLElement {
       const bx = this.shadowRoot.querySelector(".box");
       if (bx && !bx.classList.contains("compact")) {
         // 內容原本約 290px 寬、600px 高；欄寬／高度更大時等比例放大（最多 1.6 倍），窄欄不縮小
-        const z = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
+        const z0 = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
+        // 放大時字再大一點（×1.12），按鈕高度不跟著拉高
+        const z = z0 > 1.001 ? Math.min(1.8, z0 * 1.12) : 1;
         bx.style.setProperty("--z", z.toFixed(3));
       }
       bx?.classList.toggle("narrow", this.clientWidth < 250); this._fit();
