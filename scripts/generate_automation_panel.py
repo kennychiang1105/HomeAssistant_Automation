@@ -1050,6 +1050,52 @@ def manual_broadcast_section():
             + heading("廣播音效", "mdi:music-note") + entities_card(snd_rows) + snd_btn)
 
 
+LISTCARD_RECENT = r"""[[[
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
+  const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
+    <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+  const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
+
+  const now = Date.now();
+  const items = autos.filter((s) => s.attributes && s.attributes.last_triggered)
+    .map((s) => ({ n: s.attributes.friendly_name || s.entity_id, t: new Date(s.attributes.last_triggered).getTime() }))
+    .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
+  const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
+  const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join(''), '最近 24 小時沒有自動化被觸發。');
+]]]"""
+LISTCARD_OFF = r"""[[[
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
+  const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
+    <div style="max-height:340px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+  const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
+
+  const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
+  return wrapBox(off.length ? '#D97706' : '#28A745', '目前停用的自動化', off.length ? `${off.length} 支` : '全部啟用', off.map((n) => rowH('#D97706', n, '已停用')).join(''), '沒有停用中的自動化。');
+]]]"""
+
+
+def list_js_card(js):
+    """用 button-card 樣板做的清單卡片（可滑動）；Kiosk 讀得到同一份樣板。"""
+    L = ["      - type: custom:button-card", "        triggers_update: all",
+         "        show_name: false", "        show_icon: false", "        show_state: false",
+         "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+         "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0", "            - white-space: normal",
+         "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+         "          custom_fields:", "            body:", "              - width: 100%", "              - min-width: 0",
+         "              - text-align: left", "              - white-space: normal",
+         "        custom_fields:", "          body: |"]
+    for ln in js.splitlines():
+        L.append("            " + ln)
+    return L
+
+
 def overview_sections(autos, stale):
     def _auto_eid(prefix, default):
         """依自動化名稱開頭找實體 ID（版號改了、實體 ID 後綴會跟著不同，不寫死）。"""
@@ -1102,8 +1148,8 @@ def overview_sections(autos, stale):
     S.append(section(heading("常用總開關", "mdi:toggle-switch-outline") + entities_card(quick)))
     S.append(section(heading("網關、伺服器與警報", "mdi:router-wireless") + entities_card(gateways)))
     S.append(section(heading("頂樓常用", "mdi:stairs-up") + entities_card(top)))
-    S.append(section(heading("目前停用的自動化", "mdi:pause-circle-outline") + ["      - type: markdown", "        content: " + q(off_md)] + MD_CSS))
-    S.append(section(heading("最近 24 小時觸發", "mdi:history") + ["      - type: markdown", "        content: " + q(recent_md)] + MD_CSS))
+    S.append(section(heading("目前停用的自動化", "mdi:pause-circle-outline") + list_js_card(LISTCARD_OFF)))
+    S.append(section(heading("最近 24 小時觸發", "mdi:history") + list_js_card(LISTCARD_RECENT)))
     return S
 
 
