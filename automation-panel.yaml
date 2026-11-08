@@ -85,6 +85,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "LINE Bot 額度"
@@ -94,227 +97,16 @@ views:
           style: |
             .container { padding: 14px 6px 4px !important; }
             .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: custom:layout-card
-        layout_type: custom:grid-layout
-        layout:
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))
-          grid-gap: 8px
-          margin: 0
-        cards:
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining0
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 0;
-                  const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining1
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 1;
-                  const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining2
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 2;
-                  const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
-          - type: custom:button-card
-            entity: sensor.bot_msg_remaining3
-            show_name: false
-            show_icon: false
-            show_state: false
-            tap_action:
-              action: more-info
-            hold_action:
-              action: more-info
-            styles:
-              card:
-                - cursor: pointer
-                - height: auto
-                - padding: 12px 14px
-                - border-radius: 18px
-                - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                - border: none
-              grid:
-                - grid-template-areas: '"body"'
-                - grid-template-columns: 1fr
-            custom_fields:
-              body: |
-                [[[
-                  const e = entity;
-                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 3;
-                  const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                  const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                  const full = String(e.attributes.friendly_name || '');
-                  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                  return `
-                   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                     <div style="flex:1;min-width:0">
-                       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                       </div>
-                       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                       </div>
-                       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                       </div>
-                     </div>
-                   </div>`;
-                ]]]
       - type: custom:button-card
-        entity: sensor.line_bot_in_use
+        entity: sensor.bot_msg_remaining0
+        triggers_update:
+          - sensor.bot_msg_remaining0
+          - sensor.bot_msg_remaining1
+          - sensor.bot_msg_remaining2
+          - sensor.bot_msg_remaining3
+          - sensor.line_bot_in_use
+          - sensor.line_bot_forecast
+          - sensor.line_bot_rotation_target
         show_name: false
         show_icon: false
         show_state: false
@@ -337,81 +129,59 @@ views:
         custom_fields:
           body: |
             [[[
-              const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
-              const targetObj = states['sensor.line_bot_rotation_target'];
-              const nextIdx = targetObj?.attributes?.next_bot;
-              const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
-              const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
+              const ids = ['sensor.bot_msg_remaining0', 'sensor.bot_msg_remaining1', 'sensor.bot_msg_remaining2', 'sensor.bot_msg_remaining3'];
+              const inUse = states['sensor.line_bot_in_use'];
+              const ia = (inUse && inUse.attributes) || {};
+              const target = Number(ia.target_index);
+              const sw = Number(ia.rotation_switch_limit || 196);
+              const curName = inUse ? String(inUse.state).replace('ChiangFamily ', '') : '--';
+              const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+              const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                  <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                  <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                  <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+              const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
             
+              const rot = states['sensor.line_bot_rotation_target'];
+              const nextIdx = rot && rot.attributes ? rot.attributes.next_bot : null;
+              const botNames = { 0: '智慧家庭 A（緊急 Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
+              const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
               const f = states['sensor.line_bot_forecast'];
               const st = f ? f.state : 'safe';
-              const a = f?.attributes || {};
-              const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-              const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
-            
-              let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
-              if (st === 'safe') {
-                statusColor = '#28A745';
-                statusBg = 'rgba(120,120,128,.08)';
-                statusBorder = 'transparent';
-                statusLabel = '額度安全充裕';
-                statusIcon = 'mdi:check-circle';
-                desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
-                desc2 = '運作平穩，本月無需動用緊急 Bot。';
-              } else if (st === 'need_emergency') {
-                statusColor = '#D97706';
-                statusBg = 'rgba(120,120,128,.08)';
-                statusBorder = 'transparent';
-                statusLabel = '預備動用緊急 Bot';
-                statusIcon = 'mdi:alert-circle';
-                desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
-                desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
-              } else {
-                statusColor = '#E5372C';
-                statusBg = 'rgba(120,120,128,.08)';
-                statusBorder = 'transparent';
-                statusLabel = '額度告急';
-                statusIcon = 'mdi:alert-octagon';
-                desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
-                desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
-              }
-            
-              return `
-                <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
-                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
-                      <span style="color:var(--secondary-text-color)">目前使用：</span>
-                      <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <span style="color:var(--secondary-text-color)">下一輪替：</span>
-                      <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
-                    </div>
-                  </div>
-            
-                  <div style="background:${statusBg};border:none;box-shadow:inset 3px 0 0 ${statusColor};border-radius:12px;padding:11px 13px 11px 15px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
-                    <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
-                    <div style="flex:1;min-width:0;white-space:normal !important">
-                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-                        <span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap">預估 Bot 使用狀況</span>
-                        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor}1f;color:${statusColor};white-space:nowrap;flex-shrink:0">${statusLabel}</span>
-                      </div>
-                      <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
-                        <div style="font-weight:600;white-space:normal !important">${desc1}</div>
-                        ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
-                      </div>
-                    </div>
-                  </div>
-            
-                  <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-                    <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
-                    <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
-                  </div>
-                </div>
-              `;
+              const a = (f && f.attributes) || {};
+              const md = (d) => d ? String(d).slice(5).replace('-', '/') : '--';
+              let color, label, d1, d2;
+              if (st === 'safe') { color = '#28A745'; label = '額度充裕'; d1 = `本月一般 Bot 額度充裕，可用至 ${md(a.normal_exhaust_date)}`; d2 = '運作平穩，本月不需動用緊急 Bot。'; }
+              else if (st === 'need_emergency') { color = '#D97706'; label = '預備動用緊急 Bot'; d1 = `一般 Bot 預估 ${md(a.normal_exhaust_date)}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`; d2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。'; }
+              else { color = '#E5372C'; label = '額度告急'; d1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估 ${md(a.normal_exhaust_date)} 動用緊急 Bot`; d2 = `預估 ${md(a.total_exhaust_date)} 前耗盡，請留意發送量。`; }
+              const rows = ids.map((id, i) => {
+                const e = states[id]; if (!e) return '';
+                const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                const c = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
+                const cur = target === i;
+                const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                const chipBg = cur ? 'rgba(40,167,69,.14)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
+                const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
+                return `<div style="display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+                  <div style="flex:none;width:38px;height:38px;border-radius:11px;background:${c}1a;color:${c};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">${'ABCD'[i]}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-weight:600;font-size:14.5px;color:var(--primary-text-color)">智慧家庭 ${'ABCD'[i]}</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span></div>
+                    <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.20);margin:8px 0 5px;overflow:hidden"><div style="width:${p}%;height:100%;background:${c};border-radius:4px"></div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)"><span>剩餘 <b style="font-size:16px;color:${c}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span></div>
+                  </div></div>`;
+              }).join('');
+              return shell(color, head('mdi:message-text-outline', color, 'LINE Bot 額度', '使用中：' + curName) +
+                `<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>` +
+                `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--secondary-text-color)"><span>下一輪替</span><span style="font-weight:700;color:var(--primary-text-color);padding:3px 10px;border-radius:8px;background:rgba(120,120,128,.12)">${nextName}</span></div>` +
+                `<div style="margin-top:10px;padding:11px 14px;border-radius:12px;background:rgba(120,120,128,.08);${wrap}"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px"><span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color)">預估 Bot 使用狀況</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${color}1f;color:${color}">${label}</span></div><div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--primary-text-color)">${esc(d1)}</div><div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:3px">${esc(d2)}</div></div>` +
+                `<div style="margin-top:10px;font-size:11.5px;color:var(--secondary-text-color);line-height:1.5">已達 ${sw} 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</div>`);
             ]]]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "LINE Bot 設定"
@@ -506,6 +276,9 @@ views:
             name: "自訂目標 ID"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "啟用中的自動化 **164** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
@@ -513,6 +286,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "手動廣播"
@@ -640,6 +416,9 @@ views:
             - color: '#34C759'
             - font-weight: 600
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "手動通知（標題：系統通知訊息）"
@@ -704,8 +483,10 @@ views:
             - justify-self: start
             - color: '#34C759'
             - font-weight: 600
-    - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "氣象與災害告警"
@@ -789,6 +570,9 @@ views:
               return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
             ]]]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "最新地震報告"
@@ -865,7 +649,11 @@ views:
               }
               return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
             ]]]
+    - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "常用總開關"
@@ -904,6 +692,9 @@ views:
             name: "廣播音量｜緊急"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "網關、伺服器與警報"
@@ -931,6 +722,9 @@ views:
           items: [["input_boolean.aqara_zai_jia", "Aqara 在家"], ["input_boolean.aqara_li_jia", "Aqara 離家"], ["input_boolean.aqara_wan_an", "Aqara 晚安"], ["switch.smartpower_strip_2f_asussi_fu_qi", "Asus 伺服器電源"], ["switch.smartpower_strip_2f_udmse", "UDM-SE 電源"], ["switch.smartpower_strip_2f_tbcwang_lu_he", "TBC 網路盒電源"], ["switch.xiao_yan_wang_guan_cha_zuo", "小燕網關插座"], ["automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"], ["automation.ai_gateway_anomaly_guard", "106網關系統AI", "on"], ["automation.ai_00_01_xiaoyan_gateway_watchdog", "小燕網關看門狗", "on"]]
         triggers_update: ["input_boolean.aqara_zai_jia", "input_boolean.aqara_li_jia", "input_boolean.aqara_wan_an", "switch.smartpower_strip_2f_asussi_fu_qi", "switch.smartpower_strip_2f_udmse", "switch.smartpower_strip_2f_tbcwang_lu_he", "switch.xiao_yan_wang_guan_cha_zuo", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "automation.ai_gateway_anomaly_guard", "automation.ai_00_01_xiaoyan_gateway_watchdog"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓常用"
@@ -958,6 +752,9 @@ views:
           items: [["input_boolean.topfloor_stairs_keep_on", "樓梯燈常開（9A）", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關", "off"], ["input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式", "off"]]
         triggers_update: ["input_boolean.topfloor_stairs_keep_on", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.debug_topfloor_kenny"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "目前停用的自動化"
@@ -973,6 +770,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "最近 24 小時觸發"
@@ -1095,227 +895,16 @@ views:
             style: |
               .container { padding: 14px 6px 4px !important; }
               .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-        - type: custom:layout-card
-          layout_type: custom:grid-layout
-          layout:
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))
-            grid-gap: 8px
-            margin: 0
-          cards:
-            - type: custom:button-card
-              entity: sensor.bot_msg_remaining0
-              show_name: false
-              show_icon: false
-              show_state: false
-              tap_action:
-                action: more-info
-              hold_action:
-                action: more-info
-              styles:
-                card:
-                  - cursor: pointer
-                  - height: auto
-                  - padding: 12px 14px
-                  - border-radius: 18px
-                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                  - border: none
-                grid:
-                  - grid-template-areas: '"body"'
-                  - grid-template-columns: 1fr
-              custom_fields:
-                body: |
-                  [[[
-                    const e = entity;
-                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 0;
-                    const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                    const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                    const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                    const full = String(e.attributes.friendly_name || '');
-                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                    return `
-                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                       <div style="flex:1;min-width:0">
-                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                         </div>
-                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                         </div>
-                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                         </div>
-                       </div>
-                     </div>`;
-                  ]]]
-            - type: custom:button-card
-              entity: sensor.bot_msg_remaining1
-              show_name: false
-              show_icon: false
-              show_state: false
-              tap_action:
-                action: more-info
-              hold_action:
-                action: more-info
-              styles:
-                card:
-                  - cursor: pointer
-                  - height: auto
-                  - padding: 12px 14px
-                  - border-radius: 18px
-                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                  - border: none
-                grid:
-                  - grid-template-areas: '"body"'
-                  - grid-template-columns: 1fr
-              custom_fields:
-                body: |
-                  [[[
-                    const e = entity;
-                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 1;
-                    const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                    const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                    const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                    const full = String(e.attributes.friendly_name || '');
-                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                    return `
-                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                       <div style="flex:1;min-width:0">
-                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                         </div>
-                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                         </div>
-                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                         </div>
-                       </div>
-                     </div>`;
-                  ]]]
-            - type: custom:button-card
-              entity: sensor.bot_msg_remaining2
-              show_name: false
-              show_icon: false
-              show_state: false
-              tap_action:
-                action: more-info
-              hold_action:
-                action: more-info
-              styles:
-                card:
-                  - cursor: pointer
-                  - height: auto
-                  - padding: 12px 14px
-                  - border-radius: 18px
-                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                  - border: none
-                grid:
-                  - grid-template-areas: '"body"'
-                  - grid-template-columns: 1fr
-              custom_fields:
-                body: |
-                  [[[
-                    const e = entity;
-                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 2;
-                    const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                    const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                    const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                    const full = String(e.attributes.friendly_name || '');
-                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                    return `
-                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                       <div style="flex:1;min-width:0">
-                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                         </div>
-                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                         </div>
-                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                         </div>
-                       </div>
-                     </div>`;
-                  ]]]
-            - type: custom:button-card
-              entity: sensor.bot_msg_remaining3
-              show_name: false
-              show_icon: false
-              show_state: false
-              tap_action:
-                action: more-info
-              hold_action:
-                action: more-info
-              styles:
-                card:
-                  - cursor: pointer
-                  - height: auto
-                  - padding: 12px 14px
-                  - border-radius: 18px
-                  - box-shadow: 0 1px 2px rgba(0,0,0,.18)
-                  - border: none
-                grid:
-                  - grid-template-areas: '"body"'
-                  - grid-template-columns: 1fr
-              custom_fields:
-                body: |
-                  [[[
-                    const e = entity;
-                    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-                    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-                    const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-                    const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === 3;
-                    const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
-                    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-                    const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
-                    const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
-                    const full = String(e.attributes.friendly_name || '');
-                    const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-                    const letter = (name.trim().slice(-1) || '?').toUpperCase();
-                    return `
-                     <div style="display:flex;align-items:center;gap:12px;text-align:left">
-                       <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
-                                   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-                       <div style="flex:1;min-width:0">
-                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                           <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-                           <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-                         </div>
-                         <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-                           <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-                         </div>
-                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-                           <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-                         </div>
-                       </div>
-                     </div>`;
-                  ]]]
         - type: custom:button-card
-          entity: sensor.line_bot_in_use
+          entity: sensor.bot_msg_remaining0
+          triggers_update:
+            - sensor.bot_msg_remaining0
+            - sensor.bot_msg_remaining1
+            - sensor.bot_msg_remaining2
+            - sensor.bot_msg_remaining3
+            - sensor.line_bot_in_use
+            - sensor.line_bot_forecast
+            - sensor.line_bot_rotation_target
           show_name: false
           show_icon: false
           show_state: false
@@ -1338,79 +927,54 @@ views:
           custom_fields:
             body: |
               [[[
-                const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
-                const targetObj = states['sensor.line_bot_rotation_target'];
-                const nextIdx = targetObj?.attributes?.next_bot;
-                const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
-                const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
+                const ids = ['sensor.bot_msg_remaining0', 'sensor.bot_msg_remaining1', 'sensor.bot_msg_remaining2', 'sensor.bot_msg_remaining3'];
+                const inUse = states['sensor.line_bot_in_use'];
+                const ia = (inUse && inUse.attributes) || {};
+                const target = Number(ia.target_index);
+                const sw = Number(ia.rotation_switch_limit || 196);
+                const curName = inUse ? String(inUse.state).replace('ChiangFamily ', '') : '--';
+                const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+                const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                    <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                    <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                    <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+                const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
               
+                const rot = states['sensor.line_bot_rotation_target'];
+                const nextIdx = rot && rot.attributes ? rot.attributes.next_bot : null;
+                const botNames = { 0: '智慧家庭 A（緊急 Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
+                const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
                 const f = states['sensor.line_bot_forecast'];
                 const st = f ? f.state : 'safe';
-                const a = f?.attributes || {};
-                const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-                const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
-              
-                let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
-                if (st === 'safe') {
-                  statusColor = '#28A745';
-                  statusBg = 'rgba(120,120,128,.08)';
-                  statusBorder = 'transparent';
-                  statusLabel = '額度安全充裕';
-                  statusIcon = 'mdi:check-circle';
-                  desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
-                  desc2 = '運作平穩，本月無需動用緊急 Bot。';
-                } else if (st === 'need_emergency') {
-                  statusColor = '#D97706';
-                  statusBg = 'rgba(120,120,128,.08)';
-                  statusBorder = 'transparent';
-                  statusLabel = '預備動用緊急 Bot';
-                  statusIcon = 'mdi:alert-circle';
-                  desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
-                  desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
-                } else {
-                  statusColor = '#E5372C';
-                  statusBg = 'rgba(120,120,128,.08)';
-                  statusBorder = 'transparent';
-                  statusLabel = '額度告急';
-                  statusIcon = 'mdi:alert-octagon';
-                  desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
-                  desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
-                }
-              
-                return `
-                  <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
-                      <div style="display:flex;align-items:center;gap:6px">
-                        <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
-                        <span style="color:var(--secondary-text-color)">目前使用：</span>
-                        <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:6px">
-                        <span style="color:var(--secondary-text-color)">下一輪替：</span>
-                        <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
-                      </div>
-                    </div>
-              
-                    <div style="background:${statusBg};border:none;box-shadow:inset 3px 0 0 ${statusColor};border-radius:12px;padding:11px 13px 11px 15px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
-                      <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
-                      <div style="flex:1;min-width:0;white-space:normal !important">
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-                          <span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap">預估 Bot 使用狀況</span>
-                          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor}1f;color:${statusColor};white-space:nowrap;flex-shrink:0">${statusLabel}</span>
-                        </div>
-                        <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
-                          <div style="font-weight:600;white-space:normal !important">${desc1}</div>
-                          ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
-                        </div>
-                      </div>
-                    </div>
-              
-                    <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-                      <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
-                      <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
-                    </div>
-                  </div>
-                `;
+                const a = (f && f.attributes) || {};
+                const md = (d) => d ? String(d).slice(5).replace('-', '/') : '--';
+                let color, label, d1, d2;
+                if (st === 'safe') { color = '#28A745'; label = '額度充裕'; d1 = `本月一般 Bot 額度充裕，可用至 ${md(a.normal_exhaust_date)}`; d2 = '運作平穩，本月不需動用緊急 Bot。'; }
+                else if (st === 'need_emergency') { color = '#D97706'; label = '預備動用緊急 Bot'; d1 = `一般 Bot 預估 ${md(a.normal_exhaust_date)}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`; d2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。'; }
+                else { color = '#E5372C'; label = '額度告急'; d1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估 ${md(a.normal_exhaust_date)} 動用緊急 Bot`; d2 = `預估 ${md(a.total_exhaust_date)} 前耗盡，請留意發送量。`; }
+                const rows = ids.map((id, i) => {
+                  const e = states[id]; if (!e) return '';
+                  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+                  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+                  const c = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
+                  const cur = target === i;
+                  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+                  const chipBg = cur ? 'rgba(40,167,69,.14)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
+                  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
+                  return `<div style="display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+                    <div style="flex:none;width:38px;height:38px;border-radius:11px;background:${c}1a;color:${c};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">${'ABCD'[i]}</div>
+                    <div style="flex:1;min-width:0">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-weight:600;font-size:14.5px;color:var(--primary-text-color)">智慧家庭 ${'ABCD'[i]}</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span></div>
+                      <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.20);margin:8px 0 5px;overflow:hidden"><div style="width:${p}%;height:100%;background:${c};border-radius:4px"></div></div>
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)"><span>剩餘 <b style="font-size:16px;color:${c}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span></div>
+                    </div></div>`;
+                }).join('');
+                return shell(color, head('mdi:message-text-outline', color, 'LINE Bot 額度', '使用中：' + curName) +
+                  `<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>` +
+                  `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--secondary-text-color)"><span>下一輪替</span><span style="font-weight:700;color:var(--primary-text-color);padding:3px 10px;border-radius:8px;background:rgba(120,120,128,.12)">${nextName}</span></div>` +
+                  `<div style="margin-top:10px;padding:11px 14px;border-radius:12px;background:rgba(120,120,128,.08);${wrap}"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px"><span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color)">預估 Bot 使用狀況</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${color}1f;color:${color}">${label}</span></div><div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--primary-text-color)">${esc(d1)}</div><div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:3px">${esc(d2)}</div></div>` +
+                  `<div style="margin-top:10px;font-size:11.5px;color:var(--secondary-text-color);line-height:1.5">已達 ${sw} 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</div>`);
               ]]]
         - type: heading
           heading: "LINE Bot 設定"
@@ -1700,6 +1264,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。"
@@ -1707,6 +1274,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（27）"
@@ -1722,6 +1292,9 @@ views:
           items: [["automation.ai_00_2a_release_note_push", "00-2A更新紀錄推播AI", "on"], ["automation.ai_line_bot_quota_guard", "00-2BLINE推播AI", "on"], ["automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "00-2D廣播音量初始化AI", "on"], ["automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "00-2D廣播音量測試值AI", "on"], ["automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "00-2D廣播音量統一AI", "on"], ["automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D情境廣播開關初始化AI", "on"], ["automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D氣氛燈開關初始化AI", "on"], ["automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D通知開關初始化AI", "on"], ["automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "00-2E通知測試AI", "on"], ["automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "LINE通知標題同步器 v3.0", "on"], ["input_boolean.notify_ha_general_enable", "HA通知_一般級開關", "on"], ["input_boolean.notify_ha_info_enable", "HA通知_資訊級開關", "on"], ["input_boolean.notify_ha_important_enable", "HA通知_重要級開關", "on"], ["input_boolean.notify_line_general_enable", "LINE通知啟用_一般", "on"], ["input_boolean.notify_line_doorbell_enable", "LINE通知啟用_大門門鈴", "on"], ["input_boolean.notify_line_important_enable", "LINE通知啟用_重要", "on"], ["input_boolean.notify_tesla_charge_extra_line_enable", "Tesla充電通知_額外LINE啟用", "on"], ["input_boolean.eew_extra_enable", "地震預警｜附地牛截圖與震央詳情", "on"], ["input_boolean.scene_announce_enable", "情境執行廣播開關", "on"], ["input_boolean.announce_manual_ke_ting_homepod", "手動廣播｜客廳 HomePod", "on"], ["input_boolean.announce_manual_clear", "手動廣播｜發送後清除內容", "on"], ["input_boolean.announce_manual_che_ku_speaker", "手動廣播｜車庫攝影機喇叭", "on"], ["input_boolean.notify_manual_ha", "手動通知｜HA 通知", "on"], ["input_boolean.notify_manual_line", "手動通知｜LINE", "on"], ["input_boolean.notify_manual_clear", "手動通知｜發送後清除內容", "on"], ["input_boolean.mood_alert_enable", "氣氛燈提醒_總開關", "on"], ["input_boolean.mood_alert_important_enable", "氣氛燈提醒_重要級", "on"]]
         triggers_update: ["automation.ai_00_2a_release_note_push", "automation.ai_line_bot_quota_guard", "automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "input_boolean.notify_ha_general_enable", "input_boolean.notify_ha_info_enable", "input_boolean.notify_ha_important_enable", "input_boolean.notify_line_general_enable", "input_boolean.notify_line_doorbell_enable", "input_boolean.notify_line_important_enable", "input_boolean.notify_tesla_charge_extra_line_enable", "input_boolean.eew_extra_enable", "input_boolean.scene_announce_enable", "input_boolean.announce_manual_ke_ting_homepod", "input_boolean.announce_manual_clear", "input_boolean.announce_manual_che_ku_speaker", "input_boolean.notify_manual_ha", "input_boolean.notify_manual_line", "input_boolean.notify_manual_clear", "input_boolean.mood_alert_enable", "input_boolean.mood_alert_important_enable"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（9）"
@@ -1737,6 +1310,9 @@ views:
           items: [["input_boolean.garage_away_off_ha_notify", "104-1C全員離家關燈_HA通知", "off"], ["input_boolean.garage_arrival_ha_notify", "104-4車庫回家_HA通知", "off"], ["input_boolean.notify_tesla_charge_extra_system_enable", "Tesla充電通知_額外系統通知啟用", "off"], ["input_boolean.announce_manual_si_lou_homepod", "手動廣播｜四樓 HomePod mini", "off"], ["input_boolean.announce_manual_ding_lou_homepod", "手動廣播｜頂樓 HomePod", "off"], ["input_boolean.announce_manual_wu_lou_speaker", "手動廣播｜頂樓攝影機喇叭", "off"], ["input_boolean.ambient_scene_off", "機台氣氛燈_停用情境色", "off"], ["input_boolean.mood_alert_ap_off", "機台氣氛燈_停用通知閃爍", "off"], ["input_boolean.announce_end_chime_off", "關閉廣播結束音效", "off"]]
         triggers_update: ["input_boolean.garage_away_off_ha_notify", "input_boolean.garage_arrival_ha_notify", "input_boolean.notify_tesla_charge_extra_system_enable", "input_boolean.announce_manual_si_lou_homepod", "input_boolean.announce_manual_ding_lou_homepod", "input_boolean.announce_manual_wu_lou_speaker", "input_boolean.ambient_scene_off", "input_boolean.mood_alert_ap_off", "input_boolean.announce_end_chime_off"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "地震預警與空氣通知"
@@ -1757,6 +1333,9 @@ views:
             name: "空氣通知同等級冷卻（分）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "手動廣播與手動通知"
@@ -1780,6 +1359,9 @@ views:
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "廣播音量與情境廣播"
@@ -1802,6 +1384,9 @@ views:
             name: "廣播音效試聽類別"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "氣氛燈與機台氣氛燈"
@@ -1824,6 +1409,9 @@ views:
             name: "機台情境色_離家（r,g,b；空白=預設紅）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "通知測試按鈕"
@@ -1856,6 +1444,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。"
@@ -1863,6 +1454,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "日出日落的天氣調整"
@@ -1917,6 +1511,9 @@ views:
             name: "調整分鐘｜大雨雷雨"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（29）"
@@ -1932,6 +1529,9 @@ views:
           items: [["automation.ai_08_7a_auto_goodnight_scene", "08-7A自動晚安情境AI", "on"], ["automation.08_7ber_lou_ye_jian_fang_xia_lou_ai_v4_3_5", "08-7B二樓夜間防下樓AI"], ["automation.08_7ber_lou_ye_jian_fang_xia_lou_ke_ting_zhu_kai_guan_xia_3shuang_ji_jie_chu_v4_3_6", "08-7B二樓夜間防下樓｜客廳主開關下3雙擊解除"], ["automation.08_7ber_lou_ye_jian_fang_xia_lou_jie_chu_zhuang_tai_fu_wei_v4_3_6", "08-7B二樓夜間防下樓｜解除狀態復位"], ["automation.08_7ber_lou_ye_jian_fang_xia_lou_ji_lu_jia_ren_chu_xian_v4_3_9", "08-7B二樓夜間防下樓｜記錄家人出現"], ["automation.08_7ber_lou_ye_jian_fang_xia_lou_ji_lu_wan_an_qing_jing_shi_jian_v4_3_5", "08-7B二樓夜間防下樓｜記錄晚安情境時間"], ["automation.08_7ezao_yin_jing_gao_ai_v4_3_5", "08-7E噪音警告AI"], ["automation.08_7ezao_yin_jing_gao_kai_guan_qia_zhu_zi_dong_guan_hui_v4_3_5", "08-7E噪音警告｜開關卡住自動關回"], ["automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0", "100A自動啟動到家早安情境AI"], ["automation.ai_auto_leave_system", "100B自動離家AI", "on"], ["automation.100bli_jia_tong_zhi_qi_biao_qing_chu_v4_2_3", "100B離家通知旗標清除"], ["automation.ai_100c_googlehome_scene_virtual_button_bridge", "100C GoogleHome情境虛擬按鈕橋接AI", "on"], ["automation.wan_an_qing_jing", "100晚安情境", "on"], ["automation.101zao_an_qing_jing", "101早安情境", "on"], ["automation.101li_jia_qing_jing", "102離家情境", "on"], ["automation.103dao_jia_qing_jing", "103到家情境", "on"], ["automation.107_0b_ke_ting_zhu_kai_guan_xia_3_zao_an_dao_jia", "800-開關系列-0B 客廳主開關下3-早安到家", "on"], ["automation.107chu_fang_kai_guan_3zao_an_dao_jia", "800-開關系列-0廚房開關3/車庫主開關1/餐廳廁所開關3/客廳外開關下3-早安到家", "on"], ["automation.800_kai_guan_xi_lie_1b_can_ting_ce_suo_kai_guan_3_li_jia_wan_an_yu_lou_ti_deng", "800-開關系列-1B-餐廳廁所開關3-離家晚安與樓梯燈", "on"], ["automation.107_1bke_ting_zhu_kai_guan_3_wan_an_li_jia", "800-開關系列-1B客廳主開關下3-晚安離家", "on"], ["automation.107_2chu_fang_kai_guan_3li_jia_wan_an", "800-開關系列-1廚房開關3/車庫主開關1/客廳外開關下3-離家晚安", "on"], ["automation.aili_jia_ban_ben_tong_bu_qi_v3_0", "AI離家版本同步器 v3.2", "on"], ["automation.homekitqing_jing_fu_zhu_kai_guan_zi_dong_fu_wei_ai_v3_18_0", "HomeKit情境輔助開關自動復位AI", "on"], ["input_boolean.anti_down_announce_enable", "二樓夜間防下樓｜廣播開關", "on"], ["input_boolean.anti_down_enable", "二樓夜間防下樓｜總開關", "on"], ["input_boolean.scene_window_use_sun", "早安到家時間窗改用日出日落（功能開關）", "on"], ["input_boolean.auto_scene_notify_enable", "自動到家／早安情境通知（HA 資訊通知）", "on"], ["input_boolean.auto_scene_enable", "自動到家／早安情境（總開關）", "on"], ["input_boolean.auto_scene_earliest_use_sunrise", "自動情境最早啟動改用日出時間（關閉＝用下面平日／假日固定時間）", "on"]]
         triggers_update: ["automation.ai_08_7a_auto_goodnight_scene", "automation.08_7ber_lou_ye_jian_fang_xia_lou_ai_v4_3_5", "automation.08_7ber_lou_ye_jian_fang_xia_lou_ke_ting_zhu_kai_guan_xia_3shuang_ji_jie_chu_v4_3_6", "automation.08_7ber_lou_ye_jian_fang_xia_lou_jie_chu_zhuang_tai_fu_wei_v4_3_6", "automation.08_7ber_lou_ye_jian_fang_xia_lou_ji_lu_jia_ren_chu_xian_v4_3_9", "automation.08_7ber_lou_ye_jian_fang_xia_lou_ji_lu_wan_an_qing_jing_shi_jian_v4_3_5", "automation.08_7ezao_yin_jing_gao_ai_v4_3_5", "automation.08_7ezao_yin_jing_gao_kai_guan_qia_zhu_zi_dong_guan_hui_v4_3_5", "automation.100azi_dong_qi_dong_dao_jia_zao_an_qing_jing_ai_v4_1_0", "automation.ai_auto_leave_system", "automation.100bli_jia_tong_zhi_qi_biao_qing_chu_v4_2_3", "automation.ai_100c_googlehome_scene_virtual_button_bridge", "automation.wan_an_qing_jing", "automation.101zao_an_qing_jing", "automation.101li_jia_qing_jing", "automation.103dao_jia_qing_jing", "automation.107_0b_ke_ting_zhu_kai_guan_xia_3_zao_an_dao_jia", "automation.107chu_fang_kai_guan_3zao_an_dao_jia", "automation.800_kai_guan_xi_lie_1b_can_ting_ce_suo_kai_guan_3_li_jia_wan_an_yu_lou_ti_deng", "automation.107_1bke_ting_zhu_kai_guan_3_wan_an_li_jia", "automation.107_2chu_fang_kai_guan_3li_jia_wan_an", "automation.aili_jia_ban_ben_tong_bu_qi_v3_0", "automation.homekitqing_jing_fu_zhu_kai_guan_zi_dong_fu_wei_ai_v3_18_0", "input_boolean.anti_down_announce_enable", "input_boolean.anti_down_enable", "input_boolean.scene_window_use_sun", "input_boolean.auto_scene_notify_enable", "input_boolean.auto_scene_enable", "input_boolean.auto_scene_earliest_use_sunrise"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（3）"
@@ -1948,6 +1548,9 @@ views:
         triggers_update: ["input_boolean.anti_down_override", "input_boolean.noise_warning", "input_boolean.weather_sun_adjust_off"]
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "數值參數"
@@ -1988,6 +1591,9 @@ views:
             name: "自動情境最早啟動（非工作日，日出後幾分鐘）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "日期時間"
@@ -2010,6 +1616,9 @@ views:
             name: "早安時段最晚終點"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "操作按鈕"
@@ -2040,6 +1649,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**開關按鈕**　Terncy／小米／Aqara 實體開關的單擊、雙擊、長按動作（800 系列），以及 Terncy 無線開關單擊切換（08-9）。"
@@ -2047,6 +1659,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（12）"
@@ -2070,6 +1685,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**照明與感應燈**　樓梯燈、廚房／廁所感應燈、客廳／車庫燈、車庫鐵門感應燈。"
@@ -2077,6 +1695,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（18）"
@@ -2093,6 +1714,9 @@ views:
         triggers_update: ["automation.08_4ke_ting_da_men_kai_qi_zi_dong_kai_deng_10min", "automation.ai_08_8a_kitchen_motion_light", "automation.08_8a_chu_fang_gan_ying_deng_zhong_xin_zhen_ce_ai_v3_3_0", "automation.08_8a_chu_fang_deng_wu_ren_bao_xian_guan_deng_ai_v3_4_0", "automation.08_8b_ce_suo_deng_wu_ren_bao_xian_guan_deng_ai_v3_2_0", "automation.ai_08_8b_toilet_motion_light", "automation.08_8bce_suo_gan_ying_deng_zhong_xin_zhen_ce_ai_v3_1_0", "automation.104_1bche_ku_deng_shou_dong_guan_bi_leng_que_ai_v4_1_5", "automation.104_1cquan_yuan_li_jia_guan_bi_che_ku_deng_ai_v4_1_5", "automation.ai_104_1_garage_gate_motion_light", "automation.107_10xiao_mi_wu_xian_kai_guan_chu_fang_deng", "automation.107_10bxiao_mi_wu_xian_kai_guan_shuang_ji_chu_fang_deng_zi_dong_hua_kai_guan", "automation.107_10bcan_ting_ce_suo_kai_guan_1_tie_men_lian_dong", "automation.107_10can_ting_ce_suo_kai_guan_1_che_ku_deng_lian_dong", "automation.107_9alou_ti_jian_deng_quan_kai", "automation.automation_41", "automation.107_9clou_ti_jian_deng_quan_guan", "input_boolean.light_anim_enable"]
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（1）"
@@ -2108,6 +1732,9 @@ views:
           items: [["input_boolean.toilet_light_manual_override_mode", "廁所感應燈_手動關閉模式", "off"]]
         triggers_update: ["input_boolean.toilet_light_manual_override_mode"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "數值參數"
@@ -2124,6 +1751,9 @@ views:
             name: "車庫燈手動關閉冷卻（秒）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "選項"
@@ -2148,6 +1778,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。"
@@ -2155,6 +1788,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（39）"
@@ -2170,6 +1806,9 @@ views:
           items: [["automation.ai_08_5a_5f_security_webhook_guard", "08-5A 五樓保全系統AI Webhook精準防禦", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light", "08-5C頂樓樓梯感應燈AI", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "08-5C頂樓樓梯感應燈自動關閉AI", "on"], ["automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "08-5C頂樓樓梯燈解除深夜亮度AI", "on"], ["automation.23ding_lou_kan_deng", "08-5D頂樓坎燈自動化亮度修正V2", "on"], ["automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "08-5D頂樓夜燈自動化亮度修正V2", "on"], ["automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "08-5F頂樓下樓補判AI", "on"], ["automation.ai_topfloor_stairs_scene", "08-5F頂樓自動上下樓情境AI", "on"], ["automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "08-5G 書房回房間關燈AI", "on"], ["automation.ai_08_5g_study_motion_light", "08-5G 書房燈感應AI", "on"], ["automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "08-5G 書房燈無人檢查AI", "on"], ["automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "08-5G 書房燈關閉AI", "on"], ["automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "08-5G 書房燈離開佐證關燈AI"], ["automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "08-5H頂樓深夜熟睡情境AI", "on"], ["automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "08-5H頂樓深夜熟睡鎖管理AI"], ["automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "08-5I頂樓空調關閉確認", "on"], ["automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "08-5J頂樓動線推理AI", "on"], ["automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "08-5J頂樓感應器失聯檢查AI"], ["automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "08-5J頂樓感應週報", "on"], ["automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "08-5K頂樓感應暫停到期AI", "on"], ["automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "08-5K頂樓樓梯燈手動保持結束AI", "on"], ["automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "08-5K頂樓燈具使用權AI", "on"], ["automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "08-5K頂樓開機狀態自癒檢查AI"], ["automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "08-5L頂樓情境廣播AI"], ["automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "08-5M頂樓攝影機模型分析AI"], ["automation.a107_11a_single", "800-開關系列-11A 書房燈感應開關單擊", "on"], ["automation.a107_11b", "800-開關系列-11B 書房燈感應開關長按", "on"], ["automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈", "on"], ["automation.a107_12b", "800-開關系列-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈", "on"], ["automation.a107_12c", "800-開關系列-12C 頂樓四樓樓梯燈校正 (虛擬實體)", "on"], ["automation.a107_12d", "800-開關系列-12D 四樓開關下1-單擊 四樓樓梯燈", "on"], ["automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境"], ["automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "800-開關系列-12F 頂樓與四樓開關-長按下樓情境"], ["input_boolean.wu_lou_she_ying_ji_kai_guan", "五樓攝影機麥克風開關", "on"], ["input_boolean.sleep_holiday_aware", "熟睡起床時間搭配國定假日（功能開關）", "on"], ["input_boolean.topfloor_scene_announce_enable", "頂樓情境廣播｜總開關", "on"], ["input_boolean.topfloor_cam_ai_exit_enable", "頂樓攝影機模型判斷｜最後去向開關", "on"], ["input_boolean.topfloor_cam_ai_enable", "頂樓攝影機模型判斷｜總開關", "on"], ["input_boolean.topfloor_stairs_off_cam_hold_enable", "頂樓樓梯燈｜自動關燈前畫面有人就等人消失", "on"]]
         triggers_update: ["automation.ai_08_5a_5f_security_webhook_guard", "automation.ai_08_5c_topfloor_stairs_motion_light", "automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "automation.23ding_lou_kan_deng", "automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "automation.ai_topfloor_stairs_scene", "automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "automation.ai_08_5g_study_motion_light", "automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "automation.a107_11a_single", "automation.a107_11b", "automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "automation.a107_12b", "automation.a107_12c", "automation.a107_12d", "automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "input_boolean.wu_lou_she_ying_ji_kai_guan", "input_boolean.sleep_holiday_aware", "input_boolean.topfloor_scene_announce_enable", "input_boolean.topfloor_cam_ai_exit_enable", "input_boolean.topfloor_cam_ai_enable", "input_boolean.topfloor_stairs_off_cam_hold_enable"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（2）"
@@ -2185,6 +1824,9 @@ views:
           items: [["input_boolean.debug_topfloor_kenny", "Kenny 頂樓自動化 Debug 模式", "off"], ["input_boolean.topfloor_motion_pause", "頂樓_感應暫停中", "off"]]
         triggers_update: ["input_boolean.debug_topfloor_kenny", "input_boolean.topfloor_motion_pause"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "會自動切換（1）"
@@ -2200,6 +1842,9 @@ views:
           items: [["input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"]]
         triggers_update: ["input_boolean.sleep_silent_active"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "感應燈與書房燈參數"
@@ -2243,6 +1888,9 @@ views:
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "上下樓情境判斷參數"
@@ -2275,6 +1923,9 @@ views:
             name: "5F 頂樓 AP MAC 清單（逗號分隔）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "睡眠靜默與熟睡鎖"
@@ -2301,6 +1952,9 @@ views:
             name: "靜默時段開始（分鐘；0=00:00）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓情境廣播"
@@ -2317,6 +1971,9 @@ views:
             name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "攝影機與模型判斷"
@@ -2355,6 +2012,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。"
@@ -2362,6 +2022,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "車庫車輛位置"
@@ -2414,6 +2077,9 @@ views:
             name: "最近一次判斷"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "車輛樣板學習"
@@ -2443,6 +2109,9 @@ views:
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（31）"
@@ -2458,6 +2127,9 @@ views:
           items: [["automation.er_lou_men_suo_xu_yan_jing_gao", "08-2二樓門鎖虛掩警告", "on"], ["automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "08-3鐵門狀態不穩通知", "on"], ["automation.ai_away_security_system", "08-6離家保全系統AI", "on"], ["automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "08-7C入侵偵測訊號收集AI"], ["automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "08-7D入侵偵測感應器統計AI"], ["automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "08-7離家入侵偵測AI"], ["automation.ai_doorlock_battery_stage_notify", "100C1客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_cycle_calibration", "100C2客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_drop_timestamp_recorder", "100C3客廳門鎖電量下降時間紀錄AI", "on"], ["automation.ai_lpr_recognition", "104-2車輛動態辨識系統AI", "on"], ["automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "104-3A鐵門開啟時間記錄AI"], ["automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "104-3B車庫主燈人為開關記錄AI"], ["automation.ai_104_3_garage_gate_open_guard_and_autoclose", "104-3鐵門判斷未關提醒及作動AI", "on"], ["automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "104-4車庫回家通知系統AI", "on"], ["automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "104-5B車輛準備出門旗標復歸AI"], ["automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "104-5C車庫車輛樣板學習AI"], ["automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "104-5車輛準備出門偵測AI"], ["automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "104-6車庫樓梯口人流記錄AI"], ["automation.tie_men_kai_guan", "104鐵門安全開關", "on"], ["automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "105大門門鈴自動化AI", "on"], ["automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"], ["input_boolean.lpr_auto_close_enable", "LPR自動關門（啟用後才會真的關門）", "on"], ["input_boolean.lpr_open_notify_enable", "LPR車牌開門通知", "on"], ["input_boolean.intrusion_watch_alarm_enable", "入侵偵測觸發網關警報", "on"], ["input_boolean.emergency_restore_route", "解除網關警報時走緊急還原流程（106C）", "on"], ["input_boolean.garage_turn_signal_enable", "車庫出門偵測｜左方向燈偵測（絕對出門訊號）", "on"], ["input_boolean.garage_turn_signal_open_enable", "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）", "on"], ["input_boolean.garage_turn_wait_board_enable", "車庫出門偵測｜畫面還有人先不開門（等上車後方向燈再開）", "on"], ["input_boolean.garage_depart_watch_enable", "車庫出門偵測｜總開關", "on"], ["input_boolean.garage_depart_auto_open_enable", "車庫出門偵測｜自動開鐵門", "on"], ["input_boolean.intrusion_watch_enable", "離家入侵偵測（總開關）", "on"]]
         triggers_update: ["automation.er_lou_men_suo_xu_yan_jing_gao", "automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "automation.ai_away_security_system", "automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "automation.ai_doorlock_battery_stage_notify", "automation.ai_doorlock_battery_cycle_calibration", "automation.ai_doorlock_battery_drop_timestamp_recorder", "automation.ai_lpr_recognition", "automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "automation.ai_104_3_garage_gate_open_guard_and_autoclose", "automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "automation.tie_men_kai_guan", "automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "input_boolean.lpr_auto_close_enable", "input_boolean.lpr_open_notify_enable", "input_boolean.intrusion_watch_alarm_enable", "input_boolean.emergency_restore_route", "input_boolean.garage_turn_signal_enable", "input_boolean.garage_turn_signal_open_enable", "input_boolean.garage_turn_wait_board_enable", "input_boolean.garage_depart_watch_enable", "input_boolean.garage_depart_auto_open_enable", "input_boolean.intrusion_watch_enable"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（7）"
@@ -2473,6 +2145,9 @@ views:
           items: [["input_boolean.lpr_debug_notify", "LPR偵測Debug通知", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全手動解除/復位開關", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關", "off"], ["input_boolean.intrusion_watch_test_mode", "入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）", "off"], ["input_boolean.gateway_debug_notify", "網關系統_Debug通知", "off"], ["input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報", "off"], ["input_boolean.garage_depart_notify_enable", "車庫出門偵測｜偵測到時通知", "off"]]
         triggers_update: ["input_boolean.lpr_debug_notify", "input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.intrusion_watch_test_mode", "input_boolean.gateway_debug_notify", "input_boolean.jie_chu_wang_guan_jing_bao", "input_boolean.garage_depart_notify_enable"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "車庫車輛出門偵測"
@@ -2489,6 +2164,9 @@ views:
             name: "車庫出門偵測｜可能性門檻"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "離家入侵偵測"
@@ -2527,6 +2205,9 @@ views:
             name: "入侵偵測｜強制納入的感應器（逗號分隔 entity_id）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "車輛動態辨識（LPR）"
@@ -2553,6 +2234,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。"
@@ -2560,6 +2244,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "氣象與災害告警"
@@ -2643,6 +2330,9 @@ views:
               return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
             ]]]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "最新地震報告"
@@ -2720,6 +2410,9 @@ views:
               return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
             ]]]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（23）"
@@ -2736,6 +2429,9 @@ views:
         triggers_update: ["automation.di_zhen_zai_hai_xi_tong", "automation.di_zhen_zai_hai_xi_tong_an_niu", "automation.03emiao_li_shu_san_jing_bao", "automation.ai_miaoli_weather_disaster_notify", "automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "automation.jin_ji_mo_shi", "automation.ai_05b_emergency_mode_notify_v3", "automation.ai_05c_emergency_button_auto_reset_v3", "automation.ai_05d_emergency_virtual_button_bridge_v3", "automation.a05ejin_ji_shi_ti_an_niu", "automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "input_boolean.notify_line_emergency_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.notify_ha_disaster_emergency_enable", "input_boolean.notify_ha_disaster_important_enable", "input_boolean.notify_line_disaster_emergency_enable", "input_boolean.notify_line_disaster_important_enable", "input_boolean.announce_disaster_emergency_enable", "input_boolean.announce_disaster_important_enable", "input_boolean.emergency_restore_enable"]
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（1）"
@@ -2751,6 +2447,9 @@ views:
           items: [["input_boolean.emergency_triple_press_pause", "緊急三擊維修暫停", "off"]]
         triggers_update: ["input_boolean.emergency_triple_press_pause"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "災害訊息通知與廣播"
@@ -2771,6 +2470,9 @@ views:
             name: "非急迫災害訊息｜同一項目不重複通知的時間（小時）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "緊急模式"
@@ -2797,6 +2499,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**空氣與風扇**　空氣清淨機、客廳／頂樓風扇、空調溫度門檻、夏季模式。"
@@ -2804,6 +2509,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（13）"
@@ -2819,6 +2527,9 @@ views:
           items: [["automation.06huan_jing_yi_chang_tong_zhi_ai_v4_1_0", "06環境異常通知AI"], ["automation.07kong_qi_qing_jing_ji_zheng_he_ai_v4_1_0", "07空氣清淨機整合AI"], ["automation.ai_living_room_fan_integrated_control", "21A_客廳電風扇整合控制AI", "on"], ["automation.ai_living_room_fan_anomaly_alert", "21B_客廳電風扇異常告警AI", "on"], ["automation.21bxia_ji_mo_shi_zi_dong_pan_duan_ai_v4_1_5", "21B夏季模式自動判斷AI"], ["automation.ai_topfloor_fan_automation", "22頂樓電風扇自動化AI", "on"], ["input_boolean.summer_mode", "夏季模式", "on"], ["input_boolean.summer_auto_enable", "夏季模式自動判斷", "on"], ["input_boolean.living_room_fan_auto_speed_mode", "客廳風扇_自動風速模式", "on"], ["input_boolean.air_door_pause_enable", "空氣清淨機｜二樓大門開著不自動運轉", "on"], ["input_boolean.garage_stair_ai_control_enable", "車庫樓梯口人流記錄｜模型判到上樓提早關燈", "on"], ["input_boolean.garage_stair_ai_enable", "車庫樓梯口人流記錄｜總開關", "on"], ["input_boolean.top_floor_fan_auto_mode", "頂樓電風扇_自動模式", "on"]]
         triggers_update: ["automation.06huan_jing_yi_chang_tong_zhi_ai_v4_1_0", "automation.07kong_qi_qing_jing_ji_zheng_he_ai_v4_1_0", "automation.ai_living_room_fan_integrated_control", "automation.ai_living_room_fan_anomaly_alert", "automation.21bxia_ji_mo_shi_zi_dong_pan_duan_ai_v4_1_5", "automation.ai_topfloor_fan_automation", "input_boolean.summer_mode", "input_boolean.summer_auto_enable", "input_boolean.living_room_fan_auto_speed_mode", "input_boolean.air_door_pause_enable", "input_boolean.garage_stair_ai_control_enable", "input_boolean.garage_stair_ai_enable", "input_boolean.top_floor_fan_auto_mode"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（5）"
@@ -2834,6 +2545,9 @@ views:
           items: [["input_boolean.env_alert_co_dry_run", "CO 緊急模式乾跑（只通知不觸發）", "off"], ["input_boolean.living_room_fan_debug_notify", "客廳風扇_通知Debug模式", "off"], ["input_boolean.living_room_fan_prevent_off_mode", "客廳風扇_防關閉模式", "off"], ["input_boolean.env_alert_mute", "環境異常通知暫停（不含緊急）", "off"], ["input_boolean.ding_lou_fan_debug_notify", "頂樓風扇_通知Debug模式", "off"]]
         triggers_update: ["input_boolean.env_alert_co_dry_run", "input_boolean.living_room_fan_debug_notify", "input_boolean.living_room_fan_prevent_off_mode", "input_boolean.env_alert_mute", "input_boolean.ding_lou_fan_debug_notify"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "空氣清淨機（PM2.5）"
@@ -2861,6 +2575,9 @@ views:
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "環境異常（CO／溫度）"
@@ -2895,6 +2612,9 @@ views:
             name: "環境通知同項目冷卻（分）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "溫度門檻與冷氣"
@@ -2927,6 +2647,9 @@ views:
             name: "白天_回溫再開(°C)"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "客廳風扇"
@@ -2953,6 +2676,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。"
@@ -2960,6 +2686,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "家人裝置追蹤"
@@ -3295,6 +3024,9 @@ views:
                       name: "自訂裝置（device_tracker.xxx）"
                   card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。清單沒有的裝置選「其他」，再輸入 device_tracker.xxx（小寫英數底線，可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。</sub>"
@@ -3303,6 +3035,9 @@ views:
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常開著（28）"
@@ -3318,6 +3053,9 @@ views:
           items: [["automation.ai_00_01_system_stability_auto_restart", "00-01系統回應穩定自動化AI", "on"], ["automation.ai_00_01_unifi_protect_watchdog", "00-01系統回應穩定自動化AI_UnifiProtect看門狗", "on"], ["automation.ai_00_01_xiaoyan_gateway_watchdog", "00-01系統回應穩定自動化AI_小燕網關看門狗", "on"], ["automation.00_2hdeng_kuang_ji_yi_ai_v4_0_0", "00-2H燈況記憶AI", "on"], ["automation.00_2ikuai_zhao_qing_li_ai_v4_0_0", "00-2I快照清理AI", "on"], ["automation.00_2jqi_fen_deng_qing_jing_tong_bu_ai_v4_0_0", "00-2J氣氛燈情境同步AI", "on"], ["automation.00_2kding_lou_can_shu_chu_shi_hua_ai_v4_0_0", "00-2K頂樓參數初始化AI", "on"], ["automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0", "00-2L廣播快取暖機AI", "on"], ["automation.00_2mshi_ti_yin_yong_jian_cha_ai_v4_0_0", "00-2M實體引用檢查AI"], ["automation.00_2pmen_suo_dian_liang_mei_ri_ji_lu_ai_v4_0_0", "00-2P門鎖電量每日紀錄AI"], ["automation.00_2qdian_chi_yu_gu_geng_xin_ai_v4_1_6", "00-2Q電池預估更新AI"], ["automation.00_2rhuan_jing_bu_kong_pin_geng_xin_ai_v4_1_6", "00-2R環境部空品更新AI"], ["automation.00_2sjia_ren_zhu_yao_zhuang_zhi_qie_huan_ai_v4_2_0", "00-2S家人主要裝置切換AI"], ["automation.00_3shi_xiao_shi_ti_xun_jian_ai_v4_1_0", "00-3失效實體巡檢AI"], ["automation.09a_homepodzi_dong_kai_qi_yao_kong", "09A-HomePod自動開啟遙控", "on"], ["automation.09b_homepod_sensor_sync", "09B-Homepod Sensor sync", "on"], ["automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6", "09C電視待機喚醒AI"], ["automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6", "09C電視紅外線開關自動復位AI"], ["automation.106_2_mai_ke_feng", "106-2 五樓攝影機麥克風同步", "on"], ["automation.106dwang_guan_qie_huan_tong_bu_aqarakai_guan_ai_v4_1_6", "106D網關切換同步Aqara開關AI"], ["automation.ai_gateway_anomaly_guard", "106網關系統AI", "on"], ["automation.107bchong_dian_qiang_cha_shang_shi_jian_ji_lu_ai_v4_2_5", "107B充電槍插上時間記錄AI"], ["automation.107cchong_dian_che_liang_suo_ding_ai_v4_2_5", "107C充電車輛鎖定AI"], ["automation.ai_107_tesla_charger_status_notify", "107Tesla充電器狀態與通知AI", "on"], ["automation.si_fu_qi_geng_xin_ji_wei_hu_tong_zhi", "14伺服器更新及維護通知", "on"], ["automation.ban_ben_kuai_zhao_ji_zhun_xie_ru_qi", "版本快照基準寫入器", "on"], ["automation.ban_ben_kuai_zhao_ji_yi_qing_chu_qi", "版本快照記憶清除器", "on"], ["input_boolean.tv_keepalive_enable", "電視待機保持連線（自動喚醒）", "on"]]
         triggers_update: ["automation.ai_00_01_system_stability_auto_restart", "automation.ai_00_01_unifi_protect_watchdog", "automation.ai_00_01_xiaoyan_gateway_watchdog", "automation.00_2hdeng_kuang_ji_yi_ai_v4_0_0", "automation.00_2ikuai_zhao_qing_li_ai_v4_0_0", "automation.00_2jqi_fen_deng_qing_jing_tong_bu_ai_v4_0_0", "automation.00_2kding_lou_can_shu_chu_shi_hua_ai_v4_0_0", "automation.00_2lguang_bo_kuai_qu_nuan_ji_ai_v4_0_0", "automation.00_2mshi_ti_yin_yong_jian_cha_ai_v4_0_0", "automation.00_2pmen_suo_dian_liang_mei_ri_ji_lu_ai_v4_0_0", "automation.00_2qdian_chi_yu_gu_geng_xin_ai_v4_1_6", "automation.00_2rhuan_jing_bu_kong_pin_geng_xin_ai_v4_1_6", "automation.00_2sjia_ren_zhu_yao_zhuang_zhi_qie_huan_ai_v4_2_0", "automation.00_3shi_xiao_shi_ti_xun_jian_ai_v4_1_0", "automation.09a_homepodzi_dong_kai_qi_yao_kong", "automation.09b_homepod_sensor_sync", "automation.09cdian_shi_dai_ji_huan_xing_ai_v4_1_6", "automation.09cdian_shi_hong_wai_xian_kai_guan_zi_dong_fu_wei_ai_v4_1_6", "automation.106_2_mai_ke_feng", "automation.106dwang_guan_qie_huan_tong_bu_aqarakai_guan_ai_v4_1_6", "automation.ai_gateway_anomaly_guard", "automation.107bchong_dian_qiang_cha_shang_shi_jian_ji_lu_ai_v4_2_5", "automation.107cchong_dian_che_liang_suo_ding_ai_v4_2_5", "automation.ai_107_tesla_charger_status_notify", "automation.si_fu_qi_geng_xin_ji_wei_hu_tong_zhi", "automation.ban_ben_kuai_zhao_ji_zhun_xie_ru_qi", "automation.ban_ben_kuai_zhao_ji_yi_qing_chu_qi", "input_boolean.tv_keepalive_enable"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "平常關著（2）"
@@ -3333,6 +3071,9 @@ views:
           items: [["input_boolean.ai_version_snapshot_debug_enable", "更新紀錄快照_Debug通知", "off"], ["input_boolean.tv_ir_power", "電視紅外線開關（按下自動復位）", "off"]]
         triggers_update: ["input_boolean.ai_version_snapshot_debug_enable", "input_boolean.tv_ir_power"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "系統穩定自動重啟"
@@ -3353,6 +3094,9 @@ views:
             name: "系統穩定自動重啟間隔天數"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "版本與更新紀錄"
@@ -3379,6 +3123,9 @@ views:
             name: "自動化架構版本（手動）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "維護模式（更新期間略過通知）"
@@ -3395,6 +3142,9 @@ views:
             name: "維護模式持續到"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "其他文字"
@@ -3419,6 +3169,9 @@ views:
       width: 420
     cards:
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: markdown
         content: "**內部狀態（勿動）**　由自動化自動維護的旗標、紀錄、計時器與計數器，一般不用修改；手動改動可能讓自動化判斷錯誤。"
@@ -3426,6 +3179,9 @@ views:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "HomePod 偵測溫度"
@@ -3454,6 +3210,9 @@ views:
           items: [["input_boolean.collection_of_homepod_sensors", "HomePod 感測器收集開關"]]
         triggers_update: ["input_boolean.collection_of_homepod_sensors"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "耗材與額度（5）"
@@ -3478,6 +3237,9 @@ views:
             name: "門鎖電量已通知等級"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "通知與廣播（40）"
@@ -3513,6 +3275,9 @@ views:
             name: "100C_LINEnotice_電量提醒"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3547,6 +3312,9 @@ views:
             name: "廣播音量首次初始化旗標"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3581,6 +3349,9 @@ views:
             name: "氣氛燈燈況記憶_客廳燈2"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3615,6 +3386,9 @@ views:
             name: "通知自我測試旗標"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "情境（24）"
@@ -3629,6 +3403,9 @@ views:
           items: [["input_boolean.aqara_zai_jia", "Aqara 在家"], ["input_boolean.aqara_wan_an", "Aqara 晚安"], ["input_boolean.aqara_guan_bi", "Aqara 解除"], ["input_boolean.aqara_chu_fa", "Aqara 觸發"], ["input_boolean.aqara_li_jia", "Aqara 離家"], ["input_boolean.google_scene_chu_men_trigger", "Google 出門情境按鈕"], ["input_boolean.google_scene_dao_jia_trigger", "Google 到家情境按鈕"], ["input_boolean.google_scene_zao_an_trigger", "Google 早安情境按鈕"]]
         triggers_update: ["input_boolean.aqara_zai_jia", "input_boolean.aqara_wan_an", "input_boolean.aqara_guan_bi", "input_boolean.aqara_chu_fa", "input_boolean.aqara_li_jia", "input_boolean.google_scene_chu_men_trigger", "input_boolean.google_scene_dao_jia_trigger", "input_boolean.google_scene_zao_an_trigger"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "情境（續）"
@@ -3652,6 +3429,9 @@ views:
             name: "二樓夜間防下樓｜晚安情境最近一次執行（內部）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "情境（續）"
@@ -3682,6 +3462,9 @@ views:
             name: "漸進情境起點開關ID"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "開關按鈕（2）"
@@ -3703,6 +3486,9 @@ views:
             name: "Terncy 按鈕最後切換的繼電器"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "照明與感應燈（3）"
@@ -3726,6 +3512,9 @@ views:
             name: "車庫燈手動關閉冷卻"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（55）"
@@ -3755,6 +3544,9 @@ views:
           items: [["input_boolean.pan_duan_ding_lou_lou_ti_deng_zuo", "判斷-頂樓樓梯燈座"], ["input_boolean.topfloor_0fb7_auto", "頂樓_4F樓梯燈由感應開啟"], ["input_boolean.topfloor_13b8_auto", "頂樓_5F梯廳燈由感應開啟"], ["input_boolean.topfloor_kandeng_auto", "頂樓_坎燈由感應開啟"], ["input_boolean.topfloor_study_auto", "頂樓_書房燈由感應開啟"]]
         triggers_update: ["input_boolean.pan_duan_ding_lou_lou_ti_deng_zuo", "input_boolean.topfloor_0fb7_auto", "input_boolean.topfloor_13b8_auto", "input_boolean.topfloor_kandeng_auto", "input_boolean.topfloor_study_auto"]
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3783,6 +3575,9 @@ views:
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3817,6 +3612,9 @@ views:
             name: "頂樓_最後進書房"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3851,6 +3649,9 @@ views:
             name: "頂樓書房門口跨線最後觸發"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3885,6 +3686,9 @@ views:
             name: "頂樓_感應暫停計時"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3909,6 +3713,9 @@ views:
             name: "頂樓下樓意圖保護窗"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（29）"
@@ -3934,6 +3741,9 @@ views:
             name: "車庫充電線樣板｜上次學習（內部）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（續）"
@@ -3968,6 +3778,9 @@ views:
             name: "車庫後位｜連續有車燈／位移次數（內部）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（續）"
@@ -4000,6 +3813,9 @@ views:
             name: "車庫車輛身分校正紀錄（最近一次）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "緊急與災防（15）"
@@ -4025,6 +3841,9 @@ views:
             name: "LINE_EEW遠端_預估到達秒數"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "緊急與災防（續）"
@@ -4053,6 +3872,9 @@ views:
             name: "緊急模式快照到期（2 小時）"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "空氣與風扇（17）"
@@ -4076,6 +3898,9 @@ views:
             name: "客廳有效體感溫度"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "空氣與風扇（續）"
@@ -4106,6 +3931,9 @@ views:
             name: "客廳風扇_自動調速間隔計時"
         card_mod: *cm
     - type: vertical-stack
+      card_mod:
+        style: |
+          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
       cards:
       - type: heading
         heading: "系統維護（7）"

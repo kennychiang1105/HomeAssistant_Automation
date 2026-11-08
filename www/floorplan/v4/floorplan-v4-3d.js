@@ -3587,6 +3587,8 @@ class FloorplanV4Sidebar extends HTMLElement {
                height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column;
                overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
         .box::-webkit-scrollbar { display:none; }
+        /* UI4.0-beta13：橫放側欄把各區塊在整個高度內均分，下方不留一大塊空白（內容超過高度時仍可捲動；手機版 compact 不套用） */
+        .box:not(.compact) { justify-content:space-between; gap:8px; }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
         .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
