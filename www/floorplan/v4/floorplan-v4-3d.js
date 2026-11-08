@@ -1809,21 +1809,25 @@ class FloorplanV43D extends HTMLElement {
         }
         if (f.entity && cars) {
           // 車位實體（input_select.garage_slot_*）：標籤、空位虛線框，狀態由 update 迴圈依 HA 實體切換
-          const cv = document.createElement("canvas"); cv.width = 512; cv.height = 128;
+          // UI4.0-beta13：車位標籤改大（畫布 1024×256、字加大加粗、實心白底＋細邊框、標籤放大），縮放時文字不再糊
+          const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 256;
           const c2 = cv.getContext("2d");
           const tex = new THREE.CanvasTexture(cv);
+          tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+          try { tex.anisotropy = 8; } catch (e) { /* ignore */ }
           const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-          spr.scale.set(120, 30, 1); spr.position.set(x + w / 2, 50, y + h / 2); spr.renderOrder = 10; inner.add(spr);
+          spr.scale.set(156, 39, 1); spr.position.set(x + w / 2, 56, y + h / 2); spr.renderOrder = 10; inner.add(spr);
           let lastKey = "";
           const setLabel = (text, color) => {
             const key = text + color; if (key === lastKey) return; lastKey = key;
-            c2.clearRect(0, 0, 512, 128);
-            c2.fillStyle = "rgba(255,255,255,0.92)";
-            c2.beginPath(); if (c2.roundRect) c2.roundRect(4, 6, 504, 116, 20); else c2.rect(4, 6, 504, 116); c2.fill();
+            c2.clearRect(0, 0, 1024, 256);
+            c2.fillStyle = "#ffffff";
+            c2.beginPath(); if (c2.roundRect) c2.roundRect(8, 12, 1008, 232, 40); else c2.rect(8, 12, 1008, 232); c2.fill();
+            c2.lineWidth = 4; c2.strokeStyle = "rgba(0,0,0,.28)"; c2.stroke();
             c2.fillStyle = color; c2.textAlign = "center"; c2.textBaseline = "middle";
             const ls = String(text).split("\n");
-            c2.font = "bold 36px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[0] || "", 256, ls[1] ? 40 : 64, 488);
-            if (ls[1]) { c2.font = "600 28px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[1], 256, 88, 488); }
+            c2.font = "800 78px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[0] || "", 512, ls[1] ? 82 : 128, 970);
+            if (ls[1]) { c2.fillStyle = "#3a3d44"; c2.font = "700 54px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[1], 512, 180, 970); }
             tex.needsUpdate = true;
           };
           const gh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L, 20, W)), new THREE.LineBasicMaterial({ color: 0x9aa0a8 }));
@@ -3589,13 +3593,8 @@ class FloorplanV4Sidebar extends HTMLElement {
         .box::-webkit-scrollbar { display:none; }
         /* UI4.0-beta13：橫放側欄有多餘高度時，不是加大間距，而是把天氣、保全列、攝影機／樓層按鈕、成員列加高（間距維持原樣）；
            內容超過高度時仍可捲動；手機版 compact 不套用 */
-        .box:not(.compact) > .wx, .box:not(.compact) > .aq.show { flex:1 1 auto; }
-        .box:not(.compact) > .sec { flex:3 1 auto; }
-        .box:not(.compact) .sec .row2 { flex:1 1 auto; }
-        .box:not(.compact) .sec .cams { flex:1.3 1 auto; grid-auto-rows:1fr; }
-        .box:not(.compact) > .nav { flex:2.4 1 auto; grid-auto-rows:1fr; }
-        .box:not(.compact) > .nav button { font-size:calc(12.5px + 1.5px); }
-        .box:not(.compact) > .ppl { flex:1.6 1 auto; align-content:space-evenly; }
+        /* 大螢幕：整個側欄內容依欄寬／高度等比例放大（--z，由 _fit 依側欄寬高算出，1～1.6 倍），字、按鈕一起變大；不再把按鈕拉得很高 */
+        .box:not(.compact) > * { zoom:var(--z, 1); }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
         .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
@@ -3885,7 +3884,15 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (this.shadowRoot.querySelector(".time")) this._clock();          // HA detaches cards on view switch: restart the clock
     this._vis = () => { if (!document.hidden) this._clock(); };
     document.addEventListener("visibilitychange", this._vis);
-    this._ro = new ResizeObserver(() => { this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250); this._fit(); });
+    this._ro = new ResizeObserver(() => {
+      const bx = this.shadowRoot.querySelector(".box");
+      if (bx && !bx.classList.contains("compact")) {
+        // 內容原本約 290px 寬、600px 高；欄寬／高度更大時等比例放大（最多 1.6 倍），窄欄不縮小
+        const z = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 600));
+        bx.style.setProperty("--z", z.toFixed(3));
+      }
+      bx?.classList.toggle("narrow", this.clientWidth < 250); this._fit();
+    });
     this._ro.observe(this);
   }
   disconnectedCallback() {

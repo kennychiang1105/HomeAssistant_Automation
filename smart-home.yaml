@@ -30,6 +30,12 @@ views:
             '(max-width: 1280px)':
               grid-template-columns: 255px minmax(0, 1fr)
               grid-gap: 10px
+            '(min-width: 1500px)':
+              grid-template-columns: 350px minmax(0, 1fr)
+            '(min-width: 1800px)':
+              grid-template-columns: 420px minmax(0, 1fr)
+            '(min-width: 2200px)':
+              grid-template-columns: 470px minmax(0, 1fr)
         cards:
         - type: vertical-stack
           view_layout:
@@ -551,7 +557,7 @@ views:
         icon: mdi:bookshelf
 - title: 自動化管理
   path: automation-link
-  icon: mdi:robot-happy-outline
+  icon: mdi:cog-outline
   type: custom:grid-layout
   layout:
     grid-template-columns: minmax(0, 1fr)
@@ -559,9 +565,19 @@ views:
     margin: 0 auto
   cards:
   - type: custom:button-card
-    name: 前往自動化管理面板
-    icon: mdi:robot-happy-outline
+    name: 前往自動化管理
+    icon: mdi:cog-outline
     show_state: false
+    # 點這個分頁會自動跳到「自動化管理」面板的第一頁（總覽）；沒有跳轉時點這張卡片
     tap_action:
       action: navigate
       navigation_path: /lovelace-automation/overview
+    custom_fields:
+      go: |
+        [[[
+          if (!window.__goPanel || Date.now() - window.__goPanel > 1500) {
+            window.__goPanel = Date.now();
+            setTimeout(() => { history.pushState(null, '', '/lovelace-automation/overview'); window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } })); }, 0);
+          }
+          return '<div style="padding:6px 0;color:var(--secondary-text-color)">正在前往自動化管理…</div>';
+        ]]]

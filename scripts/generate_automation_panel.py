@@ -770,7 +770,8 @@ def supply_view(title, path, icon, autos):
         f"    icon: {icon}",
         "    type: custom:grid-layout",
         "    layout:",
-        "      grid-template-columns: repeat(2, minmax(0, 1fr))",
+        "      grid-template-columns: repeat(2, minmax(0, 480px))",
+        "      justify-content: center",
         "      grid-gap: 8px",
         "      margin: 0",
         "      align-items: start",
@@ -1232,7 +1233,8 @@ def back_3d_block():
 def view(title, path, icon, blocks):
     """vertical-layout：依序排卡片，欄與欄之間放 layout-break；欄數不夠時依序往下接（手機就是單欄、順序不變）。"""
     L = [f"  - title: {q(title)}", f"    path: {path}", f"    icon: {icon}", "    type: custom:vertical-layout",
-         "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}", "    cards:"]
+         "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}",
+         "      mediaquery:", "        '(min-width: 1000px)':", "          width: 460", "    cards:"]
     units = [[b] for b in blocks]
     if len(units) > 1:                     # 開頭的說明卡永遠跟下一張卡片放在同一欄，不會自己佔一欄
         units = [units[0] + units[1]] + units[2:]

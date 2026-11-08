@@ -83,6 +83,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -792,7 +795,8 @@ views:
     icon: mdi:battery-charging-medium
     type: custom:grid-layout
     layout:
-      grid-template-columns: repeat(2, minmax(0, 1fr))
+      grid-template-columns: repeat(2, minmax(0, 480px))
+      justify-content: center
       grid-gap: 8px
       margin: 0
       align-items: start
@@ -1262,6 +1266,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -1442,6 +1449,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -1647,6 +1657,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -1683,6 +1696,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -1776,6 +1792,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -2010,6 +2029,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -2232,6 +2254,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -2497,6 +2522,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -2674,6 +2702,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
@@ -3167,6 +3198,9 @@ views:
     layout:
       max_cols: 2
       width: 340
+      mediaquery:
+        '(min-width: 1000px)':
+          width: 460
     cards:
     - type: vertical-stack
       card_mod:
