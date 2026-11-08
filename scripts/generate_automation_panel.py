@@ -187,6 +187,64 @@ def fetch():
     return json.loads(r.stdout)
 
 
+DEFAULTS_QUERY = r"""
+import json, sqlite3, sys, time
+eids = json.loads(sys.stdin.readline())
+now = time.time(); since = now - 14 * 86400
+c = sqlite3.connect("file:/homeassistant/home-assistant_v2.db?mode=ro", uri=True, timeout=20)
+meta = dict(c.execute("select entity_id, metadata_id from states_meta").fetchall())
+out = {}
+for e in eids:
+    mid = meta.get(e)
+    if mid is None:
+        continue
+    prev = c.execute("select state from states where metadata_id=? and last_updated_ts<=? order by last_updated_ts desc limit 1", (mid, since)).fetchone()
+    rows = c.execute("select state, last_updated_ts from states where metadata_id=? and last_updated_ts>? order by last_updated_ts", (mid, since)).fetchall()
+    cur, t0, on, tot, flips = (prev[0] if prev else None), since, 0.0, 0.0, 0
+    if cur is None and rows:
+        cur, t0 = rows[0][0], rows[0][1]
+    for st, ts in rows:
+        if cur in ("on", "off"):
+            tot += ts - t0
+            on += (ts - t0) if cur == "on" else 0
+            if st in ("on", "off") and st != cur:
+                flips += 1
+        cur, t0 = st, ts
+    if cur in ("on", "off"):
+        tot += now - t0
+        on += (now - t0) if cur == "on" else 0
+    if tot > 3600:
+        r = on / tot
+        out[e] = "auto" if flips >= 8 and 0.05 < r < 0.95 else ("on" if r >= 0.5 else "off")
+print(json.dumps(out))
+"""
+DEFAULTS = {}          # entity_id -> "on" / "off"（平常狀態）／"auto"（會自動切換：不分常開常關、不標示）
+DEFAULTS_ON = [True]   # 內部狀態分頁不標「不是平常狀態」
+
+
+def fetch_defaults(eids):
+    """平常狀態：過去 14 天大部分時間的狀態；常常來回切換的是 "auto"；scripts/panel_defaults.json 可覆寫（{"entity_id": "on"／"off"／"auto"}）。"""
+    out = {}
+    try:
+        r = subprocess.run(["python3", "-"], input=DEFAULTS_QUERY.lstrip("\n").replace("sys.stdin.readline()", repr(json.dumps(eids))),
+                           capture_output=True, text=True, timeout=120)
+        out = json.loads(r.stdout or "{}")
+    except Exception as e:  # noqa: BLE001
+        print("defaults query failed:", e)
+    f = pathlib.Path(__file__).resolve().parent / "panel_defaults.json"
+    if f.exists():
+        try:
+            out.update({k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if v in ("on", "off", "auto")})
+        except Exception as e:  # noqa: BLE001
+            print("panel_defaults.json error:", e)
+    return out
+
+
+def clean_name(n):
+    """開關列名稱：去掉結尾的版本號「 (V4.3.0)」，比較好掃讀（版本號在詳細資訊裡看得到）。"""
+    return re.sub(r"\s*[（(]\s*V\d[^）)]*[）)]\s*$", "", str(n or "")).strip() or str(n or "")
+
+
 def q(s):
     return json.dumps(s, ensure_ascii=False)
 
@@ -250,7 +308,41 @@ def card_mod_wrap():
     return L
 
 
+TOGGLE_DOMAINS = ("automation", "input_boolean", "switch", "light", "fan")
+STATE = {}
+
+
+def toggle_rows_card(rows):
+    """一組開關列（和 Kiosk「自動化管理」同一套樣式）：圖示＋名稱＋右側 iOS 開關；點名稱開詳細資訊。"""
+    items = []
+    for r in rows:
+        eid, name = r[0], clean_name(r[1])
+        d = (r[2] if len(r) > 2 else DEFAULTS.get(eid)) if DEFAULTS_ON[0] else None
+        d = d if d in ("on", "off") else None
+        items.append([eid, name, d] if d else [eid, name])
+    return ["      - type: custom:button-card", "        template: prows",
+            "        variables:", "          items: " + json.dumps(items, ensure_ascii=False),
+            "        triggers_update: " + json.dumps([x[0] for x in items])]
+
+
 def entities_card(rows, title=None):
+    """連續的開關列改用 toggle_rows_card；其餘（數值、選項、文字…）維持原生 entities 卡片。"""
+    if not title and rows and any(isinstance(r, tuple) and r[0].split(".")[0] in TOGGLE_DOMAINS for r in rows):
+        out, buf, kind = [], [], None
+        for r in rows:
+            k = isinstance(r, tuple) and r[0].split(".")[0] in TOGGLE_DOMAINS
+            if buf and k != kind:
+                out += toggle_rows_card(buf) if kind else _entities_card_native(buf)
+                buf = []
+            buf.append(r)
+            kind = k
+        if buf:
+            out += toggle_rows_card(buf) if kind else _entities_card_native(buf)
+        return out
+    return _entities_card_native(rows, title)
+
+
+def _entities_card_native(rows, title=None):
     L = ["      - type: entities"]
     if title:
         L.append(f"        title: {q(title)}")
@@ -286,7 +378,11 @@ MASONRY = False   # build() 內全部分頁都設為 True（masonry：卡片依�
 
 def section(cards_lines, span=None):
     if MASONRY:
-        L = ["    - type: vertical-stack", "      cards:"]
+        L = ["    - type: vertical-stack",
+             "      card_mod:", "        style: |",
+             "          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }",
+             "          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }",
+             "      cards:"]
         L += cards_lines
         return L
     L = ["    - type: grid"]
@@ -322,175 +418,75 @@ def list_section(head_lines, rows, min_split=12):
     return section(head_lines + ["      - type: grid", "        columns: 2", "        square: false", "        cards:"] + inner, span=2)
 
 
-BOT_JS = r"""[[[
-  const e = entity;
-  const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
-  const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
-  const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
-  const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === __IDX__;
-  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
-  const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
-  const full = String(e.attributes.friendly_name || '');
-  const name = full.replace(/^ChiangFamily\s*/i, '') || full;
-  const letter = (name.trim().slice(-1) || '?').toUpperCase();
-  return `
-   <div style="display:flex;align-items:center;gap:12px;text-align:left">
-     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
-                 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
-     <div style="flex:1;min-width:0">
-       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-         <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-         <span style="flex:none;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span>
-       </div>
-       <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.24);margin:9px 0 6px;overflow:hidden">
-         <div style="width:${p}%;height:100%;background:${color};border-radius:4px"></div>
-       </div>
-       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)">
-         <span>剩餘 <b style="font-size:16px;color:${color}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span>
-       </div>
-     </div>
-   </div>`;
+QUOTA_JS = r"""[[[
+  const ids = ['sensor.bot_msg_remaining0', 'sensor.bot_msg_remaining1', 'sensor.bot_msg_remaining2', 'sensor.bot_msg_remaining3'];
+  const inUse = states['sensor.line_bot_in_use'];
+  const ia = (inUse && inUse.attributes) || {};
+  const target = Number(ia.target_index);
+  const sw = Number(ia.rotation_switch_limit || 196);
+  const curName = inUse ? String(inUse.state).replace('ChiangFamily ', '') : '--';
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+      <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+      <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+  const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+
+  const rot = states['sensor.line_bot_rotation_target'];
+  const nextIdx = rot && rot.attributes ? rot.attributes.next_bot : null;
+  const botNames = { 0: '智慧家庭 A（緊急 Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
+  const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
+  const f = states['sensor.line_bot_forecast'];
+  const st = f ? f.state : 'safe';
+  const a = (f && f.attributes) || {};
+  const md = (d) => d ? String(d).slice(5).replace('-', '/') : '--';
+  let color, label, d1, d2;
+  if (st === 'safe') { color = '#28A745'; label = '額度充裕'; d1 = `本月一般 Bot 額度充裕，可用至 ${md(a.normal_exhaust_date)}`; d2 = '運作平穩，本月不需動用緊急 Bot。'; }
+  else if (st === 'need_emergency') { color = '#D97706'; label = '預備動用緊急 Bot'; d1 = `一般 Bot 預估 ${md(a.normal_exhaust_date)}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`; d2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。'; }
+  else { color = '#E5372C'; label = '額度告急'; d1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估 ${md(a.normal_exhaust_date)} 動用緊急 Bot`; d2 = `預估 ${md(a.total_exhaust_date)} 前耗盡，請留意發送量。`; }
+  const rows = ids.map((id, i) => {
+    const e = states[id]; if (!e) return '';
+    const u = Number(e.attributes.usage || 0), lim = Number(e.attributes.limit || 200);
+    const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
+    const c = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
+    const cur = target === i;
+    const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
+    const chipBg = cur ? 'rgba(40,167,69,.14)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
+    const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+      <div style="flex:none;width:38px;height:38px;border-radius:11px;background:${c}1a;color:${c};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">${'ABCD'[i]}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-weight:600;font-size:14.5px;color:var(--primary-text-color)">智慧家庭 ${'ABCD'[i]}</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${chipBg};color:${chipFg}">${chip}</span></div>
+        <div style="height:6px;border-radius:4px;background:rgba(120,120,128,.20);margin:8px 0 5px;overflow:hidden"><div style="width:${p}%;height:100%;background:${c};border-radius:4px"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--secondary-text-color)"><span>剩餘 <b style="font-size:16px;color:${c}">${r}</b> 則</span><span>已用 ${u} / ${lim}（${p}%）</span></div>
+      </div></div>`;
+  }).join('');
+  return shell(color, head('mdi:message-text-outline', color, 'LINE Bot 額度', '使用中：' + curName) +
+    `<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>` +
+    `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--secondary-text-color)"><span>下一輪替</span><span style="font-weight:700;color:var(--primary-text-color);padding:3px 10px;border-radius:8px;background:rgba(120,120,128,.12)">${nextName}</span></div>` +
+    `<div style="margin-top:10px;padding:11px 14px;border-radius:12px;background:rgba(120,120,128,.08);${wrap}"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px"><span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color)">預估 Bot 使用狀況</span><span style="flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:${color}1f;color:${color}">${label}</span></div><div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--primary-text-color)">${esc(d1)}</div><div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:3px">${esc(d2)}</div></div>` +
+    `<div style="margin-top:10px;font-size:11.5px;color:var(--secondary-text-color);line-height:1.5">已達 ${sw} 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</div>`);
 ]]]"""
 
 
 def quota_section():
-    """LINE Bot 額度：4 張卡片（剩餘數字＋進度條＋狀態），用 auto-fit 格線，直向 1~2 欄、橫向 4 欄，不會左右滑動。"""
+    """LINE Bot 額度：4 個 Bot、輪替狀態與預估合成一張卡片（和「氣象與災害告警」同一種樣式）。"""
     L = []
     L += heading("LINE Bot 額度", "mdi:message-text-outline")
-    L.append("      - type: custom:layout-card")
-    L.append("        layout_type: custom:grid-layout")
-    L.append("        layout:")
-    L.append("          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))")
-    L.append("          grid-gap: 8px")
-    L.append("          margin: 0")
-    L.append("        cards:")
-    for i in range(4):
-        L.append("          - type: custom:button-card")
-        L.append(f"            entity: sensor.bot_msg_remaining{i}")
-        L.append("            show_name: false")
-        L.append("            show_icon: false")
-        L.append("            show_state: false")
-        L.append("            tap_action:")
-        L.append("              action: more-info")           # 點額度卡片 → 跳出該 Bot 剩餘額度的詳細視窗（歷史圖表）
-        L.append("            hold_action:")
-        L.append("              action: more-info")
-        L.append("            styles:")
-        L.append("              card:")
-        L.append("                - cursor: pointer")
-        L.append("                - height: auto")
-        L.append("                - padding: 12px 14px")
-        L.append("                - border-radius: 18px")
-        L.append("                - box-shadow: 0 1px 2px rgba(0,0,0,.18)")
-        L.append("                - border: none")
-        L.append("              grid:")
-        L.append("                - grid-template-areas: '\"body\"'")
-        L.append("                - grid-template-columns: 1fr")
-        L.append("            custom_fields:")
-        L.append("              body: |")
-        for ln in BOT_JS.replace("__IDX__", str(i)).splitlines():
-            L.append("                " + ln)
-
-    status_js = """[[[
-  const curInUse = states['sensor.line_bot_in_use'] ? states['sensor.line_bot_in_use'].state : '智慧家庭 D';
-  const targetObj = states['sensor.line_bot_rotation_target'];
-  const nextIdx = targetObj?.attributes?.next_bot;
-  const botNames = { 0: '智慧家庭 A（緊急Bot）', 1: '智慧家庭 B', 2: '智慧家庭 C', 3: '智慧家庭 D' };
-  const nextName = nextIdx != null ? (botNames[nextIdx] || ('Bot ' + nextIdx)) : '--';
-
-  const f = states['sensor.line_bot_forecast'];
-  const st = f ? f.state : 'safe';
-  const a = f?.attributes || {};
-  const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-  const totalDate = a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '--';
-
-  let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
-  if (st === 'safe') {
-    statusColor = '#30D158';
-    statusBg = 'rgba(48,209,88,.12)';
-    statusBorder = 'rgba(48,209,88,.25)';
-    statusLabel = '額度安全充裕';
-    statusIcon = 'mdi:check-circle';
-    desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
-    desc2 = '運作平穩，本月無需動用緊急 Bot。';
-  } else if (st === 'need_emergency') {
-    statusColor = '#FF9F0A';
-    statusBg = 'rgba(255,159,10,.14)';
-    statusBorder = 'rgba(255,159,10,.3)';
-    statusLabel = '預備動用緊急 Bot';
-    statusIcon = 'mdi:alert-circle';
-    desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
-    desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
-  } else {
-    statusColor = '#FF453A';
-    statusBg = 'rgba(255,69,58,.14)';
-    statusBorder = 'rgba(255,69,58,.3)';
-    statusLabel = '額度告急';
-    statusIcon = 'mdi:alert-octagon';
-    desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
-    desc2 = `預估將於 ${totalDate} 前耗盡，請留意推播發送量！`;
-  }
-
-  return `
-    <div style="background:var(--card-background-color);border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:0;width:100%;box-sizing:border-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <ha-icon icon="mdi:robot" style="color:#0A84FF;--mdc-icon-size:20px"></ha-icon>
-          <span style="color:var(--secondary-text-color)">目前使用：</span>
-          <strong style="color:var(--primary-text-color)">${curInUse.replace('ChiangFamily ', '')}</strong>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--secondary-text-color)">下一輪替：</span>
-          <span style="font-weight:600;color:var(--primary-text-color);background:rgba(120,120,128,.15);padding:2px 8px;border-radius:6px">${nextName}</span>
-        </div>
-      </div>
-
-      <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
-        <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
-        <div style="flex:1;min-width:0;white-space:normal !important">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-            <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
-            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
-          </div>
-          <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
-            <div style="font-weight:600;white-space:normal !important">${desc1}</div>
-            ${desc2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${desc2}</div>` : ''}
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size:11.5px;color:var(--secondary-text-color);line-height:1.4;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-        <ha-icon icon="mdi:information-outline" style="--mdc-icon-size:14px;flex-shrink:0"></ha-icon>
-        <span>已達 196 則自動切換下個 Bot · 群組每則約耗 5 額度 · 每月 1 日重置</span>
-      </div>
-    </div>
-  `;
-]]]"""
-    L.append("      - type: custom:button-card")
-    L.append("        entity: sensor.line_bot_in_use")
-    L.append("        show_name: false")
-    L.append("        show_icon: false")
-    L.append("        show_state: false")
-    L.append("        styles:")
-    L.append("          card:")
-    L.append("            - border-radius: 18px")
-    L.append("            - border: none")
-    L.append("            - box-shadow: 0 1px 2px rgba(0,0,0,.18)")
-    L.append("            - padding: 0")
-    L.append("            - white-space: normal")
-    L.append("          grid:")
-    L.append("            - grid-template-areas: '\"body\"'")
-    L.append("            - grid-template-columns: 1fr")
-    L.append("          custom_fields:")
-    L.append("            body:")
-    L.append("              - width: 100%")
-    L.append("              - min-width: 0")
-    L.append("              - text-align: left")
-    L.append("              - white-space: normal")
-    L.append("        custom_fields:")
-    L.append("          body: |")
-    for ln in status_js.splitlines():
+    L += ["      - type: custom:button-card",
+          "        entity: sensor.bot_msg_remaining0",
+          "        triggers_update:", "          - sensor.bot_msg_remaining0", "          - sensor.bot_msg_remaining1",
+          "          - sensor.bot_msg_remaining2", "          - sensor.bot_msg_remaining3",
+          "          - sensor.line_bot_in_use", "          - sensor.line_bot_forecast", "          - sensor.line_bot_rotation_target",
+          "        show_name: false", "        show_icon: false", "        show_state: false",
+          "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+          "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0", "            - white-space: normal",
+          "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+          "          custom_fields:", "            body:", "              - width: 100%", "              - min-width: 0",
+          "              - text-align: left", "              - white-space: normal",
+          "        custom_fields:", "          body: |"]
+    for ln in QUOTA_JS.splitlines():
         L.append("            " + ln)
     return L
 
@@ -506,82 +502,36 @@ def linebot_forecast_banner():
     """LINE Bot 全月預測診斷卡片：顯示日發送率、一般 Bot 耗盡日、緊急 Bot 狀態、重置倒數與診斷。"""
     js = """[[[
   const f = states['sensor.line_bot_forecast'];
-  if (!f || !f.attributes) return '<div style="padding:14px;text-align:center">LINE Bot 預測載入中...</div>';
+  if (!f || !f.attributes) return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">LINE Bot 預測載入中...</div>';
   const a = f.attributes;
   const st = f.state;
-  
-  let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
-  if (st === 'safe') {
-    bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
-    statusTitle = '本月額度充裕（無需動用緊急Bot）';
-    statusBadge = '安全充裕';
-    badgeBg = 'rgba(48,209,88,.2)';
-    badgeFg = '#30D158';
-    iconName = 'mdi:check-circle';
-    iconColor = '#30D158';
-  } else if (st === 'need_emergency') {
-    bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
-    statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
-    statusBadge = '備援預備';
-    badgeBg = 'rgba(255,159,10,.2)';
-    badgeFg = '#FF9F0A';
-    iconName = 'mdi:alert-circle';
-    iconColor = '#FF9F0A';
-  } else {
-    bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-    statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
-    statusBadge = '額度告急';
-    badgeBg = 'rgba(255,69,58,.2)';
-    badgeFg = '#FF453A';
-    iconName = 'mdi:alert-octagon';
-    iconColor = '#FF453A';
-  }
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+      <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+      <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+  const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+  const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
 
-  const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-
-  const rawSummary = a.summary || '';
-  const parts = rawSummary.split(/[；;]/);
+  const md = (d) => d ? String(d).slice(5).replace('-', '/') : '--';
+  let color, title, chip, icon;
+  if (st === 'safe') { color = '#28A745'; title = '本月額度充裕，不需動用緊急 Bot'; chip = '安全充裕'; icon = 'mdi:check-circle'; }
+  else if (st === 'need_emergency') { color = '#D97706'; title = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急 Bot，可撐至月底`; chip = '備援預備'; icon = 'mdi:alert-circle'; }
+  else { color = '#E5372C'; title = `額度告急，預估 ${md(a.total_exhaust_date)} 耗盡`; chip = '額度告急'; icon = 'mdi:alert-octagon'; }
+  const parts = String(a.summary || '').split(/[；;]/);
   const part1 = parts[0] ? parts[0].trim() : '';
-  const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
-
-  return `
-    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-          <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
-          <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
-        </div>
-        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
-      </div>
-      
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
-        <div>
-          <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
-          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
-          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
-          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">剩餘 ${a.emergency_remaining || 0} <span style="font-size:12px;font-weight:normal">則備援</span></div>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--secondary-text-color)">每月 1 日重置倒數</div>
-          <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.days_left_in_month || 0} <span style="font-size:12px;font-weight:normal">天</span></div>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
-        <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
-        <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
-          <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
-          ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
-        </div>
-      </div>
-    </div>
-  `;
+  const part2 = parts.length > 1 ? parts.slice(1).join('；').trim() : '';
+  const unit = (t) => `<span style="font-size:12px;font-weight:500;color:var(--secondary-text-color)"> ${t}</span>`;
+  return shell(color, head(icon, color, '本月 LINE Bot 預測', chip) +
+    `<div style="font-size:15px;font-weight:700;line-height:1.5;margin:-4px 0 12px;color:var(--primary-text-color);${wrap}">${esc(title)}</div>` +
+    `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">` +
+      tile('日均消耗', `${esc(a.daily_rate || 0)}${unit('則/天')}`) +
+      tile('一般 Bot 預估至', `${md(a.normal_exhaust_date)}${unit(`（${esc(a.normal_days_left || 0)} 天）`)}`, a.need_emergency ? color : '') +
+      tile('緊急 Bot 剩餘', `${esc(a.emergency_remaining || 0)}${unit('則')}`) +
+      tile('距離月初重置', `${esc(a.days_left_in_month || 0)}${unit('天')}`) +
+    `</div>` +
+    (part1 ? `<div style="margin-top:12px;padding:11px 14px;border-radius:12px;background:rgba(120,120,128,.08);${wrap}"><div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--primary-text-color)">${esc(part1)}</div>${part2 ? `<div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:3px">${esc(part2)}</div>` : ''}</div>` : ''));
 ]]]"""
     L = ["      - type: custom:button-card",
          "        entity: sensor.line_bot_forecast",
@@ -604,51 +554,30 @@ def filter_life_section():
   const s = states['sensor.kong_qi_qing_jing_ji_filter_life_remaining'];
   const lvl = s ? parseInt(s.state, 10) || 0 : 0;
   const notified = states['input_boolean.supply_filter_notified']?.state === 'on';
-  
-  let color, bgGradient, statusDesc;
-  if (lvl <= 5) {
-    color = '#FF453A';
-    bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-    statusDesc = '已達臨界壽命，請立即更換濾網';
-  } else if (lvl <= 10) {
-    color = '#FF9F0A';
-    bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
-    statusDesc = '濾網壽命偏低，請準備備用濾芯';
-  } else {
-    color = '#30D158';
-    bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
-    statusDesc = '濾網狀態良好，壽命充足';
-  }
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+      <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+      <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+  const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+  const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
 
-  return `
-    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:42px;height:42px;border-radius:12px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
-            <ha-icon icon="mdi:air-filter" style="--mdc-icon-size:24px"></ha-icon>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:16px;color:var(--primary-text-color)">空氣清淨機濾網壽命</div>
-            <div style="font-size:12.5px;color:${color};font-weight:600;margin-top:2px">${statusDesc}</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <span style="font-size:26px;font-weight:800;color:${color}">${lvl}<small style="font-size:16px">%</small></span>
-        </div>
+  let color, chip, desc;
+  if (lvl <= 5) { color = '#E5372C'; chip = '請更換'; desc = '已達臨界壽命，請立即更換濾網'; }
+  else if (lvl <= 10) { color = '#D97706'; chip = '備品'; desc = '濾網壽命偏低，請準備備用濾芯'; }
+  else { color = '#28A745'; chip = '良好'; desc = '濾網狀態良好，壽命充足'; }
+  const pct = Math.max(0, Math.min(100, lvl));
+  return shell(color, head('mdi:air-filter', color, '空氣清淨機濾網', chip) +
+    `<div style="display:flex;align-items:center;gap:18px">
+      <div style="flex:none;width:92px;height:92px;border-radius:50%;background:conic-gradient(${color} ${pct * 3.6}deg, rgba(120,120,128,.18) 0);display:flex;align-items:center;justify-content:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--card-background-color);display:flex;align-items:center;justify-content:center"><span style="font-size:24px;font-weight:800;color:${color}">${lvl}<small style="font-size:13px">%</small></span></div>
       </div>
-
-      <div style="height:8px;border-radius:999px;background:rgba(120,120,128,.18);margin:14px 0 10px;overflow:hidden">
-        <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px;box-shadow:0 0 8px ${color}66;transition:width 0.4s"></div>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--secondary-text-color)">
-        <span style="padding:2px 8px;border-radius:6px;background:rgba(120,120,128,.1)">門檻：≤10% 提醒備品 · ≤5% 請更換</span>
-        <span style="padding:2px 8px;border-radius:6px;background:${notified ? 'rgba(255,159,10,.2)' : 'rgba(120,120,128,.1)'};color:${notified ? '#FF9F0A' : 'inherit'};font-weight:${notified ? '600' : 'normal'}">
-          ${notified ? '⚠️ 已發出更換通知' : '尚未發送通知'}
-        </span>
-      </div>
-    </div>
-  `;
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:700;line-height:1.5;color:var(--primary-text-color);${wrap}">${desc}</div>
+        <div style="font-size:12.5px;line-height:1.6;color:var(--secondary-text-color);margin-top:4px">壽命 ≤10% 提醒備品　≤5% 請更換</div>
+        <div style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${notified ? color + '1f' : 'rgba(120,120,128,.12)'};color:${notified ? color : 'var(--secondary-text-color)'}">${notified ? '已發出更換通知' : '尚未發送通知'}</div>
+      </div></div>`);
 ]]]"""
     card = [
         "      - type: custom:button-card",
@@ -807,78 +736,19 @@ def supply_control_section():
 
 
 def supply_view(title, path, icon, autos):
-    """耗材與額度分頁（依裝置尺寸響應式排版）：
-    - 三欄（橫向寬螢幕）：Col 1 LINE Bot 全套、Col 2 電池壽命+耗材設定、Col 3 清淨機濾網+自動化（三欄維持不變）
-    - 雙欄（iPad 直向/中寬度）：Col 1 LINE Bot 全套、Col 2 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
-    - 單欄（手機/窄視窗）：LINE Bot 全套 ➔ 電池壽命 ➔ 清淨機濾網（在上）➔ 耗材設定（在下）➔ 自動化
-    採用 custom:grid-layout 搭配 mediaquery 精準達成各裝置尺寸響應排版。
-    """
+    """耗材與額度分頁：和其他分頁一樣用 view()（custom:vertical-layout）排版，欄寬、置中、分區底色區塊完全一致。"""
     auto_rows = [(eid, fn) for fn, eid in sorted(autos.get("supply", []))]
-    has_auto = bool(auto_rows)
-
-    col1_cards = (
-        heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
-        + linebot_forecast_banner()
-        + quota_section()
-        + quota_settings()
-    )
-    battery_cards = battery_forecast_section()
-    filter_cards = filter_life_section()
-    settings_cards = supply_control_section()
-    auto_cards = heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if has_auto else []
-
-    if has_auto:
-        areas_3col = '        "col1 battery filter"\n        "col1 settings auto"'
-        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"\n            "col1 auto"'
-        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"\n            "auto"'
-    else:
-        areas_3col = '        "col1 battery filter"\n        "col1 settings ."'
-        areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"'
-        areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"'
-
-    L = [
-        f"  - title: {q(title)}",
-        f"    path: {path}",
-        f"    icon: {icon}",
-        "    type: custom:grid-layout",
-        "    layout:",
-        "      grid-template-columns: repeat(3, minmax(280px, 1fr))",
-        "      grid-gap: 8px",
-        "      margin: 0",
-        "      align-items: start",
-        "      grid-template-areas: |",
-        areas_3col,
-        "      mediaquery:",
-        '        "(max-width: 768px)":',
-        "          grid-template-columns: minmax(0, 1fr)",
-        "          grid-template-areas: |",
-        areas_1col,
-        '        "(max-width: 1024px)":',
-        "          grid-template-columns: repeat(2, minmax(280px, 1fr))",
-        "          grid-template-areas: |",
-        areas_2col,
-        "    cards:",
-    ]
-
-    def _grid_stack(area, cards_lines):
-        out = [
-            "      - type: vertical-stack",
-            "        view_layout:",
-            f"          grid-area: {area}",
-            "        cards:",
-        ]
-        for ln in cards_lines:
-            out.append("  " + ln)
-        return out
-
-    L += _grid_stack("col1", col1_cards)
-    L += _grid_stack("battery", battery_cards)
-    L += _grid_stack("filter", filter_cards)
-    L += _grid_stack("settings", settings_cards)
-    if has_auto:
-        L += _grid_stack("auto", auto_cards)
-
-    return L
+    desc = next((d for k, t, ic, d in CATS if k == "supply"), "")
+    B = [section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS),
+         section(heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant") + linebot_forecast_banner()),
+         section(quota_section()),
+         section(quota_settings()),
+         section(battery_forecast_section()),
+         section(filter_life_section()),
+         section(supply_control_section())]
+    if auto_rows:
+        B.append(section(heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows)))
+    return view(title, path, icon, B)
 
 
 def _text_card(entity, js):
@@ -901,103 +771,104 @@ DISASTER_JS = r"""[[[
   const raw = (entity && entity.state) || '';
   const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
   const s = bad.includes(raw) ? '' : String(raw).trim();
-  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+      <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+      <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+  const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+  const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+
+  const lamps = { '紅色': '#E5372C', '橙色': '#D97706', '黃色': '#B88600' };
   const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
-  const lamps = { '紅色': ['#FF453A', 'rgba(255,69,58,.16)'], '橙色': ['#FF9F0A', 'rgba(255,159,10,.16)'], '黃色': ['#FFD60A', 'rgba(255,214,10,.16)'] };
   const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
   const items = [];
   let m;
-  while ((m = re.exec(s)) !== null) items.push({ region: m[1].trim(), cond: m[2].trim(), lamp: m[3] });
+  while ((m = re.exec(s)) !== null) items.push({ region: m[1].replace(/^[、，,\s]+/, '').trim(), cond: m[2].trim(), lamp: m[3] });
   let top = null;
   for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
-  let color, bg, label, icon;
-  if (calm) { color = '#30D158'; bg = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
-  else if (top) { color = lamps[top][0]; bg = `linear-gradient(135deg, ${lamps[top][1]} 0%, rgba(120,120,128,.04) 100%)`; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
-  else { color = '#FF9F0A'; bg = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+  let color, label, icon;
+  if (calm) { color = '#28A745'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+  else if (top) { color = lamps[top]; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+  else { color = '#D97706'; label = '災防通知'; icon = 'mdi:alert-circle'; }
   const lead = items.length ? s.split('，')[0] : '';
-  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
   let body = '';
   if (calm) {
-    body = `<div style="font-size:13.5px;color:var(--primary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
+    body = `<div style="font-size:14px;line-height:1.6;color:var(--secondary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
   } else if (items.length) {
-    body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
-      items.map(it => {
+    body = (lead ? `<div style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
+      `<div style="display:flex;flex-direction:column;gap:8px">` + items.map(it => {
         const c = lamps[it.lamp];
-        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:${c[1]};border:1px solid ${c[0]}55;min-width:0;box-sizing:border-box">
-          <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:0 0 6px ${c[0]}"></span>
+        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+          <span style="flex:none;margin-top:5px;width:10px;height:10px;border-radius:50%;background:${c}"></span>
           <div style="flex:1;min-width:0;${wrap}">
-            <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
-            <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
-            <div style="font-size:12px;line-height:1.45;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
+            <div style="font-size:12px;font-weight:700;color:${c}">${it.lamp}燈號</div>
+            <div style="font-size:14px;font-weight:600;line-height:1.5;color:var(--primary-text-color);margin-top:1px;${wrap}">${esc(it.region)}</div>
+            <div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
           </div></div>`;
-      }).join('') +
-      `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:12.5px;line-height:1.55;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
+      }).join('') + `</div>` +
+      `<details style="margin-top:10px"><summary style="font-size:12.5px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:13px;line-height:1.6;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
   } else {
-    body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+    body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
   }
   const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
-  const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
-  return `
-    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
-          <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
-        </div>
-        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
-      </div>
-      ${body}
-      <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
-    </div>`;
+  const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '';
+  return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
 ]]]"""
 
 EARTHQUAKE_JS = r"""[[[
   const raw = (entity && entity.state) || '';
   const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
   const s = bad.includes(raw) ? '' : String(raw).trim();
-  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+      <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+      <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+  const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+  const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+
   const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
   const mag = mm ? parseFloat(mm[4]) : NaN;
-  let color = '#30D158';
-  if (!isNaN(mag)) color = mag >= 6 ? '#FF453A' : (mag >= 5 ? '#FF9F0A' : (mag >= 4 ? '#FFD60A' : '#30D158'));
-  const bg = `linear-gradient(135deg, ${color}2b 0%, rgba(120,120,128,.04) 100%)`;
+  let color = '#28A745';
+  if (!isNaN(mag)) color = mag >= 6 ? '#E5372C' : (mag >= 5 ? '#D97706' : (mag >= 4 ? '#B88600' : '#28A745'));
+  const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
   let body = '';
   if (mm) {
     const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
     const im = intens.match(/^(.*?)(\d+[弱強]?級?)$/);
     const place = im ? im[1].trim() : intens;
     const lvl = im ? im[2] : '';
-    const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
-    body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.1);border-radius:12px">
-      ${cell('規模', 'M ' + esc(mm[4]), true)}
-      ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
-      ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
-      ${cell('震央位置', esc(mm[3].trim() || '--'), false)}
-    </div>`;
-  } else if (s) {
-    body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
-  } else {
-    body = `<div style="font-size:13.5px;color:var(--primary-text-color)">目前沒有地震速報資料。</div>`;
-  }
-  const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
-  return `
-    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
-          <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
-        </div>
-        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+    const row = (icon, k, v) => `<div style="display:flex;align-items:center;gap:10px;min-width:0"><ha-icon icon="${icon}" style="flex:none;color:var(--secondary-text-color);--mdc-icon-size:18px"></ha-icon><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);width:58px">${k}</span><span style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--primary-text-color);${wrap}">${v}</span></div>`;
+    body = `<div style="display:flex;align-items:stretch;gap:14px">
+      <div style="flex:none;min-width:104px;padding:12px 14px;border-radius:14px;background:${color}14;display:flex;flex-direction:column;justify-content:center;align-items:center">
+        <div style="font-size:11.5px;color:var(--secondary-text-color)">規模</div>
+        <div style="font-size:30px;font-weight:800;line-height:1.1;color:${color}">${esc(mm[4])}</div>
+        ${lvl ? `<div style="font-size:12px;font-weight:700;color:${color};margin-top:3px">震度 ${esc(lvl)}</div>` : ''}
       </div>
-      ${body}
-    </div>`;
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:9px">
+        ${row('mdi:map-marker-outline', '震央', esc(mm[3].trim() || '--'))}
+        ${row('mdi:home-alert-outline', '最大震度', esc((place ? place + ' ' : '') + lvl) || '--')}
+        ${row('mdi:clock-outline', '時間', esc(mm[1] + ' ' + mm[2]))}
+      </div></div>`;
+  } else if (s) {
+    body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+  } else {
+    body = `<div style="font-size:14px;color:var(--secondary-text-color)">目前沒有地震速報資料。</div>`;
+  }
+  return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
 ]]]"""
 
 
+class PinnedBlock(list):
+    """標記「要固定在右欄最上面、而且同一欄」的區塊（view() 會特別處理）。"""
+
+
 def disaster_blocks():
-    return [section(heading("氣象與災害告警", "mdi:weather-hurricane") + _text_card("sensor.disaster", DISASTER_JS)),
-            section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]
+    return [PinnedBlock(x) for x in [section(heading("氣象與災害告警", "mdi:weather-hurricane") + _text_card("sensor.disaster", DISASTER_JS)),
+            section(heading("最新地震報告", "mdi:pulse") + _text_card("sensor.earthquake", EARTHQUAKE_JS))]]
 
 
 FAMILY_OTHER = "其他（自訂，在下方欄位輸入 device_tracker）"   # 必須和 scripts/gen_person_main_device.py 的 OTHER 一樣
@@ -1184,6 +1055,52 @@ def manual_broadcast_section():
             + heading("廣播音效", "mdi:music-note") + entities_card(snd_rows) + snd_btn)
 
 
+LISTCARD_RECENT = r"""[[[
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
+  const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+  const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
+
+  const now = Date.now();
+  const items = autos.filter((s) => s.attributes && s.attributes.last_triggered)
+    .map((s) => ({ n: s.attributes.friendly_name || s.entity_id, t: new Date(s.attributes.last_triggered).getTime() }))
+    .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
+  const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
+  const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details style="border-top:.5px solid rgba(128,128,128,.28)"><summary style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
+]]]"""
+LISTCARD_OFF = r"""[[[
+  const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+  const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
+  const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+  const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
+
+  const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
+  return wrapBox(off.length ? '#D97706' : '#28A745', '目前停用的自動化', off.length ? `${off.length} 支` : '全部啟用', off.map((n) => rowH('#D97706', n, '已停用')).join(''), '沒有停用中的自動化。');
+]]]"""
+
+
+def list_js_card(js):
+    """用 button-card 樣板做的清單卡片（可滑動）；Kiosk 讀得到同一份樣板。"""
+    L = ["      - type: custom:button-card", "        triggers_update: all",
+         "        show_name: false", "        show_icon: false", "        show_state: false",
+         "        styles:", "          card:", "            - border-radius: 18px", "            - border: none",
+         "            - box-shadow: 0 1px 2px rgba(0,0,0,.18)", "            - padding: 0", "            - white-space: normal",
+         "          grid:", "            - grid-template-areas: '\"body\"'", "            - grid-template-columns: 1fr",
+         "          custom_fields:", "            body:", "              - width: 100%", "              - min-width: 0",
+         "              - text-align: left", "              - white-space: normal",
+         "        custom_fields:", "          body: |"]
+    for ln in js.splitlines():
+        L.append("            " + ln)
+    return L
+
+
 def overview_sections(autos, stale):
     def _auto_eid(prefix, default):
         """依自動化名稱開頭找實體 ID（版號改了、實體 ID 後綴會跟著不同，不寫死）。"""
@@ -1236,13 +1153,13 @@ def overview_sections(autos, stale):
     S.append(section(heading("常用總開關", "mdi:toggle-switch-outline") + entities_card(quick)))
     S.append(section(heading("網關、伺服器與警報", "mdi:router-wireless") + entities_card(gateways)))
     S.append(section(heading("頂樓常用", "mdi:stairs-up") + entities_card(top)))
-    S.append(section(heading("目前停用的自動化", "mdi:pause-circle-outline") + ["      - type: markdown", "        content: " + q(off_md)] + MD_CSS))
-    S.append(section(heading("最近 24 小時觸發", "mdi:history") + ["      - type: markdown", "        content: " + q(recent_md)] + MD_CSS))
+    S.append(section(heading("目前停用的自動化", "mdi:pause-circle-outline") + list_js_card(LISTCARD_OFF)))
+    S.append(section(heading("最近 24 小時觸發", "mdi:history") + list_js_card(LISTCARD_RECENT)))
     return S
 
 
-COLS = 4            # 最多 4 欄（橫向桌機／iPad 橫放）；layout-card 依螢幕寬度自動減少欄數：iPad 直放 2 欄、手機 1 欄
-COL_WIDTH = 340     # 每欄最小寬度（px）
+COLS = 2            # 最多 2 欄（iPad 橫放／電腦）；layout-card 依螢幕寬度自動減少欄數：手機、iPad 直放 1 欄
+COL_WIDTH = 340     # 每欄最小寬度（px）：窄螢幕（手機、iPad 分割畫面）也放得下，不會左右被切掉
 
 
 def est_height(lines):
@@ -1287,14 +1204,52 @@ def partition(heights, k):
     return list(reversed(bounds))
 
 
+def back_3d_block():
+    """快捷按鈕：回到「智慧家庭」儀表板的 3D 介面（/lovelace-smart/home）。"""
+    return [
+        "    - type: button",
+        '      name: "返回 3D 介面"',
+        "      icon: mdi:cube-scan",
+        "      show_state: false",
+        "      icon_height: 26px",
+        "      tap_action:",
+        "        action: navigate",
+        "        navigation_path: /lovelace-smart/home",
+        "      card_mod:",
+        "        style: |",
+        "          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }",
+    ]
+
+
 def view(title, path, icon, blocks):
     """vertical-layout：依序排卡片，欄與欄之間放 layout-break；欄數不夠時依序往下接（手機就是單欄、順序不變）。"""
     L = [f"  - title: {q(title)}", f"    path: {path}", f"    icon: {icon}", "    type: custom:vertical-layout",
-         "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}", "    cards:"]
+         "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}",
+         "      mediaquery:", "        '(min-width: 1000px)':", "          width: 460", "    cards:"]
+    pinned = [b for b in blocks if isinstance(b, PinnedBlock)]
+    blocks = [b for b in blocks if not isinstance(b, PinnedBlock)]
     units = [[b] for b in blocks]
     if len(units) > 1:                     # 開頭的說明卡永遠跟下一張卡片放在同一欄，不會自己佔一欄
         units = [units[0] + units[1]] + units[2:]
-    parts = partition([sum(est_height(b) for b in u) for u in units], COLS)
+    hs = [sum(est_height(b) for b in u) for u in units]
+    if pinned and COLS >= 2 and len(units) >= 2:
+        # 災害告警＋地震報告固定在「右欄最上面」且同一欄；其餘卡片切成左右兩欄，讓右欄（含這兩張）和左欄高度盡量接近
+        hp = sum(est_height(b) for b in pinned)
+        k = min(range(1, len(units)), key=lambda i: max(sum(hs[:i]), sum(hs[i:]) + hp))
+        for u in units[:k]:
+            for blk in u:
+                L += blk
+        L.append("    - type: custom:layout-break")
+        for blk in pinned:
+            L += blk
+        for u in units[k:]:
+            for blk in u:
+                L += blk
+        return L
+    for blk in pinned:
+        units.append([blk])
+        hs.append(est_height(blk))
+    parts = partition(hs, COLS)
     for n, (a, b) in enumerate(parts):
         if n:
             L.append("    - type: custom:layout-break")
@@ -1304,8 +1259,93 @@ def view(title, path, icon, blocks):
     return L
 
 
+PANEL_ROOT = [
+"button_card_templates:",
+"  prows:",
+"    show_name: false",
+"    show_icon: false",
+"    show_state: false",
+"    tap_action:",
+"      action: none",
+"    hold_action:",
+"      action: none",
+"    styles:",
+"      card:",
+"        - padding: 0",
+"        - border-radius: 18px",
+"        - border: none",
+"        - box-shadow: 0 1px 2px rgba(0,0,0,.18)",
+"        - overflow: hidden",
+"      grid:",
+"        - grid-template-areas: '\"rows\"'",
+"        - grid-template-columns: 1fr",
+"      custom_fields:",
+"        rows:",
+"          - width: 100%",
+"          - min-width: 0",
+"    custom_fields:",
+"      rows: |",
+"        [[[",
+"        if (!window.__tabPtr) { window.__tabPtr = 1; document.addEventListener('pointerdown', (ev) => { if (ev.composedPath().some((el) => el && el.tagName && /TAB(?!LE)/.test(el.tagName))) window.__tabT = Date.now(); }, true); }",
+"        const it = variables.items || [];",
+"        const esc = (t) => String(t == null ? '' : t).replace(/[&<>\"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));",
+"        const DI = {automation: 'mdi:robot-outline', input_boolean: 'mdi:toggle-switch-outline', switch: 'mdi:power-socket', light: 'mdi:lightbulb-outline', fan: 'mdi:fan'};",
+"        const css = '<style>.r{display:flex;align-items:center;gap:12px;padding:10px 16px;min-height:50px;box-sizing:border-box}.r+.r{border-top:.5px solid rgba(128,128,128,.28)}'",
+"          + '.ic{flex:none;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(10,132,255,.14);color:#0A84FF;--mdc-icon-size:19px;transition:background .15s,color .15s}'",
+"          + '.r.on .ic{background:rgba(255,185,0,.2);color:#E09B00}'",
+"          + '.n{flex:1;min-width:0;text-align:left;font-size:15px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--primary-text-color);cursor:pointer}'",
+"          + '.sw{position:relative;flex:none;width:51px;height:31px;border-radius:16px;border:0;padding:0;background:rgba(120,120,128,.32);cursor:pointer;transition:background .18s;-webkit-tap-highlight-color:transparent}'",
+"          + '.sw::after{content:\"\";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:left .18s}'",
+"          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}'",
+"          + '.dv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:1px;background:rgba(255,159,10,.18);color:#E08600}'",
+"          + '.r.dev{background:rgba(255,159,10,.06)}</style>';",
+"        return css + it.map(([e, n, d]) => {",
+"          const s = states[e]; const st = s ? s.state : 'unavailable';",
+"          const on = st === 'on'; const na = !s || st === 'unavailable'; const dev = !!d && !na && st !== d;",
+"          const ic = (s && s.attributes.icon) || DI[e.split('.')[0]] || 'mdi:toggle-switch-outline';",
+"          const nm = n || (s && s.attributes.friendly_name) || e;",
+"          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''} ${dev ? 'dev' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
+"            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}${dev ? `<span class=\"dv\">平常${d === 'on' ? '開' : '關'}</span>` : ''}</span>`",
+"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onclick=\"event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})\"></button></div>`;",
+"        }).join('');",
+"        ]]]"
+]
+BACK_VIEW = [
+"  - title: \"返回 3D\"",
+"    path: back-3d",
+"    icon: mdi:cube-scan",
+"    cards:",
+"    - type: custom:button-card",
+"      show_name: false",
+"      show_icon: false",
+"      show_state: false",
+"      tap_action:",
+"        action: navigate",
+"        navigation_path: /lovelace-smart/home",
+"      styles:",
+"        card:",
+"          - border-radius: 18px",
+"        grid:",
+"          - grid-template-areas: '\"go\"'",
+"      custom_fields:",
+"        go: |",
+"          [[[",
+"          if (!window.__tabPtr) { window.__tabPtr = 1; document.addEventListener('pointerdown', (ev) => { if (ev.composedPath().some((el) => el && el.tagName && /TAB(?!LE)/.test(el.tagName))) window.__tabT = Date.now(); }, true); }",
+"          if (location.pathname.endsWith('/back-3d') && (!window.__back3d || Date.now() - window.__back3d > 1500)) {",
+"            window.__back3d = Date.now();",
+"            const dest = window.__tabT && Date.now() - window.__tabT < 3000 ? '/lovelace-smart/home' : '/lovelace-automation/overview'; setTimeout(() => { history.replaceState(null, '', dest); window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: true}})); }, 0);",
+"          }",
+"          return '<div style=\"padding:28px 8px;text-align:center;font-size:15px;color:var(--secondary-text-color)\">正在返回 3D 介面…（沒有跳轉請點這裡）</div>';",
+"          ]]]"
+]
+
+
 def build(data):
     _CM_DONE[0] = False
+    global STATE
+    STATE = {eid: st for eid, st, fn in data}
+    DEFAULTS.clear()
+    DEFAULTS.update(fetch_defaults([eid for eid, st, fn in data if eid.split(".")[0] in TOGGLE_DOMAINS]))
     autos = {k: [] for k, *_ in CATS}
     settings = {k: [] for k, *_ in CATS}      # (dom, 名稱, eid)
     internal = {k: [] for k, *_ in CATS}
@@ -1334,7 +1374,7 @@ def build(data):
                 settings[cat].append((dom, fn or eid, eid))
 
     L = ["# 自動化管理面板（由 scripts/generate_automation_panel.py 產生，請勿直接手改；重新執行程式即可更新）",
-         "title: 自動化管理", "views:"]
+         "title: 自動化管理"] + PANEL_ROOT + ["views:"]
     global MASONRY
     MASONRY = True      # section() 輸出 vertical-stack 卡片，交給 vertical-layout 分欄
     for key, title, icon, desc in CATS:
@@ -1347,6 +1387,7 @@ def build(data):
         if key == "other" and not autos[key] and not settings[key]:
             continue   # 沒有未分類項目就不顯示「其他」分頁
         B = []
+        DEFAULTS_ON[0] = key != "internal"
         if key == "internal":
             B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS))
             homepod_rows = [
@@ -1365,7 +1406,7 @@ def build(data):
             L += view(title, key, icon, B)
             continue
         n_auto = len(autos[key]); n_set = len(settings[key])
-        B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
+        B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS))
         if key == "system":
             B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
         if key == "scene":
@@ -1374,27 +1415,38 @@ def build(data):
             B.extend(garage_cars_blocks())      # 車庫前／後位車輛、車頭朝向、出去可能性、樣板學習
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
-        if autos[key]:
-            rows = [(eid, fn) for fn, eid in sorted(autos[key])]
-            B.extend(list_blocks(f"自動化開關（{n_auto}）", rows, "mdi:robot"))
-        # 功能小組（依 SUBGROUPS 的順序）
-        left = list(settings[key])
+        # 開關：自動化＋輸入開關集中，依平常狀態分兩區（掃一眼：開著區有關掉的、關著區有打開的，就是和平常不同）
+        tog = [(eid, fn) for fn, eid in autos[key]] + [(eid, short_name(fn)) for dom, fn, eid in settings[key] if dom in TOGGLE_DOMAINS]
+        tog.sort(key=lambda r: (0 if r[0].startswith("automation.") else 1, clean_name(r[1])))
+        auto_rows = [r for r in tog if DEFAULTS.get(r[0]) == "auto"]
+        on_rows = [r for r in tog if r not in auto_rows and DEFAULTS.get(r[0], STATE.get(r[0])) == "on"]
+        off_rows = [r for r in tog if r not in auto_rows and r not in on_rows]
+        if on_rows:
+            B.extend(list_blocks(f"平常開著（{len(on_rows)}）", on_rows, "mdi:toggle-switch", max_rows=60))
+        if off_rows:
+            B.extend(list_blocks(f"平常關著（{len(off_rows)}）", off_rows, "mdi:toggle-switch-off-outline", max_rows=60))
+        if auto_rows:
+            B.extend(list_blocks(f"會自動切換（{len(auto_rows)}）", auto_rows, "mdi:swap-horizontal", max_rows=60))
+        # 其他設定：功能小組（依 SUBGROUPS 的順序），標題不再加數量
+        left = [x for x in settings[key] if x[0] not in TOGGLE_DOMAINS]
         for label, pat in SUBGROUPS.get(key, []):
             grp = [x for x in left if re.search(pat, x[2] + " " + x[1])]
             if grp:
                 left = [x for x in left if x not in grp]
                 rows = [(eid, short_name(fn)) for dom, fn, eid in sorted(grp, key=lambda x: (x[0], x[1]))]
-                B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
+                B.extend(list_blocks(label, rows, max_rows=60))
         # 其餘依元件種類（同分類已有功能小組時，這些標為「其他…」）
-        had_groups = len(left) != len(settings[key])
+        had_groups = len(left) != len([x for x in settings[key] if x[0] not in TOGGLE_DOMAINS])
         for dom, label in TYPE_LABEL:
             grp = [x for x in left if x[0] == dom]
             if grp:
                 label = label.replace("其他", "")
                 label = ("其他" + label) if had_groups else label
                 rows = [(eid, short_name(fn)) for d, fn, eid in sorted(grp, key=lambda x: x[1])]
-                B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
+                B.extend(list_blocks(label, rows, max_rows=60))
         L += view(title, key, icon, B)
+    i0 = L.index("views:") + 1
+    L[i0:i0] = BACK_VIEW    # 分頁列最前面：返回 3D 介面（和 Kiosk 一樣）
     return "\n".join(L) + "\n"
 
 
@@ -1416,3 +1468,9 @@ if __name__ == "__main__":
     elif root_panel.exists():
         root_panel.write_text(text, encoding="utf-8")
         print("deployed to", root_panel)
+
+    # Kiosk（NAS 8130 埠）的「自動化管理」頁讀這份清單
+    try:
+        subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve().parent / "gen_kiosk_panel_manifest.py")], check=True)
+    except Exception as e:  # noqa: BLE001
+        print("kiosk manifest failed:", e)

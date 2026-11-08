@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta12) - real 3D view
+/* Floorplan V4.1.0 (UI4.0 正式版) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -250,12 +250,18 @@ class FloorplanV43D extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; }
-        .tabs { display:grid; grid-template-columns:repeat(${order.length},1fr); gap:6px; margin-bottom:8px; }
+        .tabs { display:grid; grid-template-columns:repeat(${order.length},1fr); gap:6px; margin-bottom:8px; padding-right:var(--ir, 0px); }
         .tabs button { border:0; border-radius:12px; padding:10px 2px; font:600 14px sans-serif;
                        background:rgba(120,120,128,.16); color:var(--primary-text-color); cursor:pointer; }
         .tabs button.on { background:#FFB900; color:#111; }
         .wrap { position:relative; height:${(cfg.height || "70vh").replace(/dvh/g, "vh")}; height:${cfg.height || "70vh"}; border-radius:16px; overflow:hidden;
-                background:radial-gradient(ellipse at 50% 30%, #34322f 0%, #1a1918 72%); }   /* V4.3.6：暖石墨色 */
+                /* UI4.0：夜間＝暖石墨底＋琥珀色淡格線（科技感）＋底部暖光、左上淡藍光 */
+                background:
+                  linear-gradient(rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
+                  linear-gradient(90deg, rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
+                  radial-gradient(ellipse at 50% 118%, rgba(255,149,0,.24) 0%, rgba(255,149,0,0) 58%),
+                  radial-gradient(ellipse at 8% -4%, rgba(100,190,255,.13) 0%, rgba(100,190,255,0) 46%),
+                  radial-gradient(ellipse at 50% 32%, #302b26 0%, #1b1712 70%, #120f0b 100%); }
         canvas { width:100%; height:100%; display:block; touch-action:none; outline:none; }
         .spots { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .pin { position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; --off:24px;
@@ -302,7 +308,14 @@ class FloorplanV43D extends HTMLElement {
           -webkit-tap-highlight-color:transparent; }
         .scn button:active, .zones button:active, .tools button:active, .seg button:active, .chips button:active {
           scale:0.96; filter:brightness(1.15); }
-        .wrap.light { background:radial-gradient(rgba(60,50,40,.07) 1px, transparent 1.2px) 0 0/18px 18px, radial-gradient(ellipse at 8% 6%, #fbe1d3 0%, rgba(251,225,211,0) 46%), radial-gradient(ellipse at 96% 12%, #dbe7f4 0%, rgba(219,231,244,0) 50%), radial-gradient(ellipse at 88% 96%, #edf3d6 0%, rgba(237,243,214,0) 46%), #f7f4ee; }   /* V4.3.6：建築模型風淡色漸層＋點格 */
+        /* UI4.0：白天＝暖米白底＋淡藍圖格線（科技感）＋底部暖光、右上淡藍光 */
+        .wrap.light { background:
+          linear-gradient(rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
+          linear-gradient(90deg, rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
+          radial-gradient(ellipse at 50% 116%, rgba(255,176,59,.26) 0%, rgba(255,176,59,0) 56%),
+          radial-gradient(ellipse at 94% -2%, rgba(110,170,235,.20) 0%, rgba(110,170,235,0) 46%),
+          radial-gradient(ellipse at 4% 4%, rgba(255,214,170,.35) 0%, rgba(255,214,170,0) 40%),
+          linear-gradient(180deg, #fcf9f4 0%, #f3ece1 100%); }
         .wrap.light .tag { background:rgba(255,255,255,.95); border-color:rgba(0,0,0,.16); color:#16181d; box-shadow:0 2px 8px rgba(0,0,0,.16); }
         .wrap.light .tag:active, .wrap.light .tag.tapping { background:rgba(240,243,248,.98); border-color:rgba(0,0,0,.3); }
         .wrap.light .pin:not(.on):not(.trig):not(.alert):not(.env):not(.stair):not(.cam):not(.ap) .ic { background:#e4e8ef; color:#2b303a; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
@@ -334,7 +347,7 @@ class FloorplanV43D extends HTMLElement {
         .pin.person .ic { color:#111; font:700 13px sans-serif; }
         .pin.cam .ic { background:#1f4f6b; color:#bfe9ff; }
         .editing .tag { outline:2px dashed #FFB900; outline-offset:2px; cursor:move; }
-        .tools { position:absolute; right:8px; top:8px; display:flex; gap:6px; z-index:3; }
+        .tools { position:absolute; right:calc(8px + var(--ir, 0px)); top:8px; display:flex; gap:6px; z-index:3; }
         .tools button, .chips button { border:0; border-radius:10px; padding:7px 10px; font:600 12px sans-serif; cursor:pointer;
                         background:rgba(30,30,32,.78); color:#fff; flex:none; }
         .tools button.on, .chips button.on { background:#FFB900; color:#111; }
@@ -385,7 +398,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta12</div>
+        <div class="ver">UI4.0</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -1796,21 +1809,25 @@ class FloorplanV43D extends HTMLElement {
         }
         if (f.entity && cars) {
           // 車位實體（input_select.garage_slot_*）：標籤、空位虛線框，狀態由 update 迴圈依 HA 實體切換
-          const cv = document.createElement("canvas"); cv.width = 512; cv.height = 128;
+          // UI4.0：車位標籤改大（畫布 1024×256、字加大加粗、實心白底＋細邊框、標籤放大），縮放時文字不再糊
+          const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 256;
           const c2 = cv.getContext("2d");
           const tex = new THREE.CanvasTexture(cv);
+          tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+          try { tex.anisotropy = 8; } catch (e) { /* ignore */ }
           const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-          spr.scale.set(120, 30, 1); spr.position.set(x + w / 2, 50, y + h / 2); spr.renderOrder = 10; inner.add(spr);
+          spr.scale.set(156, 39, 1); spr.position.set(x + w / 2, 56, y + h / 2); spr.renderOrder = 10; inner.add(spr);
           let lastKey = "";
           const setLabel = (text, color) => {
             const key = text + color; if (key === lastKey) return; lastKey = key;
-            c2.clearRect(0, 0, 512, 128);
-            c2.fillStyle = "rgba(255,255,255,0.92)";
-            c2.beginPath(); if (c2.roundRect) c2.roundRect(4, 6, 504, 116, 20); else c2.rect(4, 6, 504, 116); c2.fill();
+            c2.clearRect(0, 0, 1024, 256);
+            c2.fillStyle = "#ffffff";
+            c2.beginPath(); if (c2.roundRect) c2.roundRect(8, 12, 1008, 232, 40); else c2.rect(8, 12, 1008, 232); c2.fill();
+            c2.lineWidth = 4; c2.strokeStyle = "rgba(0,0,0,.28)"; c2.stroke();
             c2.fillStyle = color; c2.textAlign = "center"; c2.textBaseline = "middle";
             const ls = String(text).split("\n");
-            c2.font = "bold 36px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[0] || "", 256, ls[1] ? 40 : 64, 488);
-            if (ls[1]) { c2.font = "600 28px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[1], 256, 88, 488); }
+            c2.font = "800 78px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[0] || "", 512, ls[1] ? 82 : 128, 970);
+            if (ls[1]) { c2.fillStyle = "#3a3d44"; c2.font = "700 54px -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif"; c2.fillText(ls[1], 512, 180, 970); }
             tex.needsUpdate = true;
           };
           const gh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L, 20, W)), new THREE.LineBasicMaterial({ color: 0x9aa0a8 }));
@@ -3574,6 +3591,17 @@ class FloorplanV4Sidebar extends HTMLElement {
                height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column;
                overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
         .box::-webkit-scrollbar { display:none; }
+        /* UI4.0：橫放側欄有多餘高度時，不是加大間距，而是把天氣、保全列、攝影機／樓層按鈕、成員列加高（間距維持原樣）；
+           內容超過高度時仍可捲動；手機版 compact 不套用 */
+        /* 大螢幕：整個側欄內容依欄寬／高度等比例放大（--z，由 _fit 依側欄寬高算出，1～1.6 倍），字、按鈕一起變大；不再把按鈕拉得很高 */
+        .box:not(.compact) > * { zoom:var(--z, 1); }
+        /* 放大後如果還有多餘高度，卡片與按鈕再適度加高（每個都有上限，不會拉成很高的長條），剩下的才留白 */
+        .box:not(.compact) > .wx, .box:not(.compact) > .aq.show { flex:1 1 auto; max-height:120px; }
+        .box:not(.compact) > .sec { flex:2.2 1 auto; }
+        .box:not(.compact) .sec .row2 { flex:1 1 auto; max-height:64px; }
+        .box:not(.compact) .sec .cams button { min-height:40px; }
+        .box:not(.compact) > .nav { flex:0 0 auto; grid-auto-rows:minmax(40px, auto); }
+        .box:not(.compact) > .ppl { flex:1.2 1 auto; align-content:space-evenly; }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
         .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
@@ -3863,7 +3891,18 @@ class FloorplanV4Sidebar extends HTMLElement {
     if (this.shadowRoot.querySelector(".time")) this._clock();          // HA detaches cards on view switch: restart the clock
     this._vis = () => { if (!document.hidden) this._clock(); };
     document.addEventListener("visibilitychange", this._vis);
-    this._ro = new ResizeObserver(() => { this.shadowRoot.querySelector(".box")?.classList.toggle("narrow", this.clientWidth < 250); this._fit(); });
+    this._ro = new ResizeObserver(() => {
+      const bx = this.shadowRoot.querySelector(".box");
+      if (bx && !bx.classList.contains("compact")) {
+        // 內容原本約 290px 寬、600px 高；欄寬／高度更大時等比例放大（最多 1.6 倍），窄欄不縮小
+        const z0 = this.clientHeight < 720 ? 1 : Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
+        // 放大時字再大一點（×1.12），按鈕高度不跟著拉高
+        const z = z0 > 1.001 ? Math.min(1.8, z0 * 1.12) : 1;
+        bx.style.setProperty("--z", z.toFixed(3));
+      }
+      // 窄欄（< 250px）或高度不夠放完整內容（< 720px，例如 iPad mini 橫放）都用緊湊版，才不會被切掉
+      bx?.classList.toggle("narrow", this.clientWidth < 250 || (this.clientHeight > 0 && this.clientHeight < 720)); this._fit();
+    });
     this._ro.observe(this);
   }
   disconnectedCallback() {

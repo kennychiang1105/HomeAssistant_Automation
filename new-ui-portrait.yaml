@@ -1,0 +1,315 @@
+# V4.0-beta 1 dashboard (views regrouped so section headers stay with their cards)
+button_card_templates: !include 'floorplan_v4/ios_templates.yaml'
+title: 智慧家庭 直向
+views:
+- title: 家
+  path: home
+  icon: mdi:cube-scan
+  cards:
+  - !include 'floorplan_v4/map3d_portrait.yaml'
+  - type: custom:floorplan-v4-people
+  - type: custom:floorplan-v4-sidebar
+    compact: true
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+    - type: custom:button-card
+      template: ios_alarm_card
+      entity: alarm_control_panel.54ef44cf58f9_alarm
+      name: 保全系統
+      icon: mdi:shield-home
+    - type: custom:button-card
+      template: ios_lock_card
+      entity: lock.er_lou_men_suo
+      name: 二樓門鎖
+      icon: mdi:lock
+    - type: custom:button-card
+      template: ios_cover_card
+      entity: cover.garage
+      name: 車庫鐵門
+      icon: mdi:garage-variant
+    - type: custom:button-card
+      template: ios_device_card
+      entity: input_boolean.5f_security_temp_disable
+      name: 五樓保全暫解
+      icon: mdi:shield-off
+  - !include 'floorplan_v4/controls_card.yaml'
+- title: 情境
+  path: scenes
+  icon: mdi:palette
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 主要情境  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_zao_an_trigger
+        name: 早安
+        icon: mdi:weather-sunny
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_dao_jia_trigger
+        name: 到家
+        icon: mdi:home-import-outline
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_wan_an_trigger
+        name: 晚安
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_chu_men_trigger
+        name: 出門
+        icon: mdi:car-back
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 頂樓情境  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_shang_lou_qing_jing
+        name: 頂樓上樓
+        icon: mdi:stairs-up
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_xia_lou_qing_jing
+        name: 頂樓下樓
+        icon: mdi:stairs-down
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_ye_deng_qing_jing
+        name: 夜燈
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.ding_lou_yue_du_qing_jing
+        name: 閱讀
+        icon: mdi:book-open-page-variant
+- title: 全部裝置
+  path: all
+  icon: mdi:home
+  cards:
+  - type: picture-entity
+    entity: camera.g6_instant_high_resolution_channel
+    name: 車庫攝影機
+    show_name: true
+    show_state: false
+    camera_view: live
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 情境
+    - type: grid
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_zao_an_trigger
+        name: 早安
+        icon: mdi:weather-sunny
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_dao_jia_trigger
+        name: 到家
+        icon: mdi:home-import-outline
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_wan_an_trigger
+        name: 晚安
+        icon: mdi:weather-night
+      - type: custom:button-card
+        template: ios_scene_card
+        entity: input_boolean.google_scene_chu_men_trigger
+        name: 出門
+        icon: mdi:car-back
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 車庫  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_cover_card
+        entity: cover.garage
+        name: 鐵門
+        icon: mdi:garage-variant
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.che_ku_zhu_deng
+        name: 車庫主燈
+        icon: mdi:ceiling-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lou_ti_deng
+        name: 車庫樓梯燈
+        icon: mdi:coach-lamp
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 客廳  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_alarm_card
+        entity: alarm_control_panel.54ef44cf58f9_alarm
+        name: 保全系統
+        icon: mdi:shield-home
+      - type: custom:button-card
+        template: ios_lock_card
+        entity: lock.er_lou_men_suo
+        name: 二樓門鎖
+        icon: mdi:lock
+      - type: custom:button-card
+        template: ios_light_card
+        entity: switch.ke_ting_bi_deng
+        name: 客廳小燈
+        icon: mdi:wall-sconce-flat
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_1_ha
+        name: 客廳燈組一
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_2
+        name: 客廳燈組二
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.ke_ting_deng_zu_3
+        name: 客廳燈組三
+        icon: mdi:ceiling-fan-light
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_dian_shi
+        name: 客廳電視
+        icon: mdi:television
+      - type: custom:button-card
+        template: ios_device_card
+        entity: fan.kong_qi_qing_jing_ji
+        name: 空氣清淨機
+        icon: mdi:air-purifier
+        tap_action:
+          action: more-info
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ke_ting_kan_deng
+        name: 門口燈
+        icon: mdi:coach-lamp
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.lu_deng
+        name: 路燈
+        icon: mdi:outdoor-lamp
+    - type: custom:button-card
+      template: ios_media_card
+      entity: media_player.ke_ting_homepod
+      name: 客廳 HomePod
+      icon: mdi:speaker
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 餐廳  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_light_card
+        entity: light.can_ting_deng_zu_1_ha
+        name: 餐廳燈
+        icon: mdi:chandelier
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.chu_fang_deng
+        name: 廚房燈
+        icon: mdi:stove
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.ce_suo_deng
+        name: 廁所燈
+        icon: mdi:toilet
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.can_ting_kan_deng
+        name: 壁燈
+        icon: mdi:wall-sconce
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.0x00158d0003923796_plug
+        name: 廚房插座
+        icon: mdi:power-socket-eu
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 樓梯間  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.er_san_lou_lou_ti_deng
+        name: 二三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_lou_lou_ti_deng
+        name: 三樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.san_si_lou_lou_ti_deng
+        name: 三四樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.si_lou_lou_ti_deng
+        name: 四樓梯燈
+        icon: mdi:stairs
+      - type: custom:button-card
+        template: ios_device_card
+        entity: switch.shu_fang_deng
+        name: 書房燈
+        icon: mdi:bookshelf
+  - type: vertical-stack
+    cards:
+    - type: custom:button-card
+      template: ios_section_header
+      name: 家庭其他裝置  ›
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_i_homekit
+        name: 解除網關警報
+        icon: mdi:bell-off
+      - type: custom:button-card
+        template: ios_device_card
+        entity: input_boolean.5f_security_temp_disable
+        name: 五樓保全暫解
+        icon: mdi:shield-off
