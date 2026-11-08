@@ -64,6 +64,11 @@ def build(doc):
                         add(r.get("entity"), r.get("name"))
             elif "entity" in c and t not in ("heading",):
                 add(c.get("entity"), c.get("name"))
+            items = (c.get("variables") or {}).get("items") if isinstance(c.get("variables"), dict) else None
+            if isinstance(items, list):                    # 開關列樣板（template: prows）
+                for x in items:
+                    if isinstance(x, list) and x:
+                        add(x[0], x[1] if len(x) > 1 else "")
             for k in ("cards", "card"):
                 if k in c:
                     walk(c[k])

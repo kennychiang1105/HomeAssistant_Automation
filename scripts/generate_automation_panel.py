@@ -250,7 +250,35 @@ def card_mod_wrap():
     return L
 
 
+TOGGLE_DOMAINS = ("automation", "input_boolean", "switch", "light", "fan")
+
+
+def toggle_rows_card(rows):
+    """一組開關列（和 Kiosk「自動化管理」同一套樣式）：圖示＋名稱＋右側 iOS 開關；點名稱開詳細資訊。"""
+    items = [[eid, name] for eid, name in rows]
+    return ["      - type: custom:button-card", "        template: prows",
+            "        variables:", "          items: " + json.dumps(items, ensure_ascii=False),
+            "        triggers_update: " + json.dumps([e for e, _ in items])]
+
+
 def entities_card(rows, title=None):
+    """連續的開關列改用 toggle_rows_card；其餘（數值、選項、文字…）維持原生 entities 卡片。"""
+    if not title and rows and all(isinstance(r, tuple) for r in rows) and any(r[0].split(".")[0] in TOGGLE_DOMAINS for r in rows):
+        out, buf, kind = [], [], None
+        for r in rows:
+            k = r[0].split(".")[0] in TOGGLE_DOMAINS
+            if buf and k != kind:
+                out += toggle_rows_card(buf) if kind else _entities_card_native(buf)
+                buf = []
+            buf.append(r)
+            kind = k
+        if buf:
+            out += toggle_rows_card(buf) if kind else _entities_card_native(buf)
+        return out
+    return _entities_card_native(rows, title)
+
+
+def _entities_card_native(rows, title=None):
     L = ["      - type: entities"]
     if title:
         L.append(f"        title: {q(title)}")
@@ -817,8 +845,7 @@ def supply_view(title, path, icon, autos):
     has_auto = bool(auto_rows)
 
     col1_cards = (
-        ["  " + x for x in back_3d_block()]          # 返回 3D 介面
-        + heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
+        heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
         + linebot_forecast_banner()
         + quota_section()
         + quota_settings()
@@ -1309,7 +1336,6 @@ def view(title, path, icon, blocks):
     """vertical-layout：依序排卡片，欄與欄之間放 layout-break；欄數不夠時依序往下接（手機就是單欄、順序不變）。"""
     L = [f"  - title: {q(title)}", f"    path: {path}", f"    icon: {icon}", "    type: custom:vertical-layout",
          "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}", "    cards:"]
-    blocks = [back_3d_block()] + list(blocks)      # 每個分頁最上方：返回 3D 介面
     units = [[b] for b in blocks]
     if len(units) > 1:                     # 開頭的說明卡永遠跟下一張卡片放在同一欄，不會自己佔一欄
         units = [units[0] + units[1]] + units[2:]
@@ -1321,6 +1347,83 @@ def view(title, path, icon, blocks):
             for blk in u:
                 L += blk
     return L
+
+
+PANEL_ROOT = [
+"button_card_templates:",
+"  prows:",
+"    show_name: false",
+"    show_icon: false",
+"    show_state: false",
+"    tap_action:",
+"      action: none",
+"    hold_action:",
+"      action: none",
+"    styles:",
+"      card:",
+"        - padding: 0",
+"        - border-radius: 18px",
+"        - border: none",
+"        - box-shadow: 0 1px 2px rgba(0,0,0,.18)",
+"        - overflow: hidden",
+"      grid:",
+"        - grid-template-areas: '\"rows\"'",
+"        - grid-template-columns: 1fr",
+"      custom_fields:",
+"        rows:",
+"          - width: 100%",
+"          - min-width: 0",
+"    custom_fields:",
+"      rows: |",
+"        [[[",
+"        const it = variables.items || [];",
+"        const esc = (t) => String(t == null ? '' : t).replace(/[&<>\"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));",
+"        const DI = {automation: 'mdi:robot-outline', input_boolean: 'mdi:toggle-switch-outline', switch: 'mdi:power-socket', light: 'mdi:lightbulb-outline', fan: 'mdi:fan'};",
+"        const css = '<style>.r{display:flex;align-items:center;gap:12px;padding:10px 16px;min-height:50px;box-sizing:border-box}.r+.r{border-top:.5px solid rgba(128,128,128,.28)}'",
+"          + '.ic{flex:none;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(10,132,255,.14);color:#0A84FF;--mdc-icon-size:19px;transition:background .15s,color .15s}'",
+"          + '.r.on .ic{background:rgba(255,185,0,.2);color:#E09B00}'",
+"          + '.n{flex:1;min-width:0;text-align:left;font-size:15px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--primary-text-color);cursor:pointer}'",
+"          + '.sw{position:relative;flex:none;width:51px;height:31px;border-radius:16px;border:0;padding:0;background:rgba(120,120,128,.32);cursor:pointer;transition:background .18s;-webkit-tap-highlight-color:transparent}'",
+"          + '.sw::after{content:\"\";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:left .18s}'",
+"          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}</style>';",
+"        return css + it.map(([e, n]) => {",
+"          const s = states[e]; const st = s ? s.state : 'unavailable';",
+"          const on = st === 'on'; const na = !s || st === 'unavailable';",
+"          const ic = (s && s.attributes.icon) || DI[e.split('.')[0]] || 'mdi:toggle-switch-outline';",
+"          const nm = n || (s && s.attributes.friendly_name) || e;",
+"          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
+"            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}</span>`",
+"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onclick=\"event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})\"></button></div>`;",
+"        }).join('');",
+"        ]]]"
+]
+BACK_VIEW = [
+"  - title: \"返回 3D\"",
+"    path: back-3d",
+"    icon: mdi:cube-scan",
+"    cards:",
+"    - type: custom:button-card",
+"      show_name: false",
+"      show_icon: false",
+"      show_state: false",
+"      tap_action:",
+"        action: navigate",
+"        navigation_path: /lovelace-smart/home",
+"      styles:",
+"        card:",
+"          - border-radius: 18px",
+"        grid:",
+"          - grid-template-areas: '\"go\"'",
+"      custom_fields:",
+"        go: |",
+"          [[[",
+"          if (location.pathname.endsWith('/back-3d') && (!window.__back3d || Date.now() - window.__back3d > 1500)) {",
+"            window.__back3d = Date.now();",
+"            setTimeout(() => { history.replaceState(null, '', '/lovelace-smart/home'); window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: true}})); }, 0);",
+"          }",
+"          return '<div style=\"padding:28px 8px;text-align:center;font-size:15px;color:var(--secondary-text-color)\">正在返回 3D 介面…（沒有跳轉請點這裡）</div>';",
+"          ]]]"
+]
 
 
 def build(data):
@@ -1353,7 +1456,7 @@ def build(data):
                 settings[cat].append((dom, fn or eid, eid))
 
     L = ["# 自動化管理面板（由 scripts/generate_automation_panel.py 產生，請勿直接手改；重新執行程式即可更新）",
-         "title: 自動化管理", "views:"]
+         "title: 自動化管理"] + PANEL_ROOT + ["views:"]
     global MASONRY
     MASONRY = True      # section() 輸出 vertical-stack 卡片，交給 vertical-layout 分欄
     for key, title, icon, desc in CATS:
@@ -1414,6 +1517,7 @@ def build(data):
                 rows = [(eid, short_name(fn)) for d, fn, eid in sorted(grp, key=lambda x: x[1])]
                 B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
         L += view(title, key, icon, B)
+    L += BACK_VIEW          # 分頁列最後：返回 3D 介面
     return "\n".join(L) + "\n"
 
 
