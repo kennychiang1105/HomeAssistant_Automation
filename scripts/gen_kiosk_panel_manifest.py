@@ -29,14 +29,14 @@ def clean_title(t):
 def build(doc):
     views = []
     for v in doc.get("views", []):
-        sections, state = [], {"cur": None}
+        sections, state = [], {"cur": None, "icon": "", "desc": ""}
         seen = set()
 
         def sec(title):
             for s in sections:
                 if s["title"] == title:
                     return s
-            s = {"title": title, "items": []}
+            s = {"title": title, "icon": state.get("icon", ""), "items": []}
             sections.append(s)
             return s
 
@@ -56,6 +56,9 @@ def build(doc):
             t = c.get("type")
             if t == "heading":
                 state["cur"] = clean_title(c.get("heading"))
+                state["icon"] = str(c.get("icon") or "")
+            if t == "markdown" and not state["desc"] and str(c.get("content", "")).startswith("**"):
+                state["desc"] = re.sub(r"\*\*", "", str(c.get("content"))).strip()
             if t == "entities" or "entities" in c:
                 for r in c.get("entities") or []:
                     if isinstance(r, str):
@@ -76,7 +79,7 @@ def build(doc):
         walk(v.get("cards", []))
         sections = [s for s in sections if s["items"]]
         if sections:
-            views.append({"key": str(v.get("path") or v.get("title")), "title": str(v.get("title", "")), "icon": str(v.get("icon", "")), "sections": sections})
+            views.append({"key": str(v.get("path") or v.get("title")), "title": str(v.get("title", "")), "icon": str(v.get("icon", "")), "desc": state["desc"], "sections": sections})
     return {"updated": time.strftime("%Y-%m-%d %H:%M:%S"), "views": views}
 
 

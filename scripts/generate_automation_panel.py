@@ -263,10 +263,10 @@ def toggle_rows_card(rows):
 
 def entities_card(rows, title=None):
     """連續的開關列改用 toggle_rows_card；其餘（數值、選項、文字…）維持原生 entities 卡片。"""
-    if not title and rows and all(isinstance(r, tuple) for r in rows) and any(r[0].split(".")[0] in TOGGLE_DOMAINS for r in rows):
+    if not title and rows and any(isinstance(r, tuple) and r[0].split(".")[0] in TOGGLE_DOMAINS for r in rows):
         out, buf, kind = [], [], None
         for r in rows:
-            k = r[0].split(".")[0] in TOGGLE_DOMAINS
+            k = isinstance(r, tuple) and r[0].split(".")[0] in TOGGLE_DOMAINS
             if buf and k != kind:
                 out += toggle_rows_card(buf) if kind else _entities_card_native(buf)
                 buf = []
@@ -1376,6 +1376,7 @@ PANEL_ROOT = [
 "    custom_fields:",
 "      rows: |",
 "        [[[",
+"        if (!window.__tabPtr) { window.__tabPtr = 1; document.addEventListener('pointerdown', (ev) => { if (ev.composedPath().some((el) => el && el.tagName && /TAB(?!LE)/.test(el.tagName))) window.__tabT = Date.now(); }, true); }",
 "        const it = variables.items || [];",
 "        const esc = (t) => String(t == null ? '' : t).replace(/[&<>\"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));",
 "        const DI = {automation: 'mdi:robot-outline', input_boolean: 'mdi:toggle-switch-outline', switch: 'mdi:power-socket', light: 'mdi:lightbulb-outline', fan: 'mdi:fan'};",
@@ -1417,9 +1418,10 @@ BACK_VIEW = [
 "      custom_fields:",
 "        go: |",
 "          [[[",
+"          if (!window.__tabPtr) { window.__tabPtr = 1; document.addEventListener('pointerdown', (ev) => { if (ev.composedPath().some((el) => el && el.tagName && /TAB(?!LE)/.test(el.tagName))) window.__tabT = Date.now(); }, true); }",
 "          if (location.pathname.endsWith('/back-3d') && (!window.__back3d || Date.now() - window.__back3d > 1500)) {",
 "            window.__back3d = Date.now();",
-"            setTimeout(() => { history.replaceState(null, '', '/lovelace-smart/home'); window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: true}})); }, 0);",
+"            const dest = window.__tabT && Date.now() - window.__tabT < 3000 ? '/lovelace-smart/home' : '/lovelace-automation/overview'; setTimeout(() => { history.replaceState(null, '', dest); window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: true}})); }, 0);",
 "          }",
 "          return '<div style=\"padding:28px 8px;text-align:center;font-size:15px;color:var(--secondary-text-color)\">正在返回 3D 介面…（沒有跳轉請點這裡）</div>';",
 "          ]]]"
@@ -1517,7 +1519,8 @@ def build(data):
                 rows = [(eid, short_name(fn)) for d, fn, eid in sorted(grp, key=lambda x: x[1])]
                 B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
         L += view(title, key, icon, B)
-    L += BACK_VIEW          # 分頁列最後：返回 3D 介面
+    i0 = L.index("views:") + 1
+    L[i0:i0] = BACK_VIEW    # 分頁列最前面：返回 3D 介面（和 Kiosk 一樣）
     return "\n".join(L) + "\n"
 
 
