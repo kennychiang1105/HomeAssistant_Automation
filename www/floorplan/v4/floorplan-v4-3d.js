@@ -250,7 +250,7 @@ class FloorplanV43D extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; }
-        .tabs { display:grid; grid-template-columns:repeat(${order.length},1fr); gap:6px; margin-bottom:8px; }
+        .tabs { display:grid; grid-template-columns:repeat(${order.length},1fr); gap:6px; margin-bottom:8px; padding-right:var(--ir, 0px); }
         .tabs button { border:0; border-radius:12px; padding:10px 2px; font:600 14px sans-serif;
                        background:rgba(120,120,128,.16); color:var(--primary-text-color); cursor:pointer; }
         .tabs button.on { background:#FFB900; color:#111; }
@@ -347,7 +347,7 @@ class FloorplanV43D extends HTMLElement {
         .pin.person .ic { color:#111; font:700 13px sans-serif; }
         .pin.cam .ic { background:#1f4f6b; color:#bfe9ff; }
         .editing .tag { outline:2px dashed #FFB900; outline-offset:2px; cursor:move; }
-        .tools { position:absolute; right:8px; top:8px; display:flex; gap:6px; z-index:3; }
+        .tools { position:absolute; right:calc(8px + var(--ir, 0px)); top:8px; display:flex; gap:6px; z-index:3; }
         .tools button, .chips button { border:0; border-radius:10px; padding:7px 10px; font:600 12px sans-serif; cursor:pointer;
                         background:rgba(30,30,32,.78); color:#fff; flex:none; }
         .tools button.on, .chips button.on { background:#FFB900; color:#111; }
