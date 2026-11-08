@@ -1204,6 +1204,11 @@
       minutes: 3
       seconds: 0
       milliseconds: 0
+  - alias: V4.3.11 時間到先確認頂樓攝影機畫面沒人（有人在走樓梯就等人走完，最多再等 2 分鐘）才關燈，避免下樓走到一半燈被關
+    action: script.topfloor_stairs_wait_clear
+    data:
+      max_s: 120
+    continue_on_error: true
   - action: script.stage_scene
     data:
       scene: stairs_off
