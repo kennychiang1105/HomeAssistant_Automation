@@ -200,27 +200,30 @@ for e in eids:
         continue
     prev = c.execute("select state from states where metadata_id=? and last_updated_ts<=? order by last_updated_ts desc limit 1", (mid, since)).fetchone()
     rows = c.execute("select state, last_updated_ts from states where metadata_id=? and last_updated_ts>? order by last_updated_ts", (mid, since)).fetchall()
-    cur, t0, on, tot = (prev[0] if prev else None), since, 0.0, 0.0
+    cur, t0, on, tot, flips = (prev[0] if prev else None), since, 0.0, 0.0, 0
     if cur is None and rows:
         cur, t0 = rows[0][0], rows[0][1]
     for st, ts in rows:
         if cur in ("on", "off"):
             tot += ts - t0
             on += (ts - t0) if cur == "on" else 0
+            if st in ("on", "off") and st != cur:
+                flips += 1
         cur, t0 = st, ts
     if cur in ("on", "off"):
         tot += now - t0
         on += (now - t0) if cur == "on" else 0
     if tot > 3600:
-        out[e] = "on" if on / tot >= 0.5 else "off"
+        r = on / tot
+        out[e] = "auto" if flips >= 8 and 0.05 < r < 0.95 else ("on" if r >= 0.5 else "off")
 print(json.dumps(out))
 """
-DEFAULTS = {}          # entity_id -> "on" / "off"（平常狀態）
+DEFAULTS = {}          # entity_id -> "on" / "off"（平常狀態）／"auto"（會自動切換：不分常開常關、不標示）
 DEFAULTS_ON = [True]   # 內部狀態分頁不標「不是平常狀態」
 
 
 def fetch_defaults(eids):
-    """平常狀態：過去 14 天大部分時間的狀態；scripts/panel_defaults.json 可覆寫（{"entity_id": "on"}）。"""
+    """平常狀態：過去 14 天大部分時間的狀態；常常來回切換的是 "auto"；scripts/panel_defaults.json 可覆寫（{"entity_id": "on"／"off"／"auto"}）。"""
     out = {}
     try:
         r = subprocess.run(["python3", "-"], input=DEFAULTS_QUERY.lstrip("\n").replace("sys.stdin.readline()", repr(json.dumps(eids))),
@@ -231,7 +234,7 @@ def fetch_defaults(eids):
     f = pathlib.Path(__file__).resolve().parent / "panel_defaults.json"
     if f.exists():
         try:
-            out.update({k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if v in ("on", "off")})
+            out.update({k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if v in ("on", "off", "auto")})
         except Exception as e:  # noqa: BLE001
             print("panel_defaults.json error:", e)
     return out
@@ -315,6 +318,7 @@ def toggle_rows_card(rows):
     for r in rows:
         eid, name = r[0], clean_name(r[1])
         d = (r[2] if len(r) > 2 else DEFAULTS.get(eid)) if DEFAULTS_ON[0] else None
+        d = d if d in ("on", "off") else None
         items.append([eid, name, d] if d else [eid, name])
     return ["      - type: custom:button-card", "        template: prows",
             "        variables:", "          items: " + json.dumps(items, ensure_ascii=False),
@@ -416,16 +420,16 @@ BOT_JS = r"""[[[
   const r = Math.max(lim - u, 0), p = Math.min(100, Math.round(u / lim * 100));
   const sw = Number((states['sensor.line_bot_in_use'].attributes || {}).rotation_switch_limit || 196);
   const cur = Number((states['sensor.line_bot_in_use'].attributes || {}).target_index) === __IDX__;
-  const color = u >= sw ? '#FF453A' : (p >= 70 ? '#FF9F0A' : '#30D158');
+  const color = u >= sw ? '#E5372C' : (p >= 70 ? '#D97706' : '#28A745');
   const chip = cur ? '使用中' : (u >= sw ? '已達門檻' : '待命');
-  const chipBg = cur ? 'rgba(48,209,88,.18)' : (u >= sw ? 'rgba(255,69,58,.18)' : 'rgba(120,120,128,.18)');
-  const chipFg = cur ? '#30D158' : (u >= sw ? '#FF453A' : 'var(--secondary-text-color)');
+  const chipBg = cur ? 'rgba(40,167,69,.12)' : (u >= sw ? 'rgba(229,55,44,.12)' : 'rgba(120,120,128,.14)');
+  const chipFg = cur ? '#28A745' : (u >= sw ? '#E5372C' : 'var(--secondary-text-color)');
   const full = String(e.attributes.friendly_name || '');
   const name = full.replace(/^ChiangFamily\s*/i, '') || full;
   const letter = (name.trim().slice(-1) || '?').toUpperCase();
   return `
    <div style="display:flex;align-items:center;gap:12px;text-align:left">
-     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}26;color:${color};
+     <div style="flex:none;width:40px;height:40px;border-radius:11px;background:${color}1a;color:${color};
                  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${letter}</div>
      <div style="flex:1;min-width:0">
        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
@@ -495,25 +499,25 @@ def quota_section():
 
   let statusColor, statusBg, statusBorder, statusLabel, statusIcon, desc1, desc2;
   if (st === 'safe') {
-    statusColor = '#30D158';
-    statusBg = 'rgba(48,209,88,.12)';
-    statusBorder = 'rgba(48,209,88,.25)';
+    statusColor = '#28A745';
+    statusBg = 'rgba(120,120,128,.08)';
+    statusBorder = 'transparent';
     statusLabel = '額度安全充裕';
     statusIcon = 'mdi:check-circle';
     desc1 = `本月一般 Bot 額度充裕（可用至 ${normalDate}）`;
     desc2 = '運作平穩，本月無需動用緊急 Bot。';
   } else if (st === 'need_emergency') {
-    statusColor = '#FF9F0A';
-    statusBg = 'rgba(255,159,10,.14)';
-    statusBorder = 'rgba(255,159,10,.3)';
+    statusColor = '#D97706';
+    statusBg = 'rgba(120,120,128,.08)';
+    statusBorder = 'transparent';
     statusLabel = '預備動用緊急 Bot';
     statusIcon = 'mdi:alert-circle';
     desc1 = `一般 Bot 預估於 ${normalDate}（約 ${a.normal_days_left || 0} 天後）用盡，將切換緊急 Bot`;
     desc2 = '動用智慧家庭 A 後，預估可順利撐至月底重置。';
   } else {
-    statusColor = '#FF453A';
-    statusBg = 'rgba(255,69,58,.14)';
-    statusBorder = 'rgba(255,69,58,.3)';
+    statusColor = '#E5372C';
+    statusBg = 'rgba(120,120,128,.08)';
+    statusBorder = 'transparent';
     statusLabel = '額度告急';
     statusIcon = 'mdi:alert-octagon';
     desc1 = `日均消耗偏高（${a.daily_rate || 0} 則/天），預估於 ${normalDate} 動用緊急 Bot`;
@@ -534,12 +538,12 @@ def quota_section():
         </div>
       </div>
 
-      <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
+      <div style="background:${statusBg};border:none;box-shadow:inset 3px 0 0 ${statusColor};border-radius:12px;padding:11px 13px 11px 15px;display:flex;align-items:flex-start;gap:10px;min-width:0;box-sizing:border-box">
         <ha-icon icon="${statusIcon}" style="color:${statusColor};--mdc-icon-size:22px;flex-shrink:0;margin-top:1px"></ha-icon>
         <div style="flex:1;min-width:0;white-space:normal !important">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-            <span style="font-size:12.5px;font-weight:700;color:${statusColor};white-space:nowrap">預估 Bot 使用狀況</span>
-            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor};color:#fff;white-space:nowrap;flex-shrink:0">${statusLabel}</span>
+            <span style="font-size:12.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap">預估 Bot 使用狀況</span>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${statusColor}1f;color:${statusColor};white-space:nowrap;flex-shrink:0">${statusLabel}</span>
           </div>
           <div style="font-size:12.5px;line-height:1.55;color:var(--primary-text-color);white-space:normal !important;word-break:break-word;overflow-wrap:anywhere">
             <div style="font-weight:600;white-space:normal !important">${desc1}</div>
@@ -600,29 +604,29 @@ def linebot_forecast_banner():
   
   let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
   if (st === 'safe') {
-    bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
+    bgGradient = 'var(--card-background-color)';
     statusTitle = '本月額度充裕（無需動用緊急Bot）';
     statusBadge = '安全充裕';
-    badgeBg = 'rgba(48,209,88,.2)';
-    badgeFg = '#30D158';
+    badgeBg = 'rgba(40,167,69,.12)';
+    badgeFg = '#28A745';
     iconName = 'mdi:check-circle';
-    iconColor = '#30D158';
+    iconColor = '#28A745';
   } else if (st === 'need_emergency') {
-    bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
+    bgGradient = 'var(--card-background-color)';
     statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
     statusBadge = '備援預備';
-    badgeBg = 'rgba(255,159,10,.2)';
-    badgeFg = '#FF9F0A';
+    badgeBg = 'rgba(217,119,6,.12)';
+    badgeFg = '#D97706';
     iconName = 'mdi:alert-circle';
-    iconColor = '#FF9F0A';
+    iconColor = '#D97706';
   } else {
-    bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
+    bgGradient = 'var(--card-background-color)';
     statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
     statusBadge = '額度告急';
-    badgeBg = 'rgba(255,69,58,.2)';
-    badgeFg = '#FF453A';
+    badgeBg = 'rgba(229,55,44,.12)';
+    badgeFg = '#E5372C';
     iconName = 'mdi:alert-octagon';
-    iconColor = '#FF453A';
+    iconColor = '#E5372C';
   }
 
   const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
@@ -633,7 +637,7 @@ def linebot_forecast_banner():
   const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
 
   return `
-    <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
+    <div style="background:${bgGradient};box-shadow:inset 4px 0 0 ${iconColor};border-radius:18px;padding:16px 16px 16px 20px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
           <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
@@ -642,14 +646,14 @@ def linebot_forecast_banner():
         <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
       </div>
       
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.1);border-radius:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.08);border-radius:12px">
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
           <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
         </div>
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
-          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#FF9F0A' : '#30D158'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
+          <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#D97706' : '#28A745'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
         </div>
         <div>
           <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
@@ -661,7 +665,7 @@ def linebot_forecast_banner():
         </div>
       </div>
 
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.12);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.08);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
         <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
         <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
           <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
@@ -991,7 +995,7 @@ DISASTER_JS = r"""[[[
   const s = bad.includes(raw) ? '' : String(raw).trim();
   const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
-  const lamps = { '紅色': ['#FF453A', 'rgba(255,69,58,.16)'], '橙色': ['#FF9F0A', 'rgba(255,159,10,.16)'], '黃色': ['#FFD60A', 'rgba(255,214,10,.16)'] };
+  const lamps = { '紅色': ['#E5372C', 'rgba(229,55,44,.10)'], '橙色': ['#D97706', 'rgba(217,119,6,.10)'], '黃色': ['#B88600', 'rgba(184,134,0,.12)'] };
   const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
   const items = [];
   let m;
@@ -999,9 +1003,9 @@ DISASTER_JS = r"""[[[
   let top = null;
   for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
   let color, bg, label, icon;
-  if (calm) { color = '#30D158'; bg = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
-  else if (top) { color = lamps[top][0]; bg = `linear-gradient(135deg, ${lamps[top][1]} 0%, rgba(120,120,128,.04) 100%)`; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
-  else { color = '#FF9F0A'; bg = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+  if (calm) { color = '#28A745'; bg = 'var(--card-background-color)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+  else if (top) { color = lamps[top][0]; bg = 'var(--card-background-color)'; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+  else { color = '#D97706'; bg = 'var(--card-background-color)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
   const lead = items.length ? s.split('，')[0] : '';
   const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
   let body = '';
@@ -1011,8 +1015,8 @@ DISASTER_JS = r"""[[[
     body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
       items.map(it => {
         const c = lamps[it.lamp];
-        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:${c[1]};border:1px solid ${c[0]}55;min-width:0;box-sizing:border-box">
-          <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:0 0 6px ${c[0]}"></span>
+        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:rgba(120,120,128,.08);border:none;min-width:0;box-sizing:border-box">
+          <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:none"></span>
           <div style="flex:1;min-width:0;${wrap}">
             <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
             <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
@@ -1026,13 +1030,13 @@ DISASTER_JS = r"""[[[
   const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
   const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
   return `
-    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
           <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
         </div>
-        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
       </div>
       ${body}
       <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
@@ -1047,9 +1051,9 @@ EARTHQUAKE_JS = r"""[[[
   const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
   const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
   const mag = mm ? parseFloat(mm[4]) : NaN;
-  let color = '#30D158';
-  if (!isNaN(mag)) color = mag >= 6 ? '#FF453A' : (mag >= 5 ? '#FF9F0A' : (mag >= 4 ? '#FFD60A' : '#30D158'));
-  const bg = `linear-gradient(135deg, ${color}2b 0%, rgba(120,120,128,.04) 100%)`;
+  let color = '#28A745';
+  if (!isNaN(mag)) color = mag >= 6 ? '#E5372C' : (mag >= 5 ? '#D97706' : (mag >= 4 ? '#B88600' : '#28A745'));
+  const bg = 'var(--card-background-color)';
   let body = '';
   if (mm) {
     const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
@@ -1057,7 +1061,7 @@ EARTHQUAKE_JS = r"""[[[
     const place = im ? im[1].trim() : intens;
     const lvl = im ? im[2] : '';
     const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
-    body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.1);border-radius:12px">
+    body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.08);border-radius:12px">
       ${cell('規模', 'M ' + esc(mm[4]), true)}
       ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
       ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
@@ -1070,13 +1074,13 @@ EARTHQUAKE_JS = r"""[[[
   }
   const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
   return `
-    <div style="background:${bg};border-radius:18px;padding:16px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
+    <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-          <div style="width:36px;height:36px;border-radius:10px;background:${color}26;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
           <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
         </div>
-        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color};color:#fff;white-space:nowrap;flex-shrink:0">${label}</span>
+        <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
       </div>
       ${body}
     </div>`;
@@ -1568,12 +1572,15 @@ def build(data):
         # 開關：自動化＋輸入開關集中，依平常狀態分兩區（掃一眼：開著區有關掉的、關著區有打開的，就是和平常不同）
         tog = [(eid, fn) for fn, eid in autos[key]] + [(eid, short_name(fn)) for dom, fn, eid in settings[key] if dom in TOGGLE_DOMAINS]
         tog.sort(key=lambda r: (0 if r[0].startswith("automation.") else 1, clean_name(r[1])))
-        on_rows = [r for r in tog if DEFAULTS.get(r[0], STATE.get(r[0])) == "on"]
-        off_rows = [r for r in tog if r not in on_rows]
+        auto_rows = [r for r in tog if DEFAULTS.get(r[0]) == "auto"]
+        on_rows = [r for r in tog if r not in auto_rows and DEFAULTS.get(r[0], STATE.get(r[0])) == "on"]
+        off_rows = [r for r in tog if r not in auto_rows and r not in on_rows]
         if on_rows:
             B.extend(list_blocks(f"平常開著（{len(on_rows)}）", on_rows, "mdi:toggle-switch", max_rows=60))
         if off_rows:
             B.extend(list_blocks(f"平常關著（{len(off_rows)}）", off_rows, "mdi:toggle-switch-off-outline", max_rows=60))
+        if auto_rows:
+            B.extend(list_blocks(f"會自動切換（{len(auto_rows)}）", auto_rows, "mdi:swap-horizontal", max_rows=60))
         # 其他設定：功能小組（依 SUBGROUPS 的順序），標題不再加數量
         left = [x for x in settings[key] if x[0] not in TOGGLE_DOMAINS]
         for label, pat in SUBGROUPS.get(key, []):
