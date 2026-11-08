@@ -39,6 +39,20 @@
   };
   const isSeen = (key) => !!loadSeen()[key];
 
+  // beta13: is the EEW value on screen really a new warning?
+  //   ① it was written within the last 90 s (last_updated), and
+  //   ② the EEW script (eq99) stamps input_datetime.eew_last_event *before* it writes level/seconds, so a real warning
+  //      always has eew_last_event within the last 3 min. A value restored by an HA restart keeps the old eew_last_event.
+  //   If eew_last_event is not available (older kiosk backend), only ① is used.
+  const eewIsNew = (hass, lvSt, now) => {
+    const age = lvSt?.last_updated ? now - new Date(lvSt.last_updated).getTime() : Infinity;
+    if (!(age >= -30 * 1000 && age <= EEW_LOAD_WINDOW_MS)) return false;
+    const ev = hass.states["input_datetime.eew_last_event"]?.state;
+    if (!ev || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(ev)) return true;
+    const t = new Date(ev.replace(" ", "T")).getTime();          // local time, as HA writes it
+    return isNaN(t) || Math.abs(now - t) <= 180 * 1000;
+  };
+
   // beta8: dedupe by a hash of the whole text (the old first-120-characters key hid later changes of the same message)
   const hashStr = (str) => {
     let h1 = 5381, h2 = 52711;
@@ -165,7 +179,7 @@
     let badge = "災防通知";
     let themeColor = "#F59E0B";
     let headerBg = "linear-gradient(135deg, #EA580C, #D97706)";
-    let icon = "mdi:weather-Pouring";
+    let icon = "mdi:weather-pouring";
 
     if (/疏散|撤離/.test(s0)) {
       cardTitle = "緊急疏散避難警報"; badge = "疏散警報"; themeColor = "#DC2626";
@@ -948,7 +962,7 @@
       if (eewLvSt && eewLvSt.last_updated) {
         const age = now - new Date(eewLvSt.last_updated).getTime();
         const key = `eew:${lastEewStamp}`;
-        if (age >= 0 && age <= EEW_LOAD_WINDOW_MS && !isSeen(key)) {
+        if (age >= 0 && age <= EEW_LOAD_WINDOW_MS && eewIsNew(hass, eewLvSt, now) && !isSeen(key)) {
           const parsed = parseEEW(eewLvSt.state, eewSecSt?.state);
           if (parsed) ensureHost()?.enqueue({ key, data: parsed }, true);
         }
@@ -973,12 +987,14 @@
     }
 
     // 1. Live EEW change
+    //    beta13: an old value that merely (re)appears does not pop up (HA restart restores it with a new last_updated, or the
+    //    kiosk backend restarts and the entity shows up late) — see eewIsNew()
     if (eewLvSt) {
       const curStamp = `${eewLvSt.last_updated}|${eewLvSt.state}|${eewSecSt?.state}`;
       if (curStamp !== lastEewStamp) {
         lastEewStamp = curStamp;
         const key = `eew:${curStamp}`;
-        if (!isSeen(key)) {
+        if (eewIsNew(hass, eewLvSt, now) && !isSeen(key)) {
           const parsed = parseEEW(eewLvSt.state, eewSecSt?.state);
           if (parsed) ensureHost()?.enqueue({ key, data: parsed }, true);
         }
