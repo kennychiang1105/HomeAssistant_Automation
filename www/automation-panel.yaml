@@ -1757,6 +1757,29 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
+        heading: "地震預警與空氣通知（4）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.eew_extra_enable
+            name: "地震預警｜附地牛截圖與震央詳情"
+          - entity: input_number.eew_line_min_level
+            name: "地震預警｜LINE 截圖與詳情的最低預估震度"
+          - entity: input_number.eew_dedupe_window_sec
+            name: "地震預警｜同一場地震的合併時間（秒）"
+          - entity: input_number.air_notify_cooldown_min
+            name: "空氣通知同等級冷卻（分）"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
         heading: "LINE 通知開關（4）"
         heading_style: title
         card_mod:
@@ -1776,7 +1799,6 @@ views:
           - entity: input_boolean.notify_tesla_charge_extra_line_enable
             name: "Tesla充電通知_額外LINE啟用"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -1938,42 +1960,6 @@ views:
             name: "通知測試_資訊"
           - entity: input_button.notify_test_important
             name: "通知測試_重要（含廣播）"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他開關（1）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.eew_extra_enable
-            name: "地震預警｜附地牛截圖與震央詳情"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他數值參數（3）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_number.eew_line_min_level
-            name: "地震預警｜LINE 截圖與詳情的最低預估震度"
-          - entity: input_number.eew_dedupe_window_sec
-            name: "地震預警｜同一場地震的合併時間（秒）"
-          - entity: input_number.air_notify_cooldown_min
-            name: "空氣通知同等級冷卻（分）"
         card_mod: *cm
   - title: "情境"
     path: scene
@@ -2473,14 +2459,14 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 32 支、可調整項目 47 個"
+        content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。　自動化 33 支、可調整項目 47 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "自動化開關（32）"
+        heading: "自動化開關（33）"
         heading_style: title
         icon: mdi:robot
         card_mod:
@@ -2507,6 +2493,8 @@ views:
             name: "08-5F頂樓下樓補判AI (V4.0.1)"
           - entity: automation.ai_topfloor_stairs_scene
             name: "08-5F頂樓自動上下樓情境AI (V4.1.6)"
+          - entity: automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0
+            name: "08-5G 書房回房間關燈AI (V4.1.5)"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2522,8 +2510,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0
-            name: "08-5G 書房回房間關燈AI (V4.1.5)"
           - entity: automation.ai_08_5g_study_motion_light
             name: "08-5G 書房燈感應AI (V4.1.5)"
           - entity: automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0
@@ -2538,6 +2524,10 @@ views:
             name: "08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)"
           - entity: automation.08_5iding_lou_kong_diao_guan_bi_que_ren
             name: "08-5I頂樓空調關閉確認"
+          - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
+            name: "08-5J頂樓動線推理AI (V4.3.4-beta 4)"
+          - entity: automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4
+            name: "08-5J頂樓感應器失聯檢查AI (V4.3.4-beta 4)"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
@@ -2554,10 +2544,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0
-            name: "08-5J頂樓動線推理AI (V4.3.4-beta 4)"
-          - entity: automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4
-            name: "08-5J頂樓感應器失聯檢查AI (V4.3.4-beta 4)"
           - entity: automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0
             name: "08-5J頂樓感應週報 (V4.1.5)"
           - entity: automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0
@@ -2570,6 +2556,12 @@ views:
             name: "08-5K頂樓開機狀態自癒檢查AI (V4.2.2)"
           - entity: automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4
             name: "08-5L頂樓情境廣播AI (V4.3.3)"
+          - entity: automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1
+            name: "08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)"
+          - entity: automation.a107_11a_single
+            name: "800-開關系列-11A 書房燈感應開關單擊"
+          - entity: automation.a107_11b
+            name: "800-開關系列-11B 書房燈感應開關長按"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -2585,10 +2577,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: automation.a107_11a_single
-            name: "800-開關系列-11A 書房燈感應開關單擊"
-          - entity: automation.a107_11b
-            name: "800-開關系列-11B 書房燈感應開關長按"
           - entity: automation.a107_12a_ding_lou_lou_ti_deng_dan_ji
             name: "800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈"
           - entity: automation.a107_12b
@@ -2729,7 +2717,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "頂樓情境廣播（1）"
+        heading: "頂樓情境廣播（2）"
         heading_style: title
         card_mod:
           style: |
@@ -2741,11 +2729,13 @@ views:
         entities:
           - entity: input_boolean.topfloor_scene_announce_enable
             name: "頂樓情境廣播｜總開關"
+          - entity: input_number.topfloor_up_rejoin_min
+            name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
         card_mod: *cm
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他開關（4）"
+        heading: "攝影機與模型判斷（12）"
         heading_style: title
         card_mod:
           style: |
@@ -2763,11 +2753,15 @@ views:
             name: "頂樓攝影機模型判斷｜總開關"
           - entity: input_boolean.topfloor_stairs_off_cam_hold_enable
             name: "頂樓樓梯燈｜自動關燈前畫面有人就等人消失"
+          - entity: input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng
+            name: "頂樓四樓樓梯燈校正"
+          - entity: input_number.topfloor_ai_exit
+            name: "頂樓模型｜去向判斷次數"
         card_mod: *cm
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（8）"
+        heading: "攝影機與模型判斷（續）"
         heading_style: title
         card_mod:
           style: |
@@ -2777,10 +2771,6 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_number.topfloor_up_rejoin_min
-            name: "頂樓情境廣播｜短暫下樓再上樓不重播（分鐘）"
-          - entity: input_number.topfloor_ai_exit
-            name: "頂樓模型｜去向判斷次數"
           - entity: input_number.topfloor_ai_exit_agree
             name: "頂樓模型｜去向與實體訊號一致次數"
           - entity: input_number.topfloor_ai_exit_disagree
@@ -2794,22 +2784,6 @@ views:
           - entity: input_number.topfloor_ai_ghost
             name: "頂樓模型｜有動靜但畫面沒人次數"
         card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他操作按鈕（1）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_button.ding_lou_si_lou_lou_ti_deng_xiao_zheng
-            name: "頂樓四樓樓梯燈校正"
-        card_mod: *cm
   - title: "保全與門鎖"
     path: security
     icon: mdi:shield-home-outline
@@ -2821,7 +2795,7 @@ views:
     - type: vertical-stack
       cards:
       - type: markdown
-        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 21 支、可調整項目 31 個"
+        content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。　自動化 21 支、可調整項目 32 個"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2989,7 +2963,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "車庫車輛出門偵測（6）"
+        heading: "車庫車輛出門偵測（7）"
         heading_style: title
         card_mod:
           style: |
@@ -3005,6 +2979,8 @@ views:
             name: "車庫出門偵測｜左方向燈偵測（絕對出門訊號）"
           - entity: input_boolean.garage_turn_signal_open_enable
             name: "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）"
+          - entity: input_boolean.garage_turn_wait_board_enable
+            name: "車庫出門偵測｜畫面還有人先不開門（等上車後方向燈再開）"
           - entity: input_boolean.garage_depart_watch_enable
             name: "車庫出門偵測｜總開關"
           - entity: input_boolean.garage_depart_auto_open_enable
@@ -3390,7 +3366,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他開關（9）"
+        heading: "災害訊息通知與廣播（11）"
         heading_style: title
         card_mod:
           style: |
@@ -3412,18 +3388,12 @@ views:
             name: "災害訊息 LINE 通知｜緊急類"
           - entity: input_boolean.notify_line_disaster_important_enable
             name: "災害訊息 LINE 通知｜重要類"
-          - entity: input_boolean.announce_disaster_emergency_enable
-            name: "災害訊息廣播｜緊急類"
-          - entity: input_boolean.announce_disaster_important_enable
-            name: "災害訊息廣播｜重要類"
-          - entity: input_boolean.emergency_restore_enable
-            name: "緊急模式快照還原（總開關）"
         card_mod: *cm
     - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他數值參數（1）"
+        heading: "災害訊息通知與廣播（續）"
         heading_style: title
         card_mod:
           style: |
@@ -3433,13 +3403,21 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_boolean.announce_disaster_emergency_enable
+            name: "災害訊息廣播｜緊急類"
+          - entity: input_boolean.announce_disaster_important_enable
+            name: "災害訊息廣播｜重要類"
+          - entity: input_button.di_zhen_xi_tong_guang_bo
+            name: "地震系統廣播"
+          - entity: input_button.tian_qi_jing_xun_guang_bo
+            name: "天氣警訊廣播"
           - entity: input_number.disaster_item_memory_hr
             name: "非急迫災害訊息｜同一項目不重複通知的時間（小時）"
         card_mod: *cm
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "其他文字（1）"
+        heading: "緊急模式（3）"
         heading_style: title
         card_mod:
           style: |
@@ -3449,28 +3427,12 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
-          - entity: input_text.emergency_fan_prev
-            name: "緊急模式快照｜風扇原本狀態（內部）"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他操作按鈕（3）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_button.di_zhen_xi_tong_guang_bo
-            name: "地震系統廣播"
-          - entity: input_button.tian_qi_jing_xun_guang_bo
-            name: "天氣警訊廣播"
+          - entity: input_boolean.emergency_restore_enable
+            name: "緊急模式快照還原（總開關）"
           - entity: input_button.jin_ji_mo_shi
             name: "緊急模式"
+          - entity: input_text.emergency_fan_prev
+            name: "緊急模式快照｜風扇原本狀態（內部）"
         card_mod: *cm
   - title: "空氣與風扇"
     path: air_fan
@@ -3513,6 +3475,92 @@ views:
             name: "21B夏季模式自動判斷AI (V4.1.5)"
           - entity: automation.ai_topfloor_fan_automation
             name: "22頂樓電風扇自動化AI (V4.1.7)"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "空氣清淨機（PM2.5）（9）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.air_door_pause_enable
+            name: "空氣清淨機｜二樓大門開著不自動運轉"
+          - entity: input_boolean.garage_stair_ai_control_enable
+            name: "車庫樓梯口人流記錄｜模型判到上樓提早關燈"
+          - entity: input_boolean.garage_stair_ai_enable
+            name: "車庫樓梯口人流記錄｜總開關"
+          - entity: input_number.air_pm_notice
+            name: "PM2.5 一般通知門檻（持續10分鐘）"
+          - entity: input_number.air_pm_start
+            name: "PM2.5 啟動門檻"
+          - entity: input_number.air_pm_severe
+            name: "PM2.5 嚴重門檻（持續10分鐘）"
+          - entity: input_number.air_pm_stop
+            name: "PM2.5 自動關閉門檻（持續5分鐘）"
+          - entity: input_number.air_pm_very_severe
+            name: "PM2.5 非常嚴重門檻（即時）"
+          - entity: input_number.air_manual_off_hold_min
+            name: "手動關機後不自動重啟（分）"
+        card_mod: *cm
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "環境異常（CO／溫度）（12）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_boolean.env_alert_co_dry_run
+            name: "CO 緊急模式乾跑（只通知不觸發）"
+          - entity: input_boolean.env_alert_mute
+            name: "環境異常通知暫停（不含緊急）"
+          - entity: input_number.env_co_l1
+            name: "CO 一般門檻"
+          - entity: input_number.env_co_l3
+            name: "CO 危險門檻"
+          - entity: input_number.env_co_l2
+            name: "CO 重要門檻"
+          - entity: input_number.env_co2_l1
+            name: "CO2 一般門檻"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "環境異常（CO／溫度）（續）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_number.env_co2_l3
+            name: "CO2 嚴重門檻"
+          - entity: input_number.env_co2_l2
+            name: "CO2 重要門檻"
+          - entity: input_number.env_temp_l1
+            name: "廚房溫度一般門檻"
+          - entity: input_number.env_temp_l3
+            name: "廚房溫度嚴重門檻"
+          - entity: input_number.env_temp_l2
+            name: "廚房溫度重要門檻"
+          - entity: input_number.env_alert_cooldown_min
+            name: "環境通知同項目冷卻（分）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -3606,92 +3654,6 @@ views:
             name: "頂樓電風扇_自動模式"
           - entity: input_boolean.ding_lou_fan_debug_notify
             name: "頂樓風扇_通知Debug模式"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他開關（5）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.env_alert_co_dry_run
-            name: "CO 緊急模式乾跑（只通知不觸發）"
-          - entity: input_boolean.env_alert_mute
-            name: "環境異常通知暫停（不含緊急）"
-          - entity: input_boolean.air_door_pause_enable
-            name: "空氣清淨機｜二樓大門開著不自動運轉"
-          - entity: input_boolean.garage_stair_ai_control_enable
-            name: "車庫樓梯口人流記錄｜模型判到上樓提早關燈"
-          - entity: input_boolean.garage_stair_ai_enable
-            name: "車庫樓梯口人流記錄｜總開關"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他數值參數（16）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_number.env_co_l1
-            name: "CO 一般門檻"
-          - entity: input_number.env_co_l3
-            name: "CO 危險門檻"
-          - entity: input_number.env_co_l2
-            name: "CO 重要門檻"
-          - entity: input_number.env_co2_l1
-            name: "CO2 一般門檻"
-          - entity: input_number.env_co2_l3
-            name: "CO2 嚴重門檻"
-          - entity: input_number.env_co2_l2
-            name: "CO2 重要門檻"
-          - entity: input_number.air_pm_notice
-            name: "PM2.5 一般通知門檻（持續10分鐘）"
-          - entity: input_number.air_pm_start
-            name: "PM2.5 啟動門檻"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他數值參數（續）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_number.air_pm_severe
-            name: "PM2.5 嚴重門檻（持續10分鐘）"
-          - entity: input_number.air_pm_stop
-            name: "PM2.5 自動關閉門檻（持續5分鐘）"
-          - entity: input_number.air_pm_very_severe
-            name: "PM2.5 非常嚴重門檻（即時）"
-          - entity: input_number.env_temp_l1
-            name: "廚房溫度一般門檻"
-          - entity: input_number.env_temp_l3
-            name: "廚房溫度嚴重門檻"
-          - entity: input_number.env_temp_l2
-            name: "廚房溫度重要門檻"
-          - entity: input_number.air_manual_off_hold_min
-            name: "手動關機後不自動重啟（分）"
-          - entity: input_number.env_alert_cooldown_min
-            name: "環境通知同項目冷卻（分）"
         card_mod: *cm
   - title: "系統維護"
     path: system
@@ -4454,7 +4416,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "情境（23）"
+        heading: "情境（24）"
         heading_style: title
         card_mod:
           style: |
@@ -4504,12 +4466,12 @@ views:
             name: "HomeKit 晚安情境按鈕"
           - entity: input_boolean.hk_scene_away
             name: "HomeKit 離家情境按鈕"
+          - entity: input_boolean.leave_notice_sent
+            name: "離家通知已發送"
           - entity: input_datetime.anti_down_family_seen
             name: "二樓夜間防下樓｜家人（Iris 以外）最近一次在二樓／車庫（內部）"
           - entity: input_datetime.anti_down_night_done_at
             name: "二樓夜間防下樓｜晚安情境最近一次執行（內部）"
-          - entity: input_datetime.anti_down_last_announce
-            name: "二樓夜間防下樓｜最近一次廣播（內部）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4524,6 +4486,8 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_datetime.anti_down_last_announce
+            name: "二樓夜間防下樓｜最近一次廣播（內部）"
           - entity: input_datetime.scene_verify_skip_alarm_until
             name: "情境檢查略過保全模式檢查到（內部）"
           - entity: input_datetime.auto_scene_earliest_holiday
@@ -4775,7 +4739,7 @@ views:
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "保全與門鎖（19）"
+        heading: "保全與門鎖（29）"
         heading_style: title
         card_mod:
           style: |
@@ -4791,20 +4755,20 @@ views:
             name: "二樓門鎖"
           - entity: input_boolean.garage_vehicle_confirmed
             name: "充電車輛已由電流確認（內部）"
+          - entity: input_boolean.garage_turn_detected
+            name: "車庫出門偵測｜剛偵測到左方向燈（內部）"
           - entity: input_boolean.garage_depart_candidate
             name: "車庫出門偵測｜準備出門中（內部）"
+          - entity: input_boolean.garage_lamp_front
+            name: "車庫前位｜車燈亮（內部，3D 顯示）"
+          - entity: input_boolean.garage_lamp_back
+            name: "車庫後位｜車燈亮（內部，3D 顯示）"
           - entity: input_datetime.intrusion_last_alert
             name: "入侵偵測最近一次通知時間"
           - entity: input_datetime.gateway_sync_lock_until
             name: "網關同步鎖｜鎖到（內部）"
           - entity: input_datetime.garage_cable_learn_last
             name: "車庫充電線樣板｜上次學習（內部）"
-          - entity: input_datetime.garage_depart_last_open
-            name: "車庫出門偵測｜上次自動開門"
-          - entity: input_datetime.garage_gate_run_last
-            name: "車庫鐵門評估｜上次開始（內部，104-2 去重）"
-          - entity: input_datetime.garage_gate_opened_at
-            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
         card_mod: *cm
     - type: vertical-stack
       cards:
@@ -4819,10 +4783,41 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_datetime.garage_depart_last_open
+            name: "車庫出門偵測｜上次自動開門"
+          - entity: input_datetime.garage_board_seen_last
+            name: "車庫出門偵測｜最近一次方向燈時畫面還有人（內部）"
+          - entity: input_datetime.garage_turn_seen_front
+            name: "車庫前位｜最近偵測到左方向燈（內部，3D 顯示）"
+          - entity: input_datetime.garage_turn_last
+            name: "車庫左方向燈偵測｜上次檢查（內部，30 秒冷卻）"
+          - entity: input_datetime.garage_turn_seen_back
+            name: "車庫後位｜最近偵測到左方向燈（內部，3D 顯示）"
+          - entity: input_datetime.garage_id_fix_last
+            name: "車庫車輛身分校正｜上次重學樣板（內部）"
+          - entity: input_datetime.garage_gate_run_last
+            name: "車庫鐵門評估｜上次開始（內部，104-2 去重）"
+          - entity: input_datetime.garage_gate_opened_at
+            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
           - entity: input_number.garage_ev_front
             name: "車庫前位｜連續有車燈／位移次數（內部）"
           - entity: input_number.garage_ev_back
             name: "車庫後位｜連續有車燈／位移次數（內部）"
+        card_mod: *cm
+    - type: custom:layout-break
+    - type: vertical-stack
+      cards:
+      - type: heading
+        heading: "保全與門鎖（續）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
           - entity: input_select.garage_vehicle_latch
             name: "充電車輛（鎖定，內部）"
           - entity: input_select.garage_vehicle_last
@@ -4837,8 +4832,11 @@ views:
             name: "入侵偵測最近訊號（內部）"
           - entity: input_text.garage_depart_car
             name: "車庫出門偵測｜準備出門的車（內部）"
+          - entity: input_text.garage_plate_seen
+            name: "車庫攝影機讀到的車牌（影像文字辨識，最近一次）"
+          - entity: input_text.garage_id_fix_log
+            name: "車庫車輛身分校正紀錄（最近一次）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -4986,104 +4984,4 @@ views:
             name: "00-01 系統穩定最後動作"
           - entity: input_text.ai_leave_version_text
             name: "AI離家版本字串"
-        card_mod: *cm
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "其他（6）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.garage_turn_detected
-            name: "車庫出門偵測｜剛偵測到左方向燈（內部）"
-          - entity: input_datetime.garage_board_seen_last
-            name: "車庫出門偵測｜最近一次方向燈時畫面還有人（內部）"
-          - entity: input_datetime.garage_turn_seen_front
-            name: "車庫前位｜最近偵測到左方向燈（內部，3D 顯示）"
-          - entity: input_datetime.garage_turn_last
-            name: "車庫左方向燈偵測｜上次檢查（內部，30 秒冷卻）"
-          - entity: input_datetime.garage_turn_seen_back
-            name: "車庫後位｜最近偵測到左方向燈（內部，3D 顯示）"
-          - entity: input_datetime.garage_id_fix_last
-            name: "車庫車輛身分校正｜上次重學樣板（內部）"
-        card_mod: *cm
-  - title: "其他"
-    path: other
-    icon: mdi:dots-horizontal-circle-outline
-    type: custom:vertical-layout
-    layout:
-      max_cols: 4
-      width: 340
-    cards:
-    - type: vertical-stack
-      cards:
-      - type: markdown
-        content: "**其他**　尚未歸類的項目（可在 generate_automation_panel.py 調整分類規則）。　自動化 1 支、可調整項目 6 個"
-        card_mod:
-          style: |
-            ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "自動化開關（1）"
-        heading_style: title
-        icon: mdi:robot
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1
-            name: "08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "開關（4）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_boolean.garage_turn_wait_board_enable
-            name: "車庫出門偵測｜畫面還有人先不開門（等上車後方向燈再開）"
-          - entity: input_boolean.garage_lamp_front
-            name: "車庫前位｜車燈亮（內部，3D 顯示）"
-          - entity: input_boolean.garage_lamp_back
-            name: "車庫後位｜車燈亮（內部，3D 顯示）"
-          - entity: input_boolean.leave_notice_sent
-            name: "離家通知已發送"
-        card_mod: *cm
-    - type: custom:layout-break
-    - type: vertical-stack
-      cards:
-      - type: heading
-        heading: "文字（2）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_text.garage_plate_seen
-            name: "車庫攝影機讀到的車牌（影像文字辨識，最近一次）"
-          - entity: input_text.garage_id_fix_log
-            name: "車庫車輛身分校正紀錄（最近一次）"
         card_mod: *cm
