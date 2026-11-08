@@ -187,6 +187,61 @@ def fetch():
     return json.loads(r.stdout)
 
 
+DEFAULTS_QUERY = r"""
+import json, sqlite3, sys, time
+eids = json.loads(sys.stdin.readline())
+now = time.time(); since = now - 14 * 86400
+c = sqlite3.connect("file:/homeassistant/home-assistant_v2.db?mode=ro", uri=True, timeout=20)
+meta = dict(c.execute("select entity_id, metadata_id from states_meta").fetchall())
+out = {}
+for e in eids:
+    mid = meta.get(e)
+    if mid is None:
+        continue
+    prev = c.execute("select state from states where metadata_id=? and last_updated_ts<=? order by last_updated_ts desc limit 1", (mid, since)).fetchone()
+    rows = c.execute("select state, last_updated_ts from states where metadata_id=? and last_updated_ts>? order by last_updated_ts", (mid, since)).fetchall()
+    cur, t0, on, tot = (prev[0] if prev else None), since, 0.0, 0.0
+    if cur is None and rows:
+        cur, t0 = rows[0][0], rows[0][1]
+    for st, ts in rows:
+        if cur in ("on", "off"):
+            tot += ts - t0
+            on += (ts - t0) if cur == "on" else 0
+        cur, t0 = st, ts
+    if cur in ("on", "off"):
+        tot += now - t0
+        on += (now - t0) if cur == "on" else 0
+    if tot > 3600:
+        out[e] = "on" if on / tot >= 0.5 else "off"
+print(json.dumps(out))
+"""
+DEFAULTS = {}          # entity_id -> "on" / "off"（平常狀態）
+DEFAULTS_ON = [True]   # 內部狀態分頁不標「不是平常狀態」
+
+
+def fetch_defaults(eids):
+    """平常狀態：過去 14 天大部分時間的狀態；scripts/panel_defaults.json 可覆寫（{"entity_id": "on"}）。"""
+    out = {}
+    try:
+        r = subprocess.run(["python3", "-"], input=DEFAULTS_QUERY.lstrip("\n").replace("sys.stdin.readline()", repr(json.dumps(eids))),
+                           capture_output=True, text=True, timeout=120)
+        out = json.loads(r.stdout or "{}")
+    except Exception as e:  # noqa: BLE001
+        print("defaults query failed:", e)
+    f = pathlib.Path(__file__).resolve().parent / "panel_defaults.json"
+    if f.exists():
+        try:
+            out.update({k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if v in ("on", "off")})
+        except Exception as e:  # noqa: BLE001
+            print("panel_defaults.json error:", e)
+    return out
+
+
+def clean_name(n):
+    """開關列名稱：去掉結尾的版本號「 (V4.3.0)」，比較好掃讀（版本號在詳細資訊裡看得到）。"""
+    return re.sub(r"\s*[（(]\s*V\d[^）)]*[）)]\s*$", "", str(n or "")).strip() or str(n or "")
+
+
 def q(s):
     return json.dumps(s, ensure_ascii=False)
 
@@ -251,14 +306,19 @@ def card_mod_wrap():
 
 
 TOGGLE_DOMAINS = ("automation", "input_boolean", "switch", "light", "fan")
+STATE = {}
 
 
 def toggle_rows_card(rows):
     """一組開關列（和 Kiosk「自動化管理」同一套樣式）：圖示＋名稱＋右側 iOS 開關；點名稱開詳細資訊。"""
-    items = [[eid, name] for eid, name in rows]
+    items = []
+    for r in rows:
+        eid, name = r[0], clean_name(r[1])
+        d = (r[2] if len(r) > 2 else DEFAULTS.get(eid)) if DEFAULTS_ON[0] else None
+        items.append([eid, name, d] if d else [eid, name])
     return ["      - type: custom:button-card", "        template: prows",
             "        variables:", "          items: " + json.dumps(items, ensure_ascii=False),
-            "        triggers_update: " + json.dumps([e for e, _ in items])]
+            "        triggers_update: " + json.dumps([x[0] for x in items])]
 
 
 def entities_card(rows, title=None):
@@ -856,11 +916,11 @@ def supply_view(title, path, icon, autos):
     auto_cards = heading("耗材相關自動化", "mdi:robot") + entities_card(auto_rows) if has_auto else []
 
     if has_auto:
-        areas_3col = '        "col1 battery filter"\n        "col1 settings auto"'
+        areas_3col = '        "col1 battery"\n        "col1 filter"\n        "col1 settings"\n        "col1 auto"'
         areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"\n            "col1 auto"'
         areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"\n            "auto"'
     else:
-        areas_3col = '        "col1 battery filter"\n        "col1 settings ."'
+        areas_3col = '        "col1 battery"\n        "col1 filter"\n        "col1 settings"'
         areas_2col = '            "col1 battery"\n            "col1 filter"\n            "col1 settings"'
         areas_1col = '            "col1"\n            "battery"\n            "filter"\n            "settings"'
 
@@ -870,7 +930,7 @@ def supply_view(title, path, icon, autos):
         f"    icon: {icon}",
         "    type: custom:grid-layout",
         "    layout:",
-        "      grid-template-columns: repeat(3, minmax(280px, 1fr))",
+        "      grid-template-columns: repeat(2, minmax(0, 1fr))",
         "      grid-gap: 8px",
         "      margin: 0",
         "      align-items: start",
@@ -881,10 +941,10 @@ def supply_view(title, path, icon, autos):
         "          grid-template-columns: minmax(0, 1fr)",
         "          grid-template-areas: |",
         areas_1col,
-        '        "(max-width: 1024px)":',
-        "          grid-template-columns: repeat(2, minmax(280px, 1fr))",
+        '        "(max-width: 900px)":',
+        "          grid-template-columns: minmax(0, 1fr)",
         "          grid-template-areas: |",
-        areas_2col,
+        areas_1col,
         "    cards:",
     ]
 
@@ -1269,8 +1329,8 @@ def overview_sections(autos, stale):
     return S
 
 
-COLS = 4            # 最多 4 欄（橫向桌機／iPad 橫放）；layout-card 依螢幕寬度自動減少欄數：iPad 直放 2 欄、手機 1 欄
-COL_WIDTH = 340     # 每欄最小寬度（px）
+COLS = 2            # 最多 2 欄（iPad 橫放／電腦）；layout-card 依螢幕寬度自動減少欄數：手機、iPad 直放 1 欄
+COL_WIDTH = 420     # 每欄最小寬度（px）：寬一點比較好讀
 
 
 def est_height(lines):
@@ -1386,14 +1446,16 @@ PANEL_ROOT = [
 "          + '.n{flex:1;min-width:0;text-align:left;font-size:15px;line-height:1.35;white-space:normal;word-break:break-word;color:var(--primary-text-color);cursor:pointer}'",
 "          + '.sw{position:relative;flex:none;width:51px;height:31px;border-radius:16px;border:0;padding:0;background:rgba(120,120,128,.32);cursor:pointer;transition:background .18s;-webkit-tap-highlight-color:transparent}'",
 "          + '.sw::after{content:\"\";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:left .18s}'",
-"          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}</style>';",
-"        return css + it.map(([e, n]) => {",
+"          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}'",
+"          + '.dv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:1px;background:rgba(255,159,10,.18);color:#E08600}'",
+"          + '.r.dev{background:rgba(255,159,10,.06)}</style>';",
+"        return css + it.map(([e, n, d]) => {",
 "          const s = states[e]; const st = s ? s.state : 'unavailable';",
-"          const on = st === 'on'; const na = !s || st === 'unavailable';",
+"          const on = st === 'on'; const na = !s || st === 'unavailable'; const dev = !!d && !na && st !== d;",
 "          const ic = (s && s.attributes.icon) || DI[e.split('.')[0]] || 'mdi:toggle-switch-outline';",
 "          const nm = n || (s && s.attributes.friendly_name) || e;",
-"          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
-"            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}</span>`",
+"          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''} ${dev ? 'dev' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
+"            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}${dev ? `<span class=\"dv\">平常${d === 'on' ? '開' : '關'}</span>` : ''}</span>`",
 "            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onclick=\"event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})\"></button></div>`;",
 "        }).join('');",
 "        ]]]"
@@ -1430,6 +1492,10 @@ BACK_VIEW = [
 
 def build(data):
     _CM_DONE[0] = False
+    global STATE
+    STATE = {eid: st for eid, st, fn in data}
+    DEFAULTS.clear()
+    DEFAULTS.update(fetch_defaults([eid for eid, st, fn in data if eid.split(".")[0] in TOGGLE_DOMAINS]))
     autos = {k: [] for k, *_ in CATS}
     settings = {k: [] for k, *_ in CATS}      # (dom, 名稱, eid)
     internal = {k: [] for k, *_ in CATS}
@@ -1471,6 +1537,7 @@ def build(data):
         if key == "other" and not autos[key] and not settings[key]:
             continue   # 沒有未分類項目就不顯示「其他」分頁
         B = []
+        DEFAULTS_ON[0] = key != "internal"
         if key == "internal":
             B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS))
             homepod_rows = [
@@ -1489,7 +1556,7 @@ def build(data):
             L += view(title, key, icon, B)
             continue
         n_auto = len(autos[key]); n_set = len(settings[key])
-        B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}　自動化 {n_auto} 支、可調整項目 {n_set} 個")] + MD_CSS))
+        B.append(section(["      - type: markdown", "        content: " + q(f"**{title}**　{desc}")] + MD_CSS))
         if key == "system":
             B.extend(family_tracking_blocks())      # 家人主要裝置選擇＋person 目前參考的裝置
         if key == "scene":
@@ -1498,26 +1565,32 @@ def build(data):
             B.extend(garage_cars_blocks())      # 車庫前／後位車輛、車頭朝向、出去可能性、樣板學習
         if key == "emergency":
             B.extend(disaster_blocks())      # 災防告警 sensor.disaster / 地震 sensor.earthquake 卡片
-        if autos[key]:
-            rows = [(eid, fn) for fn, eid in sorted(autos[key])]
-            B.extend(list_blocks(f"自動化開關（{n_auto}）", rows, "mdi:robot"))
-        # 功能小組（依 SUBGROUPS 的順序）
-        left = list(settings[key])
+        # 開關：自動化＋輸入開關集中，依平常狀態分兩區（掃一眼：開著區有關掉的、關著區有打開的，就是和平常不同）
+        tog = [(eid, fn) for fn, eid in autos[key]] + [(eid, short_name(fn)) for dom, fn, eid in settings[key] if dom in TOGGLE_DOMAINS]
+        tog.sort(key=lambda r: (0 if r[0].startswith("automation.") else 1, clean_name(r[1])))
+        on_rows = [r for r in tog if DEFAULTS.get(r[0], STATE.get(r[0])) == "on"]
+        off_rows = [r for r in tog if r not in on_rows]
+        if on_rows:
+            B.extend(list_blocks(f"平常開著（{len(on_rows)}）", on_rows, "mdi:toggle-switch", max_rows=60))
+        if off_rows:
+            B.extend(list_blocks(f"平常關著（{len(off_rows)}）", off_rows, "mdi:toggle-switch-off-outline", max_rows=60))
+        # 其他設定：功能小組（依 SUBGROUPS 的順序），標題不再加數量
+        left = [x for x in settings[key] if x[0] not in TOGGLE_DOMAINS]
         for label, pat in SUBGROUPS.get(key, []):
             grp = [x for x in left if re.search(pat, x[2] + " " + x[1])]
             if grp:
                 left = [x for x in left if x not in grp]
                 rows = [(eid, short_name(fn)) for dom, fn, eid in sorted(grp, key=lambda x: (x[0], x[1]))]
-                B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
+                B.extend(list_blocks(label, rows, max_rows=60))
         # 其餘依元件種類（同分類已有功能小組時，這些標為「其他…」）
-        had_groups = len(left) != len(settings[key])
+        had_groups = len(left) != len([x for x in settings[key] if x[0] not in TOGGLE_DOMAINS])
         for dom, label in TYPE_LABEL:
             grp = [x for x in left if x[0] == dom]
             if grp:
                 label = label.replace("其他", "")
                 label = ("其他" + label) if had_groups else label
                 rows = [(eid, short_name(fn)) for d, fn, eid in sorted(grp, key=lambda x: x[1])]
-                B.extend(list_blocks(f"{label}（{len(rows)}）", rows))
+                B.extend(list_blocks(label, rows, max_rows=60))
         L += view(title, key, icon, B)
     i0 = L.index("views:") + 1
     L[i0:i0] = BACK_VIEW    # 分頁列最前面：返回 3D 介面（和 Kiosk 一樣）

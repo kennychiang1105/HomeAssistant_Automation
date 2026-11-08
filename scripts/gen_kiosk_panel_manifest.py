@@ -64,11 +64,14 @@ def build(doc):
             sections.append(s)
             return s
 
-        def add(eid, name):
+        def add(eid, name, d=None):
             if not isinstance(eid, str) or not EID.match(eid) or eid.split(".")[0] in SKIP_DOMAINS or eid in seen:
                 return
             seen.add(eid)
-            sec()["items"].append({"e": eid, "n": str(name or "").strip()})
+            it = {"e": eid, "n": str(name or "").strip()}
+            if d in ("on", "off"):
+                it["d"] = d                                   # 平常狀態（和目前不同時標示）
+            sec()["items"].append(it)
 
         def add_bc(c):
             st = c.get("styles") or {}
@@ -126,7 +129,7 @@ def build(doc):
             if isinstance(items, list):                    # 開關列樣板（template: prows）
                 for x in items:
                     if isinstance(x, list) and x:
-                        add(x[0], x[1] if len(x) > 1 else "")
+                        add(x[0], x[1] if len(x) > 1 else "", x[2] if len(x) > 2 else None)
             for k in ("cards", "card"):
                 if k in c:
                     walk(c[k])
