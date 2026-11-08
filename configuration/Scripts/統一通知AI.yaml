@@ -136,13 +136,13 @@ notify_dispatch:
       {% if sig | regex_search('門鈴') %}doorbell{% elif sig | regex_search('車牌|Tesla|充電') %}car{% elif sig | regex_search('鐵門|車庫') %}gate{% elif sig | regex_search('門鎖') %}lock{% elif sig | regex_search('電量|電池|耗材') %}battery{% elif sig | regex_search('地震|災害|疏散|海嘯') %}quake{% elif sig | regex_search('天氣|豪雨|颱風|大雨') %}weather{% elif sig | regex_search('保全|警報|入侵') %}shield{% elif sig | regex_search('離家|到家|早安|晚安|情境') %}home{% elif sig | regex_search('風扇') %}fan{% elif sig | regex_search('空氣|PM') %}air{% elif sig | regex_search('網關|網路|Wi-Fi|斷線|離線') %}network{% elif sig | regex_search('更新|版本') %}update{% elif sig | regex_search('Bot|LINE|額度') %}chat{% elif lv == 'info' or lv == 'general' %}info{% else %}alarm{% endif %}
     icon_final: "{{ icon if (icon is defined and icon) else ('https://family.kteam.tw:8126/local/icons/' ~ icon_auto | trim ~ '.png?v=2') }}"
     hero_extra: "{{ {'hero': {'type': 'image', 'url': image, 'size': 'full', 'aspectRatio': (image_ratio if (image_ratio is defined and image_ratio) else '16:9'), 'aspectMode': ('fit' if (image_ratio is defined and image_ratio) else 'cover'), 'action': {'type': 'uri', 'label': '放大', 'uri': image}}} if (image is defined and image) else {} }}"
-    url: "{{ message | regex_findall('https?://[^ \\n]+') | first | default('', true) }}"
+    url: "{{ message | regex_findall('https?://[A-Za-z0-9._~:/?@&=%+-]+') | last | default('', true) }}"
     detail_line: >-
-      {% set ns = namespace(o=[]) %}{% for l in lines[1:] %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | join('\n') | trim }}
+      {% set ns = namespace(o=[]) %}{% for l in lines[1:] %}{% if not url or url not in l or ((l | replace(url, '') | trim | length) > 6) %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | join('\n') | trim }}
     detail_blocks: >-
       {% set ns = namespace(c=[]) %}{% for b in detail_line.split('\n\n') %}{% if b | trim %}{% set ns.c = ns.c + [{"type": "text", "text": (b | trim), "size": "xs", "color": "#6B7280", "wrap": true, "margin": "md"}] %}{% endif %}{% endfor %}{{ ns.c | tojson }}
     body_lines: >-
-      {% set ns = namespace(o=[]) %}{% for l in lines %}{% if not url or url not in l %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | tojson }}
+      {% set ns = namespace(o=[]) %}{% for l in lines %}{% if not url or url not in l or ((l | replace(url, '') | trim | length) > 6) %}{% set ns.o = ns.o + [l] %}{% endif %}{% endfor %}{{ ns.o | tojson }}
     # V4.1.6：維護模式（更新路由器／系統期間）略過「一般／重要」級的連線／離線／失敗／異常類通知；保全類與緊急級照常發送
     maint_skip: >-
       {{ is_state('binary_sensor.maintenance_active', 'on') and lv in ['general', 'important']
