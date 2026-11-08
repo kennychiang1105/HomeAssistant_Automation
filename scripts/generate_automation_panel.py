@@ -380,7 +380,8 @@ def section(cards_lines, span=None):
     if MASONRY:
         L = ["    - type: vertical-stack",
              "      card_mod:", "        style: |",
-             "          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }",
+             "          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }",
+             "          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }",
              "      cards:"]
         L += cards_lines
         return L

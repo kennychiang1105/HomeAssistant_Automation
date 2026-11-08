@@ -90,7 +90,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "LINE Bot 額度"
@@ -184,7 +185,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "LINE Bot 設定"
@@ -281,7 +283,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "啟用中的自動化 **164** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
@@ -291,7 +294,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "手動廣播"
@@ -421,7 +425,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "手動通知（標題：系統通知訊息）"
@@ -489,7 +494,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "氣象與災害告警"
@@ -576,7 +582,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "最新地震報告"
@@ -656,7 +663,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "常用總開關"
@@ -697,7 +705,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "網關、伺服器與警報"
@@ -727,7 +736,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓常用"
@@ -757,7 +767,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "目前停用的自動化"
@@ -805,7 +816,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "最近 24 小時觸發"
@@ -869,7 +881,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**耗材與額度**　設備電池預估、空氣清淨機濾網壽命、LINE Bot 額度消耗與月底全月預測。"
@@ -879,7 +892,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "LINE Bot 全月預測診斷"
@@ -948,7 +962,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "LINE Bot 額度"
@@ -1042,7 +1057,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "LINE Bot 設定"
@@ -1077,7 +1093,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "9 大感測器電池壽命預估"
@@ -1223,7 +1240,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "空氣清淨機濾網"
@@ -1286,7 +1304,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "耗材監控設定與操作"
@@ -1313,7 +1332,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "耗材相關自動化"
@@ -1342,7 +1362,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**通知與廣播**　通知分級（資訊/一般/重要/緊急）、LINE、廣播音量、氣氛燈提醒、機台氣氛燈。"
@@ -1352,7 +1373,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（27）"
@@ -1370,7 +1392,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（9）"
@@ -1388,7 +1411,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "地震預警與空氣通知"
@@ -1411,7 +1435,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "手動廣播與手動通知"
@@ -1437,7 +1462,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "廣播音量與情境廣播"
@@ -1462,7 +1488,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "氣氛燈與機台氣氛燈"
@@ -1487,7 +1514,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "通知測試按鈕"
@@ -1525,7 +1553,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**情境**　早安／晚安／離家／到家情境、網關模式、HomeKit／Google 情境按鈕、漸進燈光。"
@@ -1535,7 +1564,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "日出日落的天氣調整"
@@ -1592,7 +1622,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（29）"
@@ -1610,7 +1641,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（3）"
@@ -1629,7 +1661,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "數值參數"
@@ -1672,7 +1705,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "日期時間"
@@ -1697,7 +1731,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "操作按鈕"
@@ -1733,7 +1768,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**開關按鈕**　Terncy／小米／Aqara 實體開關的單擊、雙擊、長按動作（800 系列），以及 Terncy 無線開關單擊切換（08-9）。"
@@ -1743,7 +1779,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（12）"
@@ -1772,7 +1809,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**照明與感應燈**　樓梯燈、廚房／廁所感應燈、客廳／車庫燈、車庫鐵門感應燈。"
@@ -1782,7 +1820,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（18）"
@@ -1801,7 +1840,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（1）"
@@ -1819,7 +1859,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "數值參數"
@@ -1838,7 +1879,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "選項"
@@ -1868,7 +1910,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**頂樓**　五樓保全、樓梯感應燈、書房燈、上下樓情境、深夜熟睡鎖與頂樓感應參數。"
@@ -1878,7 +1921,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（39）"
@@ -1896,7 +1940,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（2）"
@@ -1914,7 +1959,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "會自動切換（1）"
@@ -1932,7 +1978,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "感應燈與書房燈參數"
@@ -1978,7 +2025,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "上下樓情境判斷參數"
@@ -2013,7 +2061,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "睡眠靜默與熟睡鎖"
@@ -2042,7 +2091,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓情境廣播"
@@ -2061,7 +2111,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "攝影機與模型判斷"
@@ -2105,7 +2156,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**保全與門鎖**　離家保全、鐵門／車牌辨識、門鈴、門鎖電量、網關。"
@@ -2115,7 +2167,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "車庫車輛位置"
@@ -2170,7 +2223,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "車輛樣板學習"
@@ -2202,7 +2256,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（31）"
@@ -2220,7 +2275,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（7）"
@@ -2238,7 +2294,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "車庫車輛出門偵測"
@@ -2257,7 +2314,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "離家入侵偵測"
@@ -2298,7 +2356,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "車輛動態辨識（LPR）"
@@ -2330,7 +2389,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**緊急與災防**　緊急模式 05A~05G（含連點三下維修暫停）、地震／天氣／疏散警報。"
@@ -2340,7 +2400,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "氣象與災害告警"
@@ -2426,7 +2487,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "最新地震報告"
@@ -2506,7 +2568,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（23）"
@@ -2525,7 +2588,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（1）"
@@ -2543,7 +2607,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "災害訊息通知與廣播"
@@ -2566,7 +2631,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "緊急模式"
@@ -2598,7 +2664,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**空氣與風扇**　空氣清淨機、客廳／頂樓風扇、空調溫度門檻、夏季模式。"
@@ -2608,7 +2675,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（13）"
@@ -2626,7 +2694,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（5）"
@@ -2644,7 +2713,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "空氣清淨機（PM2.5）"
@@ -2674,7 +2744,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "環境異常（CO／溫度）"
@@ -2711,7 +2782,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "溫度門檻與冷氣"
@@ -2746,7 +2818,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "客廳風扇"
@@ -2778,7 +2851,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**系統維護**　穩定重啟、看門狗、更新紀錄／版本、Tesla、測試與初始化、定位追蹤。"
@@ -2788,7 +2862,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "家人裝置追蹤"
@@ -3126,7 +3201,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "<sub>person.* 是 YAML 定義，在不在家都由它參考的裝置決定。選「主要裝置」會改寫 persons.yaml 並重新載入 person；為避免切換後在家狀態突然改變而誤觸發離家／到家情境，選的裝置目前的在家狀態必須和該家人目前一致，否則會退回原選項並發 HA 通知。清單沒有的裝置選「其他」，再輸入 device_tracker.xxx（小寫英數底線，可到 設定 > 裝置與服務 > 實體 搜尋 device_tracker）。</sub>"
@@ -3137,7 +3213,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常開著（28）"
@@ -3155,7 +3232,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "平常關著（2）"
@@ -3173,7 +3251,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "系統穩定自動重啟"
@@ -3196,7 +3275,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "版本與更新紀錄"
@@ -3225,7 +3305,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "維護模式（更新期間略過通知）"
@@ -3244,7 +3325,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "其他文字"
@@ -3274,7 +3356,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
         content: "**內部狀態（勿動）**　由自動化自動維護的旗標、紀錄、計時器與計數器，一般不用修改；手動改動可能讓自動化判斷錯誤。"
@@ -3284,7 +3367,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "HomePod 偵測溫度"
@@ -3315,7 +3399,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "耗材與額度（5）"
@@ -3342,7 +3427,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "通知與廣播（40）"
@@ -3380,7 +3466,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3417,7 +3504,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3454,7 +3542,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "通知與廣播（續）"
@@ -3491,7 +3580,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "情境（24）"
@@ -3508,7 +3598,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "情境（續）"
@@ -3534,7 +3625,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "情境（續）"
@@ -3567,7 +3659,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "開關按鈕（2）"
@@ -3591,7 +3684,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "照明與感應燈（3）"
@@ -3617,7 +3711,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（55）"
@@ -3649,7 +3744,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3680,7 +3776,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3717,7 +3814,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3754,7 +3852,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3791,7 +3890,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "頂樓（續）"
@@ -3818,7 +3918,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（29）"
@@ -3846,7 +3947,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（續）"
@@ -3883,7 +3985,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "保全與門鎖（續）"
@@ -3918,7 +4021,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "緊急與災防（15）"
@@ -3946,7 +4050,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "緊急與災防（續）"
@@ -3977,7 +4082,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "空氣與風扇（17）"
@@ -4003,7 +4109,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "空氣與風扇（續）"
@@ -4036,7 +4143,8 @@ views:
     - type: vertical-stack
       card_mod:
         style: |
-          ha-card { background: rgba(120,120,128,.10) !important; border-radius: 22px !important; box-shadow: none !important; border: none !important; padding: 0 10px 12px !important; }
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
         heading: "系統維護（7）"

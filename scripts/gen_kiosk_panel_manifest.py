@@ -52,7 +52,7 @@ def build(doc):
     for vi, v in enumerate(doc.get("views", [])):
         if v.get("path") == "back-3d":
             continue
-        sections, state = [], {"key": None, "title": "", "icon": "", "desc": ""}
+        sections, state = [], {"key": None, "title": "", "icon": "", "desc": "", "col": 0}
         seen = set()
 
         def sec():
@@ -60,7 +60,7 @@ def build(doc):
             for s in sections:
                 if s["_k"] == k:
                     return s
-            s = {"_k": k, "title": state["title"], "icon": state["icon"], "items": []}
+            s = {"_k": k, "title": state["title"], "icon": state["icon"], "col": state["col"], "items": []}
             sections.append(s)
             return s
 
@@ -134,8 +134,12 @@ def build(doc):
                 if k in c:
                     walk(c[k])
 
-        walk(v.get("cards", []))
-        sections = [{k: s[k] for k in ("title", "icon", "items")} for s in sections if s["items"]]
+        for top in v.get("cards", []):           # 頂層卡片依序走訪；遇到 layout-break 就換下一欄（和 HA 面板同一個欄位分配）
+            if isinstance(top, dict) and top.get("type") == "custom:layout-break":
+                state["col"] += 1
+                continue
+            walk(top)
+        sections = [{k: s[k] for k in ("title", "icon", "col", "items")} for s in sections if s["items"]]
         if sections:
             views.append({"key": str(v.get("path") or v.get("title")), "title": str(v.get("title", "")), "icon": str(v.get("icon", "")),
                           "desc": state["desc"], "sections": sections})
