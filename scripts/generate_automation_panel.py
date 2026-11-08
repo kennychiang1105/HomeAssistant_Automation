@@ -1167,7 +1167,7 @@ def overview_sections(autos, stale):
 
 
 COLS = 2            # 最多 2 欄（iPad 橫放／電腦）；layout-card 依螢幕寬度自動減少欄數：手機、iPad 直放 1 欄
-COL_WIDTH = 420     # 每欄最小寬度（px）：寬一點比較好讀
+COL_WIDTH = 340     # 每欄最小寬度（px）：窄螢幕（手機、iPad 分割畫面）也放得下，不會左右被切掉
 
 
 def est_height(lines):
