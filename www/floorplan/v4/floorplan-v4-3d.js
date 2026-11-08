@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.0-beta13) - real 3D view
+/* Floorplan V4.1.0 (UI4.0 正式版) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -255,7 +255,7 @@ class FloorplanV43D extends HTMLElement {
                        background:rgba(120,120,128,.16); color:var(--primary-text-color); cursor:pointer; }
         .tabs button.on { background:#FFB900; color:#111; }
         .wrap { position:relative; height:${(cfg.height || "70vh").replace(/dvh/g, "vh")}; height:${cfg.height || "70vh"}; border-radius:16px; overflow:hidden;
-                /* UI4.0-beta13：夜間＝暖石墨底＋琥珀色淡格線（科技感）＋底部暖光、左上淡藍光 */
+                /* UI4.0：夜間＝暖石墨底＋琥珀色淡格線（科技感）＋底部暖光、左上淡藍光 */
                 background:
                   linear-gradient(rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
                   linear-gradient(90deg, rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
@@ -308,7 +308,7 @@ class FloorplanV43D extends HTMLElement {
           -webkit-tap-highlight-color:transparent; }
         .scn button:active, .zones button:active, .tools button:active, .seg button:active, .chips button:active {
           scale:0.96; filter:brightness(1.15); }
-        /* UI4.0-beta13：白天＝暖米白底＋淡藍圖格線（科技感）＋底部暖光、右上淡藍光 */
+        /* UI4.0：白天＝暖米白底＋淡藍圖格線（科技感）＋底部暖光、右上淡藍光 */
         .wrap.light { background:
           linear-gradient(rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
           linear-gradient(90deg, rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
@@ -398,7 +398,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.0-beta13</div>
+        <div class="ver">UI4.0</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -1809,7 +1809,7 @@ class FloorplanV43D extends HTMLElement {
         }
         if (f.entity && cars) {
           // 車位實體（input_select.garage_slot_*）：標籤、空位虛線框，狀態由 update 迴圈依 HA 實體切換
-          // UI4.0-beta13：車位標籤改大（畫布 1024×256、字加大加粗、實心白底＋細邊框、標籤放大），縮放時文字不再糊
+          // UI4.0：車位標籤改大（畫布 1024×256、字加大加粗、實心白底＋細邊框、標籤放大），縮放時文字不再糊
           const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 256;
           const c2 = cv.getContext("2d");
           const tex = new THREE.CanvasTexture(cv);
@@ -3591,7 +3591,7 @@ class FloorplanV4Sidebar extends HTMLElement {
                height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column;
                overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
         .box::-webkit-scrollbar { display:none; }
-        /* UI4.0-beta13：橫放側欄有多餘高度時，不是加大間距，而是把天氣、保全列、攝影機／樓層按鈕、成員列加高（間距維持原樣）；
+        /* UI4.0：橫放側欄有多餘高度時，不是加大間距，而是把天氣、保全列、攝影機／樓層按鈕、成員列加高（間距維持原樣）；
            內容超過高度時仍可捲動；手機版 compact 不套用 */
         /* 大螢幕：整個側欄內容依欄寬／高度等比例放大（--z，由 _fit 依側欄寬高算出，1～1.6 倍），字、按鈕一起變大；不再把按鈕拉得很高 */
         .box:not(.compact) > * { zoom:var(--z, 1); }
