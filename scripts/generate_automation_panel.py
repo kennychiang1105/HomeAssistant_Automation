@@ -817,7 +817,8 @@ def supply_view(title, path, icon, autos):
     has_auto = bool(auto_rows)
 
     col1_cards = (
-        heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
+        ["  " + x for x in back_3d_block()]          # 返回 3D 介面
+        + heading("LINE Bot 全月預測診斷", "mdi:chart-timeline-variant")
         + linebot_forecast_banner()
         + quota_section()
         + quota_settings()
@@ -1287,10 +1288,28 @@ def partition(heights, k):
     return list(reversed(bounds))
 
 
+def back_3d_block():
+    """快捷按鈕：回到「智慧家庭」儀表板的 3D 介面（/lovelace-smart/home）。"""
+    return [
+        "    - type: button",
+        '      name: "返回 3D 介面"',
+        "      icon: mdi:cube-scan",
+        "      show_state: false",
+        "      icon_height: 26px",
+        "      tap_action:",
+        "        action: navigate",
+        "        navigation_path: /lovelace-smart/home",
+        "      card_mod:",
+        "        style: |",
+        "          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }",
+    ]
+
+
 def view(title, path, icon, blocks):
     """vertical-layout：依序排卡片，欄與欄之間放 layout-break；欄數不夠時依序往下接（手機就是單欄、順序不變）。"""
     L = [f"  - title: {q(title)}", f"    path: {path}", f"    icon: {icon}", "    type: custom:vertical-layout",
          "    layout:", f"      max_cols: {COLS}", f"      width: {COL_WIDTH}", "    cards:"]
+    blocks = [back_3d_block()] + list(blocks)      # 每個分頁最上方：返回 3D 介面
     units = [[b] for b in blocks]
     if len(units) > 1:                     # 開頭的說明卡永遠跟下一張卡片放在同一欄，不會自己佔一欄
         units = [units[0] + units[1]] + units[2:]
@@ -1416,3 +1435,9 @@ if __name__ == "__main__":
     elif root_panel.exists():
         root_panel.write_text(text, encoding="utf-8")
         print("deployed to", root_panel)
+
+    # Kiosk（NAS 8130 埠）的「自動化管理」頁讀這份清單
+    try:
+        subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve().parent / "gen_kiosk_panel_manifest.py")], check=True)
+    except Exception as e:  # noqa: BLE001
+        print("kiosk manifest failed:", e)

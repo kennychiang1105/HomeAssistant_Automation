@@ -9,6 +9,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: heading
@@ -974,6 +985,17 @@ views:
         view_layout:
           grid-area: col1
         cards:
+        - type: button
+          name: "返回 3D 介面"
+          icon: mdi:cube-scan
+          show_state: false
+          icon_height: 26px
+          tap_action:
+            action: navigate
+            navigation_path: /lovelace-smart/home
+          card_mod:
+            style: |
+              ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
         - type: heading
           heading: "LINE Bot 全月預測診斷"
           heading_style: title
@@ -1712,6 +1734,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -1969,6 +2002,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -2254,6 +2298,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -2261,6 +2316,7 @@ views:
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2324,6 +2380,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -2331,6 +2398,7 @@ views:
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
+    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2415,7 +2483,6 @@ views:
           - entity: input_boolean.light_anim_enable
             name: "開燈動畫（總開關）"
         card_mod: *cm
-    - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
@@ -2456,6 +2523,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -2792,6 +2870,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -3117,6 +3206,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -3442,6 +3542,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -3663,6 +3774,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
@@ -4220,6 +4342,17 @@ views:
       max_cols: 4
       width: 340
     cards:
+    - type: button
+      name: "返回 3D 介面"
+      icon: mdi:cube-scan
+      show_state: false
+      icon_height: 26px
+      tap_action:
+        action: navigate
+        navigation_path: /lovelace-smart/home
+      card_mod:
+        style: |
+          ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; background: #FFB900 !important; color: #111 !important; --primary-text-color: #111; --paper-item-icon-color: #111; font-weight: 700; }
     - type: vertical-stack
       cards:
       - type: markdown
