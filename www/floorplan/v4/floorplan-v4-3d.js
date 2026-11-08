@@ -3587,8 +3587,15 @@ class FloorplanV4Sidebar extends HTMLElement {
                height:calc(100vh - 88px); height:${cfg.height || "calc(100dvh - 88px)"}; display:flex; flex-direction:column;
                overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
         .box::-webkit-scrollbar { display:none; }
-        /* UI4.0-beta13：橫放側欄把各區塊在整個高度內均分，下方不留一大塊空白（內容超過高度時仍可捲動；手機版 compact 不套用） */
-        .box:not(.compact) { justify-content:space-between; gap:8px; }
+        /* UI4.0-beta13：橫放側欄有多餘高度時，不是加大間距，而是把天氣、保全列、攝影機／樓層按鈕、成員列加高（間距維持原樣）；
+           內容超過高度時仍可捲動；手機版 compact 不套用 */
+        .box:not(.compact) > .wx, .box:not(.compact) > .aq.show { flex:1 1 auto; }
+        .box:not(.compact) > .sec { flex:3 1 auto; }
+        .box:not(.compact) .sec .row2 { flex:1 1 auto; }
+        .box:not(.compact) .sec .cams { flex:1.3 1 auto; grid-auto-rows:1fr; }
+        .box:not(.compact) > .nav { flex:2.4 1 auto; grid-auto-rows:1fr; }
+        .box:not(.compact) > .nav button { font-size:calc(12.5px + 1.5px); }
+        .box:not(.compact) > .ppl { flex:1.6 1 auto; align-content:space-evenly; }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
         .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
