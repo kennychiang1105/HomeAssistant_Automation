@@ -899,10 +899,11 @@
   {%- if ch_start -%}
     {%- set main_rows = [vrow] -%}
   {%- else -%}
-    {%- set kwh = (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) -%}
+    {%- set kwh_raw = (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) -%}
+    {%- set kwh = ((kwh_raw | float(-1) | round(1)) | string) if (kwh_raw | float(-1)) >= 0 else kwh_raw -%}
     {%- set kwh_tile = {"type": "box", "layout": "vertical", "flex": 1, "spacing": "2px", "contents": [
           {"type": "text", "text": "用電量", "size": "xxs", "color": "#6B7280"},
-          {"type": "text", "wrap": false, "contents": [{"type": "span", "text": kwh, "size": "xxl", "weight": "bold", "color": val_col}, {"type": "span", "text": " kWh", "size": "sm", "weight": "bold", "color": val_col}]}]} -%}
+          {"type": "text", "wrap": false, "contents": [{"type": "span", "text": kwh, "size": "xl", "weight": "bold", "color": val_col}, {"type": "span", "text": " kWh", "size": "sm", "weight": "bold", "color": val_col}]}]} -%}
     {%- set d1 = t_start[:5] -%}{%- set h1 = t_start[-5:] -%}{%- set d2 = t_end[:5] -%}{%- set h2 = t_end[-5:] -%}
     {%- set main_rows = [
       {"type": "box", "layout": "horizontal", "spacing": "md", "contents": [kwh_tile, dict(ch_tile('充電用時', kv.get('充電用時', '--') | replace('分鐘', '分'), '#111827', 'md') | from_json, paddingStart='8px')]},
@@ -1837,7 +1838,7 @@
   {%- if ch_start -%}
     {%- set parts = parts + ['充電車輛　**' ~ veh ~ '**<br>開始時間　**' ~ ch_when(kv.get('開始時間', kv.get('時間', '--'))) ~ '**'] -%}
   {%- else -%}
-    {%- set parts = parts + ['用電量　<span style="color:' ~ col ~ '"><b>' ~ (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '')) ~ ' kWh</b></span>　充電用時　**' ~ (kv.get('充電用時', '--') | replace('分鐘', '分')) ~ '**<br>充電車輛　**' ~ veh ~ '**<br>' ~ ch_when(kv.get('開始時間', '--')) ~ ' → ' ~ ch_when(kv.get('結束時間', '--'))] -%}
+    {%- set parts = parts + ['用電量　<span style="color:' ~ col ~ '"><b>' ~ ((kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '') | float(-1) | round(1)) if (kv.get('用電量', '--') | regex_replace('\\s*kWh.*$', '') | float(-1)) >= 0 else kv.get('用電量', '--')) ~ ' kWh</b></span>　充電用時　**' ~ (kv.get('充電用時', '--') | replace('分鐘', '分')) ~ '**<br>充電車輛　**' ~ veh ~ '**<br>' ~ ch_when(kv.get('開始時間', '--')) ~ ' → ' ~ ch_when(kv.get('結束時間', '--'))] -%}
   {%- endif -%}
   {%- set parts = parts + ['<sub>充電器溫度　手把 ' ~ hv ~ '　MCU ' ~ mv ~ '　PCB ' ~ pv ~ '</sub>'] -%}
   {{- parts | join('\n\n') -}}
