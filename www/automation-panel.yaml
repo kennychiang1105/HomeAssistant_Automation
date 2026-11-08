@@ -743,54 +743,50 @@ views:
               const raw = (entity && entity.state) || '';
               const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
               const s = bad.includes(raw) ? '' : String(raw).trim();
-              const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+              const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                  <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                  <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                  <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+              const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+              const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+            
+              const lamps = { '紅色': '#E5372C', '橙色': '#D97706', '黃色': '#B88600' };
               const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
-              const lamps = { '紅色': ['#E5372C', 'rgba(229,55,44,.10)'], '橙色': ['#D97706', 'rgba(217,119,6,.10)'], '黃色': ['#B88600', 'rgba(184,134,0,.12)'] };
               const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
               const items = [];
               let m;
-              while ((m = re.exec(s)) !== null) items.push({ region: m[1].trim(), cond: m[2].trim(), lamp: m[3] });
+              while ((m = re.exec(s)) !== null) items.push({ region: m[1].replace(/^[、，,\s]+/, '').trim(), cond: m[2].trim(), lamp: m[3] });
               let top = null;
               for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
-              let color, bg, label, icon;
-              if (calm) { color = '#28A745'; bg = 'var(--card-background-color)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
-              else if (top) { color = lamps[top][0]; bg = 'var(--card-background-color)'; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
-              else { color = '#D97706'; bg = 'var(--card-background-color)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+              let color, label, icon;
+              if (calm) { color = '#28A745'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+              else if (top) { color = lamps[top]; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+              else { color = '#D97706'; label = '災防通知'; icon = 'mdi:alert-circle'; }
               const lead = items.length ? s.split('，')[0] : '';
-              const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
               let body = '';
               if (calm) {
-                body = `<div style="font-size:13.5px;color:var(--primary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--secondary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
               } else if (items.length) {
-                body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
-                  items.map(it => {
+                body = (lead ? `<div style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
+                  `<div style="display:flex;flex-direction:column;gap:8px">` + items.map(it => {
                     const c = lamps[it.lamp];
-                    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:rgba(120,120,128,.08);border:none;min-width:0;box-sizing:border-box">
-                      <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:none"></span>
+                    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+                      <span style="flex:none;margin-top:5px;width:10px;height:10px;border-radius:50%;background:${c}"></span>
                       <div style="flex:1;min-width:0;${wrap}">
-                        <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
-                        <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
-                        <div style="font-size:12px;line-height:1.45;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
+                        <div style="font-size:12px;font-weight:700;color:${c}">${it.lamp}燈號</div>
+                        <div style="font-size:14px;font-weight:600;line-height:1.5;color:var(--primary-text-color);margin-top:1px;${wrap}">${esc(it.region)}</div>
+                        <div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
                       </div></div>`;
-                  }).join('') +
-                  `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:12.5px;line-height:1.55;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
+                  }).join('') + `</div>` +
+                  `<details style="margin-top:10px"><summary style="font-size:12.5px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:13px;line-height:1.6;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
               } else {
-                body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
               }
               const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
-              const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
-              return `
-                <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                      <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
-                      <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
-                    </div>
-                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
-                  </div>
-                  ${body}
-                  <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
-                </div>`;
+              const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '';
+              return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
             ]]]
     - type: vertical-stack
       cards:
@@ -830,43 +826,44 @@ views:
               const raw = (entity && entity.state) || '';
               const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
               const s = bad.includes(raw) ? '' : String(raw).trim();
-              const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
               const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+              const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                  <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                  <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                  <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+              const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+              const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+            
               const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
               const mag = mm ? parseFloat(mm[4]) : NaN;
               let color = '#28A745';
               if (!isNaN(mag)) color = mag >= 6 ? '#E5372C' : (mag >= 5 ? '#D97706' : (mag >= 4 ? '#B88600' : '#28A745'));
-              const bg = 'var(--card-background-color)';
+              const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
               let body = '';
               if (mm) {
                 const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
                 const im = intens.match(/^(.*?)(\d+[弱強]?級?)$/);
                 const place = im ? im[1].trim() : intens;
                 const lvl = im ? im[2] : '';
-                const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
-                body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.08);border-radius:12px">
-                  ${cell('規模', 'M ' + esc(mm[4]), true)}
-                  ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
-                  ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
-                  ${cell('震央位置', esc(mm[3].trim() || '--'), false)}
-                </div>`;
-              } else if (s) {
-                body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
-              } else {
-                body = `<div style="font-size:13.5px;color:var(--primary-text-color)">目前沒有地震速報資料。</div>`;
-              }
-              const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
-              return `
-                <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                      <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
-                      <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
-                    </div>
-                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
+                const row = (icon, k, v) => `<div style="display:flex;align-items:center;gap:10px;min-width:0"><ha-icon icon="${icon}" style="flex:none;color:var(--secondary-text-color);--mdc-icon-size:18px"></ha-icon><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);width:58px">${k}</span><span style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--primary-text-color);${wrap}">${v}</span></div>`;
+                body = `<div style="display:flex;align-items:stretch;gap:14px">
+                  <div style="flex:none;min-width:104px;padding:12px 14px;border-radius:14px;background:${color}14;display:flex;flex-direction:column;justify-content:center;align-items:center">
+                    <div style="font-size:11.5px;color:var(--secondary-text-color)">規模</div>
+                    <div style="font-size:30px;font-weight:800;line-height:1.1;color:${color}">${esc(mm[4])}</div>
+                    ${lvl ? `<div style="font-size:12px;font-weight:700;color:${color};margin-top:3px">震度 ${esc(lvl)}</div>` : ''}
                   </div>
-                  ${body}
-                </div>`;
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:9px">
+                    ${row('mdi:map-marker-outline', '震央', esc(mm[3].trim() || '--'))}
+                    ${row('mdi:home-alert-outline', '最大震度', esc((place ? place + ' ' : '') + lvl) || '--')}
+                    ${row('mdi:clock-outline', '時間', esc(mm[1] + ' ' + mm[2]))}
+                  </div></div>`;
+              } else if (s) {
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+              } else {
+                body = `<div style="font-size:14px;color:var(--secondary-text-color)">目前沒有地震速報資料。</div>`;
+              }
+              return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
             ]]]
     - type: vertical-stack
       cards:
@@ -1059,82 +1056,36 @@ views:
             body: |
               [[[
                 const f = states['sensor.line_bot_forecast'];
-                if (!f || !f.attributes) return '<div style="padding:14px;text-align:center">LINE Bot 預測載入中...</div>';
+                if (!f || !f.attributes) return '<div style="padding:16px;text-align:center;color:var(--secondary-text-color)">LINE Bot 預測載入中...</div>';
                 const a = f.attributes;
                 const st = f.state;
-                
-                let bgGradient, statusTitle, statusBadge, badgeBg, badgeFg, iconName, iconColor;
-                if (st === 'safe') {
-                  bgGradient = 'var(--card-background-color)';
-                  statusTitle = '本月額度充裕（無需動用緊急Bot）';
-                  statusBadge = '安全充裕';
-                  badgeBg = 'rgba(40,167,69,.12)';
-                  badgeFg = '#28A745';
-                  iconName = 'mdi:check-circle';
-                  iconColor = '#28A745';
-                } else if (st === 'need_emergency') {
-                  bgGradient = 'var(--card-background-color)';
-                  statusTitle = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急Bot（可撐至月底）`;
-                  statusBadge = '備援預備';
-                  badgeBg = 'rgba(217,119,6,.12)';
-                  badgeFg = '#D97706';
-                  iconName = 'mdi:alert-circle';
-                  iconColor = '#D97706';
-                } else {
-                  bgGradient = 'var(--card-background-color)';
-                  statusTitle = `額度告急（預估 ${a.total_exhaust_date ? a.total_exhaust_date.slice(5).replace('-', '/') : '月底前'} 耗盡）`;
-                  statusBadge = '額度告急';
-                  badgeBg = 'rgba(229,55,44,.12)';
-                  badgeFg = '#E5372C';
-                  iconName = 'mdi:alert-octagon';
-                  iconColor = '#E5372C';
-                }
+                const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+                const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                    <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                    <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                    <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+                const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+                const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
               
-                const normalDate = a.normal_exhaust_date ? a.normal_exhaust_date.slice(5).replace('-', '/') : '--';
-              
-                const rawSummary = a.summary || '';
-                const parts = rawSummary.split(/[；;]/);
+                const md = (d) => d ? String(d).slice(5).replace('-', '/') : '--';
+                let color, title, chip, icon;
+                if (st === 'safe') { color = '#28A745'; title = '本月額度充裕，不需動用緊急 Bot'; chip = '安全充裕'; icon = 'mdi:check-circle'; }
+                else if (st === 'need_emergency') { color = '#D97706'; title = `預估 ${a.normal_exhaust_day || '中旬'} 號動用緊急 Bot，可撐至月底`; chip = '備援預備'; icon = 'mdi:alert-circle'; }
+                else { color = '#E5372C'; title = `額度告急，預估 ${md(a.total_exhaust_date)} 耗盡`; chip = '額度告急'; icon = 'mdi:alert-octagon'; }
+                const parts = String(a.summary || '').split(/[；;]/);
                 const part1 = parts[0] ? parts[0].trim() : '';
-                const part2 = parts[1] ? parts.slice(1).join('；').trim() : '';
-              
-                return `
-                  <div style="background:${bgGradient};box-shadow:inset 4px 0 0 ${iconColor};border-radius:18px;padding:16px 16px 16px 20px;box-shadow:0 1px 2px rgba(0,0,0,.18);min-width:0;width:100%;box-sizing:border-box">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-                      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                        <ha-icon icon="${iconName}" style="color:${iconColor};--mdc-icon-size:22px;flex-shrink:0"></ha-icon>
-                        <span style="font-size:15px;font-weight:700;line-height:1.35;word-break:break-word;white-space:normal !important">${statusTitle}</span>
-                      </div>
-                      <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${badgeBg};color:${badgeFg};white-space:nowrap;flex-shrink:0">${statusBadge}</span>
-                    </div>
-                    
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(125px, 1fr));gap:8px;margin:12px 0;padding:10px 12px;background:rgba(120,120,128,.08);border-radius:12px">
-                      <div>
-                        <div style="font-size:11px;color:var(--secondary-text-color)">日均消耗率</div>
-                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.daily_rate || 0} <span style="font-size:12px;font-weight:normal">則/天</span></div>
-                      </div>
-                      <div>
-                        <div style="font-size:11px;color:var(--secondary-text-color)">一般 Bot 預估至</div>
-                        <div style="font-size:16px;font-weight:700;color:${a.need_emergency ? '#D97706' : '#28A745'}">${normalDate} <span style="font-size:12px;font-weight:normal">(${a.normal_days_left || 0}天)</span></div>
-                      </div>
-                      <div>
-                        <div style="font-size:11px;color:var(--secondary-text-color)">緊急 Bot (智慧家庭A)</div>
-                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">剩餘 ${a.emergency_remaining || 0} <span style="font-size:12px;font-weight:normal">則備援</span></div>
-                      </div>
-                      <div>
-                        <div style="font-size:11px;color:var(--secondary-text-color)">每月 1 日重置倒數</div>
-                        <div style="font-size:16px;font-weight:700;color:var(--primary-text-color)">${a.days_left_in_month || 0} <span style="font-size:12px;font-weight:normal">天</span></div>
-                      </div>
-                    </div>
-              
-                    <div style="margin-top:10px;padding:10px 12px;background:rgba(120,120,128,.08);border-radius:12px;display:flex;align-items:flex-start;gap:8px;min-width:0;box-sizing:border-box">
-                      <span style="font-size:15px;flex-shrink:0;line-height:1.2;margin-top:1px">💡</span>
-                      <div style="flex:1;min-width:0;white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;line-height:1.5">
-                        <div style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:normal !important">${part1}</div>
-                        ${part2 ? `<div style="font-size:12px;color:var(--secondary-text-color);margin-top:3px;white-space:normal !important">${part2}</div>` : ''}
-                      </div>
-                    </div>
-                  </div>
-                `;
+                const part2 = parts.length > 1 ? parts.slice(1).join('；').trim() : '';
+                const unit = (t) => `<span style="font-size:12px;font-weight:500;color:var(--secondary-text-color)"> ${t}</span>`;
+                return shell(color, head(icon, color, '本月 LINE Bot 預測', chip) +
+                  `<div style="font-size:15px;font-weight:700;line-height:1.5;margin:-4px 0 12px;color:var(--primary-text-color);${wrap}">${esc(title)}</div>` +
+                  `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">` +
+                    tile('日均消耗', `${esc(a.daily_rate || 0)}${unit('則/天')}`) +
+                    tile('一般 Bot 預估至', `${md(a.normal_exhaust_date)}${unit(`（${esc(a.normal_days_left || 0)} 天）`)}`, a.need_emergency ? color : '') +
+                    tile('緊急 Bot 剩餘', `${esc(a.emergency_remaining || 0)}${unit('則')}`) +
+                    tile('距離月初重置', `${esc(a.days_left_in_month || 0)}${unit('天')}`) +
+                  `</div>` +
+                  (part1 ? `<div style="margin-top:12px;padding:11px 14px;border-radius:12px;background:rgba(120,120,128,.08);${wrap}"><div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--primary-text-color)">${esc(part1)}</div>${part2 ? `<div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:3px">${esc(part2)}</div>` : ''}</div>` : ''));
               ]]]
         - type: heading
           heading: "LINE Bot 額度"
@@ -1667,51 +1618,30 @@ views:
                 const s = states['sensor.kong_qi_qing_jing_ji_filter_life_remaining'];
                 const lvl = s ? parseInt(s.state, 10) || 0 : 0;
                 const notified = states['input_boolean.supply_filter_notified']?.state === 'on';
-                
-                let color, bgGradient, statusDesc;
-                if (lvl <= 5) {
-                  color = '#FF453A';
-                  bgGradient = 'linear-gradient(135deg, rgba(255,69,58,.16) 0%, rgba(255,69,58,.04) 100%)';
-                  statusDesc = '已達臨界壽命，請立即更換濾網';
-                } else if (lvl <= 10) {
-                  color = '#FF9F0A';
-                  bgGradient = 'linear-gradient(135deg, rgba(255,159,10,.16) 0%, rgba(255,159,10,.04) 100%)';
-                  statusDesc = '濾網壽命偏低，請準備備用濾芯';
-                } else {
-                  color = '#30D158';
-                  bgGradient = 'linear-gradient(135deg, rgba(48,209,88,.14) 0%, rgba(48,209,88,.04) 100%)';
-                  statusDesc = '濾網狀態良好，壽命充足';
-                }
+                const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+                const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                    <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                    <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                    <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+                const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+                const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
               
-                return `
-                  <div style="background:${bgGradient};border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.18)">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                      <div style="display:flex;align-items:center;gap:12px">
-                        <div style="width:42px;height:42px;border-radius:12px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex:none">
-                          <ha-icon icon="mdi:air-filter" style="--mdc-icon-size:24px"></ha-icon>
-                        </div>
-                        <div>
-                          <div style="font-weight:700;font-size:16px;color:var(--primary-text-color)">空氣清淨機濾網壽命</div>
-                          <div style="font-size:12.5px;color:${color};font-weight:600;margin-top:2px">${statusDesc}</div>
-                        </div>
-                      </div>
-                      <div style="text-align:right">
-                        <span style="font-size:26px;font-weight:800;color:${color}">${lvl}<small style="font-size:16px">%</small></span>
-                      </div>
+                let color, chip, desc;
+                if (lvl <= 5) { color = '#E5372C'; chip = '請更換'; desc = '已達臨界壽命，請立即更換濾網'; }
+                else if (lvl <= 10) { color = '#D97706'; chip = '備品'; desc = '濾網壽命偏低，請準備備用濾芯'; }
+                else { color = '#28A745'; chip = '良好'; desc = '濾網狀態良好，壽命充足'; }
+                const pct = Math.max(0, Math.min(100, lvl));
+                return shell(color, head('mdi:air-filter', color, '空氣清淨機濾網', chip) +
+                  `<div style="display:flex;align-items:center;gap:18px">
+                    <div style="flex:none;width:92px;height:92px;border-radius:50%;background:conic-gradient(${color} ${pct * 3.6}deg, rgba(120,120,128,.18) 0);display:flex;align-items:center;justify-content:center">
+                      <div style="width:72px;height:72px;border-radius:50%;background:var(--card-background-color);display:flex;align-items:center;justify-content:center"><span style="font-size:24px;font-weight:800;color:${color}">${lvl}<small style="font-size:13px">%</small></span></div>
                     </div>
-              
-                    <div style="height:8px;border-radius:999px;background:rgba(120,120,128,.18);margin:14px 0 10px;overflow:hidden">
-                      <div style="width:${Math.max(lvl, 2)}%;height:100%;background:${color};border-radius:999px;box-shadow:0 0 8px ${color}66;transition:width 0.4s"></div>
-                    </div>
-              
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--secondary-text-color)">
-                      <span style="padding:2px 8px;border-radius:6px;background:rgba(120,120,128,.1)">門檻：≤10% 提醒備品 · ≤5% 請更換</span>
-                      <span style="padding:2px 8px;border-radius:6px;background:${notified ? 'rgba(255,159,10,.2)' : 'rgba(120,120,128,.1)'};color:${notified ? '#FF9F0A' : 'inherit'};font-weight:${notified ? '600' : 'normal'}">
-                        ${notified ? '⚠️ 已發出更換通知' : '尚未發送通知'}
-                      </span>
-                    </div>
-                  </div>
-                `;
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:14.5px;font-weight:700;line-height:1.5;color:var(--primary-text-color);${wrap}">${desc}</div>
+                      <div style="font-size:12.5px;line-height:1.6;color:var(--secondary-text-color);margin-top:4px">壽命 ≤10% 提醒備品　≤5% 請更換</div>
+                      <div style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${notified ? color + '1f' : 'rgba(120,120,128,.12)'};color:${notified ? color : 'var(--secondary-text-color)'}">${notified ? '已發出更換通知' : '尚未發送通知'}</div>
+                    </div></div>`);
               ]]]
         - type: custom:button-card
           template: prows
@@ -2667,54 +2597,50 @@ views:
               const raw = (entity && entity.state) || '';
               const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
               const s = bad.includes(raw) ? '' : String(raw).trim();
-              const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+              const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                  <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                  <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                  <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+              const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+              const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+            
+              const lamps = { '紅色': '#E5372C', '橙色': '#D97706', '黃色': '#B88600' };
               const calm = !s || /^(無|目前無|沒有|正常)/.test(s);
-              const lamps = { '紅色': ['#E5372C', 'rgba(229,55,44,.10)'], '橙色': ['#D97706', 'rgba(217,119,6,.10)'], '黃色': ['#B88600', 'rgba(184,134,0,.12)'] };
               const re = /([^，。()（）]*?局部地區)有([^()（）]*?)[(（](紅色|橙色|黃色)燈號[)）]/g;
               const items = [];
               let m;
-              while ((m = re.exec(s)) !== null) items.push({ region: m[1].trim(), cond: m[2].trim(), lamp: m[3] });
+              while ((m = re.exec(s)) !== null) items.push({ region: m[1].replace(/^[、，,\s]+/, '').trim(), cond: m[2].trim(), lamp: m[3] });
               let top = null;
               for (const k of ['紅色', '橙色', '黃色']) { if (s.includes(k)) { top = k; break; } }
-              let color, bg, label, icon;
-              if (calm) { color = '#28A745'; bg = 'var(--card-background-color)'; label = '目前無警報'; icon = 'mdi:shield-check'; }
-              else if (top) { color = lamps[top][0]; bg = 'var(--card-background-color)'; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
-              else { color = '#D97706'; bg = 'var(--card-background-color)'; label = '災防通知'; icon = 'mdi:alert-circle'; }
+              let color, label, icon;
+              if (calm) { color = '#28A745'; label = '目前無警報'; icon = 'mdi:shield-check'; }
+              else if (top) { color = lamps[top]; label = top + '燈號'; icon = 'mdi:alert-octagon'; }
+              else { color = '#D97706'; label = '災防通知'; icon = 'mdi:alert-circle'; }
               const lead = items.length ? s.split('，')[0] : '';
-              const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
               let body = '';
               if (calm) {
-                body = `<div style="font-size:13.5px;color:var(--primary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--secondary-text-color);${wrap}">${s ? esc(s) : '目前沒有任何災害防護告警訊息。'}</div>`;
               } else if (items.length) {
-                body = (lead ? `<div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:8px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
-                  items.map(it => {
+                body = (lead ? `<div style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--primary-text-color);${wrap}">${esc(lead)}</div>` : '') +
+                  `<div style="display:flex;flex-direction:column;gap:8px">` + items.map(it => {
                     const c = lamps[it.lamp];
-                    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:6px;border-radius:12px;background:rgba(120,120,128,.08);border:none;min-width:0;box-sizing:border-box">
-                      <span style="flex-shrink:0;margin-top:4px;width:10px;height:10px;border-radius:50%;background:${c[0]};box-shadow:none"></span>
+                    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;background:rgba(120,120,128,.08)">
+                      <span style="flex:none;margin-top:5px;width:10px;height:10px;border-radius:50%;background:${c}"></span>
                       <div style="flex:1;min-width:0;${wrap}">
-                        <div style="font-size:12px;font-weight:700;color:${c[0]};margin-bottom:2px">${it.lamp}燈號</div>
-                        <div style="font-size:13px;line-height:1.5;color:var(--primary-text-color);${wrap}">${esc(it.region)}</div>
-                        <div style="font-size:12px;line-height:1.45;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
+                        <div style="font-size:12px;font-weight:700;color:${c}">${it.lamp}燈號</div>
+                        <div style="font-size:14px;font-weight:600;line-height:1.5;color:var(--primary-text-color);margin-top:1px;${wrap}">${esc(it.region)}</div>
+                        <div style="font-size:12.5px;line-height:1.5;color:var(--secondary-text-color);margin-top:2px;${wrap}">${esc(it.cond)}</div>
                       </div></div>`;
-                  }).join('') +
-                  `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:12.5px;line-height:1.55;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
+                  }).join('') + `</div>` +
+                  `<details style="margin-top:10px"><summary style="font-size:12.5px;color:var(--secondary-text-color);cursor:pointer">查看完整內容</summary><div style="font-size:13px;line-height:1.6;margin-top:6px;color:var(--secondary-text-color);${wrap}">${esc(s)}</div></details>`;
               } else {
-                body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
               }
               const upd = entity && entity.last_changed ? new Date(entity.last_changed) : null;
-              const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '--';
-              return `
-                <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                      <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="${icon}" style="--mdc-icon-size:22px"></ha-icon></div>
-                      <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">氣象與災害告警</span>
-                    </div>
-                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
-                  </div>
-                  ${body}
-                  <div style="font-size:11px;color:var(--secondary-text-color);margin-top:10px">更新於 ${updTxt}</div>
-                </div>`;
+              const updTxt = upd ? `${upd.getMonth() + 1}/${upd.getDate()} ${String(upd.getHours()).padStart(2, '0')}:${String(upd.getMinutes()).padStart(2, '0')}` : '';
+              return shell(color, head(icon, color, '氣象與災害告警', label) + body + (updTxt ? `<div style="font-size:11.5px;color:var(--secondary-text-color);margin-top:12px">更新於 ${updTxt}</div>` : ''));
             ]]]
     - type: vertical-stack
       cards:
@@ -2754,48 +2680,49 @@ views:
               const raw = (entity && entity.state) || '';
               const bad = ['', 'unknown', 'unavailable', 'None', 'none'];
               const s = bad.includes(raw) ? '' : String(raw).trim();
-              const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
               const wrap = 'white-space:normal !important;word-break:break-word;overflow-wrap:anywhere;min-width:0';
+              const head = (icon, color, title, chip) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                  <div style="flex:none;width:42px;height:42px;border-radius:13px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center"><ha-icon icon="${icon}" style="--mdc-icon-size:24px"></ha-icon></div>
+                  <div style="flex:1;min-width:0;font-size:16px;font-weight:700;color:var(--primary-text-color);${wrap}">${title}</div>
+                  <span style="flex:none;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap">${chip}</span></div>`;
+              const tile = (k, v, c) => `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:rgba(120,120,128,.08)"><div style="font-size:11.5px;color:var(--secondary-text-color);margin-bottom:3px">${k}</div><div style="font-size:17px;font-weight:700;line-height:1.25;color:${c || 'var(--primary-text-color)'};${wrap}">${v}</div></div>`;
+              const shell = (color, inner) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">${inner}</div>`;
+            
               const mm = s.match(/^(\d{1,2}\/\d{1,2})\s*(\d{1,2}:\d{2})\s*(.*?)發生規模\s*([\d.]+)\s*(有感)?地震[，,]?\s*(.*?)。?$/);
               const mag = mm ? parseFloat(mm[4]) : NaN;
               let color = '#28A745';
               if (!isNaN(mag)) color = mag >= 6 ? '#E5372C' : (mag >= 5 ? '#D97706' : (mag >= 4 ? '#B88600' : '#28A745'));
-              const bg = 'var(--card-background-color)';
+              const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
               let body = '';
               if (mm) {
                 const intens = mm[6] ? mm[6].replace(/^最大震度/, '') : '';
                 const im = intens.match(/^(.*?)(\d+[弱強]?級?)$/);
                 const place = im ? im[1].trim() : intens;
                 const lvl = im ? im[2] : '';
-                const cell = (k, v, big) => `<div style="min-width:0;${wrap}"><div style="font-size:11px;color:var(--secondary-text-color)">${k}</div><div style="font-size:${big ? 22 : 14}px;font-weight:${big ? 800 : 700};color:${big ? color : 'var(--primary-text-color)'};line-height:1.3;${wrap}">${v}</div></div>`;
-                body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px;background:rgba(120,120,128,.08);border-radius:12px">
-                  ${cell('規模', 'M ' + esc(mm[4]), true)}
-                  ${cell('最大震度', esc((place ? place + ' ' : '') + lvl) || '--', false)}
-                  ${cell('發生時間', esc(mm[1] + ' ' + mm[2]), false)}
-                  ${cell('震央位置', esc(mm[3].trim() || '--'), false)}
-                </div>`;
-              } else if (s) {
-                body = `<div style="font-size:13.5px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
-              } else {
-                body = `<div style="font-size:13.5px;color:var(--primary-text-color)">目前沒有地震速報資料。</div>`;
-              }
-              const label = isNaN(mag) ? '地震速報' : (mag >= 6 ? '強震' : (mag >= 5 ? '中強震' : (mag >= 4 ? '有感地震' : '小區域地震')));
-              return `
-                <div style="background:${bg};box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:16px 16px 16px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
-                      <div style="width:36px;height:36px;border-radius:10px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><ha-icon icon="mdi:pulse" style="--mdc-icon-size:22px"></ha-icon></div>
-                      <span style="font-size:15px;font-weight:700;color:var(--primary-text-color)">最新地震報告</span>
-                    </div>
-                    <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color};white-space:nowrap;flex-shrink:0">${label}</span>
+                const row = (icon, k, v) => `<div style="display:flex;align-items:center;gap:10px;min-width:0"><ha-icon icon="${icon}" style="flex:none;color:var(--secondary-text-color);--mdc-icon-size:18px"></ha-icon><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);width:58px">${k}</span><span style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--primary-text-color);${wrap}">${v}</span></div>`;
+                body = `<div style="display:flex;align-items:stretch;gap:14px">
+                  <div style="flex:none;min-width:104px;padding:12px 14px;border-radius:14px;background:${color}14;display:flex;flex-direction:column;justify-content:center;align-items:center">
+                    <div style="font-size:11.5px;color:var(--secondary-text-color)">規模</div>
+                    <div style="font-size:30px;font-weight:800;line-height:1.1;color:${color}">${esc(mm[4])}</div>
+                    ${lvl ? `<div style="font-size:12px;font-weight:700;color:${color};margin-top:3px">震度 ${esc(lvl)}</div>` : ''}
                   </div>
-                  ${body}
-                </div>`;
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:9px">
+                    ${row('mdi:map-marker-outline', '震央', esc(mm[3].trim() || '--'))}
+                    ${row('mdi:home-alert-outline', '最大震度', esc((place ? place + ' ' : '') + lvl) || '--')}
+                    ${row('mdi:clock-outline', '時間', esc(mm[1] + ' ' + mm[2]))}
+                  </div></div>`;
+              } else if (s) {
+                body = `<div style="font-size:14px;line-height:1.6;color:var(--primary-text-color);${wrap}">${esc(s)}</div>`;
+              } else {
+                body = `<div style="font-size:14px;color:var(--secondary-text-color)">目前沒有地震速報資料。</div>`;
+              }
+              return shell(color, head('mdi:pulse', color, '最新地震報告', label) + body);
             ]]]
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "平常開著（22）"
+        heading: "平常開著（23）"
         heading_style: title
         icon: mdi:toggle-switch
         card_mod:
@@ -2805,13 +2732,13 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["automation.di_zhen_zai_hai_xi_tong", "01地震災害系統", "on"], ["automation.di_zhen_zai_hai_xi_tong_an_niu", "02地震災害系統 (按鈕)", "on"], ["automation.03emiao_li_shu_san_jing_bao", "03E苗栗疏散警報", "on"], ["automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "04苗栗天氣告知系統 (按鈕)", "on"], ["automation.jin_ji_mo_shi", "05A緊急模式", "on"], ["automation.ai_05b_emergency_mode_notify_v3", "05B緊急模式通知AI", "on"], ["automation.ai_05c_emergency_button_auto_reset_v3", "05C按鈕自動復位AI", "on"], ["automation.ai_05d_emergency_virtual_button_bridge_v3", "05D緊急模式虛擬按鈕AI", "on"], ["automation.a05ejin_ji_shi_ti_an_niu", "05E緊急實體按鈕", "on"], ["automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "05F緊急模式快照到期AI"], ["automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "05G緊急三擊維修暫停AI"], ["automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "TREM 預警客戶端看門狗AI"], ["automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "地牛 add-on 預警接收AI"], ["input_boolean.notify_line_emergency_enable", "LINE通知啟用_緊急", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒_緊急級", "on"], ["input_boolean.notify_ha_disaster_emergency_enable", "災害訊息 HA 通知｜緊急類", "on"], ["input_boolean.notify_ha_disaster_important_enable", "災害訊息 HA 通知｜重要類", "on"], ["input_boolean.notify_line_disaster_emergency_enable", "災害訊息 LINE 通知｜緊急類", "on"], ["input_boolean.notify_line_disaster_important_enable", "災害訊息 LINE 通知｜重要類", "on"], ["input_boolean.announce_disaster_emergency_enable", "災害訊息廣播｜緊急類", "on"], ["input_boolean.announce_disaster_important_enable", "災害訊息廣播｜重要類", "on"], ["input_boolean.emergency_restore_enable", "緊急模式快照還原（總開關）", "on"]]
-        triggers_update: ["automation.di_zhen_zai_hai_xi_tong", "automation.di_zhen_zai_hai_xi_tong_an_niu", "automation.03emiao_li_shu_san_jing_bao", "automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "automation.jin_ji_mo_shi", "automation.ai_05b_emergency_mode_notify_v3", "automation.ai_05c_emergency_button_auto_reset_v3", "automation.ai_05d_emergency_virtual_button_bridge_v3", "automation.a05ejin_ji_shi_ti_an_niu", "automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "input_boolean.notify_line_emergency_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.notify_ha_disaster_emergency_enable", "input_boolean.notify_ha_disaster_important_enable", "input_boolean.notify_line_disaster_emergency_enable", "input_boolean.notify_line_disaster_important_enable", "input_boolean.announce_disaster_emergency_enable", "input_boolean.announce_disaster_important_enable", "input_boolean.emergency_restore_enable"]
+          items: [["automation.di_zhen_zai_hai_xi_tong", "01地震災害系統", "on"], ["automation.di_zhen_zai_hai_xi_tong_an_niu", "02地震災害系統 (按鈕)", "on"], ["automation.03emiao_li_shu_san_jing_bao", "03E苗栗疏散警報", "on"], ["automation.ai_miaoli_weather_disaster_notify", "03苗栗天氣告知系統AI", "on"], ["automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "04苗栗天氣告知系統 (按鈕)", "on"], ["automation.jin_ji_mo_shi", "05A緊急模式", "on"], ["automation.ai_05b_emergency_mode_notify_v3", "05B緊急模式通知AI", "on"], ["automation.ai_05c_emergency_button_auto_reset_v3", "05C按鈕自動復位AI", "on"], ["automation.ai_05d_emergency_virtual_button_bridge_v3", "05D緊急模式虛擬按鈕AI", "on"], ["automation.a05ejin_ji_shi_ti_an_niu", "05E緊急實體按鈕", "on"], ["automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "05F緊急模式快照到期AI"], ["automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "05G緊急三擊維修暫停AI"], ["automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "TREM 預警客戶端看門狗AI"], ["automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "地牛 add-on 預警接收AI"], ["input_boolean.notify_line_emergency_enable", "LINE通知啟用_緊急", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒_緊急級", "on"], ["input_boolean.notify_ha_disaster_emergency_enable", "災害訊息 HA 通知｜緊急類", "on"], ["input_boolean.notify_ha_disaster_important_enable", "災害訊息 HA 通知｜重要類", "on"], ["input_boolean.notify_line_disaster_emergency_enable", "災害訊息 LINE 通知｜緊急類", "on"], ["input_boolean.notify_line_disaster_important_enable", "災害訊息 LINE 通知｜重要類", "on"], ["input_boolean.announce_disaster_emergency_enable", "災害訊息廣播｜緊急類", "on"], ["input_boolean.announce_disaster_important_enable", "災害訊息廣播｜重要類", "on"], ["input_boolean.emergency_restore_enable", "緊急模式快照還原（總開關）", "on"]]
+        triggers_update: ["automation.di_zhen_zai_hai_xi_tong", "automation.di_zhen_zai_hai_xi_tong_an_niu", "automation.03emiao_li_shu_san_jing_bao", "automation.ai_miaoli_weather_disaster_notify", "automation.miao_li_tian_qi_gao_zhi_xi_tong_an_niu", "automation.jin_ji_mo_shi", "automation.ai_05b_emergency_mode_notify_v3", "automation.ai_05c_emergency_button_auto_reset_v3", "automation.ai_05d_emergency_virtual_button_bridge_v3", "automation.a05ejin_ji_shi_ti_an_niu", "automation.05fjin_ji_mo_shi_kuai_zhao_dao_qi_ai_v4_1_0", "automation.05gjin_ji_san_ji_wei_xiu_zan_ting_ai_v4_1_5", "automation.trem_yu_jing_ke_hu_duan_kan_men_gou_ai_v4_2_3", "automation.di_niu_add_on_yu_jing_jie_shou_ai_v4_2_3", "input_boolean.notify_line_emergency_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.notify_ha_disaster_emergency_enable", "input_boolean.notify_ha_disaster_important_enable", "input_boolean.notify_line_disaster_emergency_enable", "input_boolean.notify_line_disaster_important_enable", "input_boolean.announce_disaster_emergency_enable", "input_boolean.announce_disaster_important_enable", "input_boolean.emergency_restore_enable"]
     - type: custom:layout-break
     - type: vertical-stack
       cards:
       - type: heading
-        heading: "平常關著（2）"
+        heading: "平常關著（1）"
         heading_style: title
         icon: mdi:toggle-switch-off-outline
         card_mod:
@@ -2821,8 +2748,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["automation.ai_miaoli_weather_disaster_notify", "03苗栗天氣告知系統AI", "off"], ["input_boolean.emergency_triple_press_pause", "緊急三擊維修暫停", "off"]]
-        triggers_update: ["automation.ai_miaoli_weather_disaster_notify", "input_boolean.emergency_triple_press_pause"]
+          items: [["input_boolean.emergency_triple_press_pause", "緊急三擊維修暫停", "off"]]
+        triggers_update: ["input_boolean.emergency_triple_press_pause"]
     - type: vertical-stack
       cards:
       - type: heading

@@ -255,7 +255,13 @@ class FloorplanV43D extends HTMLElement {
                        background:rgba(120,120,128,.16); color:var(--primary-text-color); cursor:pointer; }
         .tabs button.on { background:#FFB900; color:#111; }
         .wrap { position:relative; height:${(cfg.height || "70vh").replace(/dvh/g, "vh")}; height:${cfg.height || "70vh"}; border-radius:16px; overflow:hidden;
-                background:radial-gradient(ellipse at 50% 30%, #34322f 0%, #1a1918 72%); }   /* V4.3.6：暖石墨色 */
+                /* UI4.0-beta13：夜間＝暖石墨底＋琥珀色淡格線（科技感）＋底部暖光、左上淡藍光 */
+                background:
+                  linear-gradient(rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
+                  linear-gradient(90deg, rgba(255,184,96,.055) 1px, transparent 1px) 0 0/34px 34px,
+                  radial-gradient(ellipse at 50% 118%, rgba(255,149,0,.24) 0%, rgba(255,149,0,0) 58%),
+                  radial-gradient(ellipse at 8% -4%, rgba(100,190,255,.13) 0%, rgba(100,190,255,0) 46%),
+                  radial-gradient(ellipse at 50% 32%, #302b26 0%, #1b1712 70%, #120f0b 100%); }
         canvas { width:100%; height:100%; display:block; touch-action:none; outline:none; }
         .spots { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .pin { position:absolute; left:0; top:0; width:0; height:0; pointer-events:none; --off:24px;
@@ -302,7 +308,14 @@ class FloorplanV43D extends HTMLElement {
           -webkit-tap-highlight-color:transparent; }
         .scn button:active, .zones button:active, .tools button:active, .seg button:active, .chips button:active {
           scale:0.96; filter:brightness(1.15); }
-        .wrap.light { background:radial-gradient(rgba(60,50,40,.07) 1px, transparent 1.2px) 0 0/18px 18px, radial-gradient(ellipse at 8% 6%, #fbe1d3 0%, rgba(251,225,211,0) 46%), radial-gradient(ellipse at 96% 12%, #dbe7f4 0%, rgba(219,231,244,0) 50%), radial-gradient(ellipse at 88% 96%, #edf3d6 0%, rgba(237,243,214,0) 46%), #f7f4ee; }   /* V4.3.6：建築模型風淡色漸層＋點格 */
+        /* UI4.0-beta13：白天＝暖米白底＋淡藍圖格線（科技感）＋底部暖光、右上淡藍光 */
+        .wrap.light { background:
+          linear-gradient(rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
+          linear-gradient(90deg, rgba(150,108,56,.075) 1px, transparent 1px) 0 0/34px 34px,
+          radial-gradient(ellipse at 50% 116%, rgba(255,176,59,.26) 0%, rgba(255,176,59,0) 56%),
+          radial-gradient(ellipse at 94% -2%, rgba(110,170,235,.20) 0%, rgba(110,170,235,0) 46%),
+          radial-gradient(ellipse at 4% 4%, rgba(255,214,170,.35) 0%, rgba(255,214,170,0) 40%),
+          linear-gradient(180deg, #fcf9f4 0%, #f3ece1 100%); }
         .wrap.light .tag { background:rgba(255,255,255,.95); border-color:rgba(0,0,0,.16); color:#16181d; box-shadow:0 2px 8px rgba(0,0,0,.16); }
         .wrap.light .tag:active, .wrap.light .tag.tapping { background:rgba(240,243,248,.98); border-color:rgba(0,0,0,.3); }
         .wrap.light .pin:not(.on):not(.trig):not(.alert):not(.env):not(.stair):not(.cam):not(.ap) .ic { background:#e4e8ef; color:#2b303a; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
