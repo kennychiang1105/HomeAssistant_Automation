@@ -3895,12 +3895,13 @@ class FloorplanV4Sidebar extends HTMLElement {
       const bx = this.shadowRoot.querySelector(".box");
       if (bx && !bx.classList.contains("compact")) {
         // 內容原本約 290px 寬、600px 高；欄寬／高度更大時等比例放大（最多 1.6 倍），窄欄不縮小
-        const z0 = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
+        const z0 = this.clientHeight < 720 ? 1 : Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
         // 放大時字再大一點（×1.12），按鈕高度不跟著拉高
         const z = z0 > 1.001 ? Math.min(1.8, z0 * 1.12) : 1;
         bx.style.setProperty("--z", z.toFixed(3));
       }
-      bx?.classList.toggle("narrow", this.clientWidth < 250); this._fit();
+      // 窄欄（< 250px）或高度不夠放完整內容（< 720px，例如 iPad mini 橫放）都用緊湊版，才不會被切掉
+      bx?.classList.toggle("narrow", this.clientWidth < 250 || (this.clientHeight > 0 && this.clientHeight < 720)); this._fit();
     });
     this._ro.observe(this);
   }
