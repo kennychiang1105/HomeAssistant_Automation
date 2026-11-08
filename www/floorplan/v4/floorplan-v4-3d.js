@@ -3595,6 +3595,13 @@ class FloorplanV4Sidebar extends HTMLElement {
            內容超過高度時仍可捲動；手機版 compact 不套用 */
         /* 大螢幕：整個側欄內容依欄寬／高度等比例放大（--z，由 _fit 依側欄寬高算出，1～1.6 倍），字、按鈕一起變大；不再把按鈕拉得很高 */
         .box:not(.compact) > * { zoom:var(--z, 1); }
+        /* 放大後如果還有多餘高度，卡片與按鈕再適度加高（每個都有上限，不會拉成很高的長條），剩下的才留白 */
+        .box:not(.compact) > .wx, .box:not(.compact) > .aq.show { flex:1 1 auto; max-height:120px; }
+        .box:not(.compact) > .sec { flex:2.2 1 auto; }
+        .box:not(.compact) .sec .row2 { flex:1 1 auto; max-height:64px; }
+        .box:not(.compact) .sec .cams button { min-height:40px; }
+        .box:not(.compact) > .nav { flex:2 1 auto; grid-auto-rows:minmax(44px, 1fr); max-height:170px; }
+        .box:not(.compact) > .ppl { flex:1.2 1 auto; align-content:space-evenly; }
         .top { display:flex; align-items:baseline; gap:8px; }
         .time { font:300 32px sans-serif; color:var(--primary-text-color); letter-spacing:.5px; }
         .time .s { opacity:.34; letter-spacing:0; margin-left:1px; font-variant-numeric:tabular-nums; font-size:.78em; }
@@ -3888,7 +3895,7 @@ class FloorplanV4Sidebar extends HTMLElement {
       const bx = this.shadowRoot.querySelector(".box");
       if (bx && !bx.classList.contains("compact")) {
         // 內容原本約 290px 寬、600px 高；欄寬／高度更大時等比例放大（最多 1.6 倍），窄欄不縮小
-        const z = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 600));
+        const z = Math.max(1, Math.min(1.6, this.clientWidth / 290, this.clientHeight / 520));
         bx.style.setProperty("--z", z.toFixed(3));
       }
       bx?.classList.toggle("narrow", this.clientWidth < 250); this._fit();
