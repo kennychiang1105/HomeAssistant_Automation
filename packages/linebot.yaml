@@ -369,6 +369,7 @@ script:
           has_text: "{{ message is defined }}"
           has_json: "{{ payload is defined }}"
           valid_input: "{{ (has_text and not has_json) or (has_json and not has_text) }}"
+          # V4.3.6：內文有多個網址時取最後一個當按鈕，且只刪「純網址行」（行內還有說明文字就保留，避免更新說明被吃掉）；按鈕網址只抓英數與網址符號（內文網址後面緊接中文時，不再把中文一起當成網址導致 LINE 拒收）
           # V4.1.6：維護模式（更新路由器／系統期間）略過一般／重要級、屬連線／離線／失敗／異常類的舊格式 LINE（保全類、緊急級照常）
           maint_text: >-
             {% set raw = (payload | from_json([])) if (has_json and payload is string) else (payload if has_json else []) %}
@@ -502,8 +503,8 @@ script:
                 {% set hl = head.split('\n') %}
                 {% set head_line = hl[0] %}
                 {% set rest = ((hl[1:] | join('\n')) ~ ('\n\n' if bd.items | length > 1 and hl[1:] else '') ~ (bd.items[1:] | join('\n\n'))) | trim %}
-                {% set url = (rest ~ ' ' ~ head_line) | regex_findall('https?://[^ \\n]+') | first | default('', true) %}
-                {% if url %}{% set rr = namespace(o=[]) %}{% for l in rest.split('\n') %}{% if url not in l %}{% set rr.o = rr.o + [l] %}{% endif %}{% endfor %}{% set rest = rr.o | join('\n') | trim %}{% endif %}
+                {% set url = (rest ~ ' ' ~ head_line) | regex_findall('https?://[A-Za-z0-9._~:/?@&=%+-]+') | last | default('', true) %}
+                {% if url %}{% set rr = namespace(o=[]) %}{% for l in rest.split('\n') %}{% if url not in l or ((l | replace(url, '') | trim | length) > 6) %}{% set rr.o = rr.o + [l] %}{% endif %}{% endfor %}{% set rest = rr.o | join('\n') | trim %}{% endif %}
                 {% set all_lines = ([head_line] if bd.items else []) + rest.split('\n') %}
                 {% set sig = title_c ~ ' ' ~ src_txt ~ ' ' ~ head_line %}
                 {% if sig | regex_search('門鈴') %}{% set icon_name = 'doorbell' %}
