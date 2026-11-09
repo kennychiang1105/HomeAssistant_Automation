@@ -22,6 +22,8 @@ d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
 GONE={"input_boolean.door_light_auto",
+      # 2026-11-09 V4.3.6：頂樓 Webhook 固定綜合模式；機台氣氛燈「停用」改「啟用」
+      "input_select.topfloor_webhook_mode", "input_boolean.ambient_scene_off", "input_boolean.mood_alert_ap_off",
       # 2026-10-26 充電判斷改成機率模型，不再用最大電流換算
       "input_number.garage_charger_max_a",
       # 2026-10-26 104-2 改用 lpr_close_buffer_sec（秒）
@@ -127,7 +129,7 @@ SUBGROUPS = {
     ],
     "topfloor": [
         ("感應燈與書房燈參數", r"topfloor_(evidence|line_debounce|arrive|down_4f|vacancy|study|stairs_night|stairs_day)|topfloor_motion_pause"),
-        ("上下樓情境判斷參數", r"_kenny|topfloor_webhook_mode|topfloor_ap_macs"),
+        ("上下樓情境判斷參數", r"_kenny|topfloor_ap_macs"),
         ("睡眠靜默與熟睡鎖", r"sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_"),
         ("頂樓情境廣播", r"topfloor_scene_announce|頂樓情境廣播"),
         ("攝影機與模型判斷", r"頂樓模型|頂樓攝影機|五樓攝影機|頂樓四樓樓梯燈校正|頂樓樓梯燈｜自動關燈前"),
@@ -1117,8 +1119,8 @@ def overview_sections(autos, stale):
              ("input_boolean.notify_ha_info_enable", "HA 通知｜資訊級"), ("input_boolean.notify_ha_general_enable", "HA 通知｜一般級"),
              ("input_boolean.notify_ha_important_enable", "HA 通知｜重要級"),
              ("input_boolean.mood_alert_enable", "氣氛燈提醒｜總開關"), ("input_boolean.mood_alert_important_enable", "氣氛燈提醒｜重要級"),
-             ("input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級"), ("input_boolean.mood_alert_ap_off", "機台氣氛燈｜停用通知閃爍"),
-             ("input_boolean.ambient_scene_off", "機台氣氛燈｜停用情境色"), ("input_boolean.scene_announce_enable", "情境執行廣播"),
+             ("input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級"), ("input_boolean.mood_alert_ap_enable", "機台氣氛燈｜啟用通知閃爍"),
+             ("input_boolean.ambient_scene_enable", "機台氣氛燈｜啟用情境色"), ("input_boolean.scene_announce_enable", "情境執行廣播"),
              ("sensor.weather_sun_shift_min", "日出日落天氣調整｜目前分鐘"), ("input_boolean.weather_sun_adjust_off", "日出日落天氣調整｜關閉"),
              ("input_number.announce_volume_general", "廣播音量｜一般"), ("input_number.announce_volume_important", "廣播音量｜重要"),
              ("input_number.announce_volume_emergency", "廣播音量｜緊急")]
@@ -1127,16 +1129,13 @@ def overview_sections(autos, stale):
                 ("input_boolean.aqara_zai_jia", "Aqara 在家"),
                 ("input_boolean.aqara_li_jia", "Aqara 離家"),
                 ("input_boolean.aqara_wan_an", "Aqara 晚安"),
-                ("switch.smartpower_strip_2f_asussi_fu_qi", "Asus 伺服器電源"),
-                ("switch.smartpower_strip_2f_udmse", "UDM-SE 電源"),
-                ("switch.smartpower_strip_2f_tbcwang_lu_he", "TBC 網路盒電源"),
-                ("switch.xiao_yan_wang_guan_cha_zuo", "小燕網關插座"),
-                (_auto_eid("106C", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0"), "106C_解除網關警報整合AI"),
-                ("automation.ai_gateway_anomaly_guard", "106網關系統AI"),
-                ("automation.ai_00_01_xiaoyan_gateway_watchdog", "小燕網關看門狗")]
+                ("switch.can_ting_homepodcha_zuo", "客廳 HomePod 插座"),
+                ("switch.ding_lou_homepodcha_zuo", "頂樓 HomePod 插座")]
     top = [("input_boolean.topfloor_motion_pause", "頂樓感應暫停"), ("input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"),
-           ("input_select.topfloor_webhook_mode", "頂樓 Webhook 判斷模式"), ("input_boolean.topfloor_stairs_keep_on", "樓梯燈常開（9A）"),
-           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關"), ("input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式")]
+           ("input_boolean.topfloor_stairs_keep_on", "樓梯燈保持常亮（雙擊牆壁開關開啟、長按關閉）"),
+           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關"),
+           ("input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全系統手動復位"),
+           ("input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式")]
     off_md = ("{% set off = states.automation | selectattr('state','eq','off') | map(attribute='name') | sort | list %}"
               "{% if off | length == 0 %}沒有停用中的自動化。{% else %}{% for n in off %}- {{ n }}\n{% endfor %}{% endif %}")
     recent_md = ("{% set ns = namespace(items=[]) %}"

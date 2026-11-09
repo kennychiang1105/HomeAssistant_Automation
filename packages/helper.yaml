@@ -87,7 +87,7 @@
 # 新增與強化 (V3.14.1):
 #   • 新增車庫與二樓區域綜合占用 binary_sensor，沿用 AtHome AP MAC 判斷，補齊 104-3 與 08-7A 依賴實體。
 # 新增與強化 (V3.14):
-#   • 新增 input_select.topfloor_webhook_mode，統一控制頂樓 Webhook 判斷模式：綜合模式 / Webhook模式 / 原本模式。
+#   • （已於 V4.3.6 移除）input_select.topfloor_webhook_mode：頂樓 Webhook 判斷固定為綜合模式。
 # 新增與強化 (V3.13):
 #   • 新增五樓跨線 Webhook 推理 helpers：三條跨線最後觸發時間、書房最後進出時間與五樓保全手動解除開關；LINE 重要通知與 Kenny 在家判斷沿用既有全域 helper。
 # 新增與強化 (V3.12.2):
@@ -464,12 +464,15 @@ input_boolean:
   garage_arrival_ha_notify:
     name: 104-4車庫回家_HA通知
     icon: mdi:garage-open-variant
-  ambient_scene_off:
-    name: 機台氣氛燈_停用情境色
-    icon: mdi:router-wireless-off
-  mood_alert_ap_off:
-    name: 機台氣氛燈_停用通知閃爍
-    icon: mdi:router-wireless-off
+  # V4.3.6：「停用」改「啟用」，預設啟用（initial: true；重啟後固定為開）
+  ambient_scene_enable:
+    name: 機台氣氛燈_啟用情境色
+    icon: mdi:router-wireless
+    initial: true
+  mood_alert_ap_enable:
+    name: 機台氣氛燈_啟用通知閃爍
+    icon: mdi:router-wireless
+    initial: true
   notify_ha_info_enable:
     name: HA通知_資訊級開關
     icon: mdi:information-outline
@@ -1086,13 +1089,6 @@ input_text:
     icon: mdi:sitemap-outline
     max: 60
 input_select:
-  topfloor_webhook_mode:
-    name: 頂樓 Webhook 判斷模式
-    options:
-      - 綜合模式
-      - Webhook模式
-      - 原本模式
-    icon: mdi:source-branch-sync
   # LINE Bot 運作模式
   line_bot_mode:
     name: LINE Bot 模式

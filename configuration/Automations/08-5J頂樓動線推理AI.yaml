@@ -2,6 +2,7 @@
 # 08-5J頂樓動線推理AI (V4.3.4-beta 3)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-11-09）：取消 input_select.topfloor_webhook_mode 與「原本模式」過濾條件，判斷固定為綜合模式（跨線訊號一律納入）。
 # - V4.3.4-beta 4（2026-11-06）：①「下樓開始」不再只靠攝影機：剛進書房／臥室（90 秒內）、之後沒有樓梯跨線時，攝影機看到人（走道上在書房與臥室之間走動）不判下樓（11-06 23:32 書房走回臥室，被判 down_start→down，樓梯燈跟著亮滅、書房燈沒關）；②新增 08-5J 感應器失聯檢查（書房感應開關左側 PIR 超過 72 小時沒動作，右側仍有動作 → HA 通知）。
 # - V4.3.4-beta 3（2026-10-28，測試中）：新增模型「最後去向」觸發 cam_exit（事件 topfloor_cam_exit）：人消失在畫面哪裡＋走動方向 → 進書房／回臥室／下樓梯。消失後等 6 秒對照實體訊號（PIR 右、書房線、房門線、床頭燈）：①進書房＋PIR 右／書房線有動靜 → 補發 enter_study（沒有跨線時補漏）；②回臥室（往右走到門口、位移 ≥0.08）且沒有書房訊號 → 提早發 enter_bedroom；③每次都統計一致／不一致（input_number.topfloor_ai_exit_*），下樓梯只記錄。獨立開關 input_boolean.topfloor_cam_ai_exit_enable。
 # - V4.3.4-beta 2（2026-10-28，測試中）：上樓情境開啟 20 秒內，床頭燈／檯燈被開啟（情境自己開的）不再誤判為進臥室（10/28 21:16 上樓時樓梯燈亮了 5 秒就關、跨線到達後又亮）。
@@ -114,10 +115,6 @@
       trigger: event
       event_type: topfloor_test_signal
   conditions:
-    # 舊的「原本模式」＝不使用 Webhook：跨線訊號忽略
-    - condition: template
-      alias: "模式過濾：若設為原本模式則忽略跨線"
-      value_template: "{{ not (is_line and is_state('input_select.topfloor_webhook_mode', '原本模式')) }}"
     # 書房燈由感應（08-5G）開啟時不當作「手動進書房」
     - condition: template
       alias: "誤判防護：書房燈由感應開燈(08-5G)時不誤判為手動進書房"

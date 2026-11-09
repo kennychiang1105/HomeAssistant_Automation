@@ -3,6 +3,7 @@
 # 08-5F頂樓自動上下樓情境AI (V4.0.0)
 # 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.6（2026-11-09）：取消 input_select.topfloor_webhook_mode，判斷固定為綜合模式（Webhook 跨線＋手機在家都可觸發）。
 # - V4.1.6（2026-10-17）：剛下樓的保護鎖（lock_after_down）90 秒縮為 45 秒；保護期間只要「確定回來」（iPhone 90 秒內連上頂樓 AP ＋ 攝影機 30 秒內看到人）就直接成立上樓情境並解除下樓鎖（原本要等鎖結束，2026-10-17 21:36 下樓補判後 20 秒就回頂樓，上樓情境晚了 1 分 40 秒）。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.0.4（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac（person.kenny 的 source），不再自己從 input_text.iphone_tracker_entity_kenny 解析；其餘邏輯不變。
@@ -76,18 +77,17 @@
   conditions:
     - condition: template
       value_template: >-
-        {% set mode = states('input_select.topfloor_webhook_mode') | default('綜合模式', true) %}
         {% set tid = trigger.id if trigger is defined and trigger is not none and trigger.id is defined else 'unknown' %}
         {% set webhook_trigger = tid in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line'] %}
         {% set sleep_silent = is_state('input_boolean.sleep_silent_active', 'on') %}
         {{ tid == 't_leave_ai_confirmed' or
-           (mode in ['綜合模式', 'Webhook模式'] and webhook_trigger and not sleep_silent) or
-           (mode in ['綜合模式', '原本模式'] and is_state('device_tracker.iphone_duo_kenny', 'home')) }}
+           (webhook_trigger and not sleep_silent) or
+           is_state('device_tracker.iphone_duo_kenny', 'home') }}
   actions:
     - choose:
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['t_bedroom_line', 't_studyroom_line'] }}"
+              value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id in ['t_bedroom_line', 't_studyroom_line'] }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
@@ -158,7 +158,7 @@
             - stop: Webhook 房門/書房線已記錄，等待下一條跨線補足方向。
         - conditions:
             - condition: template
-              value_template: "{{ (states('input_select.topfloor_webhook_mode') | default('綜合模式', true)) in ['綜合模式', 'Webhook模式'] and trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 't_stairs_line' }}"
+              value_template: "{{ trigger is defined and trigger is not none and trigger.id is defined and trigger.id == 't_stairs_line' }}"
           sequence:
             - variables:
                 now_ts_fast: "{{ as_timestamp(now()) }}"
