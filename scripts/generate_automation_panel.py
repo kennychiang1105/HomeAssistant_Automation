@@ -1274,6 +1274,7 @@ PANEL_ROOT = [
 "        - border: none",
 "        - box-shadow: 0 1px 2px rgba(0,0,0,.18)",
 "        - overflow: hidden",
+"        - pointer-events: auto",   # V4.3.6：button-card 對沒有點擊動作的卡片加 .disabled（pointer-events:none），開關列的觸控被整張卡吃掉
 "      grid:",
 "        - grid-template-areas: '\"rows\"'",
 "        - grid-template-columns: 1fr",
@@ -1451,6 +1452,9 @@ def build(data):
 if __name__ == "__main__":
     data = fetch()
     text = build(data)
+    # V4.3.6：button-card 對沒有點擊動作的卡片加 .disabled（pointer-events:none），卡片內的開關與捲動區（最近 24 小時觸發等）觸控／滾輪全被吃掉；
+    # 統一在每張 button-card 的 styles.card 最前面補 pointer-events: auto。
+    text = re.sub(r"(^ *card:\n)( *)- border-radius: 18px\n", r"\1\2- pointer-events: auto\n\2- border-radius: 18px\n", text, flags=re.M)
     import yaml
     yaml.safe_load(text)
     OUT.parent.mkdir(parents=True, exist_ok=True)

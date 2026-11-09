@@ -976,3 +976,4 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **車庫自動關門等待縮短（2026-11-09）**：`garage_close_confirmed` 鐵門全開後的等待由 90 秒縮短為 45 秒（V1.0.2），廣播與二次淨空確認不變。
 - **面板與開關整理（2026-11-09）**：①「網關、伺服器與警報」移除 Asus／UDM-SE／TBC／小燕網關插座與 106C／106網關／小燕看門狗，新增客廳、頂樓 HomePod 插座開關；②取消 `input_select.topfloor_webhook_mode`，08-5F／08-5J 固定綜合模式；頂樓常用新增五樓保全手動復位；③機台氣氛燈「停用通知閃爍／停用情境色」改為 `mood_alert_ap_enable`／`ambient_scene_enable`（預設啟用）；④面板「樓梯燈常開（9A）」改為「樓梯燈保持常亮（雙擊牆壁開關開啟、長按關閉）」；⑤自動化管理面板同步重新產生。
 - **樓梯燈常開改內部旗標、五樓保全改名（2026-11-09）**：①面板「頂樓常用」不再顯示 `topfloor_stairs_keep_on`（歸內部狀態），新增 `08-5Q` 每天 04:00 清除旗標；②`wu_lou_bao_quan_xi_tong_kai_guan` 由「五樓保全系統開關」改名「五樓保全系統手動開啟」（輔助項目、面板、對外名稱）。
+- **HA 自動化管理面板開關按不動／清單不能滑（2026-11-09）**：button-card 對沒有點擊動作的卡片加 `.disabled`（`pointer-events: none`），開關列與「最近 24 小時觸發」捲動區的觸控、滾輪被整張卡吃掉（Kiosk 不受影響）。`generate_automation_panel.py` 產生面板時統一給 button-card 的 `styles.card` 補 `pointer-events: auto`，並重新產生面板；Kiosk 面板頁補上警戒狀態中文（在家警戒、離家警戒、夜間警戒…）。
