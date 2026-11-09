@@ -16,6 +16,7 @@ button_card_templates:
         - border: none
         - box-shadow: 0 1px 2px rgba(0,0,0,.18)
         - overflow: hidden
+        - pointer-events: auto
       grid:
         - grid-template-areas: '"rows"'
         - grid-template-columns: 1fr
@@ -39,6 +40,7 @@ button_card_templates:
           + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}'
           + '.dv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:1px;background:rgba(255,159,10,.18);color:#E08600}'
           + '.r.dev{background:rgba(255,159,10,.06)}</style>';
+        window.__tg = window.__tg || ((b, id) => { b.classList.toggle('on'); b.parentNode.classList.toggle('on'); document.querySelector('home-assistant').hass.callService('homeassistant', 'toggle', {entity_id: id}); });
         return css + it.map(([e, n, d]) => {
           const s = states[e]; const st = s ? s.state : 'unavailable';
           const on = st === 'on'; const na = !s || st === 'unavailable'; const dev = !!d && !na && st !== d;
@@ -46,7 +48,7 @@ button_card_templates:
           const nm = n || (s && s.attributes.friendly_name) || e;
           return `<div class="r ${on ? 'on' : ''} ${na ? 'na' : ''} ${dev ? 'dev' : ''}"><span class="ic"><ha-icon icon="${esc(ic)}"></ha-icon></span>`
             + `<span class="n" onclick="event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))">${esc(nm)}${dev ? `<span class="dv">平常${d === 'on' ? '開' : '關'}</span>` : ''}</span>`
-            + `<button class="sw ${on ? 'on' : ''}" ${na ? 'disabled' : ''} aria-label="切換" onclick="event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})"></button></div>`;
+            + `<button class="sw ${on ? 'on' : ''}" ${na ? 'disabled' : ''} aria-label="切換" onpointerup="if(event.pointerType==='touch'){event.stopPropagation();window.__swT=Date.now();window.__tg(this,'${e}')}" onclick="event.stopPropagation();if(Date.now()-(window.__swT||0)<800)return;window.__tg(this,'${e}')"></button></div>`;
         }).join('');
         ]]]
 views:
@@ -63,6 +65,7 @@ views:
         navigation_path: /lovelace-smart/home
       styles:
         card:
+          - pointer-events: auto
           - border-radius: 18px
         grid:
           - grid-template-areas: '"go"'
@@ -116,6 +119,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -287,7 +291,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
-        content: "啟用中的自動化 **164** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **165** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -513,6 +517,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -600,6 +605,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -677,8 +683,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.notify_line_general_enable", "LINE 通知｜一般", "on"], ["input_boolean.notify_line_important_enable", "LINE 通知｜重要", "on"], ["input_boolean.notify_line_emergency_enable", "LINE 通知｜緊急", "on"], ["input_boolean.notify_line_doorbell_enable", "LINE 通知｜大門門鈴", "on"], ["input_boolean.notify_ha_info_enable", "HA 通知｜資訊級", "on"], ["input_boolean.notify_ha_general_enable", "HA 通知｜一般級", "on"], ["input_boolean.notify_ha_important_enable", "HA 通知｜重要級", "on"], ["input_boolean.mood_alert_enable", "氣氛燈提醒｜總開關", "on"], ["input_boolean.mood_alert_important_enable", "氣氛燈提醒｜重要級", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級", "on"], ["input_boolean.mood_alert_ap_off", "機台氣氛燈｜停用通知閃爍", "off"], ["input_boolean.ambient_scene_off", "機台氣氛燈｜停用情境色", "off"], ["input_boolean.scene_announce_enable", "情境執行廣播", "on"]]
-        triggers_update: ["input_boolean.notify_line_general_enable", "input_boolean.notify_line_important_enable", "input_boolean.notify_line_emergency_enable", "input_boolean.notify_line_doorbell_enable", "input_boolean.notify_ha_info_enable", "input_boolean.notify_ha_general_enable", "input_boolean.notify_ha_important_enable", "input_boolean.mood_alert_enable", "input_boolean.mood_alert_important_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.mood_alert_ap_off", "input_boolean.ambient_scene_off", "input_boolean.scene_announce_enable"]
+          items: [["input_boolean.notify_line_general_enable", "LINE 通知｜一般", "on"], ["input_boolean.notify_line_important_enable", "LINE 通知｜重要", "on"], ["input_boolean.notify_line_emergency_enable", "LINE 通知｜緊急", "on"], ["input_boolean.notify_line_doorbell_enable", "LINE 通知｜大門門鈴", "on"], ["input_boolean.notify_ha_info_enable", "HA 通知｜資訊級", "on"], ["input_boolean.notify_ha_general_enable", "HA 通知｜一般級", "on"], ["input_boolean.notify_ha_important_enable", "HA 通知｜重要級", "on"], ["input_boolean.mood_alert_enable", "氣氛燈提醒｜總開關", "on"], ["input_boolean.mood_alert_important_enable", "氣氛燈提醒｜重要級", "on"], ["input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級", "on"], ["input_boolean.mood_alert_ap_enable", "機台氣氛燈｜啟用通知閃爍"], ["input_boolean.ambient_scene_enable", "機台氣氛燈｜啟用情境色"], ["input_boolean.scene_announce_enable", "情境執行廣播", "on"]]
+        triggers_update: ["input_boolean.notify_line_general_enable", "input_boolean.notify_line_important_enable", "input_boolean.notify_line_emergency_enable", "input_boolean.notify_line_doorbell_enable", "input_boolean.notify_ha_info_enable", "input_boolean.notify_ha_general_enable", "input_boolean.notify_ha_important_enable", "input_boolean.mood_alert_enable", "input_boolean.mood_alert_important_enable", "input_boolean.mood_alert_emergency_enable", "input_boolean.mood_alert_ap_enable", "input_boolean.ambient_scene_enable", "input_boolean.scene_announce_enable"]
       - type: entities
         show_header_toggle: false
         state_color: true
@@ -731,8 +737,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.aqara_zai_jia", "Aqara 在家"], ["input_boolean.aqara_li_jia", "Aqara 離家"], ["input_boolean.aqara_wan_an", "Aqara 晚安"], ["switch.smartpower_strip_2f_asussi_fu_qi", "Asus 伺服器電源"], ["switch.smartpower_strip_2f_udmse", "UDM-SE 電源"], ["switch.smartpower_strip_2f_tbcwang_lu_he", "TBC 網路盒電源"], ["switch.xiao_yan_wang_guan_cha_zuo", "小燕網關插座"], ["automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"], ["automation.ai_gateway_anomaly_guard", "106網關系統AI", "on"], ["automation.ai_00_01_xiaoyan_gateway_watchdog", "小燕網關看門狗", "on"]]
-        triggers_update: ["input_boolean.aqara_zai_jia", "input_boolean.aqara_li_jia", "input_boolean.aqara_wan_an", "switch.smartpower_strip_2f_asussi_fu_qi", "switch.smartpower_strip_2f_udmse", "switch.smartpower_strip_2f_tbcwang_lu_he", "switch.xiao_yan_wang_guan_cha_zuo", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "automation.ai_gateway_anomaly_guard", "automation.ai_00_01_xiaoyan_gateway_watchdog"]
+          items: [["input_boolean.aqara_zai_jia", "Aqara 在家"], ["input_boolean.aqara_li_jia", "Aqara 離家"], ["input_boolean.aqara_wan_an", "Aqara 晚安"], ["switch.can_ting_homepodcha_zuo", "客廳 HomePod 插座"], ["switch.ding_lou_homepodcha_zuo", "頂樓 HomePod 插座"]]
+        triggers_update: ["input_boolean.aqara_zai_jia", "input_boolean.aqara_li_jia", "input_boolean.aqara_wan_an", "switch.can_ting_homepodcha_zuo", "switch.ding_lou_homepodcha_zuo"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -750,20 +756,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.topfloor_motion_pause", "頂樓感應暫停", "off"], ["input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"]]
-        triggers_update: ["input_boolean.topfloor_motion_pause", "input_boolean.sleep_silent_active"]
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_select.topfloor_webhook_mode
-            name: "頂樓 Webhook 判斷模式"
-        card_mod: *cm
-      - type: custom:button-card
-        template: prows
-        variables:
-          items: [["input_boolean.topfloor_stairs_keep_on", "樓梯燈常開（9A）", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關", "off"], ["input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式", "off"]]
-        triggers_update: ["input_boolean.topfloor_stairs_keep_on", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.debug_topfloor_kenny"]
+          items: [["input_boolean.topfloor_motion_pause", "頂樓感應暫停", "off"], ["input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全系統手動復位", "off"], ["input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式", "off"]]
+        triggers_update: ["input_boolean.topfloor_motion_pause", "input_boolean.sleep_silent_active", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "input_boolean.debug_topfloor_kenny"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -785,6 +779,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -807,7 +802,7 @@ views:
               const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
               const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
                 <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onscroll="window.__lc=window.__lc||{};window.__lc['${title}']=this.scrollTop" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="position:absolute;width:0;height:0" onload="this.previousElementSibling.scrollTop=(window.__lc&&window.__lc['${title}'])||0"></div>`;
               const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
             
               const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
@@ -834,6 +829,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -856,7 +852,7 @@ views:
               const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
               const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
                 <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+                <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onscroll="window.__lc=window.__lc||{};window.__lc['${title}']=this.scrollTop" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="position:absolute;width:0;height:0" onload="this.previousElementSibling.scrollTop=(window.__lc&&window.__lc['${title}'])||0"></div>`;
               const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
             
               const now = Date.now();
@@ -865,7 +861,7 @@ views:
                 .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
               const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
               const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-              return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details style="border-top:.5px solid rgba(128,128,128,.28)"><summary style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
+              return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details ${(window.__lc && window.__lc.open) ? 'open' : ''} ontoggle="window.__lc=window.__lc||{};window.__lc.open=this.open" style="border-top:.5px solid rgba(128,128,128,.28)"><summary onclick="event.preventDefault();event.stopPropagation();var d=this.parentNode;d.open=!d.open" style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
             ]]]
   - title: "耗材與額度"
     path: supply
@@ -910,6 +906,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -988,6 +985,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -1111,6 +1109,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -1258,6 +1257,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -1377,7 +1377,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "平常開著（27）"
+        heading: "平常開著（29）"
         heading_style: title
         icon: mdi:toggle-switch
         card_mod:
@@ -1387,8 +1387,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["automation.ai_00_2a_release_note_push", "00-2A更新紀錄推播AI", "on"], ["automation.ai_line_bot_quota_guard", "00-2BLINE推播AI", "on"], ["automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "00-2D廣播音量初始化AI", "on"], ["automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "00-2D廣播音量測試值AI", "on"], ["automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "00-2D廣播音量統一AI", "on"], ["automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D情境廣播開關初始化AI", "on"], ["automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D氣氛燈開關初始化AI", "on"], ["automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D通知開關初始化AI", "on"], ["automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "00-2E通知測試AI", "on"], ["automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "LINE通知標題同步器 v3.0", "on"], ["input_boolean.notify_ha_general_enable", "HA通知_一般級開關", "on"], ["input_boolean.notify_ha_info_enable", "HA通知_資訊級開關", "on"], ["input_boolean.notify_ha_important_enable", "HA通知_重要級開關", "on"], ["input_boolean.notify_line_general_enable", "LINE通知啟用_一般", "on"], ["input_boolean.notify_line_doorbell_enable", "LINE通知啟用_大門門鈴", "on"], ["input_boolean.notify_line_important_enable", "LINE通知啟用_重要", "on"], ["input_boolean.notify_tesla_charge_extra_line_enable", "Tesla充電通知_額外LINE啟用", "on"], ["input_boolean.eew_extra_enable", "地震預警｜附地牛截圖與震央詳情", "on"], ["input_boolean.scene_announce_enable", "情境執行廣播開關", "on"], ["input_boolean.announce_manual_ke_ting_homepod", "手動廣播｜客廳 HomePod", "on"], ["input_boolean.announce_manual_clear", "手動廣播｜發送後清除內容", "on"], ["input_boolean.announce_manual_che_ku_speaker", "手動廣播｜車庫攝影機喇叭", "on"], ["input_boolean.notify_manual_ha", "手動通知｜HA 通知", "on"], ["input_boolean.notify_manual_line", "手動通知｜LINE", "on"], ["input_boolean.notify_manual_clear", "手動通知｜發送後清除內容", "on"], ["input_boolean.mood_alert_enable", "氣氛燈提醒_總開關", "on"], ["input_boolean.mood_alert_important_enable", "氣氛燈提醒_重要級", "on"]]
-        triggers_update: ["automation.ai_00_2a_release_note_push", "automation.ai_line_bot_quota_guard", "automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "input_boolean.notify_ha_general_enable", "input_boolean.notify_ha_info_enable", "input_boolean.notify_ha_important_enable", "input_boolean.notify_line_general_enable", "input_boolean.notify_line_doorbell_enable", "input_boolean.notify_line_important_enable", "input_boolean.notify_tesla_charge_extra_line_enable", "input_boolean.eew_extra_enable", "input_boolean.scene_announce_enable", "input_boolean.announce_manual_ke_ting_homepod", "input_boolean.announce_manual_clear", "input_boolean.announce_manual_che_ku_speaker", "input_boolean.notify_manual_ha", "input_boolean.notify_manual_line", "input_boolean.notify_manual_clear", "input_boolean.mood_alert_enable", "input_boolean.mood_alert_important_enable"]
+          items: [["automation.ai_00_2a_release_note_push", "00-2A更新紀錄推播AI", "on"], ["automation.ai_line_bot_quota_guard", "00-2BLINE推播AI", "on"], ["automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "00-2D廣播音量初始化AI", "on"], ["automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "00-2D廣播音量測試值AI", "on"], ["automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "00-2D廣播音量統一AI", "on"], ["automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D情境廣播開關初始化AI", "on"], ["automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D氣氛燈開關初始化AI", "on"], ["automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "00-2D通知開關初始化AI", "on"], ["automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "00-2E通知測試AI", "on"], ["automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "LINE通知標題同步器 v3.0", "on"], ["input_boolean.notify_ha_general_enable", "HA通知_一般級開關", "on"], ["input_boolean.notify_ha_info_enable", "HA通知_資訊級開關", "on"], ["input_boolean.notify_ha_important_enable", "HA通知_重要級開關", "on"], ["input_boolean.notify_line_general_enable", "LINE通知啟用_一般", "on"], ["input_boolean.notify_line_doorbell_enable", "LINE通知啟用_大門門鈴", "on"], ["input_boolean.notify_line_important_enable", "LINE通知啟用_重要", "on"], ["input_boolean.notify_tesla_charge_extra_line_enable", "Tesla充電通知_額外LINE啟用", "on"], ["input_boolean.eew_extra_enable", "地震預警｜附地牛截圖與震央詳情", "on"], ["input_boolean.scene_announce_enable", "情境執行廣播開關", "on"], ["input_boolean.announce_manual_ke_ting_homepod", "手動廣播｜客廳 HomePod", "on"], ["input_boolean.announce_manual_clear", "手動廣播｜發送後清除內容", "on"], ["input_boolean.announce_manual_che_ku_speaker", "手動廣播｜車庫攝影機喇叭", "on"], ["input_boolean.notify_manual_ha", "手動通知｜HA 通知", "on"], ["input_boolean.notify_manual_line", "手動通知｜LINE", "on"], ["input_boolean.notify_manual_clear", "手動通知｜發送後清除內容", "on"], ["input_boolean.ambient_scene_enable", "機台氣氛燈_啟用情境色"], ["input_boolean.mood_alert_ap_enable", "機台氣氛燈_啟用通知閃爍"], ["input_boolean.mood_alert_enable", "氣氛燈提醒_總開關", "on"], ["input_boolean.mood_alert_important_enable", "氣氛燈提醒_重要級", "on"]]
+        triggers_update: ["automation.ai_00_2a_release_note_push", "automation.ai_line_bot_quota_guard", "automation.00_2dguang_bo_yin_liang_chu_shi_hua_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_ce_shi_zhi_ai_v4_0_0", "automation.00_2dguang_bo_yin_liang_tong_yi_ai_v4_0_0", "automation.00_2dqing_jing_guang_bo_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dqi_fen_deng_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2dtong_zhi_kai_guan_chu_shi_hua_ai_v1_0_0", "automation.00_2etong_zhi_ce_shi_ai_v1_0_0", "automation.linetong_zhi_biao_ti_tong_bu_qi_v3_0", "input_boolean.notify_ha_general_enable", "input_boolean.notify_ha_info_enable", "input_boolean.notify_ha_important_enable", "input_boolean.notify_line_general_enable", "input_boolean.notify_line_doorbell_enable", "input_boolean.notify_line_important_enable", "input_boolean.notify_tesla_charge_extra_line_enable", "input_boolean.eew_extra_enable", "input_boolean.scene_announce_enable", "input_boolean.announce_manual_ke_ting_homepod", "input_boolean.announce_manual_clear", "input_boolean.announce_manual_che_ku_speaker", "input_boolean.notify_manual_ha", "input_boolean.notify_manual_line", "input_boolean.notify_manual_clear", "input_boolean.ambient_scene_enable", "input_boolean.mood_alert_ap_enable", "input_boolean.mood_alert_enable", "input_boolean.mood_alert_important_enable"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -1396,7 +1396,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "平常關著（9）"
+        heading: "平常關著（7）"
         heading_style: title
         icon: mdi:toggle-switch-off-outline
         card_mod:
@@ -1406,8 +1406,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.garage_away_off_ha_notify", "104-1C全員離家關燈_HA通知", "off"], ["input_boolean.garage_arrival_ha_notify", "104-4車庫回家_HA通知", "off"], ["input_boolean.notify_tesla_charge_extra_system_enable", "Tesla充電通知_額外系統通知啟用", "off"], ["input_boolean.announce_manual_si_lou_homepod", "手動廣播｜四樓 HomePod mini", "off"], ["input_boolean.announce_manual_ding_lou_homepod", "手動廣播｜頂樓 HomePod", "off"], ["input_boolean.announce_manual_wu_lou_speaker", "手動廣播｜頂樓攝影機喇叭", "off"], ["input_boolean.ambient_scene_off", "機台氣氛燈_停用情境色", "off"], ["input_boolean.mood_alert_ap_off", "機台氣氛燈_停用通知閃爍", "off"], ["input_boolean.announce_end_chime_off", "關閉廣播結束音效", "off"]]
-        triggers_update: ["input_boolean.garage_away_off_ha_notify", "input_boolean.garage_arrival_ha_notify", "input_boolean.notify_tesla_charge_extra_system_enable", "input_boolean.announce_manual_si_lou_homepod", "input_boolean.announce_manual_ding_lou_homepod", "input_boolean.announce_manual_wu_lou_speaker", "input_boolean.ambient_scene_off", "input_boolean.mood_alert_ap_off", "input_boolean.announce_end_chime_off"]
+          items: [["input_boolean.garage_away_off_ha_notify", "104-1C全員離家關燈_HA通知", "off"], ["input_boolean.garage_arrival_ha_notify", "104-4車庫回家_HA通知", "off"], ["input_boolean.notify_tesla_charge_extra_system_enable", "Tesla充電通知_額外系統通知啟用", "off"], ["input_boolean.announce_manual_si_lou_homepod", "手動廣播｜四樓 HomePod mini", "off"], ["input_boolean.announce_manual_ding_lou_homepod", "手動廣播｜頂樓 HomePod", "off"], ["input_boolean.announce_manual_wu_lou_speaker", "手動廣播｜頂樓攝影機喇叭", "off"], ["input_boolean.announce_end_chime_off", "關閉廣播結束音效", "off"]]
+        triggers_update: ["input_boolean.garage_away_off_ha_notify", "input_boolean.garage_arrival_ha_notify", "input_boolean.notify_tesla_charge_extra_system_enable", "input_boolean.announce_manual_si_lou_homepod", "input_boolean.announce_manual_ding_lou_homepod", "input_boolean.announce_manual_wu_lou_speaker", "input_boolean.announce_end_chime_off"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -1925,7 +1925,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "平常開著（39）"
+        heading: "平常開著（40）"
         heading_style: title
         icon: mdi:toggle-switch
         card_mod:
@@ -1935,8 +1935,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["automation.ai_08_5a_5f_security_webhook_guard", "08-5A 五樓保全系統AI Webhook精準防禦", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light", "08-5C頂樓樓梯感應燈AI", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "08-5C頂樓樓梯感應燈自動關閉AI", "on"], ["automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "08-5C頂樓樓梯燈解除深夜亮度AI", "on"], ["automation.23ding_lou_kan_deng", "08-5D頂樓坎燈自動化亮度修正V2", "on"], ["automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "08-5D頂樓夜燈自動化亮度修正V2", "on"], ["automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "08-5F頂樓下樓補判AI", "on"], ["automation.ai_topfloor_stairs_scene", "08-5F頂樓自動上下樓情境AI", "on"], ["automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "08-5G 書房回房間關燈AI", "on"], ["automation.ai_08_5g_study_motion_light", "08-5G 書房燈感應AI", "on"], ["automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "08-5G 書房燈無人檢查AI", "on"], ["automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "08-5G 書房燈關閉AI", "on"], ["automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "08-5G 書房燈離開佐證關燈AI"], ["automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "08-5H頂樓深夜熟睡情境AI", "on"], ["automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "08-5H頂樓深夜熟睡鎖管理AI"], ["automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "08-5I頂樓空調關閉確認", "on"], ["automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "08-5J頂樓動線推理AI", "on"], ["automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "08-5J頂樓感應器失聯檢查AI"], ["automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "08-5J頂樓感應週報", "on"], ["automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "08-5K頂樓感應暫停到期AI", "on"], ["automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "08-5K頂樓樓梯燈手動保持結束AI", "on"], ["automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "08-5K頂樓燈具使用權AI", "on"], ["automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "08-5K頂樓開機狀態自癒檢查AI"], ["automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "08-5L頂樓情境廣播AI"], ["automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "08-5M頂樓攝影機模型分析AI"], ["automation.a107_11a_single", "800-開關系列-11A 書房燈感應開關單擊", "on"], ["automation.a107_11b", "800-開關系列-11B 書房燈感應開關長按", "on"], ["automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈", "on"], ["automation.a107_12b", "800-開關系列-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈", "on"], ["automation.a107_12c", "800-開關系列-12C 頂樓四樓樓梯燈校正 (虛擬實體)", "on"], ["automation.a107_12d", "800-開關系列-12D 四樓開關下1-單擊 四樓樓梯燈", "on"], ["automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境"], ["automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "800-開關系列-12F 頂樓與四樓開關-長按下樓情境"], ["input_boolean.wu_lou_she_ying_ji_kai_guan", "五樓攝影機麥克風開關", "on"], ["input_boolean.sleep_holiday_aware", "熟睡起床時間搭配國定假日（功能開關）", "on"], ["input_boolean.topfloor_scene_announce_enable", "頂樓情境廣播｜總開關", "on"], ["input_boolean.topfloor_cam_ai_exit_enable", "頂樓攝影機模型判斷｜最後去向開關", "on"], ["input_boolean.topfloor_cam_ai_enable", "頂樓攝影機模型判斷｜總開關", "on"], ["input_boolean.topfloor_stairs_off_cam_hold_enable", "頂樓樓梯燈｜自動關燈前畫面有人就等人消失", "on"]]
-        triggers_update: ["automation.ai_08_5a_5f_security_webhook_guard", "automation.ai_08_5c_topfloor_stairs_motion_light", "automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "automation.23ding_lou_kan_deng", "automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "automation.ai_topfloor_stairs_scene", "automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "automation.ai_08_5g_study_motion_light", "automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "automation.a107_11a_single", "automation.a107_11b", "automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "automation.a107_12b", "automation.a107_12c", "automation.a107_12d", "automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "input_boolean.wu_lou_she_ying_ji_kai_guan", "input_boolean.sleep_holiday_aware", "input_boolean.topfloor_scene_announce_enable", "input_boolean.topfloor_cam_ai_exit_enable", "input_boolean.topfloor_cam_ai_enable", "input_boolean.topfloor_stairs_off_cam_hold_enable"]
+          items: [["automation.ai_08_5a_5f_security_webhook_guard", "08-5A 五樓保全系統AI Webhook精準防禦", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light", "08-5C頂樓樓梯感應燈AI", "on"], ["automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "08-5C頂樓樓梯感應燈自動關閉AI", "on"], ["automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "08-5C頂樓樓梯燈解除深夜亮度AI", "on"], ["automation.23ding_lou_kan_deng", "08-5D頂樓坎燈自動化亮度修正V2", "on"], ["automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "08-5D頂樓夜燈自動化亮度修正V2", "on"], ["automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "08-5F頂樓下樓補判AI", "on"], ["automation.ai_topfloor_stairs_scene", "08-5F頂樓自動上下樓情境AI", "on"], ["automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "08-5G 書房回房間關燈AI", "on"], ["automation.ai_08_5g_study_motion_light", "08-5G 書房燈感應AI", "on"], ["automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "08-5G 書房燈無人檢查AI", "on"], ["automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "08-5G 書房燈關閉AI", "on"], ["automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "08-5G 書房燈離開佐證關燈AI"], ["automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "08-5H頂樓深夜熟睡情境AI", "on"], ["automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "08-5H頂樓深夜熟睡鎖管理AI"], ["automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "08-5I頂樓空調關閉確認", "on"], ["automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "08-5J頂樓動線推理AI", "on"], ["automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "08-5J頂樓感應器失聯檢查AI"], ["automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "08-5J頂樓感應週報", "on"], ["automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "08-5K頂樓感應暫停到期AI", "on"], ["automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "08-5K頂樓樓梯燈手動保持結束AI", "on"], ["automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "08-5K頂樓燈具使用權AI", "on"], ["automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "08-5K頂樓開機狀態自癒檢查AI"], ["automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "08-5L頂樓情境廣播AI"], ["automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "08-5M頂樓攝影機模型分析AI"], ["automation.08_5qlou_ti_deng_chang_kai_qi_biao_ding_qi_qing_chu_ai_v4_3_6", "08-5Q樓梯燈常開旗標定期清除AI"], ["automation.a107_11a_single", "800-開關系列-11A 書房燈感應開關單擊", "on"], ["automation.a107_11b", "800-開關系列-11B 書房燈感應開關長按", "on"], ["automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "800-開關系列-12A 五樓開關下2/四摟樓梯開關上2-單擊 頂樓與四樓樓梯燈", "on"], ["automation.a107_12b", "800-開關系列-12B 四摟樓梯開關上1-單擊 頂樓樓梯燈", "on"], ["automation.a107_12c", "800-開關系列-12C 頂樓四樓樓梯燈校正 (虛擬實體)", "on"], ["automation.a107_12d", "800-開關系列-12D 四樓開關下1-單擊 四樓樓梯燈", "on"], ["automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境"], ["automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "800-開關系列-12F 頂樓與四樓開關-長按下樓情境"], ["input_boolean.wu_lou_she_ying_ji_kai_guan", "五樓攝影機麥克風開關", "on"], ["input_boolean.sleep_holiday_aware", "熟睡起床時間搭配國定假日（功能開關）", "on"], ["input_boolean.topfloor_scene_announce_enable", "頂樓情境廣播｜總開關", "on"], ["input_boolean.topfloor_cam_ai_exit_enable", "頂樓攝影機模型判斷｜最後去向開關", "on"], ["input_boolean.topfloor_cam_ai_enable", "頂樓攝影機模型判斷｜總開關", "on"], ["input_boolean.topfloor_stairs_off_cam_hold_enable", "頂樓樓梯燈｜自動關燈前畫面有人就等人消失", "on"]]
+        triggers_update: ["automation.ai_08_5a_5f_security_webhook_guard", "automation.ai_08_5c_topfloor_stairs_motion_light", "automation.ai_08_5c_topfloor_stairs_motion_light_auto_off", "automation.08_5cding_lou_lou_ti_deng_jie_chu_shen_ye_liang_du_ai_v4_0_0", "automation.23ding_lou_kan_deng", "automation.08_5dding_lou_ye_deng_zi_dong_hua_liang_du_xiu_zheng_v2", "automation.08_5fding_lou_xia_lou_bu_pan_ai_v4_0_0", "automation.ai_topfloor_stairs_scene", "automation.08_5g_shu_fang_hui_fang_jian_guan_deng_ai_v4_0_0", "automation.ai_08_5g_study_motion_light", "automation.08_5g_shu_fang_deng_wu_ren_jian_cha_ai_v4_0_0", "automation.08_5g_shu_fang_deng_guan_bi_ai_v4_0_0", "automation.08_5g_shu_fang_deng_li_kai_zuo_zheng_guan_deng_ai_v4_1_6", "automation.ai_08_5h_topfloor_deep_sleep_scene_guard", "automation.08_5hding_lou_shen_ye_shou_shui_suo_guan_li_ai_v4_1_0", "automation.08_5iding_lou_kong_diao_guan_bi_que_ren", "automation.08_5jding_lou_dong_xian_tui_li_ai_v4_0_0", "automation.08_5jding_lou_gan_ying_qi_shi_lian_jian_cha_ai_v4_3_4_beta_4", "automation.08_5jding_lou_gan_ying_zhou_bao_v4_0_0", "automation.08_5kding_lou_gan_ying_zan_ting_dao_qi_ai_v4_0_0", "automation.08_5kding_lou_lou_ti_deng_shou_dong_bao_chi_jie_shu_ai_v4_0_0", "automation.08_5kding_lou_deng_ju_shi_yong_quan_ai_v4_0_0", "automation.08_5kding_lou_kai_ji_zhuang_tai_zi_yu_jian_cha_ai_v4_0_0", "automation.08_5lding_lou_qing_jing_guang_bo_ai_v4_2_4", "automation.08_5mding_lou_she_ying_ji_mo_xing_fen_xi_ai_v4_3_4_beta_1", "automation.08_5qlou_ti_deng_chang_kai_qi_biao_ding_qi_qing_chu_ai_v4_3_6", "automation.a107_11a_single", "automation.a107_11b", "automation.a107_12a_ding_lou_lou_ti_deng_dan_ji", "automation.a107_12b", "automation.a107_12c", "automation.a107_12d", "automation.800_kai_guan_xi_lie_12e_ding_lou_yu_si_lou_kai_guan_shuang_ji_shang_lou_qing_jing", "automation.800_kai_guan_xi_lie_12f_ding_lou_yu_si_lou_kai_guan_chang_an_xia_lou_qing_jing", "input_boolean.wu_lou_she_ying_ji_kai_guan", "input_boolean.sleep_holiday_aware", "input_boolean.topfloor_scene_announce_enable", "input_boolean.topfloor_cam_ai_exit_enable", "input_boolean.topfloor_cam_ai_enable", "input_boolean.topfloor_stairs_off_cam_hold_enable"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -2053,8 +2053,6 @@ views:
             name: "Kenny 燈剛關冷卻（秒）"
           - entity: input_number.topfloor_cam_window_min_kenny
             name: "Kenny 頂樓攝影機觸發監測視窗（分鐘）"
-          - entity: input_select.topfloor_webhook_mode
-            name: "頂樓 Webhook 判斷模式"
           - entity: input_text.topfloor_ap_macs_5f
             name: "5F 頂樓 AP MAC 清單（逗號分隔）"
         card_mod: *cm
@@ -2289,7 +2287,7 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.lpr_debug_notify", "LPR偵測Debug通知", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全手動解除/復位開關", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關", "off"], ["input_boolean.intrusion_watch_test_mode", "入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）", "off"], ["input_boolean.gateway_debug_notify", "網關系統_Debug通知", "off"], ["input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報", "off"], ["input_boolean.garage_depart_notify_enable", "車庫出門偵測｜偵測到時通知", "off"]]
+          items: [["input_boolean.lpr_debug_notify", "LPR偵測Debug通知", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全手動解除/復位開關", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟", "off"], ["input_boolean.intrusion_watch_test_mode", "入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）", "off"], ["input_boolean.gateway_debug_notify", "網關系統_Debug通知", "off"], ["input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報", "off"], ["input_boolean.garage_depart_notify_enable", "車庫出門偵測｜偵測到時通知", "off"]]
         triggers_update: ["input_boolean.lpr_debug_notify", "input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.intrusion_watch_test_mode", "input_boolean.gateway_debug_notify", "input_boolean.jie_chu_wang_guan_jing_bao", "input_boolean.garage_depart_notify_enable"]
     - type: vertical-stack
       card_mod:
@@ -2481,6 +2479,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -2568,6 +2567,7 @@ views:
         show_state: false
         styles:
           card:
+            - pointer-events: auto
             - border-radius: 18px
             - border: none
             - box-shadow: 0 1px 2px rgba(0,0,0,.18)
@@ -3757,7 +3757,7 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.topfloor_stairs_night_used", "頂樓_樓梯燈上次為深夜亮度"], ["input_boolean.topfloor_stairs_keep_on", "頂樓_樓梯燈常開(9A)"], ["input_boolean.ding_lou_shang_lou_qing_jing", "頂樓上樓情境"], ["input_boolean.ding_lou_xia_lou_qing_jing", "頂樓下樓情境"], ["input_boolean.ding_lou_ye_deng_qing_jing", "頂樓夜燈情境"], ["input_boolean.ding_lou_yue_du_qing_jing", "頂樓閱讀情境"]]
+          items: [["input_boolean.topfloor_stairs_night_used", "頂樓_樓梯燈上次為深夜亮度"], ["input_boolean.topfloor_stairs_keep_on", "頂樓_樓梯燈常開（內部旗標，雙擊 9A 開、長按 9C／每日 04:00 清除）"], ["input_boolean.ding_lou_shang_lou_qing_jing", "頂樓上樓情境"], ["input_boolean.ding_lou_xia_lou_qing_jing", "頂樓下樓情境"], ["input_boolean.ding_lou_ye_deng_qing_jing", "頂樓夜燈情境"], ["input_boolean.ding_lou_yue_du_qing_jing", "頂樓閱讀情境"]]
         triggers_update: ["input_boolean.topfloor_stairs_night_used", "input_boolean.topfloor_stairs_keep_on", "input_boolean.ding_lou_shang_lou_qing_jing", "input_boolean.ding_lou_xia_lou_qing_jing", "input_boolean.ding_lou_ye_deng_qing_jing", "input_boolean.ding_lou_yue_du_qing_jing"]
       - type: entities
         show_header_toggle: false

@@ -22,6 +22,8 @@ d=json.load(open("/homeassistant/.storage/core.restore_state"))["data"]
 doms=("automation","input_boolean","input_number","input_select","input_text","input_datetime","input_button","timer","counter","script")
 out=[]
 GONE={"input_boolean.door_light_auto",
+      # 2026-11-09 V4.3.6：頂樓 Webhook 固定綜合模式；機台氣氛燈「停用」改「啟用」
+      "input_select.topfloor_webhook_mode", "input_boolean.ambient_scene_off", "input_boolean.mood_alert_ap_off",
       # 2026-10-26 充電判斷改成機率模型，不再用最大電流換算
       "input_number.garage_charger_max_a",
       # 2026-10-26 104-2 改用 lpr_close_buffer_sec（秒）
@@ -70,7 +72,7 @@ CATS = [
 AUTO_RULES = [
     ("supply", r"^(00-2C|耗材|電池)"),
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7[ABE]|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
-    ("topfloor", r"^(08-5[A-M]|800-開關系列-(11|12)[A-D]?)"),
+    ("topfloor", r"^(08-5[A-Q]|800-開關系列-(11|12)[A-D]?)"),
     ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試|TREM 預警|地牛 add-on)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
@@ -127,7 +129,7 @@ SUBGROUPS = {
     ],
     "topfloor": [
         ("感應燈與書房燈參數", r"topfloor_(evidence|line_debounce|arrive|down_4f|vacancy|study|stairs_night|stairs_day)|topfloor_motion_pause"),
-        ("上下樓情境判斷參數", r"_kenny|topfloor_webhook_mode|topfloor_ap_macs"),
+        ("上下樓情境判斷參數", r"_kenny|topfloor_ap_macs"),
         ("睡眠靜默與熟睡鎖", r"sleep_silent|sleep_holiday|sleep_5h_|sleep_unlock_"),
         ("頂樓情境廣播", r"topfloor_scene_announce|頂樓情境廣播"),
         ("攝影機與模型判斷", r"頂樓模型|頂樓攝影機|五樓攝影機|頂樓四樓樓梯燈校正|頂樓樓梯燈｜自動關燈前"),
@@ -1061,7 +1063,7 @@ LISTCARD_RECENT = r"""[[[
   const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
   const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
     <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onscroll="window.__lc=window.__lc||{};window.__lc['${title}']=this.scrollTop" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="position:absolute;width:0;height:0" onload="this.previousElementSibling.scrollTop=(window.__lc&&window.__lc['${title}'])||0"></div>`;
   const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
 
   const now = Date.now();
@@ -1070,7 +1072,7 @@ LISTCARD_RECENT = r"""[[[
     .filter((x) => !isNaN(x.t) && now - x.t < 86400000 && now - x.t > -60000).sort((a, b) => b.t - a.t);
   const rel = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
   const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details style="border-top:.5px solid rgba(128,128,128,.28)"><summary style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
+  return wrapBox('#0A84FF', '最近 24 小時觸發', `${items.length} 筆`, items.slice(0, 10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('') + (items.length > 10 ? `<details ${(window.__lc && window.__lc.open) ? 'open' : ''} ontoggle="window.__lc=window.__lc||{};window.__lc.open=this.open" style="border-top:.5px solid rgba(128,128,128,.28)"><summary onclick="event.preventDefault();event.stopPropagation();var d=this.parentNode;d.open=!d.open" style="padding:11px 0;font-size:13px;font-weight:600;color:#0A84FF;cursor:pointer">展開其餘 ${items.length - 10} 筆</summary>${items.slice(10).map((x) => rowH('#0A84FF', x.n, `${hm(x.t)}・${rel(now - x.t)}`)).join('')}</details>` : ''), '最近 24 小時沒有自動化被觸發。');
 ]]]"""
 LISTCARD_OFF = r"""[[[
   const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1078,7 +1080,7 @@ LISTCARD_OFF = r"""[[[
   const autos = Object.values(states).filter((s) => s.entity_id.indexOf('automation.') === 0);
   const wrapBox = (color, title, chip, rows, empty) => `<div style="background:var(--card-background-color);box-shadow:inset 4px 0 0 ${color};border-radius:18px;padding:14px 4px 6px 20px;min-width:0;width:100%;box-sizing:border-box;overflow:hidden">
     <div style="display:flex;align-items:center;gap:10px;margin:0 16px 8px 0"><span style="flex:1;font-size:15px;font-weight:700;color:var(--primary-text-color)">${title}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:${color}1f;color:${color}">${chip}</span></div>
-    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div></div>`;
+    <div onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onscroll="window.__lc=window.__lc||{};window.__lc['${title}']=this.scrollTop" style="max-height:360px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:12px">${rows || `<div style="padding:14px 4px;font-size:14px;color:var(--secondary-text-color)">${empty}</div>`}</div><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="position:absolute;width:0;height:0" onload="this.previousElementSibling.scrollTop=(window.__lc&&window.__lc['${title}'])||0"></div>`;
   const rowH = (dot, name, right) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:.5px solid rgba(128,128,128,.28)"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:${dot}"></span><span style="flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--primary-text-color);${wrap}">${esc(name)}</span><span style="flex:none;font-size:12.5px;color:var(--secondary-text-color);white-space:nowrap">${right}</span></div>`;
 
   const off = autos.filter((s) => s.state === 'off').map((s) => s.attributes.friendly_name || s.entity_id).sort();
@@ -1117,8 +1119,8 @@ def overview_sections(autos, stale):
              ("input_boolean.notify_ha_info_enable", "HA 通知｜資訊級"), ("input_boolean.notify_ha_general_enable", "HA 通知｜一般級"),
              ("input_boolean.notify_ha_important_enable", "HA 通知｜重要級"),
              ("input_boolean.mood_alert_enable", "氣氛燈提醒｜總開關"), ("input_boolean.mood_alert_important_enable", "氣氛燈提醒｜重要級"),
-             ("input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級"), ("input_boolean.mood_alert_ap_off", "機台氣氛燈｜停用通知閃爍"),
-             ("input_boolean.ambient_scene_off", "機台氣氛燈｜停用情境色"), ("input_boolean.scene_announce_enable", "情境執行廣播"),
+             ("input_boolean.mood_alert_emergency_enable", "氣氛燈提醒｜緊急級"), ("input_boolean.mood_alert_ap_enable", "機台氣氛燈｜啟用通知閃爍"),
+             ("input_boolean.ambient_scene_enable", "機台氣氛燈｜啟用情境色"), ("input_boolean.scene_announce_enable", "情境執行廣播"),
              ("sensor.weather_sun_shift_min", "日出日落天氣調整｜目前分鐘"), ("input_boolean.weather_sun_adjust_off", "日出日落天氣調整｜關閉"),
              ("input_number.announce_volume_general", "廣播音量｜一般"), ("input_number.announce_volume_important", "廣播音量｜重要"),
              ("input_number.announce_volume_emergency", "廣播音量｜緊急")]
@@ -1127,16 +1129,12 @@ def overview_sections(autos, stale):
                 ("input_boolean.aqara_zai_jia", "Aqara 在家"),
                 ("input_boolean.aqara_li_jia", "Aqara 離家"),
                 ("input_boolean.aqara_wan_an", "Aqara 晚安"),
-                ("switch.smartpower_strip_2f_asussi_fu_qi", "Asus 伺服器電源"),
-                ("switch.smartpower_strip_2f_udmse", "UDM-SE 電源"),
-                ("switch.smartpower_strip_2f_tbcwang_lu_he", "TBC 網路盒電源"),
-                ("switch.xiao_yan_wang_guan_cha_zuo", "小燕網關插座"),
-                (_auto_eid("106C", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0"), "106C_解除網關警報整合AI"),
-                ("automation.ai_gateway_anomaly_guard", "106網關系統AI"),
-                ("automation.ai_00_01_xiaoyan_gateway_watchdog", "小燕網關看門狗")]
+                ("switch.can_ting_homepodcha_zuo", "客廳 HomePod 插座"),
+                ("switch.ding_lou_homepodcha_zuo", "頂樓 HomePod 插座")]
     top = [("input_boolean.topfloor_motion_pause", "頂樓感應暫停"), ("input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"),
-           ("input_select.topfloor_webhook_mode", "頂樓 Webhook 判斷模式"), ("input_boolean.topfloor_stairs_keep_on", "樓梯燈常開（9A）"),
-           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關"), ("input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式")]
+           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟"),
+           ("input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全系統手動復位"),
+           ("input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式")]
     off_md = ("{% set off = states.automation | selectattr('state','eq','off') | map(attribute='name') | sort | list %}"
               "{% if off | length == 0 %}沒有停用中的自動化。{% else %}{% for n in off %}- {{ n }}\n{% endfor %}{% endif %}")
     recent_md = ("{% set ns = namespace(items=[]) %}"
@@ -1276,6 +1274,7 @@ PANEL_ROOT = [
 "        - border: none",
 "        - box-shadow: 0 1px 2px rgba(0,0,0,.18)",
 "        - overflow: hidden",
+"        - pointer-events: auto",   # V4.3.6：button-card 對沒有點擊動作的卡片加 .disabled（pointer-events:none），開關列的觸控被整張卡吃掉
 "      grid:",
 "        - grid-template-areas: '\"rows\"'",
 "        - grid-template-columns: 1fr",
@@ -1299,6 +1298,7 @@ PANEL_ROOT = [
 "          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}'",
 "          + '.dv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:1px;background:rgba(255,159,10,.18);color:#E08600}'",
 "          + '.r.dev{background:rgba(255,159,10,.06)}</style>';",
+"        window.__tg = window.__tg || ((b, id) => { b.classList.toggle('on'); b.parentNode.classList.toggle('on'); document.querySelector('home-assistant').hass.callService('homeassistant', 'toggle', {entity_id: id}); });",
 "        return css + it.map(([e, n, d]) => {",
 "          const s = states[e]; const st = s ? s.state : 'unavailable';",
 "          const on = st === 'on'; const na = !s || st === 'unavailable'; const dev = !!d && !na && st !== d;",
@@ -1306,7 +1306,7 @@ PANEL_ROOT = [
 "          const nm = n || (s && s.attributes.friendly_name) || e;",
 "          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''} ${dev ? 'dev' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
 "            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}${dev ? `<span class=\"dv\">平常${d === 'on' ? '開' : '關'}</span>` : ''}</span>`",
-"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onclick=\"event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})\"></button></div>`;",
+"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onpointerup=\"if(event.pointerType==='touch'){event.stopPropagation();window.__swT=Date.now();window.__tg(this,'${e}')}\" onclick=\"event.stopPropagation();if(Date.now()-(window.__swT||0)<800)return;window.__tg(this,'${e}')\"></button></div>`;",
 "        }).join('');",
 "        ]]]"
 ]
@@ -1453,6 +1453,9 @@ def build(data):
 if __name__ == "__main__":
     data = fetch()
     text = build(data)
+    # V4.3.6：button-card 對沒有點擊動作的卡片加 .disabled（pointer-events:none），卡片內的開關與捲動區（最近 24 小時觸發等）觸控／滾輪全被吃掉；
+    # 統一在每張 button-card 的 styles.card 最前面補 pointer-events: auto。
+    text = re.sub(r"(^ *card:\n)( *)- border-radius: 18px\n", r"\1\2- pointer-events: auto\n\2- border-radius: 18px\n", text, flags=re.M)
     import yaml
     yaml.safe_load(text)
     OUT.parent.mkdir(parents=True, exist_ok=True)
