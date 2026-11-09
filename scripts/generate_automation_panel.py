@@ -1298,6 +1298,7 @@ PANEL_ROOT = [
 "          + '.sw.on{background:#34C759}.sw.on::after{left:22px}.sw:disabled{opacity:.35;cursor:default}.na .n{opacity:.5}'",
 "          + '.dv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:1px;background:rgba(255,159,10,.18);color:#E08600}'",
 "          + '.r.dev{background:rgba(255,159,10,.06)}</style>';",
+"        window.__tg = window.__tg || ((b, id) => { b.classList.toggle('on'); b.parentNode.classList.toggle('on'); document.querySelector('home-assistant').hass.callService('homeassistant', 'toggle', {entity_id: id}); });",
 "        return css + it.map(([e, n, d]) => {",
 "          const s = states[e]; const st = s ? s.state : 'unavailable';",
 "          const on = st === 'on'; const na = !s || st === 'unavailable'; const dev = !!d && !na && st !== d;",
@@ -1305,7 +1306,7 @@ PANEL_ROOT = [
 "          const nm = n || (s && s.attributes.friendly_name) || e;",
 "          return `<div class=\"r ${on ? 'on' : ''} ${na ? 'na' : ''} ${dev ? 'dev' : ''}\"><span class=\"ic\"><ha-icon icon=\"${esc(ic)}\"></ha-icon></span>`",
 "            + `<span class=\"n\" onclick=\"event.stopPropagation();this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:'${e}'},bubbles:true,composed:true}))\">${esc(nm)}${dev ? `<span class=\"dv\">平常${d === 'on' ? '開' : '關'}</span>` : ''}</span>`",
-"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onclick=\"event.stopPropagation();this.classList.toggle('on');this.parentNode.classList.toggle('on');document.querySelector('home-assistant').hass.callService('homeassistant','toggle',{entity_id:'${e}'})\"></button></div>`;",
+"            + `<button class=\"sw ${on ? 'on' : ''}\" ${na ? 'disabled' : ''} aria-label=\"切換\" onpointerup=\"if(event.pointerType==='touch'){event.stopPropagation();window.__swT=Date.now();window.__tg(this,'${e}')}\" onclick=\"event.stopPropagation();if(Date.now()-(window.__swT||0)<800)return;window.__tg(this,'${e}')\"></button></div>`;",
 "        }).join('');",
 "        ]]]"
 ]

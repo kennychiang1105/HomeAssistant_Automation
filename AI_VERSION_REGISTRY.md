@@ -978,3 +978,4 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **樓梯燈常開改內部旗標、五樓保全改名（2026-11-09）**：①面板「頂樓常用」不再顯示 `topfloor_stairs_keep_on`（歸內部狀態），新增 `08-5Q` 每天 04:00 清除旗標；②`wu_lou_bao_quan_xi_tong_kai_guan` 由「五樓保全系統開關」改名「五樓保全系統手動開啟」（輔助項目、面板、對外名稱）。
 - **HA 自動化管理面板開關按不動／清單不能滑（2026-11-09）**：button-card 對沒有點擊動作的卡片加 `.disabled`（`pointer-events: none`），開關列與「最近 24 小時觸發」捲動區的觸控、滾輪被整張卡吃掉（Kiosk 不受影響）。`generate_automation_panel.py` 產生面板時統一給 button-card 的 `styles.card` 補 `pointer-events: auto`，並重新產生面板；Kiosk 面板頁補上警戒狀態中文（在家警戒、離家警戒、夜間警戒…）。
 - **面板「最近 24 小時觸發」展開其餘／捲動位置被重繪洗掉（2026-11-09）**：清單卡設 `triggers_update: all`，任何狀態變動都重繪，「展開其餘 N 筆」的 details 被外層取消預設展開動作且重繪後收回、捲動位置歸零。改為 summary 自己切換（`onclick` 手動切 `open`），並用 `window.__lc` 記住展開狀態與捲動位置，重繪後還原（「最近 24 小時觸發」「目前停用的自動化」兩張清單卡共用）。
+- **面板開關列加觸控放開處理（2026-11-09）**：iPad 觸控點開關沒反應時不再只靠 `click`：按鈕加 `onpointerup`（`pointerType==='touch'` 時直接切換並記時間），`onclick` 在 800ms 內跳過避免重複切換；切換邏輯收進 `window.__tg`。
