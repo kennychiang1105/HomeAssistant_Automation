@@ -1,0 +1,33 @@
+# ────────────────────────────────────────────────────────
+# 08-5Q樓梯燈常開旗標定期清除AI (V4.3.6)
+# 更新紀錄（統一格式）：
+# - V4.3.6（2026-11-09）：新增。9A（雙擊常開）打開的 input_boolean.topfloor_stairs_keep_on 是內部旗標，忘了長按 9C 關閉時會一直擋住頂樓感應與定時關燈；
+#   每天 04:00 固定清除旗標（連同 stairs_si_lou_hold）。只清旗標，不動燈：燈要關仍由 9C、9B 或頂樓感應處理。
+# ────────────────────────────────────────────────────────
+- id: ai_08_5q_stairs_keep_on_daily_clear
+  alias: 08-5Q樓梯燈常開旗標定期清除AI (V4.3.6)
+  description: 每天 04:00 清除樓梯燈常開內部旗標（9A 雙擊常開忘了關時，避免長期擋住頂樓感應與定時關燈）。只清旗標，不動燈。
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: time
+      at: "04:00:00"
+      id: daily_clear
+  conditions: []
+  actions:
+    - if:
+        - condition: state
+          entity_id: input_boolean.topfloor_stairs_keep_on
+          state: "on"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.topfloor_stairs_keep_on
+    - if:
+        - condition: state
+          entity_id: input_boolean.stairs_si_lou_hold
+          state: "on"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.stairs_si_lou_hold

@@ -72,7 +72,7 @@ CATS = [
 AUTO_RULES = [
     ("supply", r"^(00-2C|耗材|電池)"),
     ("scene", r"^(100晚安|101早安|102離家|103到家|100A|100B|100C ?GoogleHome|08-7[ABE]|105門鎖|106-1|HomeKit情境|AI離家版本|800-開關系列-(0B?|1B?)(?![0-9A-Za-z]))"),
-    ("topfloor", r"^(08-5[A-M]|800-開關系列-(11|12)[A-D]?)"),
+    ("topfloor", r"^(08-5[A-Q]|800-開關系列-(11|12)[A-D]?)"),
     ("emergency", r"^(05[A-G]|01地震|02地震|03E|03苗栗|04苗栗|00-2廣播系統測試|TREM 預警|地牛 add-on)"),
     ("air_fan", r"^(07|06空氣|06環境異常|21[AB]|22頂樓)"),
     ("lighting", r"^(800-開關系列-(9[ABC]|10)|08-4|08-8|104-1|801-)"),
@@ -1132,8 +1132,7 @@ def overview_sections(autos, stale):
                 ("switch.can_ting_homepodcha_zuo", "客廳 HomePod 插座"),
                 ("switch.ding_lou_homepodcha_zuo", "頂樓 HomePod 插座")]
     top = [("input_boolean.topfloor_motion_pause", "頂樓感應暫停"), ("input_boolean.sleep_silent_active", "頂樓深夜熟睡手動鎖"),
-           ("input_boolean.topfloor_stairs_keep_on", "樓梯燈保持常亮（雙擊牆壁開關開啟、長按關閉）"),
-           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統開關"),
+           ("input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟"),
            ("input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全系統手動復位"),
            ("input_boolean.debug_topfloor_kenny", "頂樓自動化 Debug 模式")]
     off_md = ("{% set off = states.automation | selectattr('state','eq','off') | map(attribute='name') | sort | list %}"

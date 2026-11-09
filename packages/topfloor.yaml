@@ -75,7 +75,7 @@ input_boolean:
     name: 頂樓_書房燈由感應開啟
     icon: mdi:robot
   topfloor_stairs_keep_on:
-    name: 頂樓_樓梯燈常開(9A)
+    name: 頂樓_樓梯燈常開（內部旗標，雙擊 9A 開、長按 9C／每日 04:00 清除）
     icon: mdi:lightbulb-on
   topfloor_motion_pause:
     name: 頂樓_感應暫停中

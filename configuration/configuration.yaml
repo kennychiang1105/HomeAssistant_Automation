@@ -470,7 +470,7 @@ google_assistant:
       room: "伺服器"
       expose: true
     input_boolean.wu_lou_bao_quan_xi_tong_kai_guan:
-      name: "五樓保全系統開關"
+      name: "五樓保全系統手動開啟"
       room: "伺服器"
       expose: true
     # --- 情境按鈕 ---
