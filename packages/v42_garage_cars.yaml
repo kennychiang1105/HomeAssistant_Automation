@@ -427,7 +427,7 @@ script:
             message: 車庫鐵門即將關閉，請注意安全。
             player: media_player.che_ku_she_ying_ji_speaker
             adjust_volume: false
-      - delay: "00:00:08"
+      - delay: "00:00:05"
       - action: script.garage_close_safety_check
         response_variable: sf2
       - variables:
@@ -448,9 +448,42 @@ script:
               result: "{{ {'closed': false, 'reasons': (reasons2 | from_json([])) or ['無法確認淨空']} }}"
           - stop: "廣播後再確認未通過，不關門"
             response_variable: result
+      # 2026-11-11：下達關門的最後一刻再看一次攝影機（淨空確認到真正送出指令之間仍有數秒空檔，11-11 21:46:49 車輛偵測亮起、2 秒後就被關門）
+      - if: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') or is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'on') }}"
+        then:
+          - variables:
+              result: "{{ {'closed': false, 'reasons': ['下達關門前最後一刻，攝影機看到人或車']} }}"
+          - stop: "關門前最後確認：鐵門口有人或車，不關門"
+            response_variable: result
       - action: cover.close_cover
         target:
           entity_id: cover.garage
+      # 2026-11-11：關門過程中（約 20 秒）持續監看：攝影機看到人或車就立刻改回開門，交給重試關門等人車離開再關
+      - wait_for_trigger:
+          - trigger: state
+            entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
+            to: "on"
+          - trigger: state
+            entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
+            to: "on"
+          - trigger: state
+            entity_id: cover.garage
+            to: "closed"
+        timeout:
+          seconds: 25
+        continue_on_timeout: true
+      - if: "{{ wait.trigger is not none and wait.trigger.entity_id != 'cover.garage' and not is_state('cover.garage', 'closed') }}"
+        then:
+          - action: cover.open_cover
+            target:
+              entity_id: cover.garage
+          - action: script.turn_on
+            target:
+              entity_id: script.garage_gate_close_retry
+          - variables:
+              result: "{{ {'closed': false, 'reasons': ['關門過程中攝影機看到人或車，已改回開門，等人車離開再關']} }}"
+          - stop: "關門過程偵測到人或車，已中止並重新開門"
+            response_variable: result
       - variables:
           result: "{{ {'closed': true, 'reasons': []} }}"
       - stop: "已廣播並確認無人無車，下達關門"
@@ -462,14 +495,14 @@ script:
     mode: single
     sequence:
       - repeat:
-          count: 40
+          count: 120
           sequence:
             - wait_for_trigger:
                 - trigger: state
                   entity_id: cover.garage
                   to: "closed"
               timeout:
-                minutes: 3
+                minutes: 1
               continue_on_timeout: true
             - if: "{{ wait.trigger is not none or not is_state('cover.garage', 'open') }}"
               then:
@@ -478,8 +511,8 @@ script:
                 {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off')
                    and is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'off')
                    and is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'off')
-                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) > 180
-                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed)) > 180 }}
+                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) > 60
+                   and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed)) > 60 }}
               then:
                 - action: script.garage_close_safety_check
                   response_variable: sf
