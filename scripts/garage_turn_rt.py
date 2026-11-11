@@ -4,7 +4,9 @@
 車身框每秒向 Garage Vision add-on 更新一次並「跟著車子走」（車從後位開到前位途中也看得到，不依賴車位標籤）。
 判斷沿用 garage_turn_signal.py 的 amber_frac／decide（單邊 3 秒內規律閃 ≥2 次、振幅 ≥0.005；雙黃燈左右各 ≥2 次、振幅 ≥0.003、且左右同步相關係數 ≥0.5）。
 即時分析每 0.5 秒評估一次（機會比短片檢查多很多），所以改成「連續 3 輪（約 1.5 秒）都成立」才回報（2026-11-10 用 13 段影片量化校正：
-真實出門 2 段都連續 4 輪；誤判 2～3 段只有 1～2 輪）。另外整台車一起變色不算（車身中央參考區跟著起伏＝鐵門關上曝光變化、煞車燈染紅，11-08 15:19）。
+真實出門 2 段都連續 4 輪；誤判 2～3 段只有 1～2 輪）。
+V4.4.2（2026-11-11）：拿掉「整台車一起變色不算」——白色車身會被自己的方向燈照成橘色、整台車跟著燈一亮一暗，11-11 09:28 真的方向燈因此被擋掉、閃了 11 秒沒偵測到
+（鐵門最後是車牌辨識開的）；這道防護在 13 段回放裡沒有擋下任何誤判（誤判都是「連續 3 輪」擋掉的）。參考區序列仍然記錄，只供診斷。
 「車外還有人」不在這裡擋，交給 HA 開門前的 script.garage_board_check（人在車旁上車時方向燈也會亮，這裡擋掉會連真的出門一起漏掉）。
 
 用法（HA shell_command，最長約 45 秒，偵測到就提早結束）：
@@ -167,12 +169,9 @@ class Analyzer:
                 out, sides = (dict(rl, kind='left'), ['left']) if rl['blink'] else (dict(rr, kind='right'), ['right'])
         if out is None:
             return None
-        # ②整台車一起變色（曝光變化／煞車燈染紅）不算
+        # 車身參考區的起伏只記錄不擋（白色車身會被方向燈照成橘色，V4.4.2）
         f = np.asarray(tr.ref[-WIN_S:], dtype=np.float32)
-        ref_swing = float(np.percentile(f, 92) - np.percentile(f, 8)) if len(f) else 0.0
-        if ref_swing >= 0.4 * (out['peak'] - out['floor']) or (len(f) and float(np.median(f)) > 0.08):
-            tr.rej['scene'] += 1
-            return None
+        out['body_swing'] = round(float(np.percentile(f, 92) - np.percentile(f, 8)), 3) if len(f) else 0.0
         out['peak_left'], out['peak_right'] = hl['peak'], hr['peak']
         return out
 
@@ -318,8 +317,8 @@ def selftest():
     if not h or h['kind'] != 'hazard' or i > 35:
         err.append('雙黃燈沒在 3.5 秒內偵測到 %s %s' % (i, h and h['kind']))
     i, h = play([(i % 9 < 4, i % 9 < 4) for i in range(60)], flood=True)
-    if h:
-        err.append('整台車一起變色被判成雙黃燈')
+    if not h or h['kind'] != 'hazard':
+        err.append('白色車身被方向燈照亮（整台車跟著閃）時應該照樣偵測到雙黃燈（11-11 09:28）')
     i, h = play([(i % 9 < 4, False) for i in range(60)], persons=[{'conf': 0.5, 'box': [0.44, 0.05, 0.56, 0.9]}])
     if not h or h['kind'] != 'left':
         err.append('人在車旁時方向燈不該被偵測層擋掉（交給開門前的車外有人確認）%s' % (h and h['kind']))
