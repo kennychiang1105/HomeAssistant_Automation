@@ -95,7 +95,7 @@
 | `configuration/Automations/106D網關切換同步Aqara開關AI.yaml` | `106D網關切換同步Aqara開關AI (V4.2.2)` | `ai_106d_gateway_to_aqara_switch` | `V4.2.2` |
 | `configuration/Automations/106網關系統AI.yaml` | `106網關系統AI (V4.1.5)` | `ai_gateway_anomaly_guard` | `V4.1.5` |
 | `configuration/Automations/107Tesla充電器狀態與通知AI.yaml` | `107Tesla充電器狀態與通知AI (V4.3.0) / 107B充電槍插上時間記錄AI (V4.3.0) / 107C充電車輛鎖定AI (V4.3.0)` | `ai_107_tesla_charger_status_notify` / `ai_107b_charger_connected_mark` / `ai_107c_charging_vehicle_latch` | `V4.3.0` / `V4.3.0` / `V4.3.0` |
-| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.2.2)` | `ai_living_room_fan_integrated_control` | `V4.2.2` |
+| `configuration/Automations/21A_客廳電風扇整合控制AI.yaml` | `21A_客廳電風扇整合控制AI (V4.4.3)` | `ai_living_room_fan_integrated_control` | `V4.4.3` |
 | `configuration/Automations/21B_客廳電風扇異常告警AI.yaml` | `21B_客廳電風扇異常告警AI (V4.0.0)` | `ai_living_room_fan_anomaly_alert` | `V4.0.0` |
 | `configuration/Automations/21B夏季模式自動判斷AI.yaml` | `21B夏季模式自動判斷AI (V4.1.5)` | `ai_21b_summer_mode_auto_v41` | `V4.1.5` |
 | `configuration/Automations/22頂樓電風扇自動化AI.yaml` | `22頂樓電風扇自動化AI (V4.1.5)` | `ai_topfloor_fan_automation` | `V4.1.5` |
@@ -983,3 +983,4 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **車庫方向燈即時分析（V4.4.1，2026-11-10，第一階段只記錄）**：新增 `scripts/garage_turn_rt.py`＋`script.garage_turn_rt`，直接讀攝影機串流（HA 內建 go2rtc 轉送 `unifiprotect_847848288CA2_0`）逐幀分析方向燈／雙黃燈，車身框跟著車子走（不依賴車位標籤），連續兩次評估成立才回報。起因：11-10 09:14 車從後位開到前位途中，短片檢查只看標示有車的後位、每輪約 8 秒，雙黃燈打了約 30 秒才開門。新增 `input_boolean.garage_turn_rt_enable`（開）、`input_boolean.garage_turn_rt_open_enable`（關＝只記錄，打開才由即時分析開門）、`input_text.garage_turn_rt_last`；104-5 同時啟動；原短片檢查保留當備援。
 - **車庫方向燈即時分析：拿掉「整台車一起變色不算」（V4.4.2，2026-11-11）**：11-11 09:28 Luxgen 從後位開到前位、方向燈閃了約 11 秒，即時分析沒偵測到（鐵門最後由車牌辨識在 09:28:55 開）。原因：白色車身被自己的方向燈照成橘色、整台車跟著燈一亮一暗，被這道防護當成曝光變化擋掉（尾燈本身訊號滿格、規律閃 4 次）。這道防護在 13 段回放裡沒有擋下任何誤判，故移除（車身參考區只記錄）。回放驗證：今天這段改為第 4.5 秒（09:28:45）偵測到；先前 13 段結果不變（真實出門 2 段照樣抓到、11-08 15:19 曝光變化仍不回報）。
 - **車牌開門等待縮短（V4.4.2，2026-11-11）**：`104-2車輛動態辨識系統AI` 車牌 webhook 觸發開門前的固定等待由 3 秒縮短為 1 秒（等待後仍再確認鐵門關著才開）。11-11 09:28 時間線：車停好 09:28:44、讀到車牌 09:28:48（攝影機端約 4 秒）、開門指令 09:28:51、鐵門開啟中 09:28:55（硬體約 4 秒）。
+- **客廳電風扇自動調速曲線與室內蓄熱優化（V4.4.3，2026-11-11）**：`21A_客廳電風扇整合控制AI` ① 當室內溫度 ≥ 26.0°C（屋內蓄熱）時取消非夏季 -10% 降檔（`season_cut=0`），避免室外夜間 20°C 但室內仍有 26.4°C／體感 27.9°C 時被降回 20%；② 30% 起跳門檻由 27.8°C 下調至 27.2°C（含遲滯 0.3°C 時體感 > 27.5°C 即升至 30%，≤ 26.9°C 才退回 20%）；③ 切換自動風速模式或手動觸發自動化時立即重新評估並調整風速。

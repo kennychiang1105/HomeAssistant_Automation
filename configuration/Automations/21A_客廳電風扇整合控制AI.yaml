@@ -1,4 +1,5 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
+# - V4.4.3（2026-11-11）：① 室內溫度 ≥ 26.0°C（屋內蓄熱）時取消非夏季 -10% 降檔（season_cut＝0），避免室外夜間 20°C 但室內仍有 26.4°C／體感 27.9°C 時被降回 20%；② 30% 起跳門檻由 27.8°C 下調至 27.2°C（含遲滯 0.3°C 時體感 > 27.5°C 即升至 30%，低於 26.9°C 才降回 20%）；③ 切換自動風速模式或手動觸發自動化時立即重算風速。
 # - V4.3.9（2026-10-31）：自動風速結合室外溫度（weather.homeweather_zhu_nan_zhen）：①室內比室外熱時體感溫度加成（高出 1°C 以上每 1°C +0.25，上限 +1.0；室外 ≥ 32°C 再 +0.4）；②非夏季模式的整體降檔由固定 10% 改為看室外溫度（< 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降）。原因：10/31 室內 29°C／濕度 61%／室外 27°C，體感 29.55°C 剛好卡在 60% 門檻（29.6）下方，遲滯讓風量停在 50%，使用者覺得熱；加上室內比室外熱的加成後體感 29.8°C → 60%。
 # - V4.2.2（2026-10-23）：依 SOP-20 新增 HA 重啟接手（ha_start）：重啟後 delay 15 秒重新評估環境溫濕度與兒童鎖／風速調節；保護 trigger.to_state is defined。
 # - V4.1.5（2026-10-11）：自動調速防抖。原本 t_eff 在 28.3／28.4 等門檻上下 0.1°C 抖動就會讓風量每 15～30 秒大小來回（30 小時 67 次變化、86 次快速反轉）。
@@ -6,7 +7,7 @@
 #   ③ 濕度加成改連續線性（>50% 起每 1% +0.05°C，上限 1.5），不再在 50／60／75% 一次跳 0.5°C；④ 曲線下限 20%（風扇最低檔），不再送 10% 指令。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；通知改用 script.notify_dispatch（分級 HA 通知）、廣播改用 script.announce，LINE 發送帶入來源名稱。
 # 導入路徑：configuration/Automations/21A_客廳電風扇整合控制AI.yaml
-- alias: 21A_客廳電風扇整合控制AI (V4.2.2)
+- alias: 21A_客廳電風扇整合控制AI (V4.4.3)
   id: ai_living_room_fan_integrated_control
   description: "整合溫控、防關閉、夏季模式的雙模式自動化"
   mode: queued
@@ -41,7 +42,7 @@
       id: ha_start
 
   variables:
-    automation_version: "V4.2.2"
+    automation_version: "V4.4.3"
     # ---- Modes ----
     auto_speed_mode: "{{ is_state('input_boolean.living_room_fan_auto_speed_mode', 'on') }}"
     prevent_off_mode: "{{ is_state('input_boolean.living_room_fan_prevent_off_mode', 'on') }}"
@@ -92,9 +93,9 @@
         {%- if outdoor_hum is not none and outdoor_temp >= 24 and outdoor_hum > 60 -%}{%- set b = b + ([(outdoor_hum - 60) * 0.04, 0.6] | min) -%}{%- endif -%}
         {{- b | round(2) -}}
       {%- endif -%}
-    # ③ 非夏季模式原本一律把曲線整體降 10%：改成看室外溫度，室外 < 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降（室外取不到沿用 10%）
+    # ③ 非夏季模式原本一律把曲線整體降 10%：改成看室內與室外溫度，若室內 ≥ 26.0°C（屋內蓄熱）則不降檔；室內 < 26.0°C 時，室外 < 26°C 降 10%、26～29°C 降 5%、≥ 29°C 不降
     season_cut: >-
-      {% if summer_mode %}0
+      {% if summer_mode or (active_temp is not none and active_temp >= 26.0) %}0
       {% elif outdoor_temp is none or outdoor_temp < 26 %}10
       {% elif outdoor_temp < 29 %}5
       {% else %}0{% endif %}
@@ -119,7 +120,7 @@
         {%- elif t > 29.3 -%}{%- set p = 60 -%}
         {%- elif t > 28.8 -%}{%- set p = 50 -%}
         {%- elif t > 28.3 -%}{%- set p = 40 -%}
-        {%- elif t > 27.8 -%}{%- set p = 30 -%}
+        {%- elif t > 27.2 -%}{%- set p = 30 -%}
         {%- endif -%}
         {%- if p != 100 -%}{{ [p - (season_cut | int(10)), 20] | max }}{%- else -%}{{ p }}{%- endif -%}
       {%- endmacro %}
@@ -230,11 +231,7 @@
 
         # === PRIORITY 4: 環境與位置變更綜合控制 (打通兒童鎖與溫控回寫鏈結) ===
         - conditions:
-            - condition: trigger
-              id:
-                - sensor_change
-                - location_change
-                - ha_start
+            - "{{ (trigger.id | default('manual', true)) in ['sensor_change', 'location_change', 'ha_start', 'mode_change', 'manual'] }}"
             - "{{ t_eff_valid }}"
           sequence:
             # Sub-Step A: 執行 V3.2.1 動態兒童鎖遲滯控制
