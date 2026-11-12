@@ -1,6 +1,9 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.4.3（2026-11-12）：修正 garage_close_safety_check、garage_close_confirmed 與 garage_id_fix 的模板清單／字典轉型錯誤：
+#           HA 原生型別自動將 `| to_json` 轉為 Python list/dict，導致後續 `| from_json([])`／`| from_json({})` 型別錯誤而退回空陣列，
+#           造成 20:56 車庫門口有車且車燈亮時 `reasons` 被清空、`safe` 誤判為 true 而觸發關門廣播。
 # - V4.4.1（2026-11-10）：新增「方向燈即時分析」（script.garage_turn_rt＋scripts/garage_turn_rt.py）：直接讀攝影機串流（HA 內建 go2rtc 轉送），每幀算車尾橘燈、車身框跟著車子走，
 #           偵測到左／右方向燈或雙黃燈約 3 秒內回報（11-10 09:14 車從後位開到前位途中，短片檢查只看「標示有車」的後位＋每輪約 8 秒，雙黃燈打了約 30 秒才開門）。
 #           第一階段只記錄不開門（input_text.garage_turn_rt_last）：input_boolean.garage_turn_rt_open_enable 打開後才由即時分析呼叫 garage_turn_act 開門；原本的短片檢查保留當備援。
@@ -375,7 +378,7 @@ script:
             {% if phone_in %}{% set r = r + ['家人手機連在車庫 AP'] %}{% endif %}
             {% if moved_in | trim != '' %}{% set r = r + [moved_in ~ '剛有車輛挪動／進入（3 分鐘內），車上可能還有人'] %}{% endif %}
             {{ r | to_json }}
-          rs: "{{ reasons | from_json([]) }}"
+          rs: "{{ reasons if (reasons is iterable and reasons is not string) else (reasons | from_json([])) }}"
           result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok} }}"
       - stop: 淨空確認完成
         response_variable: result
@@ -440,12 +443,14 @@ script:
             {% if as_timestamp(states[e].last_changed, 0) >= t0 - 30 %}{% set ns.r = ns.r + ['車位狀態剛變動'] %}{% endif %}
             {% endfor %}
             {{ ns.r | unique | list | to_json }}
+          late_list: "{{ late if (late is iterable and late is not string) else (late | from_json([])) }}"
           reasons2: >-
-            {{ ((sf2.get('reasons') if (sf2 is mapping and sf2.get('reasons')) else []) + (late | from_json([]))) | unique | list | to_json }}
-      - if: "{{ not (sf2 is mapping and sf2.get('safe') == true) or (late | from_json([])) | length > 0 or not is_state('cover.garage', 'open') }}"
+            {{ ((sf2.get('reasons') if (sf2 is mapping and sf2.get('reasons')) else []) + late_list) | unique | list | to_json }}
+          reasons2_list: "{{ reasons2 if (reasons2 is iterable and reasons2 is not string) else (reasons2 | from_json([])) }}"
+      - if: "{{ not (sf2 is mapping and sf2.get('safe') == true) or (late_list | length) > 0 or not is_state('cover.garage', 'open') }}"
         then:
           - variables:
-              result: "{{ {'closed': false, 'reasons': (reasons2 | from_json([])) or ['無法確認淨空']} }}"
+              result: "{{ {'closed': false, 'reasons': reasons2_list or ['無法確認淨空']} }}"
           - stop: "廣播後再確認未通過，不關門"
             response_variable: result
       # 2026-11-11：下達關門的最後一刻再看一次攝影機（淨空確認到真正送出指令之間仍有數秒空檔，11-11 21:46:49 車輛偵測亮起、2 秒後就被關門）
@@ -682,7 +687,7 @@ script:
                 {{ {'slot': 'front', 'car': other[sb], 'why': 'excl', 'plate': plate_new and plate_car == other[sb]} | to_json }}
               {% else %}{}{% endif %}
             {% else %}{}{% endif %}
-          fixd: "{{ fix | from_json({}) }}"
+          fixd: "{{ fix if fix is mapping else (fix | from_json({})) }}"
       - if: "{{ fixd is mapping and fixd.get('slot') }}"
         then:
           - action: input_select.select_option
