@@ -2,6 +2,9 @@
 # 08-5C頂樓樓梯感應燈AI (V4.0.0)
 # 相容版本：Helpers V3.22.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.8（2026-11-12）：①新增攝影機人員偵測持續滿 3 秒（cam_stay_3s）與攝影機模型確認有人（cam_model_confirm，事件 topfloor_cam_person）觸發，
+#           確認畫面有人即直接忽略「剛進房 20 秒／45 秒」防呆進行開燈（解決 22:15 進房關燈後立刻走出站立於頂樓樓梯口不開燈問題）；
+#           ②剛進房 45 秒防呆新增「進房後左側 PIR／房門線／書房線又有新動靜」即放行 0 秒開燈。
 # - V4.1.7（2026-11-07）：自動關燈（抵達書房／臥室、下樓、樓梯口清空、保底）前先用攝影機畫面模型確認：畫面還有人就延後，等人消失才關（最多等 5 分鐘，仍有人就交給保底計時）；
 #           保底關燈另外要等攝影機人員偵測恢復無人。腳本 script.topfloor_stairs_wait_clear，開關 input_boolean.topfloor_stairs_off_cam_hold_enable。
 # - V4.1.6（2026-11-06）：攝影機開樓梯燈的「剛進房間」防呆改看動線事件（剛進書房／臥室 45 秒內且沒有樓梯跨線不開），不再只靠左側 PIR（11-02 起故障，防呆形同虛設）；左側 PIR 超過 2 天沒動作時，「右側比左側晚」的放行條件停用。
@@ -46,6 +49,16 @@
       trigger: state
       entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
       to: "on"
+    # V4.1.8：攝影機人員偵測持續滿 3 秒 → 確認有人停留，直接忽略剛進房防呆進行開燈
+    - id: cam_stay_3s
+      trigger: state
+      entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
+      to: "on"
+      for: "00:00:03"
+    # V4.1.8：攝影機畫面模型確認有人 → 直接忽略剛進房防呆進行開燈
+    - id: cam_model_confirm
+      trigger: event
+      event_type: topfloor_cam_person
     # 走出房間：一定先碰左側（房間），隨後碰右側（書房側）→ 開樓梯燈
     - id: pir_out
       trigger: state
@@ -77,15 +90,21 @@
         {{ trigger.id != 'cam_on' or is_state('timer.topfloor_room_arrived', 'idle')
            or is_state('binary_sensor.shu_fang_gan_ying_kai_guan_motion_right', 'on')
            or (left_alive and pr > pl) }}
-    # V4.1.6：剛進書房／臥室 45 秒內（之後沒有樓梯跨線），攝影機看到人（在走道上走動）不開樓梯燈。
-    #   原防呆靠左側 PIR，左側 PIR 11-02 起故障，「右側比左側晚觸發」永遠成立 → 防呆完全失效（11-06 23:31～23:34 人在書房與臥室之間，樓梯燈被攝影機開關 4 次）。
+    # V4.1.6：剛進書房／臥室 45 秒內（之後沒有樓梯跨線），攝影機瞬間看到人（在走道上走動）不開樓梯燈。
+    # V4.1.8：若進房事件之後左側 PIR／房門線／書房線又有新動靜（人又走出房門），或攝影機滿 3 秒（cam_stay_3s）／模型確認有人（cam_model_confirm），直接忽略防呆進行開燈。
     - condition: template
       value_template: >-
+        {% set now_ts = now().timestamp() %}
         {% set lp = states('input_text.topfloor_last_path') | string %}
         {% set name = lp.split('|')[0] if '|' in lp else '' %}
-        {% set age = now().timestamp() - ((lp.split('|')[1] | float(0)) if '|' in lp else 0) %}
-        {% set st = now().timestamp() - as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) %}
-        {{ trigger.id != 'cam_on' or not (name in ['enter_study', 'enter_bedroom', 'leave_study_bedroom'] and age <= 45 and st > age) }}
+        {% set lp_ts = (lp.split('|')[1] | float(0)) if '|' in lp else 0 %}
+        {% set age = now_ts - lp_ts %}
+        {% set st = now_ts - as_timestamp(states('input_datetime.topfloor_stairs_line_last_triggered'), 0) %}
+        {% set pl_ts = as_timestamp(states('input_datetime.topfloor_pir_left_last'), 0) %}
+        {% set bd_ts = as_timestamp(states('input_datetime.topfloor_bedroom_line_last_triggered'), 0) %}
+        {% set sd_ts = as_timestamp(states('input_datetime.topfloor_studyroom_line_last_triggered'), 0) %}
+        {% set walked_out = (pl_ts > lp_ts + 2) or (bd_ts > lp_ts + 2) or (sd_ts > lp_ts + 2) %}
+        {{ trigger.id != 'cam_on' or walked_out or not (name in ['enter_study', 'enter_bedroom', 'leave_study_bedroom'] and age <= 45 and st > age) }}
   actions:
     - variables:
         night: "{{ is_state('input_boolean.sleep_silent_active', 'on') }}"

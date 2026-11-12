@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
 # 頂樓攝影機模型判斷 (V4.3.4-beta 3)
 # 更新紀錄（統一格式）：
+# - V4.3.12（2026-11-12）：topfloor_cam_ai_loop 與 topfloor_stairs_wait_clear 當模型確認畫面有人（persons > 0）且任一盞樓梯燈未亮時，
+#   發出 topfloor_cam_person 事件供 08-5C 直接忽略剛進房防呆進行開燈。
 # - V4.3.10（2026-11-07）：新增 script.topfloor_stairs_wait_clear：08-5C 自動關樓梯燈前先抓一張快照用人物模型確認，畫面還有人就每 2 秒再看，等人消失才關（最多等 5 分鐘）；
 #   模型只看到人、攝影機 60 秒內沒有任何動作／人員偵測＝視為靜物誤判。開關 input_boolean.topfloor_stairs_off_cam_hold_enable。
 # - V4.3.4-beta 3（2026-10-28，測試中）：新增「最後去向」判斷：人消失超過 2.5 秒就依消失位置＋走動方向判斷去向（下樓梯／進書房／回臥室），發事件 topfloor_cam_exit 給 08-5J，
@@ -149,6 +151,15 @@ script:
                     result: "{{ {'clear': true, 'waited': (now().timestamp() - t0) | round(0) | int, 'persons': n | int(-1)} }}"
                 - stop: 畫面沒有人
                   response_variable: result
+            - if: >-
+                {{ (n | int(-1)) > 0 and active
+                   and (is_state('light.yeelink_color5_13b8_light', 'off') or is_state('light.yeelink_color5_0fb7_light', 'off'))
+                   and is_state('input_boolean.topfloor_stairs_keep_on', 'off') }}
+              then:
+                - event: topfloor_cam_person
+                  event_data:
+                    persons: "{{ n | int(1) }}"
+                    source: "wait_clear"
             - delay: "00:00:02"
       - variables:
           result: "{{ {'clear': false, 'waited': (now().timestamp() - t0) | round(0) | int} }}"
@@ -221,7 +232,18 @@ script:
                       response_variable: r
                       continue_on_error: true
                     - variables:
-                        res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+                        res: "{{ (r.stdout if r.stdout is mapping else (r.stdout | from_json({}))) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+                    # V4.3.12：模型確認畫面有人且樓梯燈未全亮 → 發出 topfloor_cam_person 讓 08-5C 直接忽略防呆開燈
+                    - if: >-
+                        {{ res is mapping and (res.get('persons', 0) | int(0)) > 0
+                           and (is_state('light.yeelink_color5_13b8_light', 'off') or is_state('light.yeelink_color5_0fb7_light', 'off'))
+                           and is_state('input_boolean.topfloor_stairs_keep_on', 'off') }}
+                      then:
+                        - event: topfloor_cam_person
+                          event_data:
+                            persons: "{{ res.get('persons', 1) | int(1) }}"
+                            frames: "{{ res.get('frames', 0) | int(0) }}"
+                            source: "cam_ai_loop"
                     - if: "{{ res is mapping and res.get('fire') in ['up', 'down'] }}"
                       then:
                         - action: input_number.increment
