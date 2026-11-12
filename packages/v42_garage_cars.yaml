@@ -935,13 +935,14 @@ script:
 
   garage_turn_fast:
     alias: 車庫方向燈連續檢查AI (V4.3.10)
-    description: 車庫有人或有動靜（鐵門關著）時，連續錄 2 秒短片、邊錄邊分析（不等上一段分析完），偵測左／右方向燈或雙黃燈。偵測到就交給 script.garage_turn_act 開門。沒動靜 20 秒或超過 2 分鐘結束。
+    description: 車庫有人或有動靜（鐵門關著）時，連續錄 2 秒短片、邊錄邊分析（不等上一段分析完），偵測左／右方向燈或雙黃燈。偵測到就交給 script.garage_turn_act 開門。沒動靜 20 秒或超過 2 分鐘結束。即時分析（garage_turn_rt）與其開門開關都開啟時不重複跑，避免搶用 Garage Vision add-on。
     mode: single
     max_exceeded: silent
     sequence:
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and is_state('input_boolean.garage_depart_watch_enable', 'on')
+             and not (is_state('input_boolean.garage_turn_rt_enable', 'on') and is_state('input_boolean.garage_turn_rt_open_enable', 'on'))
              and is_state('cover.garage', 'closed') }}
       - repeat:
           while:
@@ -1031,7 +1032,7 @@ script:
                     people: "{{ res.get('people', -1) }}"
                     car: "{{ states('input_select.garage_slot_' ~ slot) }}"
                     names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛, empty: 車位空}
-                    kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈}
+                    kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈, move: 從後位移到前位}
                     ok_car: >-
                       {{ car != 'empty' and not is_state('input_select.garage_facing_' ~ slot, 'inside') and is_state('cover.garage', 'closed') }}
                     open_on: "{{ is_state('input_boolean.garage_turn_rt_open_enable', 'on') }}"
@@ -1117,7 +1118,7 @@ script:
       car: "{{ states('input_select.garage_slot_' ~ slot) }}"
       names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛}
       pos: {front: 前位, back: 後位}
-      kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈}
+      kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈, move: 從後位移到前位}
       do_open: >-
         {{ is_state('input_boolean.garage_depart_auto_open_enable', 'on') and is_state('input_boolean.garage_turn_signal_open_enable', 'on')
            and ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_depart_last_open'), 0)) > 300) }}
