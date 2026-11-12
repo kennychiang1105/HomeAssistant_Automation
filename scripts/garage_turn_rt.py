@@ -36,7 +36,7 @@ WIN = 30            # 雙黃燈評估視窗（幀）＝3 秒，與短片分析�
 WIN_S = 40          # 整車變色（參考區）檢查用的視窗（幀）＝4 秒
 REF = (0.30, 0.70, 0.50, 0.80)   # 車身中央參考區（相對車身框 x0,x1,y0,y1）：真的車燈只有角落亮，這裡不會跟著閃
 PERSON_GUARD = 0.25  # 只用來回報畫面上有沒有人（不再用來擋偵測）
-MIN_LEN = 20        # 至少累積 2 秒才評估
+MIN_LEN = 15        # 至少累積 1.5 秒才評估（原 20＝2 秒；維持 EVAL_EVERY=5、CONFIRM=3 不增加誤判）
 EVAL_EVERY = 5      # 每 0.5 秒評估一次
 CONFIRM = 3         # 連續幾次評估（每 0.5 秒）成立才回報
 REFRESH = 20        # 每幾幀更新一次車身框（回放模式，約 2 秒，和即時模式實測的更新速度相當；即時模式由背景執行緒盡快更新）
@@ -103,6 +103,7 @@ class Track:
 class Analyzer:
     def __init__(self):
         self.tracks = []
+        self.recent = []            # 即時模式首次等待 add-on 回傳車身框期間先暫存畫面，框回來後回填，不白丟前 1.5～2.5 秒
         self.people = None          # None＝還不知道（add-on 還沒回應或連不上）
         self.people_conf = []
         self.vboxes = []
@@ -131,7 +132,14 @@ class Analyzer:
             self.tracks = [t for t in self.tracks if t.miss < 3]
             for i, (sl, b) in enumerate(dets):
                 if i not in used:
-                    self.tracks.append(Track(sl, b))
+                    tr = Track(sl, b)
+                    for rf in self.recent:
+                        for reg, ser in ((REGION['left'], tr.sl), (REGION['right'], tr.sr), (REF, tr.ref)):
+                            c = self._crop(rf, tr.box, reg)
+                            ser.append(round(amber_frac(c), 4) if c.size else 0.0)
+                    self.tracks.append(tr)
+            if self.tracks:
+                self.recent.clear()
             self.vboxes = vboxes
             if persons is not None:
                 self.persons = [q['box'] for q in persons if q.get('box') and q.get('conf', 0) >= PERSON_GUARD]
@@ -179,6 +187,11 @@ class Analyzer:
         """餵一幀（H×W×3 uint8）。回傳偵測結果 dict 或 None。"""
         hit = None
         with self.lock:
+            if not self.tracks:
+                self.recent.append(frame.copy())
+                if len(self.recent) > WIN_S:
+                    del self.recent[0]
+                return None
             for tr in self.tracks:
                 for reg, ser in ((REGION['left'], tr.sl), (REGION['right'], tr.sr), (REF, tr.ref)):
                     c = self._crop(frame, tr.box, reg)
