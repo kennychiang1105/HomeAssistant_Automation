@@ -3,6 +3,7 @@
 # 104-2車輛動態辨識系統AI (V4.3.0-beta 7)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.4.3（2026-11-13）：移除 repeat 淨空確認通過後多餘的第二次 garage_close_safety_check（sf2），因緊接著呼叫的 garage_close_confirmed 內部即會執行廣播前與廣播後兩次淨空確認，省去約 7～8 秒重複快照等待。
 # - V4.4.2（2026-11-11）：車牌觸發開門前的固定等待由 3 秒縮短為 1 秒（11-11 09:28 讀到車牌 09:28:48、開門指令 09:28:51、鐵門開啟中 09:28:55）；等待後仍會再確認鐵門關著才送出開門指令。
 # - V4.3.0-beta 7（2026-11-06）：自動關門不再要求離家情境（Arm Away）：車已駛出、鐵門還開著、車庫無人車動靜（再加車庫模型淨空確認、廣播、再確認）就關。原本要等全員離家＋判斷（出門後約 3～4 分鐘）才會關，11-06 09:10 出門鐵門多開了約 4.5 分鐘。
 # - V4.3.11（2026-11-01）：自動關門改呼叫 script.garage_close_confirmed（淨空確認→車庫喇叭廣播→8 秒後再確認→才關）。
@@ -409,15 +410,13 @@
                                 sequence:
                                   - action: script.garage_close_safety_check
                                     response_variable: sf
-                                  - if: "{{ not (sf is mapping and sf.get('safe') == true) and is_state('cover.garage', 'open') }}"
+                                  - if: "{{ not (sf is mapping and sf.get('safe') == true) and is_state('cover.garage', 'open') and repeat.index < 10 }}"
                                     then:
                                       - delay: "00:00:30"
                                 until:
                                   - condition: template
                                     value_template: "{{ (sf is mapping and sf.get('safe') == true) or not is_state('cover.garage', 'open') or repeat.index >= 10 }}"
-                            - action: script.garage_close_safety_check
-                              response_variable: sf2
-                            - if: "{{ not (sf2 is mapping and sf2.get('safe') == true) or not is_state('cover.garage', 'open') }}"
+                            - if: "{{ not (sf is mapping and sf.get('safe') == true) or not is_state('cover.garage', 'open') }}"
                               then:
                                 - if: "{{ is_state('cover.garage', 'open') }}"
                                   then:
@@ -428,7 +427,7 @@
                                         source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                         version: "{{ automation_version | default('', true) }}"
                                         title: "⛔ 已取消自動關門 (淨空確認未通過)"
-                                        message: "{{ '、'.join(sf2.reasons) if (sf2 is mapping and sf2.get('reasons')) else '無法確認' }}。5 分鐘內仍未淨空，不自動關門，交給 104-3 鐵門未關處理。"
+                                        message: "{{ '、'.join(sf.reasons) if (sf is mapping and sf.get('reasons')) else '無法確認' }}。5 分鐘內仍未淨空，不自動關門，交給 104-3 鐵門未關處理。"
                                 - stop: "淨空確認未通過或鐵門已不是開啟狀態"
                             - action: script.garage_close_confirmed
                               response_variable: cc
