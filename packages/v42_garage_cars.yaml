@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.4.4（2026-11-13）：車位剛變空（3 分鐘內駛出且無車位剛變成有車）時，garage_close_safety_check 與 garage_gate_close_retry 不再因車內手機殘留車庫 AP 連線而延後關門（解決 08:22 車已開走、08:22:53 緩衝結束卻因手機 AP 斷線延遲等到 08:24:20 才廣播關門）。
 # - V4.4.3（2026-11-12）：修正 garage_close_safety_check、garage_close_confirmed 與 garage_id_fix 的模板清單／字典轉型錯誤：
 #           HA 原生型別自動將 `| to_json` 轉為 Python list/dict，導致後續 `| from_json([])`／`| from_json({})` 型別錯誤而退回空陣列，
 #           造成 20:56 車庫門口有車且車燈亮時 `reasons` 被清空、`safe` 誤判為 true 而觸發關門廣播。
@@ -360,10 +361,15 @@ script:
           cam_vehicle: "{{ is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'on') or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed, 0)) < 45 }}"
           cars_moving: >-
             {% set ns = namespace(l=[]) %}{% for e in ['sensor.garage_car_luxgen_n7', 'sensor.garage_car_tesla_model3'] %}{% if (as_timestamp(now()) - as_timestamp(states[e].last_changed, 0)) < 30 or states(e) == 'departing' %}{% set ns.l = ns.l + [state_attr(e, 'friendly_name') or e] %}{% endif %}{% endfor %}{{ ns.l | join('、') }}
-          phone_in: "{{ '車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] }}"
           # 車位在最近 3 分鐘內「變成有車」（車子在車庫內挪位置、剛倒車進來／換位置）＝車上可能還有人，車庫攝影機人員偵測看不到車裡的人
           moved_in: >-
             {% set ns = namespace(l=[]) %}{% for e, n in [('input_select.garage_slot_front', '前位'), ('input_select.garage_slot_back', '後位')] %}{% if not is_state(e, 'empty') and (as_timestamp(now()) - as_timestamp(states[e].last_changed)) < 180 %}{% set ns.l = ns.l + [n] %}{% endif %}{% endfor %}{{ ns.l | join('、') }}
+          # V4.4.4：車位在最近 3 分鐘內剛變空（車剛駛出）且沒有另一車位剛變成有車：車內手機離開時車庫 AP 會有 1～2 分鐘斷線延遲，不因 AP 殘留阻擋關門
+          car_just_left: >-
+            {{ moved_in | trim == '' and (
+                 (is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180)
+                 or (is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180)) }}
+          phone_in: "{{ not car_just_left and ('車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')]) }}"
           reasons: >-
             {% set r = [] %}
             {% if n_person | int(0) > 0 %}{% set r = r + ['畫面辨識到有人（' ~ n_person ~ ' 人）'] %}{% endif %}
@@ -513,9 +519,14 @@ script:
               then:
                 - stop: "鐵門已關閉，結束重試"
             - if: >-
+                {% set moved_in_any = (not is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180)
+                                      or (not is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180) %}
+                {% set car_left = not moved_in_any and (
+                                    (is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180)
+                                    or (is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180)) %}
                 {{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off')
                    and is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'off')
-                   and is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'off')
+                   and (is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'off') or car_left)
                    and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed)) > 60
                    and (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed)) > 60 }}
               then:
