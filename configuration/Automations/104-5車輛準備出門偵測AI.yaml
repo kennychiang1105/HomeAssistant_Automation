@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# 104-5車輛準備出門偵測AI (V4.3.0-beta 1)
+# 104-5車輛準備出門偵測AI (V4.4.4)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
 # - V4.4.4（2026-11-12）：新增 104-5D 提早開門：車子（已確認是 Luxgen／Tesla）從後位移到空的前位、鐵門關著、攝影機有動作，就先開鐵門（不等方向燈，比方向燈偵測早約 7 秒）；沿用 garage_turn_act 的所有防護（自動開門開關、5 分鐘不重複開、車外有人先不開、車頭朝內不開）。
@@ -11,13 +11,13 @@
 #           更新前／後位車輛（Luxgen N7／Tesla Model 3）與車頭朝向，並判斷哪輛車準備出門。細節見 packages/v42_garage_cars.yaml。
 #   - 104-5：定時分析；104-5B：準備出門旗標超時復歸；104-5C：面板「學習」按鈕。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-5車輛準備出門偵測AI (V4.3.0-beta 1)
+- alias: 104-5車輛準備出門偵測AI (V4.4.1)
   id: ai_104_5_garage_depart_watch
   description: 定時分析車庫畫面（車位、車種、車頭朝向、車燈、位移），判斷車輛準備出門。
   mode: single
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.0-beta 1"
+    automation_version: "V4.4.1"
   triggers:
     - trigger: time_pattern
       seconds: "/5"
@@ -94,6 +94,8 @@
   # 2026-11-14：執行紀錄多留，觀察「車庫內挪車（不是要出門）」會不會誤開門
   trace:
     stored_traces: 20
+  variables:
+    automation_version: "V4.4.4"
   triggers:
     - trigger: state
       entity_id: input_select.garage_slot_back
