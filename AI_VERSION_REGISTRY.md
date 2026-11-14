@@ -21,11 +21,11 @@
 - 實體分類總表（`ENTITY_REGISTRY.md`）：`V1.0`
 
 <!-- STATS:BEGIN -->
-## 數量統計（`scripts/registry_stats.py` 產生，更新於 2026-10-22）
+## 數量統計（`scripts/registry_stats.py` 產生，更新於 2026-11-14）
 
 | 項目 | 檔案數 | 數量 |
 |---|---|---|
-| AI 自動化（`Automations/*.yaml`，一項一個 id） | 64 | **98** |
+| AI 自動化（`Automations/*.yaml`，一項一個 id） | 70 | **114** |
 | AI 腳本（`Scripts/*.yaml`，一支一個 key） | 15 | **33** |
 
 <!-- STATS:END -->
@@ -59,7 +59,7 @@
 | `configuration/Automations/06環境異常通知AI.yaml` | `06環境異常通知AI (V4.1.6)` | `ai_06_env_alert_v41` | `V4.1.6` |
 | `configuration/Automations/07空氣清淨機整合AI.yaml` | `07空氣清淨機整合AI (V4.2.0)` | `ai_07_air_purifier_v41` | `V4.2.0` |
 | `configuration/Automations/08-5A五樓保全系統AI.yaml` | `08-5A 五樓保全系統AI Webhook精準防禦 (V4.2.2)` | `ai_08_5a_5f_security_webhook_guard` | `V4.2.2` |
-| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.0.0) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.0.0` / `V4.0.0` / `V4.1.5` |
+| `configuration/Automations/08-5C頂樓樓梯感應燈AI.yaml` | `08-5C頂樓樓梯感應燈AI (V4.1.8) / 08-5C頂樓樓梯感應燈自動關閉AI (V4.0.0) / 08-5C頂樓樓梯燈解除深夜亮度AI (V4.1.5)` | `ai_08_5c_topfloor_stairs_motion_light` / `ai_08_5c_topfloor_stairs_motion_light_auto_off` / `ai_08_5c_stairs_leave_night_level` | `V4.1.8` / `V4.0.0` / `V4.1.5` |
 | `configuration/Automations/08-5F頂樓自動上下樓情境AI.yaml` | `08-5F頂樓自動上下樓情境AI (V4.1.6) / 08-5F頂樓下樓補判AI (V4.0.1)` | `ai_topfloor_stairs_scene` / `ai_topfloor_down_assist_v4` | `V4.1.6` / `V4.0.1` |
 | `configuration/Automations/08-5G書房燈感應AI.yaml` | `08-5G 書房燈感應AI (V4.1.5) / 08-5G 書房燈關閉AI (V4.1.5) / 08-5G 書房燈無人檢查AI (V4.1.5) / 08-5G 書房回房間關燈AI (V4.1.5)` | `ai_08_5g_study_motion_light` / `ai_08_5g_study_light_off_v4` / `ai_08_5g_study_vacancy_check` / `ai_08_5g_study_to_room_off` | `V4.1.5` / `V4.1.5` / `V4.1.5` / `V4.1.5` |
 | `configuration/Automations/08-5H頂樓深夜熟睡情境AI.yaml` | `08-5H頂樓深夜熟睡情境AI (V4.3.0) / 08-5H頂樓深夜熟睡鎖管理AI (V4.2.1)` | `ai_08_5h_topfloor_deep_sleep_scene_guard` / `ai_08_5h_topfloor_sleep_lock_manager` | `V4.3.0` / `V4.2.1` |
@@ -67,7 +67,7 @@
 | `configuration/Automations/08-5K頂樓燈具使用權AI.yaml` | `08-5K頂樓燈具使用權AI (V4.0.0) / 08-5K頂樓樓梯燈手動保持結束AI (V4.0.0) / 08-5K頂樓感應暫停到期AI (V4.0.0) / 08-5K頂樓開機狀態自癒檢查AI (V4.2.2)` | `ai_08_5k_topfloor_light_ownership` / `ai_08_5k_topfloor_manual_hold_end` / `ai_08_5k_topfloor_pause_end` / `ai_08_5k_topfloor_reconcile_on_start` | `V4.0.0` / `V4.0.0` / `V4.0.0` / `V4.2.2` |
 | `configuration/Automations/08-5L頂樓情境廣播AI.yaml` | `08-5L頂樓情境廣播AI (V4.3.3)` | `ai_08_5l_topfloor_scene_announce` | `V4.3.3` |
 | `configuration/Automations/08-5M頂樓攝影機模型分析AI.yaml` | `08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)` | `ai_08_5m_topfloor_cam_ai` | `V4.3.4-beta 1` |
-| `packages/v43_topfloor_cam_ai.yaml` | `頂樓攝影機模型判斷AI (V4.3.4-beta 3)`（script.topfloor_cam_ai_loop、script.topfloor_cam_ai_exit） | `topfloor_cam_ai_loop` | `V4.3.4-beta 3` |
+| `packages/v43_topfloor_cam_ai.yaml` | `頂樓攝影機模型判斷AI (V4.3.12)`（script.topfloor_cam_ai_loop、script.topfloor_cam_ai_exit） | `topfloor_cam_ai_loop` | `V4.3.12` |
 | `configuration/Automations/08-6離家保全系統AI.yaml` | `08-6離家保全系統AI (V4.0.0)` | `ai_away_security_system` | `V4.0.0` |
 | `configuration/Automations/08-7A自動晚安情境AI.yaml` | `08-7A自動晚安情境AI (V4.2.2)` | `ai_08_7a_auto_goodnight_scene` | `V4.2.2` |
 | `configuration/Automations/08-7B二樓夜間防下樓AI.yaml` | `08-7B二樓夜間防下樓AI (V4.3.6) / 08-7B二樓夜間防下樓｜記錄晚安情境時間 (V4.3.6)` | `ai_08_7b_anti_down` / `ai_08_7b_anti_down_night_stamp` | `V4.3.6` / `V4.3.6` |
@@ -86,10 +86,10 @@
 | `configuration/Automations/100C3客廳門鎖電量下降時間紀錄AI.yaml` | `100C3客廳門鎖電量下降時間紀錄AI (V3.0)` | `ai_doorlock_battery_drop_timestamp_recorder` | `V3.0` |
 | `configuration/Automations/100C_GoogleHome情境虛擬按鈕橋接AI.yaml` | `100C GoogleHome情境虛擬按鈕橋接AI (V4.2.2)` | `ai_100c_googlehome_scene_virtual_button_bridge` | `V4.2.2` |
 | `configuration/Automations/104-1車庫鐵門感應燈AI.yaml` | `104-1車庫鐵門感應燈AI (V4.2.0) / 104-1B車庫燈手動關閉冷卻AI (V4.2.0) / 104-1C全員離家關閉車庫燈AI (V4.2.0)` | `ai_104_1_garage_gate_motion_light` / `ai_104_1b_garage_manual_off_cooldown` / `ai_104_1c_garage_all_away_off` | `V4.2.0` / `V4.2.0` / `V4.2.0` |
-| `configuration/Automations/104-2車輛動態辨識系統AI.yaml` | `104-2車輛動態辨識系統AI (V4.3.0-beta 5)` | `ai_lpr_recognition` | `V4.3.0-beta 5` |
+| `configuration/Automations/104-2車輛動態辨識系統AI.yaml` | `104-2車輛動態辨識系統AI (V4.4.3)` | `ai_lpr_recognition` | `V4.4.3` |
 | `configuration/Automations/104-3鐵門判斷未關提醒及作動AI.yaml` | `104-3鐵門判斷未關提醒及作動AI (V4.3.1) / 104-3A鐵門開啟時間記錄AI (V4.3.1)` | `ai_104_3_garage_gate_open_guard_and_autoclose` / `ai_104_3a_gate_open_stamp` | `V4.3.1` / `V4.3.1` |
 | `configuration/Automations/104-4車庫回家通知系統AI.yaml` | `104-4車庫回家通知系統AI (V4.3.0)` | `ai_104_4_garage_arrival_notice` | `V4.3.0` |
-| `configuration/Automations/104-5車輛準備出門偵測AI.yaml` | `104-5車輛準備出門偵測AI (V4.3.0-beta 1) / 104-5B車輛準備出門旗標復歸AI (V4.3.0-beta 1) / 104-5C車庫車輛樣板學習AI (V4.3.0-beta 1)` | `ai_104_5_garage_depart_watch` / `ai_104_5b_garage_depart_candidate_reset` / `ai_104_5c_garage_learn` | `V4.3.0-beta 1` / `V4.3.0-beta 1` / `V4.3.0-beta 1` |
+| `configuration/Automations/104-5車輛準備出門偵測AI.yaml` | `104-5車輛準備出門偵測AI (V4.4.1) / 104-5B車輛準備出門旗標復歸AI (V4.3.0-beta 1) / 104-5C車庫車輛樣板學習AI (V4.3.0-beta 1) / 104-5D車輛由後位移到前位提早開門AI (V4.4.4)` | `ai_104_5_garage_depart_watch` / `ai_104_5b_garage_depart_candidate_reset` / `ai_104_5c_garage_learn` / `ai_104_5d_garage_early_open_on_move` | `V4.4.1` / `V4.3.0-beta 1` / `V4.3.0-beta 1` / `V4.4.4` |
 | `configuration/Automations/105大門門鈴自動化AI.yaml` | `105大門門鈴自動化AI (V4.0.0)` | `ai_105_front_door_doorbell_notify` | `V4.0.0` |
 | `configuration/Automations/106C_解除網關警報整合AI.yaml` | `106C_解除網關警報整合AI (V4.2.1)` | `ai_106c_gateway_alarm_disarm_integration` | `V4.2.1` |
 | `configuration/Automations/106D網關切換同步Aqara開關AI.yaml` | `106D網關切換同步Aqara開關AI (V4.2.2)` | `ai_106d_gateway_to_aqara_switch` | `V4.2.2` |
@@ -987,4 +987,5 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **車庫自動關門：人車在鐵門口就中止並等離開（2026-11-11）**：11-11 21:46:49 攝影機看到車輛，2 秒後鐵門被下達關門（淨空確認到送出指令之間有空檔）。`garage_close_confirmed`：①送出關門前最後一刻再看攝影機人員／車輛偵測，有就不關；②關門後 25 秒內持續監看，有人或車就改回開門並啟動 `garage_gate_close_retry`；③廣播後再確認等待 8 秒→5 秒。`garage_gate_close_retry`：重判間隔 3 分鐘→1 分鐘（次數 40→120，仍約 2 小時）、人車偵測需關閉超過 60 秒（原 180 秒）才進淨空確認。
 - **車庫出門開門加速：後位移前位提早開門＋方向燈即時分析加速（V4.4.4，2026-11-12）**：11-12 11:16:54 Luxgen 從後位開到前位並讀到車牌，11:17:01 方向燈即時分析才觸發開門（鐵門全開約 23.5 秒）。①新增 `104-5D`（`ai_104_5d_garage_early_open_on_move`）：已確認是 Luxgen／Tesla 從後位移到空的前位、鐵門關著且攝影機有動作，立即交由 `garage_turn_act` 提早開門（比方向燈早約 7 秒，沿用自動開門開關、5 分鐘冷卻、車外有人先不開、車頭朝內不開與 3 分鐘未離開自動關門）。②`garage_turn_rt.py`：最短評估視窗 `MIN_LEN` 由 20（2.0 秒）縮短為 15（1.5 秒，維持 `EVAL_EVERY=5`、`CONFIRM=3`，回放驗證 `n_1109_2122` 與 `n_1108_1518` 皆 0 誤判）；即時模式首次等待 Garage Vision 回傳車身框期間先暫存畫面並於框回來時回填，不丟失前 1.5～2.5 秒畫面。③`garage_turn_fast`：當即時分析與其自動開門開關皆啟用時不重複執行，避免同時搶用 Garage Vision add-on 拖慢車身框更新。
 - **11-14 更新檢查後的補強（V4.4.5，2026-11-14）**：①方向燈即時分析加備援：`garage_turn_rt` 這一輪沒有正常結果（串流讀不到、程式出錯、Garage Vision add-on 連不上）時打開 `input_boolean.garage_turn_rt_fault` 並發 HA 通知，`garage_turn_fast`（短片檢查）在旗標開著時恢復執行，恢復正常自動切回（V4.4.4 起即時分析開著時短片檢查完全停用、沒有備援）。②`08-5C`、`104-5D` 執行紀錄保留數拉高（40／20 筆），用來確認 V4.1.8 放寬後進房樓梯燈短暫開關的觸發來源，以及 104-5D 會不會在車庫內挪車時誤開門（邏輯未改）。③`garage_gate_close_retry` 最終通知文字 40 次改 120 次。④自動化管理面板重新產生（補上 104-5D）。
-- **方向燈觸發時車外有人 → 上車後自動補開鐵門（V4.4.6，2026-11-14）**：解決「打方向燈或雙黃燈時車外還有人（尚未全數上車），等所有人都上車後方向燈已熄滅而未自動開鐵門」的情境。①`scripts/garage_turn_signal.py` 新增 `analyse_snap` 與 `--snap` 參數，支援直接對單張即時快照做車位與車外人員偵測。②`packages/v42_garage_cars.yaml` 新增 `shell_command.garage_board_snap` 與 `script.garage_board_wait_open`（`mode: restart`，每 3 秒取快照並以 `--snap` 檢查，最長 90 秒）；當 `garage_car_watch_run` 或 `garage_turn_act` 遇 `garage_board_check` 回傳 `hold: true` 時自動啟動背景等待，一旦連續 ≥ 4 秒無人站在車外且未走上樓梯（`up（走進樓梯口`），即使方向燈已結束仍自動呼叫 `script.garage_turn_act`（`people: 0`）補開鐵門。
+- **方向燈觸發時車外有人 → 上車後自動補開鐵門（V4.4.5，2026-11-14）**：解決「打方向燈或雙黃燈時車外還有人（尚未全數上車），等所有人都上車後方向燈已熄滅而未自動開鐵門」的情境。①`scripts/garage_turn_signal.py` 新增 `analyse_snap` 與 `--snap` 參數，支援直接對單張即時快照做車位與車外人員偵測。②`packages/v42_garage_cars.yaml` 新增 `shell_command.garage_board_snap` 與 `script.garage_board_wait_open`（`mode: restart`，每 3 秒取快照並以 `--snap` 檢查，最長 90 秒）；當 `garage_car_watch_run` 或 `garage_turn_act` 遇 `garage_board_check` 回傳 `hold: true` 時自動啟動背景等待，一旦連續 ≥ 4 秒無人站在車外且未走上樓梯（`up（走進樓梯口`），即使方向燈已結束仍自動呼叫 `script.garage_turn_act`（`people: 0`）補開鐵門。
+- **AI 4.4.5 發布（2026-11-14）**：自 V4.4.0（2026-11-09）起的更新統整。①車庫方向燈即時分析與雙重備援：新增讀串流即時分析（最短 1.5 秒、等待車身框期間先暫存畫面、移除白色車身曝光誤擋），串流或辨識服務異常時自動開啟旗標切回短片檢查備援，恢復正常自動切回。②方向燈觸發時車外有人 → 上車後自動補開鐵門（script.garage_board_wait_open）：每 3 秒取快照確認（最長 90 秒），一旦連續 ≥ 4 秒車外無人且未走上樓梯，即使方向燈已熄滅仍自動補開鐵門。③車庫出門與關門加速：新增 104-5D 後位移前位提早開門（比方向燈早約 7 秒）、車牌開門等待 3→1 秒、車輛駛出後略過車庫 AP 斷線殘留延遲與重複淨空檢查。④車庫自動關門安全強化：關門前最後一刻與關門後 25 秒內持續監看人車偵測，重試間隔 3→1 分鐘（120 次）、廣播後確認 8→5 秒，並修正淨空確認與身分校正模板 to_json/from_json 型別錯誤。⑤頂樓樓梯燈開燈改善（08-5C V4.1.8）：攝影機確認有人防呆由滿 6 秒縮短為 3 秒，且模型確認有人時直接忽略剛進房防呆立即開燈。⑥客廳電風扇自動調速優化（21A V4.4.3）：室內 ≥ 26.0°C 取消非夏季 -10% 降檔、30% 起跳門檻 27.8→27.2°C，切自動或手動觸發立即重算。Release：https://github.com/kennychiang1105/HomeAssistant_Automation/releases/tag/V4.4.5

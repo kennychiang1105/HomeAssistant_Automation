@@ -1,12 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-# 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
+# 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.4.5）
 # 更新紀錄（統一格式）：
-# - V4.4.6（2026-11-14）：車庫方向燈因車外有人暫緩開門後，新增「人上車自動補開鐵門」（script.garage_board_wait_open ＋ shell_command.garage_board_snap）：
-#           暫緩開門後每 3 秒拍一張快照確認車外人數（最多 90 秒）；連續確認車外無人（距上次看到人 ≥ 4 秒）且非走進樓梯口上樓時，
-#           即使方向燈已經熄滅仍自動交由 garage_turn_act 補開鐵門（解決 11-14 05:39 方向燈時畫面有人暫緩，上車後燈已關而未再開門）。
 # - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
 #           garage_turn_fast（短片檢查）在這個旗標開著時恢復執行；即時分析恢復正常就自動關閉旗標（V4.4.4 起即時分析開著時短片檢查完全停用，串流一掛方向燈偵測就整個失效且沒有通知）。
 #           ②garage_gate_close_retry 最終通知文字「已重試 40 次」改為 120 次（V4.4.3 已把次數改成 120、間隔 1 分鐘）。
+#           ③車庫方向燈因車外有人暫緩開門後，新增「人上車自動補開鐵門」（script.garage_board_wait_open ＋ shell_command.garage_board_snap）：
+#           暫緩開門後每 3 秒拍一張快照確認車外人數（最多 90 秒）；連續確認車外無人（距上次看到人 ≥ 4 秒）且非走進樓梯口上樓時，
+#           即使方向燈已經熄滅仍自動交由 garage_turn_act 補開鐵門（解決 11-14 05:39 方向燈時畫面有人暫緩，上車後燈已關而未再開門）。
 # - V4.4.4（2026-11-13）：車位剛變空（3 分鐘內駛出且無車位剛變成有車）時，garage_close_safety_check 與 garage_gate_close_retry 不再因車內手機殘留車庫 AP 連線而延後關門（解決 08:22 車已開走、08:22:53 緩衝結束卻因手機 AP 斷線延遲等到 08:24:20 才廣播關門）。
 # - V4.4.3（2026-11-12）：修正 garage_close_safety_check、garage_close_confirmed 與 garage_id_fix 的模板清單／字典轉型錯誤：
 #           HA 原生型別自動將 `| to_json` 轉為 Python list/dict，導致後續 `| from_json([])`／`| from_json({})` 型別錯誤而退回空陣列，
@@ -327,7 +327,7 @@ template:
 
 script:
   garage_close_safety_check:
-    alias: 車庫關門前淨空確認AI (V4.3.0-beta 6)
+    alias: 車庫關門前淨空確認AI (V4.4.4)
     description: 自動關鐵門前呼叫：用車庫畫面模型（人物偵測＋車燈／煞車燈＋車身位移）加攝影機人員偵測、動作偵測、家人手機位置，確認沒人且車輛沒有要動。回傳 safe 與原因；模型無法使用時改用感測器判斷。
     mode: queued
     max: 3
@@ -400,7 +400,7 @@ script:
         response_variable: result
 
   garage_close_confirmed:
-    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V1.0.2)
+    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V4.4.3)
     description: >
       所有「自動」關鐵門都走這支：①先跑淨空確認（人／車／車燈／位移／攝影機人車偵測／車位剛變動）；②通過後用車庫攝影機喇叭廣播「車庫鐵門即將關閉，請注意安全」；
       ③等廣播播完（約 8 秒）再確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
@@ -511,7 +511,7 @@ script:
         response_variable: result
 
   garage_gate_close_retry:
-    alias: 鐵門未關重試關門AI (V4.3.1)
+    alias: 鐵門未關重試關門AI (V4.4.5)
     description: 104-3 取消自動關門（有人車活動、AP 有人、淨空確認未通過）後接手：每 3 分鐘重判一次，最多 40 次（約 2 小時）；條件都安靜且淨空確認通過就關門，鐵門自己關上就結束，最後仍沒關成功發一則重要通知，並一律廣播（客廳 HomePod＋車庫攝影機喇叭），請自己關門。
     mode: single
     sequence:
@@ -580,7 +580,7 @@ script:
                 - media_player.che_ku_she_ying_ji_speaker
 
   garage_car_watch_run:
-    alias: 車庫車輛畫面分析AI (V4.3.0-beta 6)
+    alias: 車庫車輛畫面分析AI (V4.4.5)
     description: 車庫快照 → 畫面分析 → 更新前／後位車輛、判斷準備出門（預設只記錄；通知與自動開門各有開關）。test＝只分析，不更新、不通知、不開門。
     mode: single
     max_exceeded: silent
@@ -968,7 +968,7 @@ script:
                     - stop: "已判斷準備出門"
 
   garage_turn_fast:
-    alias: 車庫方向燈連續檢查AI (V4.3.10)
+    alias: 車庫方向燈連續檢查AI (V4.4.5)
     description: 車庫有人或有動靜（鐵門關著）時，連續錄 2 秒短片、邊錄邊分析（不等上一段分析完），偵測左／右方向燈或雙黃燈。偵測到就交給 script.garage_turn_act 開門。沒動靜 20 秒或超過 2 分鐘結束。即時分析（garage_turn_rt）與其開門開關都開啟時不重複跑，避免搶用 Garage Vision add-on。
     mode: single
     max_exceeded: silent
@@ -1019,7 +1019,7 @@ script:
                       slots: "{{ slots }}"
 
   garage_turn_rt:
-    alias: 車庫方向燈即時分析AI (V4.4.1)
+    alias: 車庫方向燈即時分析AI (V4.4.5)
     description: >
       車庫有人或有動靜（鐵門關著、車庫裡有車頭不是朝內的車）時，直接讀攝影機串流逐幀分析左／右方向燈與雙黃燈（scripts/garage_turn_rt.py，每次最長 45 秒、偵測到就提早結束），
       車身框跟著車子走，不依賴車位標籤。偵測到就寫入 input_text.garage_turn_rt_last 與活動紀錄；input_boolean.garage_turn_rt_open_enable 打開時才交給 script.garage_turn_act 開門
@@ -1163,7 +1163,7 @@ script:
                 - stop: "已偵測到方向燈／雙黃燈"
 
   garage_turn_act:
-    alias: 車庫方向燈偵測後開門AI (V4.3.16)
+    alias: 車庫方向燈偵測後開門AI (V4.4.5)
     description: >
       偵測到左／右方向燈或雙黃燈後，標記準備出門並自動開鐵門（沿用原本的條件：自動開門與方向燈開門開關、5 分鐘內不重複開）。
       V4.3.16：畫面上車外還有人（還沒全部上車）先不開，記錄「等上車」；人都上車後，下一段短片仍偵測到方向燈才開。
@@ -1305,7 +1305,7 @@ script:
         response_variable: result
 
   garage_board_wait_open:
-    alias: 車庫方向燈等上車後自動開門AI (V4.4.6)
+    alias: 車庫方向燈等上車後自動開門AI (V4.4.5)
     description: 偵測到方向燈或雙黃燈但車外還有人時啟動：每 3 秒拍一張快照確認車外人數（最多等 90 秒）；當連續確認車外無人（距上次看到人 ≥ 4 秒）且非走進樓梯口上樓時，即使方向燈已熄滅仍自動補開鐵門。
     mode: restart
     fields:

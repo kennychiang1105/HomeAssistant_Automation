@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# 頂樓攝影機模型判斷 (V4.3.4-beta 3)
+# 頂樓攝影機模型判斷 (V4.3.12)
 # 更新紀錄（統一格式）：
 # - V4.3.12（2026-11-12）：topfloor_cam_ai_loop 與 topfloor_stairs_wait_clear 當模型確認畫面有人（persons > 0）且任一盞樓梯燈未亮時，
 #   發出 topfloor_cam_person 事件供 08-5C 直接忽略剛進房防呆進行開燈。
@@ -92,7 +92,7 @@ shell_command:
 
 script:
   topfloor_stairs_wait_clear:
-    alias: 頂樓樓梯燈關燈前｜攝影機畫面確認沒人 (V4.3.10)
+    alias: 頂樓樓梯燈關燈前｜攝影機畫面確認沒人 (V4.3.12)
     description: >
       08-5C 自動關樓梯燈前呼叫：抓一張頂樓攝影機快照，用人物模型（信心 ≥ 0.5）看畫面有沒有人；有人就每 2 秒再看一次，人消失才回傳 clear＝true（呼叫端接著關燈），
       最多等 max_s 秒（預設 300）仍有人回傳 clear＝false（呼叫端不關，交給保底計時）。模型看到人、但攝影機 60 秒內完全沒有動作／人員偵測＝視為靜物誤判，不算有人；
@@ -193,7 +193,7 @@ script:
               reason: "{{ ex.get('reason', '') }}"
 
   topfloor_cam_ai_loop:
-    alias: 頂樓攝影機模型判斷AI (V4.3.4-beta 3)
+    alias: 頂樓攝影機模型判斷AI (V4.3.12)
     description: 動靜期間每秒一張快照 → 人物偵測 → 累積軌跡提早判斷上樓／下樓，動靜結束後再多看 6 秒；一決定就發事件 topfloor_cam_ai。
     mode: single
     max_exceeded: silent
