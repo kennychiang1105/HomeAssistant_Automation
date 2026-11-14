@@ -99,7 +99,7 @@ HELPER_RULES = [
 INTERNAL_RE = re.compile(
     r"^timer\.|^counter\."
     r"|^input_datetime\.(?!system_stability_restart_time|supply_battery_report_time|maintenance_until|scene_morning_|sleep_5h_|sleep_unlock_|anti_down_start|anti_down_cutoff)"
-    r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|garage_turn_detected|garage_lamp_(front|back)|leave_notice_sent|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
+    r"|^input_boolean\.(garage_vehicle_confirmed|garage_depart_candidate|garage_turn_detected|garage_turn_rt_fault|garage_lamp_(front|back)|leave_notice_sent|emergency_snapshot_valid|stairs_si_lou_hold|topfloor_(0fb7|13b8|kandeng|study)_auto|topfloor_stairs_keep_on|topfloor_stairs_night_used|mood_alert_active|light_anim_active|line_bot_quota_exhausted_notified|tesla_charger_session_charged"
     r"|aqara_|hk_scene_|google_scene_|jin_ji_mo_shi_pan_duan_|ding_lou_(shang|xia)_lou_qing_jing|ding_lou_ye_deng_qing_jing|ding_lou_yue_du_qing_jing"
     r"|ding_lou_fan_(system_action_guard|manual_hold|manual_off_hold|cold_off_memory|manual_speed_snooze)|living_room_fan_manual_speed_snooze"
     r"|collection_of_homekit_sensors|collection_of_homepod_sensors|garagejudge|pan_duan_|er_lou_men_suo_tong_bu_kai_guan|ke_ting_dian_feng_shan_control)"

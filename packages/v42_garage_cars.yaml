@@ -1,6 +1,9 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
+#           garage_turn_fast（短片檢查）在這個旗標開著時恢復執行；即時分析恢復正常就自動關閉旗標（V4.4.4 起即時分析開著時短片檢查完全停用，串流一掛方向燈偵測就整個失效且沒有通知）。
+#           ②garage_gate_close_retry 最終通知文字「已重試 40 次」改為 120 次（V4.4.3 已把次數改成 120、間隔 1 分鐘）。
 # - V4.4.4（2026-11-13）：車位剛變空（3 分鐘內駛出且無車位剛變成有車）時，garage_close_safety_check 與 garage_gate_close_retry 不再因車內手機殘留車庫 AP 連線而延後關門（解決 08:22 車已開走、08:22:53 緩衝結束卻因手機 AP 斷線延遲等到 08:24:20 才廣播關門）。
 # - V4.4.3（2026-11-12）：修正 garage_close_safety_check、garage_close_confirmed 與 garage_id_fix 的模板清單／字典轉型錯誤：
 #           HA 原生型別自動將 `| to_json` 轉為 Python list/dict，導致後續 `| from_json([])`／`| from_json({})` 型別錯誤而退回空陣列，
@@ -48,6 +51,9 @@ input_boolean:
   garage_turn_rt_open_enable:
     name: 車庫出門偵測｜即時分析可直接自動開門（關＝只記錄）
     icon: mdi:garage-alert
+  garage_turn_rt_fault:
+    name: 車庫出門偵測｜即時分析異常，改用短片檢查（內部）
+    icon: mdi:video-off-outline
   garage_turn_detected:
     name: 車庫出門偵測｜剛偵測到左方向燈（內部）
     icon: mdi:car-arrow-left
@@ -558,7 +564,7 @@ script:
               title: "鐵門開超過 2 小時仍無法自動關閉"
               user_id: "{{ states('sensor.line_bot_target_user_id') }}"
               message: |-
-                鐵門仍開啟，已重試 40 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
+                鐵門仍開啟，已重試 120 次（約 2 小時）仍不符合自動關門條件（有人車活動、車庫 AP 有人，或模型淨空確認未通過）。
                 系統不會再自動關門，請自己關門（若是刻意開著工作，忽略即可）。
           # 同時廣播：客廳 HomePod ＋ 車庫攝影機喇叭（一律廣播，不看熟睡／晚安）
           - action: script.announce
@@ -958,7 +964,8 @@ script:
       - condition: template
         value_template: >-
           {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and is_state('input_boolean.garage_depart_watch_enable', 'on')
-             and not (is_state('input_boolean.garage_turn_rt_enable', 'on') and is_state('input_boolean.garage_turn_rt_open_enable', 'on'))
+             and not (is_state('input_boolean.garage_turn_rt_enable', 'on') and is_state('input_boolean.garage_turn_rt_open_enable', 'on')
+                      and not is_state('input_boolean.garage_turn_rt_fault', 'on'))
              and is_state('cover.garage', 'closed') }}
       - repeat:
           while:
@@ -1035,6 +1042,36 @@ script:
               continue_on_error: true
             - variables:
                 res: "{{ (rr.stdout | from_json({})) if (rr is defined and rr is mapping and rr.get('stdout')) else {} }}"
+                # V4.4.5：這一輪即時分析是否異常（沒有結果、程式回報錯誤、讀不到畫面、add-on 完全連不上）；偵測到閃爍的那一輪一律視為正常
+                rt_bad: >-
+                  {{ not (res is mapping and res.get('blink') == true) and (
+                       not (res is mapping) or (res | length) == 0 or res.get('error') is not none
+                       or (res.get('frames', 0) | int(0)) < 30
+                       or ((res.get('vision_ok', 0) | int(0)) == 0 and (res.get('vision_err', 0) | int(0)) > 0)) }}
+            - if: "{{ rt_bad and is_state('input_boolean.garage_turn_rt_fault', 'off') }}"
+              then:
+                - action: input_boolean.turn_on
+                  target:
+                    entity_id: input_boolean.garage_turn_rt_fault
+                - action: script.notify_dispatch
+                  data:
+                    level: general
+                    line: false
+                    source: 車庫方向燈即時分析AI
+                    version: V4.4.5
+                    title: 車庫方向燈即時分析異常，已改用短片檢查
+                    message: >-
+                      即時分析這一輪沒有正常結果（{{ (res.get('error') if (res is mapping and res.get('error')) else ('讀到 ' ~ (res.get('frames', 0) if res is mapping else 0) ~ ' 幀、add-on 成功 ' ~ (res.get('vision_ok', 0) if res is mapping else 0) ~ ' 次')) }}）。
+                      已自動改用原本的短片檢查偵測方向燈；即時分析恢復正常後會自動切回。
+                  continue_on_error: true
+            - if: "{{ not rt_bad and is_state('input_boolean.garage_turn_rt_fault', 'on') }}"
+              then:
+                - action: input_boolean.turn_off
+                  target:
+                    entity_id: input_boolean.garage_turn_rt_fault
+            - if: "{{ rt_bad }}"
+              then:
+                - delay: "00:00:05"
             - if: "{{ res is mapping and res.get('blink') == true }}"
               then:
                 - variables:

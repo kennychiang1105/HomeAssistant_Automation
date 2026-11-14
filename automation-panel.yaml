@@ -291,7 +291,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: markdown
-        content: "啟用中的自動化 **165** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
+        content: "啟用中的自動化 **166** 支（另有 0 筆已失效的舊自動化殘留，可到「設定 → 自動化」清理）。上方分頁依功能分類，每頁有該類自動化的開關與可調整的參數。"
         card_mod:
           style: |
             ha-card { border-radius: 18px !important; border: none !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; padding: 2px 4px !important; font-size: 14px; line-height: 1.55; }
@@ -2258,7 +2258,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "平常開著（32）"
+        heading: "平常開著（34）"
         heading_style: title
         icon: mdi:toggle-switch
         card_mod:
@@ -2268,8 +2268,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["automation.er_lou_men_suo_xu_yan_jing_gao", "08-2二樓門鎖虛掩警告", "on"], ["automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "08-3鐵門狀態不穩通知", "on"], ["automation.ai_away_security_system", "08-6離家保全系統AI", "on"], ["automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "08-7C入侵偵測訊號收集AI"], ["automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "08-7D入侵偵測感應器統計AI"], ["automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "08-7離家入侵偵測AI"], ["automation.ai_doorlock_battery_stage_notify", "100C1客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_cycle_calibration", "100C2客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_drop_timestamp_recorder", "100C3客廳門鎖電量下降時間紀錄AI", "on"], ["automation.ai_lpr_recognition", "104-2車輛動態辨識系統AI", "on"], ["automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "104-3A鐵門開啟時間記錄AI"], ["automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "104-3B車庫主燈人為開關記錄AI"], ["automation.ai_104_3_garage_gate_open_guard_and_autoclose", "104-3鐵門判斷未關提醒及作動AI", "on"], ["automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "104-4車庫回家通知系統AI", "on"], ["automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "104-5B車輛準備出門旗標復歸AI"], ["automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "104-5C車庫車輛樣板學習AI"], ["automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "104-5車輛準備出門偵測AI"], ["automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "104-6車庫樓梯口人流記錄AI"], ["automation.tie_men_kai_guan", "104鐵門安全開關", "on"], ["automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "105大門門鈴自動化AI", "on"], ["automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"], ["input_boolean.lpr_auto_close_enable", "LPR自動關門（啟用後才會真的關門）", "on"], ["input_boolean.lpr_open_notify_enable", "LPR車牌開門通知", "on"], ["input_boolean.intrusion_watch_alarm_enable", "入侵偵測觸發網關警報", "on"], ["input_boolean.emergency_restore_route", "解除網關警報時走緊急還原流程（106C）", "on"], ["input_boolean.garage_turn_signal_enable", "車庫出門偵測｜左方向燈偵測（絕對出門訊號）", "on"], ["input_boolean.garage_turn_signal_open_enable", "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）", "on"], ["input_boolean.garage_turn_rt_enable", "車庫出門偵測｜方向燈即時分析（讀攝影機串流）", "on"], ["input_boolean.garage_turn_wait_board_enable", "車庫出門偵測｜畫面還有人先不開門（等上車後方向燈再開）", "on"], ["input_boolean.garage_depart_watch_enable", "車庫出門偵測｜總開關", "on"], ["input_boolean.garage_depart_auto_open_enable", "車庫出門偵測｜自動開鐵門", "on"], ["input_boolean.intrusion_watch_enable", "離家入侵偵測（總開關）", "on"]]
-        triggers_update: ["automation.er_lou_men_suo_xu_yan_jing_gao", "automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "automation.ai_away_security_system", "automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "automation.ai_doorlock_battery_stage_notify", "automation.ai_doorlock_battery_cycle_calibration", "automation.ai_doorlock_battery_drop_timestamp_recorder", "automation.ai_lpr_recognition", "automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "automation.ai_104_3_garage_gate_open_guard_and_autoclose", "automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "automation.tie_men_kai_guan", "automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "input_boolean.lpr_auto_close_enable", "input_boolean.lpr_open_notify_enable", "input_boolean.intrusion_watch_alarm_enable", "input_boolean.emergency_restore_route", "input_boolean.garage_turn_signal_enable", "input_boolean.garage_turn_signal_open_enable", "input_boolean.garage_turn_rt_enable", "input_boolean.garage_turn_wait_board_enable", "input_boolean.garage_depart_watch_enable", "input_boolean.garage_depart_auto_open_enable", "input_boolean.intrusion_watch_enable"]
+          items: [["automation.er_lou_men_suo_xu_yan_jing_gao", "08-2二樓門鎖虛掩警告", "on"], ["automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "08-3鐵門狀態不穩通知", "on"], ["automation.ai_away_security_system", "08-6離家保全系統AI", "on"], ["automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "08-7C入侵偵測訊號收集AI"], ["automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "08-7D入侵偵測感應器統計AI"], ["automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "08-7離家入侵偵測AI"], ["automation.ai_doorlock_battery_stage_notify", "100C1客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_cycle_calibration", "100C2客廳門鎖電量分級通知AI", "on"], ["automation.ai_doorlock_battery_drop_timestamp_recorder", "100C3客廳門鎖電量下降時間紀錄AI", "on"], ["automation.ai_lpr_recognition", "104-2車輛動態辨識系統AI", "on"], ["automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "104-3A鐵門開啟時間記錄AI"], ["automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "104-3B車庫主燈人為開關記錄AI"], ["automation.ai_104_3_garage_gate_open_guard_and_autoclose", "104-3鐵門判斷未關提醒及作動AI", "on"], ["automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "104-4車庫回家通知系統AI", "on"], ["automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "104-5B車輛準備出門旗標復歸AI"], ["automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "104-5C車庫車輛樣板學習AI"], ["automation.104_5dche_liang_you_hou_wei_yi_dao_qian_wei_ti_zao_kai_men_ai_v4_4_4", "104-5D車輛由後位移到前位提早開門AI"], ["automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "104-5車輛準備出門偵測AI"], ["automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "104-6車庫樓梯口人流記錄AI"], ["automation.tie_men_kai_guan", "104鐵門安全開關", "on"], ["automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "105大門門鈴自動化AI", "on"], ["automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "106C_解除網關警報整合AI"], ["input_boolean.lpr_auto_close_enable", "LPR自動關門（啟用後才會真的關門）", "on"], ["input_boolean.lpr_open_notify_enable", "LPR車牌開門通知", "on"], ["input_boolean.intrusion_watch_alarm_enable", "入侵偵測觸發網關警報", "on"], ["input_boolean.emergency_restore_route", "解除網關警報時走緊急還原流程（106C）", "on"], ["input_boolean.garage_turn_rt_open_enable", "車庫出門偵測｜即時分析可直接自動開門（關＝只記錄）", "on"], ["input_boolean.garage_turn_signal_enable", "車庫出門偵測｜左方向燈偵測（絕對出門訊號）", "on"], ["input_boolean.garage_turn_signal_open_enable", "車庫出門偵測｜左方向燈可直接自動開門（需同時開自動開鐵門）", "on"], ["input_boolean.garage_turn_rt_enable", "車庫出門偵測｜方向燈即時分析（讀攝影機串流）", "on"], ["input_boolean.garage_turn_wait_board_enable", "車庫出門偵測｜畫面還有人先不開門（等上車後方向燈再開）", "on"], ["input_boolean.garage_depart_watch_enable", "車庫出門偵測｜總開關", "on"], ["input_boolean.garage_depart_auto_open_enable", "車庫出門偵測｜自動開鐵門", "on"], ["input_boolean.intrusion_watch_enable", "離家入侵偵測（總開關）", "on"]]
+        triggers_update: ["automation.er_lou_men_suo_xu_yan_jing_gao", "automation.08_3tie_men_zhuang_tai_bu_wen_tong_zhi", "automation.ai_away_security_system", "automation.08_7cru_qin_zhen_ce_xun_hao_shou_ji_ai_v4_1_6", "automation.08_7dru_qin_zhen_ce_gan_ying_qi_tong_ji_ai_v4_1_6", "automation.08_7li_jia_ru_qin_zhen_ce_ai_v4_1_6", "automation.ai_doorlock_battery_stage_notify", "automation.ai_doorlock_battery_cycle_calibration", "automation.ai_doorlock_battery_drop_timestamp_recorder", "automation.ai_lpr_recognition", "automation.104_3atie_men_kai_qi_shi_jian_ji_lu_ai_v4_2_2", "automation.104_3bche_ku_zhu_deng_ren_wei_kai_guan_ji_lu_ai_v4_3_2", "automation.ai_104_3_garage_gate_open_guard_and_autoclose", "automation.104_4che_ku_hui_jia_tong_zhi_xi_tong_ai_v4_0_0", "automation.104_5bche_liang_zhun_bei_chu_men_qi_biao_fu_gui_ai_v4_2_5", "automation.104_5cche_ku_che_liang_yang_ban_xue_xi_ai_v4_2_5", "automation.104_5dche_liang_you_hou_wei_yi_dao_qian_wei_ti_zao_kai_men_ai_v4_4_4", "automation.104_5che_liang_zhun_bei_chu_men_zhen_ce_ai_v4_2_5", "automation.104_6che_ku_lou_ti_kou_ren_liu_ji_lu_ai_v1_0_0", "automation.tie_men_kai_guan", "automation.105da_men_men_ling_zi_dong_hua_ai_v3_0", "automation.106c_jie_chu_wang_guan_jing_bao_zheng_he_ai_v4_1_0", "input_boolean.lpr_auto_close_enable", "input_boolean.lpr_open_notify_enable", "input_boolean.intrusion_watch_alarm_enable", "input_boolean.emergency_restore_route", "input_boolean.garage_turn_rt_open_enable", "input_boolean.garage_turn_signal_enable", "input_boolean.garage_turn_signal_open_enable", "input_boolean.garage_turn_rt_enable", "input_boolean.garage_turn_wait_board_enable", "input_boolean.garage_depart_watch_enable", "input_boolean.garage_depart_auto_open_enable", "input_boolean.intrusion_watch_enable"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -2277,7 +2277,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "平常關著（8）"
+        heading: "平常關著（7）"
         heading_style: title
         icon: mdi:toggle-switch-off-outline
         card_mod:
@@ -2287,8 +2287,8 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.lpr_debug_notify", "LPR偵測Debug通知", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全手動解除/復位開關", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟", "off"], ["input_boolean.intrusion_watch_test_mode", "入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）", "off"], ["input_boolean.gateway_debug_notify", "網關系統_Debug通知", "off"], ["input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報", "off"], ["input_boolean.garage_depart_notify_enable", "車庫出門偵測｜偵測到時通知", "off"], ["input_boolean.garage_turn_rt_open_enable", "車庫出門偵測｜即時分析可直接自動開門（關＝只記錄）", "off"]]
-        triggers_update: ["input_boolean.lpr_debug_notify", "input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.intrusion_watch_test_mode", "input_boolean.gateway_debug_notify", "input_boolean.jie_chu_wang_guan_jing_bao", "input_boolean.garage_depart_notify_enable", "input_boolean.garage_turn_rt_open_enable"]
+          items: [["input_boolean.lpr_debug_notify", "LPR偵測Debug通知", "off"], ["input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "五樓保全手動解除/復位開關", "off"], ["input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "五樓保全系統手動開啟", "off"], ["input_boolean.intrusion_watch_test_mode", "入侵偵測 LINE 測試模式（打開後按測試按鈕才會真的發 LINE；送出一次後自動關閉）", "off"], ["input_boolean.gateway_debug_notify", "網關系統_Debug通知", "off"], ["input_boolean.jie_chu_wang_guan_jing_bao", "解除網關警報", "off"], ["input_boolean.garage_depart_notify_enable", "車庫出門偵測｜偵測到時通知", "off"]]
+        triggers_update: ["input_boolean.lpr_debug_notify", "input_boolean.wu_lou_bao_quan_jie_chu_kai_guan", "input_boolean.wu_lou_bao_quan_xi_tong_kai_guan", "input_boolean.intrusion_watch_test_mode", "input_boolean.gateway_debug_notify", "input_boolean.jie_chu_wang_guan_jing_bao", "input_boolean.garage_depart_notify_enable"]
     - type: vertical-stack
       card_mod:
         style: |
@@ -3922,7 +3922,7 @@ views:
           ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
       cards:
       - type: heading
-        heading: "保全與門鎖（30）"
+        heading: "保全與門鎖（31）"
         heading_style: title
         card_mod:
           style: |
@@ -3931,8 +3931,21 @@ views:
       - type: custom:button-card
         template: prows
         variables:
-          items: [["input_boolean.garagejudge", "GarageJUDGE"], ["input_boolean.er_lou_men_suo_tong_bu_kai_guan", "二樓門鎖"], ["input_boolean.garage_vehicle_confirmed", "充電車輛已由電流確認（內部）"], ["input_boolean.garage_turn_detected", "車庫出門偵測｜剛偵測到左方向燈（內部）"], ["input_boolean.garage_depart_candidate", "車庫出門偵測｜準備出門中（內部）"], ["input_boolean.garage_lamp_front", "車庫前位｜車燈亮（內部，3D 顯示）"], ["input_boolean.garage_lamp_back", "車庫後位｜車燈亮（內部，3D 顯示）"]]
-        triggers_update: ["input_boolean.garagejudge", "input_boolean.er_lou_men_suo_tong_bu_kai_guan", "input_boolean.garage_vehicle_confirmed", "input_boolean.garage_turn_detected", "input_boolean.garage_depart_candidate", "input_boolean.garage_lamp_front", "input_boolean.garage_lamp_back"]
+          items: [["input_boolean.garagejudge", "GarageJUDGE"], ["input_boolean.er_lou_men_suo_tong_bu_kai_guan", "二樓門鎖"], ["input_boolean.garage_vehicle_confirmed", "充電車輛已由電流確認（內部）"], ["input_boolean.garage_turn_detected", "車庫出門偵測｜剛偵測到左方向燈（內部）"], ["input_boolean.garage_turn_rt_fault", "車庫出門偵測｜即時分析異常，改用短片檢查（內部）"], ["input_boolean.garage_depart_candidate", "車庫出門偵測｜準備出門中（內部）"], ["input_boolean.garage_lamp_front", "車庫前位｜車燈亮（內部，3D 顯示）"], ["input_boolean.garage_lamp_back", "車庫後位｜車燈亮（內部，3D 顯示）"]]
+        triggers_update: ["input_boolean.garagejudge", "input_boolean.er_lou_men_suo_tong_bu_kai_guan", "input_boolean.garage_vehicle_confirmed", "input_boolean.garage_turn_detected", "input_boolean.garage_turn_rt_fault", "input_boolean.garage_depart_candidate", "input_boolean.garage_lamp_front", "input_boolean.garage_lamp_back"]
+    - type: vertical-stack
+      card_mod:
+        style: |
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      cards:
+      - type: heading
+        heading: "保全與門鎖（續）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
       - type: entities
         show_header_toggle: false
         state_color: true
@@ -3943,24 +3956,6 @@ views:
             name: "網關同步鎖｜鎖到（內部）"
           - entity: input_datetime.garage_cable_learn_last
             name: "車庫充電線樣板｜上次學習（內部）"
-        card_mod: *cm
-    - type: vertical-stack
-      card_mod:
-        style: |
-          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
-          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
-      cards:
-      - type: heading
-        heading: "保全與門鎖（續）"
-        heading_style: title
-        card_mod:
-          style: |
-            .container { padding: 14px 6px 4px !important; }
-            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
-      - type: entities
-        show_header_toggle: false
-        state_color: true
-        entities:
           - entity: input_datetime.garage_depart_last_open
             name: "車庫出門偵測｜上次自動開門"
           - entity: input_datetime.garage_board_seen_last
@@ -3971,16 +3966,6 @@ views:
             name: "車庫左方向燈偵測｜上次檢查（內部，30 秒冷卻）"
           - entity: input_datetime.garage_turn_seen_back
             name: "車庫後位｜最近偵測到左方向燈（內部，3D 顯示）"
-          - entity: input_datetime.garage_id_fix_last
-            name: "車庫車輛身分校正｜上次重學樣板（內部）"
-          - entity: input_datetime.garage_gate_run_last
-            name: "車庫鐵門評估｜上次開始（內部，104-2 去重）"
-          - entity: input_datetime.garage_gate_opened_at
-            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
-          - entity: input_number.garage_ev_front
-            name: "車庫前位｜連續有車燈／位移次數（內部）"
-          - entity: input_number.garage_ev_back
-            name: "車庫後位｜連續有車燈／位移次數（內部）"
         card_mod: *cm
     - type: vertical-stack
       card_mod:
@@ -3999,12 +3984,40 @@ views:
         show_header_toggle: false
         state_color: true
         entities:
+          - entity: input_datetime.garage_id_fix_last
+            name: "車庫車輛身分校正｜上次重學樣板（內部）"
+          - entity: input_datetime.garage_gate_run_last
+            name: "車庫鐵門評估｜上次開始（內部，104-2 去重）"
+          - entity: input_datetime.garage_gate_opened_at
+            name: "車庫鐵門開啟時間（SOP-20 重啟接續）"
+          - entity: input_number.garage_ev_front
+            name: "車庫前位｜連續有車燈／位移次數（內部）"
+          - entity: input_number.garage_ev_back
+            name: "車庫後位｜連續有車燈／位移次數（內部）"
           - entity: input_select.garage_vehicle_latch
             name: "充電車輛（鎖定，內部）"
           - entity: input_select.garage_vehicle_last
             name: "最近一次充電的車（內部）"
           - entity: input_select.lpr_last_plate
             name: "最近車牌"
+        card_mod: *cm
+    - type: vertical-stack
+      card_mod:
+        style: |
+          :host { display: block; background: rgba(120,120,128,.10); border-radius: 22px; padding: 0 10px 12px; box-sizing: border-box; }
+          ha-card { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      cards:
+      - type: heading
+        heading: "保全與門鎖（續）"
+        heading_style: title
+        card_mod:
+          style: |
+            .container { padding: 14px 6px 4px !important; }
+            .title { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .3px; color: var(--secondary-text-color) !important; }
+      - type: entities
+        show_header_toggle: false
+        state_color: true
+        entities:
           - entity: input_text.lpr_last_event
             name: "LPR最後事件紀錄"
           - entity: input_text.notif_title_gateway_alert

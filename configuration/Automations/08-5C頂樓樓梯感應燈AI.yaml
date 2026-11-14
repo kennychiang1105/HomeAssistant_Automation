@@ -42,6 +42,9 @@
   mode: queued
   max: 5
   max_exceeded: silent
+  # 2026-11-14：執行紀錄多留（預設只留 5 筆），用來確認 V4.1.8 放寬後「進房後樓梯燈短暫開關」是哪一個觸發造成的
+  trace:
+    stored_traces: 40
   variables:
     automation_version: V4.0.0
   triggers:

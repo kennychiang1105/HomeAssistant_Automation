@@ -91,6 +91,9 @@
     實際開門與防護交給 script.garage_turn_act（自動開門與方向燈開門開關、5 分鐘內不重複開、車外有人先不開、車頭朝內不開）。
   mode: single
   max_exceeded: silent
+  # 2026-11-14：執行紀錄多留，觀察「車庫內挪車（不是要出門）」會不會誤開門
+  trace:
+    stored_traces: 20
   triggers:
     - trigger: state
       entity_id: input_select.garage_slot_back
