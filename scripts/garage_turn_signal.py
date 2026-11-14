@@ -195,6 +195,26 @@ def analyse_clip(clip, slot, side, vision, box_override=None):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def analyse_snap(snap, slot, vision):
+    """單張快照檢查車外人數（V4.4.6：方向燈暫緩開門後，定時確認人是否已上車）。"""
+    roi = json.load(open(ROI, encoding='utf-8'))
+    with open(snap, 'rb') as f:
+        jpg = f.read()
+    if not vision:
+        return {'slot': slot, 'box': None, 'people': -1, 'people_conf': [], 'error': 'vision url required'}
+    try:
+        box, ps, vboxes = vision_query(vision, jpg, roi, slot)
+    except Exception as e:  # noqa: BLE001
+        return {'slot': slot, 'box': None, 'people': -1, 'people_conf': [], 'error': str(e)[:120]}
+    people = outside_people(ps, vboxes)
+    return {
+        'slot': slot,
+        'box': [round(v, 3) for v in box] if box else None,
+        'people': len(people),
+        'people_conf': [round(p.get('conf', 0), 2) for p in people],
+    }
+
+
 def selftest():
     err = []
     steady = [0.001] * 30
@@ -257,25 +277,31 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--clip')
+    ap.add_argument('--snap', help='單張快照檢查車外人數（配合 --vision）')
     ap.add_argument('--slot', default='front')
     ap.add_argument('--side', default='both', choices=['left', 'right', 'both'])
     ap.add_argument('--vision')
     ap.add_argument('--box', help='除錯：直接指定車身框 x0,y0,x1,y1（比例）')
-    ap.add_argument('--delete', action='store_true', help='分析完刪掉短片')
+    ap.add_argument('--delete', action='store_true', help='分析完刪掉短片或快照')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
         sys.exit(selftest())
-    if not a.clip:
-        ap.error('--clip required')
+    if not (a.clip or a.snap):
+        ap.error('--clip or --snap required')
     try:
-        print(json.dumps(analyse_clip(a.clip, a.slot, a.side, a.vision, [float(v) for v in a.box.split(',')] if a.box else None), ensure_ascii=False))
+        if a.snap:
+            print(json.dumps(analyse_snap(a.snap, a.slot, a.vision), ensure_ascii=False))
+        else:
+            print(json.dumps(analyse_clip(a.clip, a.slot, a.side, a.vision, [float(v) for v in a.box.split(',')] if a.box else None), ensure_ascii=False))
     finally:
         if a.delete:
-            try:
-                os.remove(a.clip)
-            except OSError:
-                pass
+            target = a.snap or a.clip
+            if target:
+                try:
+                    os.remove(target)
+                except OSError:
+                    pass
 
 
 if __name__ == '__main__':
