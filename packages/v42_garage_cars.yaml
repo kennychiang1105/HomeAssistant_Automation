@@ -1,6 +1,9 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.3.0-beta 1 測試中，正式版預計 V4.3.5）
 # 更新紀錄（統一格式）：
+# - V4.4.6（2026-11-14）：車庫方向燈因車外有人暫緩開門後，新增「人上車自動補開鐵門」（script.garage_board_wait_open ＋ shell_command.garage_board_snap）：
+#           暫緩開門後每 3 秒拍一張快照確認車外人數（最多 90 秒）；連續確認車外無人（距上次看到人 ≥ 4 秒）且非走進樓梯口上樓時，
+#           即使方向燈已經熄滅仍自動交由 garage_turn_act 補開鐵門（解決 11-14 05:39 方向燈時畫面有人暫緩，上車後燈已關而未再開門）。
 # - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
 #           garage_turn_fast（短片檢查）在這個旗標開著時恢復執行；即時分析恢復正常就自動關閉旗標（V4.4.4 起即時分析開著時短片檢查完全停用，串流一掛方向燈偵測就整個失效且沒有通知）。
 #           ②garage_gate_close_retry 最終通知文字「已重試 40 次」改為 120 次（V4.4.3 已把次數改成 120、間隔 1 分鐘）。
@@ -236,6 +239,7 @@ input_datetime:
 
 shell_command:
   garage_turn_signal: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/turn_clip.mp4 --slot {{ slot }} --vision http://local-garage-vision:8099 --delete'
+  garage_board_snap: 'python3 /config/scripts/garage_turn_signal.py --snap /config/www/snap/gs_board_chk.jpg --slot {{ slot }} --vision http://local-garage-vision:8099 --delete'
   # V4.3.10 連續檢查：每段短片獨立檔名，最後一個車位分析完才刪檔
   garage_turn_rt: 'python3 /config/scripts/garage_turn_rt.py --url rtsp://127.0.0.1:18554/unifiprotect_847848288CA2_0 --vision http://local-garage-vision:8099 --max 45'
   garage_turn_signal_fast: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/{{ clip }} --slot {{ slot }} --vision http://local-garage-vision:8099 {{ "--delete" if last else "" }}'
@@ -878,6 +882,14 @@ script:
                             - action: input_boolean.turn_on
                               target:
                                 entity_id: input_boolean.garage_turn_detected
+                          else:
+                            - action: script.turn_on
+                              target:
+                                entity_id: script.garage_board_wait_open
+                              data:
+                                variables:
+                                  slot: "{{ repeat.item }}"
+                                  kind: "{{ tres.get('kind', '') }}"
                 - variables:
                     s: "{{ res.slots[repeat.item] }}"
                     car: "{{ states('input_select.garage_slot_' ~ repeat.item) }}"
@@ -1193,7 +1205,14 @@ script:
             response_variable: bc
           - if: "{{ bc is mapping and bc.get('hold') == true }}"
             then:
-              - stop: "車外還有人，等上車後方向燈再確認"
+              - action: script.turn_on
+                target:
+                  entity_id: script.garage_board_wait_open
+                data:
+                  variables:
+                    slot: "{{ slot }}"
+                    kind: "{{ kind | default('') }}"
+              - stop: "車外還有人，已啟動上車後自動開門等待"
       - variables:
           waited: "{{ (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_board_seen_last'), 0)) < 180 }}"
       - action: input_text.set_value
@@ -1284,6 +1303,69 @@ script:
           result: "{{ {'hold': hold, 'people': n} }}"
       - stop: 完成
         response_variable: result
+
+  garage_board_wait_open:
+    alias: 車庫方向燈等上車後自動開門AI (V4.4.6)
+    description: 偵測到方向燈或雙黃燈但車外還有人時啟動：每 3 秒拍一張快照確認車外人數（最多等 90 秒）；當連續確認車外無人（距上次看到人 ≥ 4 秒）且非走進樓梯口上樓時，即使方向燈已熄滅仍自動補開鐵門。
+    mode: restart
+    fields:
+      slot:
+        description: front／back
+        required: true
+      kind:
+        description: left／right／hazard／move
+        required: false
+    sequence:
+      - repeat:
+          while:
+            - condition: template
+              value_template: >-
+                {{ repeat.index <= 30 and is_state('cover.garage', 'closed')
+                   and not is_state('input_select.garage_slot_' ~ slot, 'empty')
+                   and not is_state('input_select.garage_facing_' ~ slot, 'inside')
+                   and is_state('input_boolean.garage_depart_auto_open_enable', 'on')
+                   and is_state('input_boolean.garage_turn_signal_open_enable', 'on')
+                   and is_state('input_boolean.garage_turn_wait_board_enable', 'on') }}
+          sequence:
+            - delay: "00:00:03"
+            - action: camera.snapshot
+              target:
+                entity_id: camera.g6_instant_high_resolution_channel
+              data:
+                filename: /config/www/snap/gs_board_chk.jpg
+              continue_on_error: true
+            - action: shell_command.garage_board_snap
+              data:
+                slot: "{{ slot }}"
+              response_variable: sr
+              continue_on_error: true
+            - variables:
+                sres: "{{ (sr.stdout | from_json({})) if (sr is defined and sr is mapping and sr.get('stdout')) else {} }}"
+                p_cnt: "{{ (sres.get('people', -1) | int(-1)) if (sres is mapping and not sres.get('error')) else -1 }}"
+                still_out: "{{ p_cnt > 0 or (p_cnt < 0 and is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')) }}"
+            - if: "{{ still_out }}"
+              then:
+                - action: input_datetime.set_datetime
+                  target:
+                    entity_id: input_datetime.garage_board_seen_last
+                  data:
+                    datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              else:
+                - variables:
+                    ago: "{{ as_timestamp(now()) - as_timestamp(states('input_datetime.garage_board_seen_last'), 0) }}"
+                    walked_up: "{{ 'up（走進樓梯口' in states('input_text.garage_stair_ai_last') and as_timestamp(states.input_text.garage_stair_ai_last.last_changed, 0) > as_timestamp(states('input_datetime.garage_turn_seen_' ~ slot), 0) }}"
+                - if: "{{ ago >= 4 }}"
+                  then:
+                    - if: "{{ walked_up }}"
+                      then:
+                        - stop: "人已走進樓梯口上樓，取消上車開門等待"
+                      else:
+                        - action: script.garage_turn_act
+                          data:
+                            slot: "{{ slot }}"
+                            kind: "{{ kind | default('') }}"
+                            people: 0
+                        - stop: "人已上車，已交由 garage_turn_act 自動開門"
 
   garage_open_followup:
     alias: 車庫自動開門後追蹤 (V4.3.6)
