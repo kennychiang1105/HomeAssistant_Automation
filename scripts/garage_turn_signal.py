@@ -97,15 +97,25 @@ def decide(series, min_swing=0.005, min_flashes=2, max_run=8, win=30, step=5):
     return best
 
 
-def decide_both(sl, sr):
+def decide_both(sl, sr, min_hazard_flashes=2):
     """左方向燈、右方向燈、雙黃燈（危險警示燈，左右同時閃）任一成立即出門訊號（V4.3.10）。
-    雙黃燈左右同步閃，兩側互相佐證，所以門檻放寬（振幅 0.003、閃 2 次）；單邊維持 0.005。"""
+    雙黃燈左右同步閃，兩側互相佐證，所以門檻放寬（振幅 0.003、閃 2 次）；單邊維持 0.005。
+    min_hazard_flashes > 2 時要求雙黃燈至少閃足夠次數才成立（過濾解鎖車門短閃），且不得退回誤判成單邊方向燈。"""
     rl, rr = decide(sl), decide(sr)
     hl = decide(sl, min_swing=0.003)
     hr = decide(sr, min_swing=0.003)
     if hl['blink'] and hr['blink']:
-        out, kind = (rl if rl['flashes'] >= rr['flashes'] else rr), 'hazard'
-        out = dict(out, blink=True)
+        if min_hazard_flashes > 2:
+            win_hz = max(30, min_hazard_flashes * 11)
+            hl_s = decide(sl, min_swing=0.003, min_flashes=min_hazard_flashes, win=win_hz)
+            hr_s = decide(sr, min_swing=0.003, min_flashes=min_hazard_flashes, win=win_hz)
+            if hl_s['blink'] and hr_s['blink']:
+                out, kind = dict(hl_s if hl_s['flashes'] >= hr_s['flashes'] else hr_s, blink=True), 'hazard'
+            else:
+                out, kind = dict(hl if hl['flashes'] >= hr['flashes'] else hr, blink=False), 'hazard_short'
+        else:
+            out, kind = (rl if rl['flashes'] >= rr['flashes'] else rr), 'hazard'
+            out = dict(out, blink=True)
     elif rl['blink'] or rr['blink']:
         out, kind = (rl, 'left') if rl['blink'] else (rr, 'right')
     else:
@@ -140,7 +150,7 @@ def vision_people(url, jpg):
         return json.loads(r.read().decode()).get('persons') or []
 
 
-def analyse_clip(clip, slot, side, vision, box_override=None):
+def analyse_clip(clip, slot, side, vision, box_override=None, min_hazard_flashes=2):
     roi = json.load(open(ROI, encoding='utf-8'))
     tmp = tempfile.mkdtemp(prefix='turn_')
     try:
@@ -172,7 +182,7 @@ def analyse_clip(clip, slot, side, vision, box_override=None):
                 c = im.crop((int((box[0] + bw * x0) * W), int((box[1] + bh * y0) * H), int((box[0] + bw * x1) * W), int((box[1] + bh * y1) * H)))
                 ser[s].append(round(amber_frac(np.asarray(c)), 4))
         if side == 'both':
-            out = decide_both(ser['left'], ser['right'])
+            out = decide_both(ser['left'], ser['right'], min_hazard_flashes=min_hazard_flashes)
             out['series'] = ser['left']
             out['series_right'] = ser['right']
         else:
@@ -236,6 +246,18 @@ def selftest():
     r = decide_both(hz, hz)
     if not (r['blink'] and r['kind'] == 'hazard'):
         err.append('雙黃燈沒被偵測 %s' % r)
+    r = decide_both(hz, hz, min_hazard_flashes=4)
+    if r['blink'] or r['kind'] != 'hazard_short':
+        err.append('嚴格模式應過濾 3 次短雙黃燈 %s' % r)
+    hz_asym_l = ([0.03] * 4 + [0.0015] * 5) * 3
+    hz_asym_r = ([0.006] * 4 + [0.0015] * 5) * 3
+    r = decide_both(hz_asym_l, hz_asym_r, min_hazard_flashes=4)
+    if r['blink'] or r['kind'] != 'hazard_short':
+        err.append('嚴格模式兩側亮度不同不應退回誤判單邊 %s' % r)
+    hz4 = ([0.012] * 4 + [0.0015] * 5) * 4
+    r = decide_both(hz4, hz4, min_hazard_flashes=4)
+    if not (r['blink'] and r['kind'] == 'hazard' and r['flashes'] >= 4):
+        err.append('嚴格模式 4 次雙黃燈應成立 %s' % r)
     r = decide_both(([0.03] * 3 + [0.001] * 4) * 5, [0.001] * 35)
     if not (r['blink'] and r['kind'] == 'left'):
         err.append('左方向燈 %s' % r)
@@ -282,6 +304,7 @@ def main():
     ap.add_argument('--side', default='both', choices=['left', 'right', 'both'])
     ap.add_argument('--vision')
     ap.add_argument('--box', help='除錯：直接指定車身框 x0,y0,x1,y1（比例）')
+    ap.add_argument('--min-hazard-flashes', type=int, default=2, help='雙黃燈至少閃幾次才成立（預設 2）')
     ap.add_argument('--delete', action='store_true', help='分析完刪掉短片或快照')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
@@ -293,7 +316,7 @@ def main():
         if a.snap:
             print(json.dumps(analyse_snap(a.snap, a.slot, a.vision), ensure_ascii=False))
         else:
-            print(json.dumps(analyse_clip(a.clip, a.slot, a.side, a.vision, [float(v) for v in a.box.split(',')] if a.box else None), ensure_ascii=False))
+            print(json.dumps(analyse_clip(a.clip, a.slot, a.side, a.vision, [float(v) for v in a.box.split(',')] if a.box else None, min_hazard_flashes=a.min_hazard_flashes), ensure_ascii=False))
     finally:
         if a.delete:
             target = a.snap or a.clip
