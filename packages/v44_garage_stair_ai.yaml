@@ -10,7 +10,7 @@
 # - V1.0.0（2026-10-31）：新增。車庫樓梯人體感應器或車庫攝影機有人時，每秒一張快照送 Garage Vision add-on（人體姿態模型），
 #   scripts/garage_stair_track.py 把多人各自串成軌跡，判斷每個人從樓梯口出來（down）、走進樓梯口（up）或只經過（pass），
 #   寫到 /config/garage_stair/log.jsonl，最近一筆放在 input_text.garage_stair_ai_last。不控制任何燈或門。
-#   開關 input_boolean.garage_stair_ai_enable（關閉＝完全不跑）。快照保留在 /config/learn_collect/garage_stair/（14 天）供驗證。
+#   開關 input_boolean.garage_stair_ai_enable（關閉＝完全不跑）。快照保留在 /share/learn_collect/garage_stair/（14 天）供驗證。
 # ─────────────────────────────────────────────────────────────
 input_boolean:
   garage_stair_ai_enable:

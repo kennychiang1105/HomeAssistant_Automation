@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>車庫攝影機即時影像</title>
+<style>
+  :root{color-scheme:dark light;--bg:#101317;--fg:#E8EAED;--mut:#9AA0A6}
+  @media (prefers-color-scheme:light){:root{--bg:#F5F6F8;--fg:#1F2328;--mut:#6B7280}}
+  html,body{margin:0;background:var(--bg);color:var(--fg);font:15px -apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:12px 12px 24px}
+  h1{font-size:16px;margin:4px 0 10px;font-weight:600}
+  .frame{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+  .frame img{width:100%;height:100%;object-fit:contain;display:block}
+  .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:3px 10px;font-size:12px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#EB5757;margin-right:6px;animation:b 1.2s infinite}
+  @keyframes b{50%{opacity:.25}}
+  .msg{margin-top:10px;color:var(--mut);font-size:13px;line-height:1.6}
+  .off .dot{animation:none;background:#8A94A0}
+  .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .btn{flex:1 1 220px;display:block;text-align:center;text-decoration:none;color:#fff;background:#2F80ED;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:600}
+  .btn.alt{background:#34C759}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <h1>車庫攝影機即時影像</h1>
+  <div class="frame"><img id="cam" alt="車庫攝影機"><div class="badge"><span class="dot"></span><span id="st">連線中…</span></div></div>
+  <div class="btns"><a class="btn alt" id="hk" href="com.apple.home://">在「家庭」App 開啟攝影機</a></div>
+  <div class="msg" id="hkmsg" style="display:none"></div>
+  <div class="msg" id="dbg" style="display:none">
+    <b>測試「家庭」App 連結（請逐一點，看哪一個會跳到家庭 App）：</b><br>
+    <a href="x-hm://">① x-hm://</a><br>
+    <a href="com.apple.home://">② com.apple.home://</a><br>
+    <a href="homekit://">③ homekit://</a><br>
+    <a href="home://">④ home://</a><br>
+    <a href="x-apple-home://">⑤ x-apple-home://</a><br>
+    <a href="shortcuts://run-shortcut?name=%E9%96%8B%E5%95%9F%E5%AE%B6%E5%BA%AD">⑥ 捷徑：開啟家庭（需自建名為「開啟家庭」的捷徑）</a>
+  </div>
+  <div class="msg" id="msg">約每 2 秒更新一張畫面（非連續影片）。僅限連接家裡 Wi-Fi 時可開啟，事件發生後約 3 分鐘自動結束。<br>「家庭」App 按鈕僅限 iPhone / iPad（會直接打開 Apple 家庭 App，再點選攝影機）。</div>
+</div>
+<script>
+(function(){
+  var token=(new URLSearchParams(location.search)).get('t')||'';
+  var img=document.getElementById('cam'), st=document.getElementById('st'), app=document.getElementById('app');
+  var fails=0, stopped=false, last=0;
+  if((new URLSearchParams(location.search)).get('dbg')==='1'){ document.getElementById('dbg').style.display='block'; }
+  if(!/^[A-Za-z0-9_]{6,40}$/.test(token)){ st.textContent='連結無效'; app.classList.add('off'); return; }
+  function stop(txt){ stopped=true; st.textContent=txt; app.classList.add('off'); }
+  function tick(){
+    if(stopped) return;
+    var next=new Image();
+    next.onload=function(){ fails=0; img.src=next.src; last=Date.now(); st.textContent='即時 ' + new Date().toLocaleTimeString('zh-TW',{hour12:false}); setTimeout(tick,1200); };
+    next.onerror=function(){ fails++; if(fails>=5){ stop('已結束'); } else { setTimeout(tick,1500); } };
+    next.src='/local/live/'+token+'.jpg?ts='+Date.now();
+  }
+  if((new URLSearchParams(location.search)).get('dbg')==='1'){ document.getElementById('dbg').style.display='block'; }
+  tick();
+  // 「家庭」App 按鈕：LINE 等 App 內建瀏覽器常會擋掉 x-hm:// ，偵測沒有切換 App 就提示改用 Safari
+  var hk=document.getElementById('hk'), hkmsg=document.getElementById('hkmsg');
+  var inApp=/Line\//i.test(navigator.userAgent)||/FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+  if(inApp){ hkmsg.style.display='block'; hkmsg.textContent='目前在 LINE 內建瀏覽器，可能無法開啟「家庭」App。請點右下角「⋮」或分享圖示，選「用 Safari 開啟」後再按綠色按鈕。'; }
+  hk.addEventListener('click',function(){
+    var t=Date.now();
+    setTimeout(function(){
+      if(!document.hidden && Date.now()-t<2500){
+        hkmsg.style.display='block';
+        hkmsg.textContent='沒有切換到「家庭」App。請改用 Safari 開啟這個頁面再按一次，或直接手動打開「家庭」App 點選攝影機。';
+      }
+    },1200);
+  });
+})();
+</script>
+</body>
+</html>

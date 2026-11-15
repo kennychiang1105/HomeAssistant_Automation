@@ -212,7 +212,7 @@ notify_dispatch:
             variables:
               level: "{{ lv }}"
               source: "{{ src }}"
-    - if: "{{ voice is defined and voice | trim != '' and lv != 'info' }}"
+    - if: "{{ voice is defined and voice is not none and (voice | string | trim) not in ['', 'None'] and lv != 'info' }}"
       then:
         - action: script.announce
           data:

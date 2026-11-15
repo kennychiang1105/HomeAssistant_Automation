@@ -21,7 +21,7 @@ import time
 import urllib.request
 
 DIR = '/config/garage_stair'
-COLLECT_DIR = '/config/learn_collect/garage_stair'
+COLLECT_DIR = '/share/learn_collect/garage_stair'
 COLLECT_KEEP_DAYS = 14
 
 DEFAULT_CFG = {
@@ -161,7 +161,7 @@ def log_events(events, max_conc):
 
 
 def collect_frame(src, t, persons, out):
-    """學習資料收集：每張分析過的快照＋人物框，存到 /config/learn_collect/garage_stair/<日期>/，保留 14 天（之後驗證方向規則用）"""
+    """學習資料收集：每張分析過的快照＋人物框，存到 /share/learn_collect/garage_stair/<日期>/，保留 14 天（之後驗證方向規則用）"""
     day = dt.datetime.fromtimestamp(t).strftime('%Y%m%d')
     d = os.path.join(COLLECT_DIR, day)
     new_day = not os.path.isdir(d)
