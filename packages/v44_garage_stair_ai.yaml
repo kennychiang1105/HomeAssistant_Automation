@@ -88,6 +88,11 @@ script:
         continue_on_timeout: false
       - condition: template
         value_template: "{{ is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on') }}"
+      # 保護⓪（2026-11-15）：家人手機還連在車庫 AP＝車庫可能還有人（攝影機不一定拍得到），不提早關，交給 104-1 的一般流程
+      - condition: template
+        value_template: >-
+          {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
+          {{ not phone_in }}
       # 保護①：2 分鐘內有人用實體按鈕／App 動過車庫燈，代表人還在操作，不提早關
       - condition: template
         value_template: >-
@@ -112,7 +117,9 @@ script:
         response_variable: ps2
       - condition: template
         value_template: >-
+          {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
           {{ ps2 is mapping and ps2.get('empty', false) and not ps2.get('unknown', true)
+             and not phone_in
              and is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off')
              and is_state('binary_sensor.g6_instant_motion', 'off')
              and (is_state('switch.che_ku_zhu_deng', 'on') or is_state('switch.lou_ti_deng', 'on')) }}

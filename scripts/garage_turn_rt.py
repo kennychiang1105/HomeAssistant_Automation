@@ -33,6 +33,9 @@ from garage_turn_signal import REGION, ROI, VEHICLE_CLS, amber_frac, decide, out
 FPS = 10
 W, H = 1344, 756
 WIN = 30            # 雙黃燈評估視窗（幀）＝3 秒，與短片分析相同
+WIN_HZ_STRICT = 45  # 前位 Luxgen 原停前位（非後位移前）雙黃燈嚴格視窗（幀）＝4.5 秒，過濾解鎖車門短閃
+MIN_FLASHES_HZ_STRICT = 4   # 嚴格模式雙黃燈至少閃幾次才成立（多打幾下）
+CONFIRM_HZ_STRICT = 4       # 嚴格模式雙黃燈需連續幾次評估（每 0.5 秒）成立才回報
 WIN_S = 40          # 整車變色（參考區）檢查用的視窗（幀）＝4 秒
 REF = (0.30, 0.70, 0.50, 0.80)   # 車身中央參考區（相對車身框 x0,x1,y0,y1）：真的車燈只有角落亮，這裡不會跟著閃
 PERSON_GUARD = 0.25  # 只用來回報畫面上有沒有人（不再用來擋偵測）
@@ -93,7 +96,7 @@ class Track:
     def __init__(self, slot, box):
         self.slot, self.box = slot, box
         self.sl, self.sr, self.ref = [], [], []
-        self.rej = {'scene': 0, 'person': 0}
+        self.rej = {'scene': 0, 'person': 0, 'hazard_short': 0}
         self.miss = 0
         self.hits = 0
         self.last = None
@@ -101,7 +104,8 @@ class Track:
 
 
 class Analyzer:
-    def __init__(self):
+    def __init__(self, front_hazard_strict=False):
+        self.front_hazard_strict = bool(front_hazard_strict)
         self.tracks = []
         self.recent = []            # 即時模式首次等待 add-on 回傳車身框期間先暫存畫面，框回來後回填，不白丟前 1.5～2.5 秒
         self.people = None          # None＝還不知道（add-on 還沒回應或連不上）
@@ -170,7 +174,16 @@ class Analyzer:
             a, b = np.asarray(L, dtype=np.float32), np.asarray(R, dtype=np.float32)
             cc = float(np.corrcoef(a, b)[0, 1]) if a.std() > 0 and b.std() > 0 else 0.0
             if cc >= 0.5:
-                out, sides = dict(hl if hl['flashes'] >= hr['flashes'] else hr, kind='hazard', sync=round(cc, 2)), ['left', 'right']
+                if self.front_hazard_strict and tr.slot == 'front':
+                    L_hz, R_hz = tr.sl[-WIN_HZ_STRICT:], tr.sr[-WIN_HZ_STRICT:]
+                    hl_s = decide(L_hz, min_swing=0.003, min_flashes=MIN_FLASHES_HZ_STRICT, win=WIN_HZ_STRICT)
+                    hr_s = decide(R_hz, min_swing=0.003, min_flashes=MIN_FLASHES_HZ_STRICT, win=WIN_HZ_STRICT)
+                    if not (hl_s['blink'] and hr_s['blink']):
+                        tr.rej['hazard_short'] = tr.rej.get('hazard_short', 0) + 1
+                        return None
+                    out, sides = dict(hl_s if hl_s['flashes'] >= hr_s['flashes'] else hr_s, kind='hazard', sync=round(cc, 2)), ['left', 'right']
+                else:
+                    out, sides = dict(hl if hl['flashes'] >= hr['flashes'] else hr, kind='hazard', sync=round(cc, 2)), ['left', 'right']
         if out is None:
             rl, rr = decide(L), decide(R)
             if rl['blink'] != rr['blink']:
@@ -203,7 +216,8 @@ class Analyzer:
                 if n % EVAL_EVERY == 0 and len(tr.sl) >= MIN_LEN and tr.cool == 0:
                     r = self._evaluate(tr)
                     tr.hits = tr.hits + 1 if r else 0
-                    if tr.hits >= CONFIRM and hit is None:
+                    need = CONFIRM_HZ_STRICT if (r and self.front_hazard_strict and tr.slot == 'front' and r.get('kind') == 'hazard') else CONFIRM
+                    if tr.hits >= need and hit is None:
                         hit = dict(r, slot=tr.slot, box=[round(v, 3) for v in tr.box], series=tr.sl[-WIN_S:], series_right=tr.sr[-WIN_S:])
                         tr.hits, tr.cool = 0, 50
         return hit
@@ -220,14 +234,14 @@ def to_jpg(frame):
     return b.getvalue()
 
 
-def run(src, vision, max_s, live, stop_first):
+def run(src, vision, max_s, live, stop_first, front_hazard_strict=False):
     roi = json.load(open(ROI, encoding='utf-8'))
     cmd = ['ffmpeg', '-v', 'error', '-nostdin']
     if live:
         cmd += ['-rtsp_transport', 'tcp', '-fflags', 'nobuffer', '-flags', 'low_delay', '-probesize', '1000000', '-analyzeduration', '500000']
     cmd += ['-i', src, '-an', '-vf', 'fps=%d,scale=%d:%d' % (FPS, W, H), '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
-    an = Analyzer()
+    an = Analyzer(front_hazard_strict=front_hazard_strict)
     state = {'frame': None, 'stop': False}
 
     def do_refresh(frame):
@@ -314,28 +328,46 @@ def selftest():
                 f[int((b[1] + bh * (y0 + 0.02)) * H):int((b[1] + bh * (y0 + 0.10)) * H), int((b[0] + bw * x0) * W):int((b[0] + bw * x1) * W)] = amber
         return f
 
-    def play(seq, boxes=None, persons=None, flood=False):
-        an = Analyzer()
+    def play(seq, boxes=None, persons=None, flood=False, slot='front', front_hazard_strict=False):
+        an = Analyzer(front_hazard_strict=front_hazard_strict)
         for i, (l, r) in enumerate(seq, 1):
             b = boxes[i - 1] if boxes else box
             if i == 1 or i % REFRESH == 0:
-                an.refresh([('front', b)], persons or [], [b])
+                an.refresh([(slot, b)], persons or [], [b])
             h = an.push(frame(l, r, b, flood=flood and (l or r)), i)
             if h:
-                return i, h
-        return None, None
+                return i, h, an
+        return None, None, an
 
     blink = [(i % 9 < 4, i % 9 < 4) for i in range(60)]
-    i, h = play(blink)
+    i, h, _ = play(blink)
     if not h or h['kind'] != 'hazard' or i > 35:
         err.append('雙黃燈沒在 3.5 秒內偵測到 %s %s' % (i, h and h['kind']))
-    i, h = play([(i % 9 < 4, i % 9 < 4) for i in range(60)], flood=True)
+    # 嚴格模式（Luxgen 原停前位）：2 次 / 3 次解鎖短閃過濾，持續 >= 4 次才開門；左/右方向燈與後位雙黃燈維持快檢
+    hz_unlock2 = [(i % 9 < 4 and i < 18, i % 9 < 4 and i < 18) for i in range(60)]
+    i, h, an_u2 = play(hz_unlock2, front_hazard_strict=True)
+    if h or an_u2.tracks[0].rej.get('hazard_short', 0) == 0:
+        err.append('前位嚴格模式不該讓 2 次解鎖短雙黃燈開門 %s %s' % (h, an_u2.tracks[0].rej))
+    hz_unlock3 = [(i % 9 < 4 and i < 27, i % 9 < 4 and i < 27) for i in range(60)]
+    i, h, an_u3 = play(hz_unlock3, front_hazard_strict=True)
+    if h or an_u3.tracks[0].rej.get('hazard_short', 0) == 0:
+        err.append('前位嚴格模式不該讓 3 次短雙黃燈開門 %s %s' % (h, an_u3.tracks[0].rej))
+    i, h, _ = play(blink, front_hazard_strict=True)
+    if not h or h['kind'] != 'hazard' or h['flashes'] < MIN_FLASHES_HZ_STRICT:
+        err.append('前位嚴格模式持續多打雙黃燈應成立 %s %s' % (i, h))
+    i, h, _ = play([(i % 9 < 4, False) for i in range(60)], front_hazard_strict=True)
+    if not h or h['kind'] != 'left' or i > 35:
+        err.append('前位嚴格模式單側左方向燈應維持快速偵測 %s %s' % (i, h))
+    i, h, _ = play(blink, slot='back', front_hazard_strict=True)
+    if not h or h['kind'] != 'hazard' or i > 35:
+        err.append('前位嚴格模式不影響後位雙黃燈快速偵測 %s %s' % (i, h))
+    i, h, _ = play([(i % 9 < 4, i % 9 < 4) for i in range(60)], flood=True)
     if not h or h['kind'] != 'hazard':
         err.append('白色車身被方向燈照亮（整台車跟著閃）時應該照樣偵測到雙黃燈（11-11 09:28）')
-    i, h = play([(i % 9 < 4, False) for i in range(60)], persons=[{'conf': 0.5, 'box': [0.44, 0.05, 0.56, 0.9]}])
+    i, h, _ = play([(i % 9 < 4, False) for i in range(60)], persons=[{'conf': 0.5, 'box': [0.44, 0.05, 0.56, 0.9]}])
     if not h or h['kind'] != 'left':
         err.append('人在車旁時方向燈不該被偵測層擋掉（交給開門前的車外有人確認）%s' % (h and h['kind']))
-    i, h = play([(i in (10, 11, 12, 13, 22, 23, 24), False) for i in range(60)] + [(False, False)] * 20)
+    i, h, _ = play([(i in (10, 11, 12, 13, 22, 23, 24), False) for i in range(60)] + [(False, False)] * 20)
     if h is None or h['kind'] != 'left':
         pass     # 只閃 2 次的短暫訊號：偵測與否都可，但不能連續 3 輪都成立就一定會被回報；交給下面的單次測試
     an2 = Analyzer()
@@ -346,27 +378,27 @@ def selftest():
         got = got or an2.push(frame(l, r), i)
     if got:
         err.append('只亮一下就被回報（應連續 3 輪才成立）')
-    i, h = play([(i % 9 < 4, (i + 4) % 9 < 4) for i in range(60)])
+    i, h, _ = play([(i % 9 < 4, (i + 4) % 9 < 4) for i in range(60)])
     if h and h['kind'] == 'hazard':
         err.append('左右不同步被判成雙黃燈')
-    i, h = play([(i % 9 < 4, False) for i in range(60)])
+    i, h, _ = play([(i % 9 < 4, False) for i in range(60)])
     if not h or h['kind'] != 'left':
         err.append('左方向燈 %s' % (h and h['kind']))
-    i, h = play([(False, i % 9 < 4) for i in range(60)])
+    i, h, _ = play([(False, i % 9 < 4) for i in range(60)])
     if not h or h['kind'] != 'right':
         err.append('右方向燈 %s' % (h and h['kind']))
-    i, h = play([(True, True)] * 60)
+    i, h, _ = play([(True, True)] * 60)
     if h:
         err.append('常亮被判成閃爍')
-    i, h = play([(False, False)] * 60)
+    i, h, _ = play([(False, False)] * 60)
     if h:
         err.append('無燈被判成閃爍')
-    i, h = play([(12 <= i < 17, 12 <= i < 17) for i in range(60)])
+    i, h, _ = play([(12 <= i < 17, 12 <= i < 17) for i in range(60)])
     if h:
         err.append('只亮一次被判成閃爍')
     # 車子往前開：框每秒移動一點，序列要接續（跟著車子走）
     mv = [[0.20 + 0.002 * k, 0.30 - 0.001 * k, 0.66 + 0.002 * k, 0.95 - 0.001 * k] for k in range(60)]
-    i, h = play(blink, mv)
+    i, h, _ = play(blink, mv)
     if not h or h['kind'] != 'hazard':
         err.append('移動中的車沒偵測到雙黃燈 %s' % (h,))
     # 追蹤：框大幅跳到另一輛車時不沿用序列
@@ -387,6 +419,7 @@ def main():
     ap.add_argument('--clip', help='回放影片檔（整段跑完，列出所有偵測）')
     ap.add_argument('--vision')
     ap.add_argument('--max', type=float, default=45, help='即時模式最長秒數')
+    ap.add_argument('--front-hazard-strict', action='store_true', help='前位雙黃燈需閃滿 4 次（過濾解鎖短閃）')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
@@ -394,7 +427,7 @@ def main():
     if not (a.url or a.clip):
         ap.error('--url or --clip required')
     try:
-        out = run(a.url or a.clip, a.vision, a.max, live=bool(a.url), stop_first=bool(a.url))
+        out = run(a.url or a.clip, a.vision, a.max, live=bool(a.url), stop_first=bool(a.url), front_hazard_strict=a.front_hazard_strict)
     except Exception as e:  # noqa: BLE001
         out = {'blink': False, 'error': str(e)[:200]}
     print(json.dumps(out, ensure_ascii=False))

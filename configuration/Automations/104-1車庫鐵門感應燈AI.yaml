@@ -2,6 +2,9 @@
 # 104-1車庫鐵門感應燈AI (V4.2.0)
 # 相容版本：Helpers V3.24.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.4.6（2026-11-15）：關燈前加入「家人手機連在車庫 AP」保護：11-15 17:05～17:39 人在車庫（手機 17:21 起連車庫 AP）但不常被攝影機拍到，模型拍一張看不到人就關燈，40 分鐘被關 6 次。
+#           ①樓梯感應器提早關燈：手機在車庫就不提早關；②一般關燈流程在最終檢核前先等手機離開車庫 AP（最多 3 小時）。
+#           手機留在車庫（例如放車上充電）不會讓燈一直亮：攝影機連續 20 分鐘沒有人員與動作偵測就照常進入關燈檢核。
 # - V4.3.6（2026-11-07）：樓梯感應器提早關燈：等待 30 秒 → 60 秒，且 3 分鐘內有人按過樓梯燈／車庫主燈按鈕（要下樓）就不提早關，改走一般關燈流程。
 #           11-07 14:31 按樓梯燈下樓，感應器亮起 41 秒後才走進車庫，第 32 秒燈就被關（人還在樓梯上）；近 7 天下樓 45 次，感應器亮到走進車庫多為 10～33 秒，超過 30 秒的有 8 次（最長 41 秒，另有一次 123 秒）。
 # - V4.3.5（2026-11-06）：104-1B 手動關燈冷卻忽略「從 unavailable／unknown 變 off」：小燕網關看門狗每 2 小時（xx:15）重載，車庫主燈與樓梯燈 unavailable→unknown→off 被當成人按的，每次啟動 2 分鐘冷卻（06:15、08:15、10:15、12:15… 都有）。
@@ -220,16 +223,19 @@
               value_template: >-
                 {% set m = states('input_text.terncy_btn_last').split('|') %}
                 {% set manual = m | length == 2 and ('lou_ti_deng' in m[0] or 'che_ku_zhu_deng' in m[0]) and (as_timestamp(now()) - (m[1] | float(0))) < 180 %}
-                {{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' and not manual }}
+                {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
+                {{ trigger.id == 'motion_detected' and trigger.entity_id == 'binary_sensor.e406bf25cfea_motion' and not manual and not phone_in }}
           then:
             - delay: "00:01:00"
             - if:
                 - condition: template
                   value_template: >-
+                    {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
                     {{ states('cover.garage') == 'closed'
                       and states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on'
                       and states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on'
-                      and states('binary_sensor.g6_instant_motion') != 'on' }}
+                      and states('binary_sensor.g6_instant_motion') != 'on'
+                      and not phone_in }}
               then:
                 - action: script.garage_presence_confirm_empty
                   data:
@@ -251,16 +257,30 @@
         - if:
             - condition: template
               value_template: >-
+                {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
                 {{ not (states('cover.garage') == 'closed'
                       and states('binary_sensor.che_ku_she_ying_ji_person_detected') != 'on'
                       and states('binary_sensor.che_ku_she_ying_ji_vehicle_detected') != 'on'
-                      and states('binary_sensor.g6_instant_motion') != 'on' and states('binary_sensor.e406bf25cfea_motion') != 'on') }}
+                      and states('binary_sensor.g6_instant_motion') != 'on'
+                      and states('binary_sensor.e406bf25cfea_motion') != 'on'
+                      and not phone_in) }}
           then:
             - delay: "00:04:00"
 
         # 2b. 樓梯感應器仍有人（或剛有動靜）就等它恢復無人，最多再等 10 分鐘
         - wait_template: "{{ not is_state('binary_sensor.e406bf25cfea_motion', 'on') }}"
           timeout: "00:10:00"
+          continue_on_timeout: true
+
+        # 2c. V4.4.6：家人手機還連在車庫 AP（人在車庫但不一定被攝影機拍到）就先不關，等手機離開車庫 AP 再往下（最多等 3 小時）。
+        #     手機留在車庫（放車上充電）時：攝影機連續 20 分鐘沒有人員與動作偵測就視為沒人，照常往下檢核。
+        - wait_template: >-
+            {% set locs = [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')] %}{% set phone_in = is_state('binary_sensor.che_ku_wa_fi_gan_ying_zong_he_pan_duan', 'on') or '車庫' in locs %}
+            {% set quiet = (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_person_detected.last_changed, 0)) > 1200
+                           and (as_timestamp(now()) - as_timestamp(states.binary_sensor.g6_instant_motion.last_changed, 0)) > 1200
+                           and is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'off') and is_state('binary_sensor.g6_instant_motion', 'off') %}
+            {{ (not phone_in or quiet) and not is_state('binary_sensor.e406bf25cfea_motion', 'on') }}
+          timeout: "03:00:00"
           continue_on_timeout: true
 
         # 3. 5 分鐘倒數結束前進行最終安全檢核

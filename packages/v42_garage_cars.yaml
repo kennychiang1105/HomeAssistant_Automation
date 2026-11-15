@@ -238,11 +238,11 @@ input_datetime:
     initial: "2000-01-01 00:00:00"
 
 shell_command:
-  garage_turn_signal: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/turn_clip.mp4 --slot {{ slot }} --vision http://local-garage-vision:8099 --delete'
+  garage_turn_signal: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/turn_clip.mp4 --slot {{ slot }} --vision http://local-garage-vision:8099 {{ extra | default("") }} --delete'
   garage_board_snap: 'python3 /config/scripts/garage_turn_signal.py --snap /config/www/snap/gs_board_chk.jpg --slot {{ slot }} --vision http://local-garage-vision:8099 --delete'
   # V4.3.10 連續檢查：每段短片獨立檔名，最後一個車位分析完才刪檔
-  garage_turn_rt: 'python3 /config/scripts/garage_turn_rt.py --url rtsp://127.0.0.1:18554/unifiprotect_847848288CA2_0 --vision http://local-garage-vision:8099 --max 45'
-  garage_turn_signal_fast: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/{{ clip }} --slot {{ slot }} --vision http://local-garage-vision:8099 {{ "--delete" if last else "" }}'
+  garage_turn_rt: 'python3 /config/scripts/garage_turn_rt.py --url rtsp://127.0.0.1:18554/unifiprotect_847848288CA2_0 --vision http://local-garage-vision:8099 --max 45 {{ extra | default("") }}'
+  garage_turn_signal_fast: 'python3 /config/scripts/garage_turn_signal.py --clip /config/www/snap/{{ clip }} --slot {{ slot }} --vision http://local-garage-vision:8099 {{ extra | default("") }} {{ "--delete" if last else "" }}'
   garage_car_watch: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 --csv {{ gate }} {{ nolearn }}'
   garage_car_learn: 'env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 /config/scripts/garage_car_watch.py --snapshot /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg --vision http://local-garage-vision:8099 {{ arg }}'
 
@@ -835,6 +835,8 @@ script:
                 - if: >-
                     {{ is_state('input_boolean.garage_turn_signal_enable', 'on') and res.slots[repeat.item].present
                        and not is_state('script.garage_turn_fast', 'on')
+                       and not (is_state('input_boolean.garage_turn_rt_enable', 'on') and is_state('input_boolean.garage_turn_rt_open_enable', 'on')
+                                and not is_state('input_boolean.garage_turn_rt_fault', 'on'))
                        and (res.slots[repeat.item].lights_on or states('sensor.garage_depart_likelihood') | float(0) >= 30
                             or is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on')
                             or is_state('binary_sensor.che_ku_che_ku_she_ying_ji_motion', 'on')
@@ -844,6 +846,12 @@ script:
                        and not is_state('input_select.garage_facing_' ~ repeat.item, 'inside')
                        and (as_timestamp(now()) - as_timestamp(states('input_datetime.garage_turn_last'), 0)) > 3 }}
                   then:
+                    - variables:
+                        moved_from_back: >-
+                          {{ is_state('input_select.garage_slot_back', 'empty')
+                             and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180
+                             and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180 }}
+                        lux_parked_front: "{{ repeat.item == 'front' and is_state('input_select.garage_slot_front', 'luxgen_n7') and not moved_from_back }}"
                     - action: input_datetime.set_datetime
                       target:
                         entity_id: input_datetime.garage_turn_last
@@ -854,12 +862,13 @@ script:
                         entity_id: camera.g6_instant_high_resolution_channel
                       data:
                         filename: /config/www/snap/turn_clip.mp4
-                        duration: 2
+                        duration: "{{ 4 if lux_parked_front else 2 }}"
                         lookback: 0
                       continue_on_error: true
                     - action: shell_command.garage_turn_signal
                       data:
                         slot: "{{ repeat.item }}"
+                        extra: "{{ '--min-hazard-flashes 4' if lux_parked_front else '' }}"
                       response_variable: tr
                       continue_on_error: true
                     - variables:
@@ -998,6 +1007,11 @@ script:
                   {% set ns = namespace(o=[]) %}
                   {% for sl in ['front', 'back'] %}{% if not is_state('input_select.garage_slot_' ~ sl, 'empty') and not is_state('input_select.garage_facing_' ~ sl, 'inside') %}{% set ns.o = ns.o + [sl] %}{% endif %}{% endfor %}
                   {{ ns.o | tojson }}
+                moved_from_back: >-
+                  {{ is_state('input_select.garage_slot_back', 'empty')
+                     and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180
+                     and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180 }}
+                lux_parked_front: "{{ 'front' in slots and is_state('input_select.garage_slot_front', 'luxgen_n7') and not moved_from_back }}"
             - if: "{{ slots | length == 0 }}"
               then:
                 - delay: "00:00:02"
@@ -1007,7 +1021,7 @@ script:
                     entity_id: camera.g6_instant_high_resolution_channel
                   data:
                     filename: "/config/www/snap/{{ clip }}"
-                    duration: 2
+                    duration: "{{ 4 if lux_parked_front else 2 }}"
                     lookback: 0
                   continue_on_error: true
                 - action: script.turn_on
@@ -1049,7 +1063,15 @@ script:
                    or (as_timestamp(now()) - as_timestamp(states[m].last_changed)) < 20
                    or (as_timestamp(now()) - as_timestamp(states[pp].last_changed)) < 20 }}
           sequence:
+            - variables:
+                moved_from_back: >-
+                  {{ is_state('input_select.garage_slot_back', 'empty')
+                     and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180
+                     and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180 }}
+                lux_parked_front: "{{ is_state('input_select.garage_slot_front', 'luxgen_n7') and not moved_from_back }}"
             - action: shell_command.garage_turn_rt
+              data:
+                extra: "{{ '--front-hazard-strict' if lux_parked_front else '' }}"
               response_variable: rr
               continue_on_error: true
             - variables:
@@ -1141,6 +1163,12 @@ script:
         description: 要檢查的車位清單（front／back）
         required: true
     sequence:
+      - variables:
+          moved_from_back: >-
+            {{ is_state('input_select.garage_slot_back', 'empty')
+               and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180
+               and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180 }}
+          lux_parked_front: "{{ is_state('input_select.garage_slot_front', 'luxgen_n7') and not moved_from_back }}"
       - repeat:
           for_each: "{{ slots }}"
           sequence:
@@ -1149,6 +1177,7 @@ script:
                 clip: "{{ clip }}"
                 slot: "{{ repeat.item }}"
                 last: "{{ repeat.last }}"
+                extra: "{{ '--min-hazard-flashes 4' if (repeat.item == 'front' and lux_parked_front) else '' }}"
               response_variable: tr
               continue_on_error: true
             - variables:
