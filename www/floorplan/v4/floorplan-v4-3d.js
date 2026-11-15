@@ -1,4 +1,4 @@
-/* Floorplan V4.1.0 (UI4.1) - real 3D view
+/* Floorplan V4.1.1 (UI4.1.5) - real 3D view
  * custom:floorplan-v4-3d       three.js scene extruded from the 2D plan SVGs (walls/furniture),
  *                              orbit/pinch/pan, per-light glow that follows the light colour,
  *                              stairs / windows / doors / furniture heights, roller door that follows the cover,
@@ -26,6 +26,25 @@ const loadThree = () => {
   ]).then(([THREE, oc, sl]) => ({ THREE, OrbitControls: oc.OrbitControls, SVGLoader: sl.SVGLoader }));
   return threePromise;
 };
+// V4.1.1（2026-11-15）真車模提早載入：原本車模要等 3D 卡片建好場景（打開儀表板後約 6～7 秒）才開始下載與解析，
+//   期間畫面先顯示程式畫的替代車模（不是 Tesla／Luxgen），載好才換。現在模組一載入就同步預載（與 HA 自己載入並行），
+//   場景建好時通常已經準備好；準備好之前不顯示替代車模（_carHold），避免「先出現不對的車再變成真車」。
+const CAR_VER = "v438b";
+const CAR_FILES = { tesla: "tesla_model3.glb", luxgen: "luxgen_n7.glb", sedan: "sedan.glb", suv: "suv.glb", moto: "motorcycle.glb" };
+let carGltfPromise = null;
+const preloadCarGltf = () => {
+  carGltfPromise = carGltfPromise || (async () => {
+    const [{ GLTFLoader }] = await Promise.all([import(LIB + "GLTFLoader.js"), loadThree()]);
+    const loader = new GLTFLoader();
+    const base = new URL("./models/", import.meta.url).href;
+    const list = await Promise.all(Object.entries(CAR_FILES).map(([kind, f]) => new Promise((ok) => {
+      loader.load(base + f + "?" + CAR_VER, (gl) => ok([kind, gl.scene]), undefined, (e) => { console.warn("floorplan-v4-3d: car model load failed", f, e); ok([kind, null]); });
+    })));
+    return Object.fromEntries(list);
+  })();
+  return carGltfPromise;
+};
+preloadCarGltf().catch((e) => console.warn("floorplan-v4-3d: car preload failed", e));
 const getFloor = (cfg) => {
   let f = null;
   try { f = sessionStorage.getItem(KEY); } catch (e) { /* ignore */ }
@@ -398,7 +417,7 @@ class FloorplanV43D extends HTMLElement {
           <div class="chips">${CATS.map(([k, n]) => `<button data-c="${k}" title="${n}"><ha-icon icon="${CAT_ICONS[k]}"></ha-icon><span class="t">${n}</span></button>`).join("")}</div></div>
         <div class="hint"></div><div class="zones"></div><div class="scn"></div>
         <div class="airbk" hidden></div><div class="airinfo" hidden></div>
-        <div class="ver">UI4.1</div>
+        <div class="ver">UI4.1.5</div>
         <div class="msg" style="display:none"></div></div>`;
     this._onTabs();
     this._onTools();
@@ -703,10 +722,14 @@ class FloorplanV43D extends HTMLElement {
     if (this._carTpl) { this._applyCarModels(); return; }
     if (this._carLoading) return;
     this._carLoading = true;
+    if (this._carHold === undefined) {
+      this._carT = { queued: Math.round(performance.now()) };      // 計時（毫秒，從頁面開始）：場景建好排入車模的時間／真車模套用完成的時間
+      this._carHold = true;          // 真車模準備好前不顯示程式替代車模；載入失敗或超過 6 秒就放行（沿用替代車模）
+      setTimeout(() => { if (this._carHold) { this._carHold = false; this._sync?.(); this._dirty = true; } }, 6000);
+    }
     const T = this._T;
-    const base = new URL("./models/", import.meta.url).href;
     // 車模出處：Tesla＝「Tesla M3 model」by wintrez（sketchfab.com，CC-BY 4.0）；Luxgen N7＝依官方照片與規格程式建模（C:\ai_lab\n7\make_n7.py）
-    const ver = "v438b";
+    const ver = CAR_VER;
     const defs = {
       tesla: { file: "tesla_model3.glb?" + ver, paint: 0xe8ebee, hk: null, tail: /RedLight/i, head: /innerLights/i, turn: /OrangeLights/i, hide: /^$/ },
       luxgen: { file: "luxgen_n7.glb?" + ver, paint: 0xf3f4f6, hk: 1.08, tail: /hongdeng|n7_tail/i, head: /jinshudeng\.1|n7_head/i, turn: /n7_turn/i, hide: /^floor$/i, trim: true },
@@ -714,15 +737,11 @@ class FloorplanV43D extends HTMLElement {
       suv: { file: "suv.glb?" + ver, paint: 0x8b98a6, hk: 1.08, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
       moto: { file: "motorcycle.glb?" + ver, paint: 0x3d4b5c, hk: 0.96, lenFrac: 0.45, tail: /n7_tail/i, head: /n7_head/i, turn: /n7_turn/i, hide: /^$/ },
     };
-    import(LIB + "GLTFLoader.js").then(({ GLTFLoader }) => {
-      const loader = new GLTFLoader();
-      return Promise.all(Object.entries(defs).map(([kind, d]) => new Promise((ok) => {
-        loader.load(base + d.file, (gl) => ok([kind, this._prepCarTpl(T, gl.scene, d)]), undefined, (e) => { console.warn("floorplan-v4-3d: car model load failed", d.file, e); ok([kind, null]); });
-      })));
-    }).then((list) => {
-      this._carTpl = Object.fromEntries(list.filter(([, t]) => t));
+    preloadCarGltf().then((scenes) => {
+      // 預載的場景物件被多張卡共用，每張卡各取一份副本再整理（_prepCarTpl 會旋轉／位移／隱藏部分網格）
+      this._carTpl = Object.fromEntries(Object.entries(defs).map(([kind, d]) => [kind, scenes[kind] ? this._prepCarTpl(T, scenes[kind].clone(true), d) : null]).filter(([, t]) => t));
       this._applyCarModels();
-    }).catch((e) => console.warn("floorplan-v4-3d: GLTFLoader unavailable", e));
+    }).catch((e) => { console.warn("floorplan-v4-3d: car models unavailable", e); this._carHold = false; this._sync?.(); this._dirty = true; });
   }
 
   _carEnv(T) {
@@ -845,6 +864,8 @@ class FloorplanV43D extends HTMLElement {
         }
       }
     }
+    this._carHold = false;
+    if (this._carT && !this._carT.applied) this._carT.applied = Math.round(performance.now());
     this._sync?.();
     this._dirty = true;
   }
@@ -3111,7 +3132,7 @@ class FloorplanV43D extends HTMLElement {
         const kind = info ? info[1] : "sedan";                    // 認不出是哪種車：半透明的通用房車模型
         c.g.visible = !isEmpty; c.ghost.visible = false; c.spr.visible = !isEmpty;      // 沒車：不顯示模型、虛線框與標籤
         for (const [k, m] of Object.entries(c.models || {})) {
-          m.gr.visible = k === kind;
+          m.gr.visible = k === kind && !this._carHold;      // V4.1.1：真車模準備好前不顯示程式替代車模
           m.paint.transparent = unk; m.paint.opacity = unk ? 0.65 : 1;
         }
         c.models.tesla.paint.color.setHex(slot === "tesla_model3" ? 0xd5dae1 : 0xd3d6db);      // 珍珠白／銀（照實車）

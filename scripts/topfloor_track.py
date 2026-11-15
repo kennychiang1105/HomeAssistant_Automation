@@ -300,12 +300,12 @@ def cmd_presence(a):
     print(json.dumps({'persons': len(persons), 'boxes': [[round(v, 3) for v in (p.get('box') or [])] + [round(p.get('conf', 0), 2)] for p in persons]}))
 
 
-COLLECT_DIR = '/config/learn_collect/topfloor'
+COLLECT_DIR = '/share/learn_collect/topfloor'
 COLLECT_KEEP_DAYS = 14
 
 
 def collect_frame(src, t, persons, out):
-    """V4.3.9 學習資料自動收集：動靜期間分析過的每一張快照（約 15 KB）＋當下人物框與追蹤判斷，存到 /config/learn_collect/topfloor/<日期>/，
+    """V4.3.9 學習資料自動收集：動靜期間分析過的每一張快照（約 15 KB）＋當下人物框與追蹤判斷，存到 /share/learn_collect/topfloor/<日期>/，
     之後用 08-5J 實體感應器事件（上樓／進書房／進臥室）當標註，對照模型判斷，挑出不一致的重新學習。保留 14 天。"""
     import datetime as dt
     import shutil

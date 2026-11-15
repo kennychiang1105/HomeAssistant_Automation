@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>開啟「家庭」App</title>
+<style>
+  :root{color-scheme:dark light;--bg:#101317;--fg:#E8EAED;--mut:#9AA0A6}
+  @media (prefers-color-scheme:light){:root{--bg:#F5F6F8;--fg:#1F2328;--mut:#6B7280}}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px -apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
+  .wrap{max-width:520px;margin:0 auto;padding:48px 20px;text-align:center}
+  h1{font-size:18px;margin:0 0 14px}
+  .btn{display:block;margin:18px auto 0;text-decoration:none;color:#fff;background:#34C759;border-radius:12px;padding:14px 16px;font-size:16px;font-weight:600}
+  .msg{margin-top:18px;color:var(--mut);font-size:13px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>開啟「家庭」App 查看攝影機</h1>
+  <a class="btn" id="go" href="com.apple.home://">打開「家庭」App</a>
+  <div class="msg" id="msg">正在嘗試自動開啟…<br>若沒有跳轉，請按上方按鈕；仍沒反應請點右下角「⋮」或分享圖示，選「用 Safari 開啟」。進入後請點選攝影機。外出時也可使用（家庭 App 會透過 iCloud 連線）。</div>
+</div>
+<script>
+  setTimeout(function(){ location.href='com.apple.home://'; }, 400);
+</script>
+</body>
+</html>

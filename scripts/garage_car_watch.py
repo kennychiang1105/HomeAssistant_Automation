@@ -773,7 +773,7 @@ def selftest():
     return 1 if errors else 0
 
 
-COLLECT_DIR = '/config/learn_collect/garage'
+COLLECT_DIR = '/share/learn_collect/garage'
 COLLECT_KEEP_DAYS = 14
 
 
