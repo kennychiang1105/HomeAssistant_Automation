@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """頂樓攝影機逐秒人物軌跡分析（V4.3.6）
+V4.3.13（2026-11-16）：學習資料（/share/learn_collect/topfloor）每個人物多存關鍵點 k（面向判斷訓練用）；新增 scripts/dev_tools/topfloor_exit_eval.py（用感應器標註評估去向判斷）。
 V4.3.11（2026-11-07）：去向學習式分類的採用門檻 0.70／0.30 → 0.60／0.40（10/31～11/07 新影片 173 段重播驗證，模型本身維持 10/31 版，重訓沒有比較好）。
 V4.3.6：改用人體姿態模型找人（Garage Vision 0.4.0 pose=1，近 3 天 120 段錄影上樓偵測 24→27／28 段、去向臥室 26→34 段）；另新增「框高縮小」下樓規則（descend_on，預設關）：用近 3 天錄影驗證 up 判斷不受影響（27/27）、能濾掉走向鏡頭的誤判，但涵蓋不到「從房門走向樓梯」的走法，所以先不啟用。
 
@@ -304,6 +305,14 @@ COLLECT_DIR = '/share/learn_collect/topfloor'
 COLLECT_KEEP_DAYS = 14
 
 
+def _round_kp(kp):
+    """V4.3.13：學習資料多存人體關鍵點（四捨五入到小數 3 位，約 +0.3KB／幀），之後可用肩膀／臀部方向判斷面向（走進房間或走出來）"""
+    try:
+        return [[round(float(v), 3) for v in pt] for pt in kp] if kp else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def collect_frame(src, t, persons, out):
     """V4.3.9 學習資料自動收集：動靜期間分析過的每一張快照（約 15 KB）＋當下人物框與追蹤判斷，存到 /share/learn_collect/topfloor/<日期>/，
     之後用 08-5J 實體感應器事件（上樓／進書房／進臥室）當標註，對照模型判斷，挑出不一致的重新學習。保留 14 天。"""
@@ -316,7 +325,7 @@ def collect_frame(src, t, persons, out):
     stamp = dt.datetime.fromtimestamp(t).strftime('%H%M%S_%f')[:10]
     shutil.copyfile(src, os.path.join(d, stamp + '.jpg'))
     rec = {'t': round(t, 2), 'file': stamp + '.jpg', 'dir': out.get('dir'), 'fire': out.get('fire'), 'reason': out.get('reason'),
-           'persons': [{'c': p.get('conf'), 'b': p.get('box')} for p in (persons or [])]}
+           'persons': [{'c': p.get('conf'), 'b': p.get('box'), 'k': _round_kp(p.get('kp'))} for p in (persons or [])]}
     if out.get('exit'):
         rec['exit'] = out['exit']
     with open(os.path.join(d, 'index.jsonl'), 'a', encoding='utf-8') as f:
