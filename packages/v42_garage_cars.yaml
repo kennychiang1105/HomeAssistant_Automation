@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.4.5）
 # 更新紀錄（統一格式）：
+# - V4.5（2026-11-16，待發布）：修復 input_datetime.garage_turn_last 永遠停在 2000-01-01：它原本只由短片備援路徑更新，V4.4.1 起即時分析接手後短片路徑不再執行；現在 script.garage_turn_rt 每一輪分析前都會寫入目前時間（短片備援的 3 秒間隔判斷不受影響）。
 # - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
 #           garage_turn_fast（短片檢查）在這個旗標開著時恢復執行；即時分析恢復正常就自動關閉旗標（V4.4.4 起即時分析開著時短片檢查完全停用，串流一掛方向燈偵測就整個失效且沒有通知）。
 #           ②garage_gate_close_retry 最終通知文字「已重試 40 次」改為 120 次（V4.4.3 已把次數改成 120、間隔 1 分鐘）。
@@ -200,7 +201,7 @@ input_datetime:
     has_time: true
     initial: "2000-01-01 00:00:00"
   garage_turn_last:
-    name: 車庫左方向燈偵測｜上次檢查（內部，30 秒冷卻）
+    name: 車庫方向燈偵測｜上次檢查（內部；即時分析每一輪與短片備援都會更新）
     has_date: true
     has_time: true
     initial: "2000-01-01 00:00:00"
@@ -1069,6 +1070,13 @@ script:
                      and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180
                      and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180 }}
                 lux_parked_front: "{{ is_state('input_select.garage_slot_front', 'luxgen_n7') and not moved_from_back }}"
+            - action: input_datetime.set_datetime
+              alias: 記錄方向燈檢查時間（即時分析每一輪都更新 garage_turn_last）
+              target:
+                entity_id: input_datetime.garage_turn_last
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              continue_on_error: true
             - action: shell_command.garage_turn_rt
               data:
                 extra: "{{ '--front-hazard-strict' if lux_parked_front else '' }}"
