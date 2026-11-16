@@ -2,6 +2,7 @@
 # 漸進情境AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.0.2（2026-11-16）：離家情境在「有人在家」（binary_sensor.at_home_anyone_home = on）時不碰車庫燈（車庫主燈、車庫樓梯燈都不關），避免人正要走進車庫燈就被關（11-16 11:04 餐廳泰恩長按離家、車庫主燈被關約 33 秒）。
 # - V4.1.6（2026-10-18）：到家／早安「開」燈時，客廳／餐廳燈改交 script.light_group_on 做開燈動畫（其餘家電與關燈不變）。
 # - V4.0.1（2026-10-10）：stairs_off 時，四樓樓梯燈若是頂樓感應正在使用（五樓梯廳燈由感應開著），改交給頂樓感應、與頂樓樓梯燈一起關。
 # - V4.0.0：AI 4.0 版號統一（V4.0-beta1）；本檔為 V4.0 新增/重構（通知分級、統一廣播、情境、氣氛燈相關）。
@@ -15,7 +16,7 @@
 #           皆無則 離家=車庫、到家=2F 廁所/廚房側樓梯口（多數人不經大門進入）、其他=客廳。樓梯依按鈕樓層先動，向上下擴散。
 # ────────────────────────────────────────────────────────
 stage_scene:
-  alias: 漸進情境AI (V4.0.1)
+  alias: 漸進情境AI (V4.0.2)
   description: 依按鈕位置由近到遠分環開/關燈與家電（goodnight/leave/morning/arrive/stairs_on/stairs_off）
   mode: parallel
   max: 4
@@ -86,7 +87,7 @@ stage_scene:
             {% set living = ['light.yeelink_color5_4181_light','light.ke_ting_deng_zu_1_ha','light.ke_ting_deng_zu_2','light.ke_ting_deng_zu_3','switch.ke_ting_kan_deng','switch.ke_ting_huan_rao_deng','switch.ke_ting_bi_deng'] %}
             {% set dining = ['light.can_ting_deng_zu_1_ha','switch.can_ting_bi_deng','switch.can_ting_kan_deng'] %}
             {% set kitchen = ['switch.chu_fang_deng','switch.ce_suo_deng','switch.men_kou_deng','switch.lu_deng','switch.bi_deng'] %}
-            {% set garage = ['switch.che_ku_zhu_deng'] if scene == 'leave' and src_device not in ['', 'None'] else ['switch.che_ku_zhu_deng','switch.lou_ti_deng'] %}
+            {% set garage = [] if (scene == 'leave' and is_state('binary_sensor.at_home_anyone_home','on')) else (['switch.che_ku_zhu_deng'] if scene == 'leave' and src_device not in ['', 'None'] else ['switch.che_ku_zhu_deng','switch.lou_ti_deng']) %}
             {% set appl = ['fan.ke_ting_dian_feng_shan','remote.ke_ting_dian_shi','fan.kong_qi_qing_jing_ji'] %}
             {% set exempt = (scene == 'leave' and src_device not in ['', 'None']) %}
             {% set stairs = [] if exempt else ['switch.er_san_lou_lou_ti_deng','switch.san_lou_lou_ti_deng','switch.san_si_lou_lou_ti_deng','switch.ding_lou_lou_ti_deng','light.yeelink_color5_0fb7_light','light.yeelink_color5_13b8_light'] %}

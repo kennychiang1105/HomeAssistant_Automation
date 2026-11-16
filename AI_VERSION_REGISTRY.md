@@ -995,3 +995,4 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **環境異常通知語音參數修正（06 V4.1.7，2026-11-15）**：`06環境異常通知AI` 不需要語音廣播時原本傳 `voice: none`，`script.notify_dispatch` 的語音步驟出錯（11-08 09:34：NoneType has no len()）。改傳空字串，`統一通知AI` 同步把 None 視為沒有語音內容。
 - **磁碟清理：學習資料搬到 /share、備份排除（2026-11-15）**：`learn_collect`（約 17.5GB、11.7 萬檔）原在 /config，被每日備份整包帶進去，每份備份約 18GB，5 份本機備份就會塞滿磁碟。搬到 `/share/learn_collect/`（`garage_car_watch.py`、`garage_stair_track.py`、`topfloor_track.py` 的 COLLECT_DIR 同步改路徑），Google Drive Backup 附加元件設 `exclude_folders: share`（備份不含學習資料），並刪除 `tfclips` 暫存影片。磁碟使用率 76%→60%。注意：搬走後學習資料不在備份裡。
 - **AI 4.4.7 發布（2026-11-15）**：V4.4.6 之後：3D 車模預載（UI4.1.5）、環境異常通知語音修正、學習資料搬到 /share 與備份排除、磁碟清理。
+- **離家情境有人在家時不碰車庫燈（漸進情境AI V4.0.2／情境檢查AI V4.1.9，2026-11-16）**：11-16 11:04 餐廳泰恩開關長按觸發離家情境，車庫主燈被關約 33 秒（車庫攝影機看到人才又開）。離家情境在 `binary_sensor.at_home_anyone_home` 為 on（有人在家）時，不再關車庫主燈與車庫樓梯燈；情境檢查與補救也不再要求車庫主燈關閉。沒人在家時行為不變。
