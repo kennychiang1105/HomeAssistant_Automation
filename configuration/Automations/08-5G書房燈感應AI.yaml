@@ -1,8 +1,9 @@
 # ─────────────────────────────────────────────────────────────
-# 08-5G書房燈感應AI (V4.1.7)
+# 08-5G書房燈感應AI (V4.1.8)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
-# - V4.1.7（2026-11-16，V4.5 待發布）：書房燈開燈新增防呆「書房燈剛關 10 秒內，PIR 右單獨觸發不立刻重開」（08-5J 的 enter_study 不受限）。11-16 22:51～22:52 書房燈在 2～4 秒內被關了又開兩次（回房間時 PIR 左與 PIR 右先後觸發）。PIR 右單獨觸發的開燈能力不變（使用者要求保留：回臥室後可能馬上回書房）。
+# - V4.1.8（2026-11-16，V4.5 待發布）：配合頂樓攝影機模型判斷去向加強即時關燈：①「書房燈關閉AI」新增 enter_bedroom（模型離開去向或房門線判定進臥室）觸發，感應開的書房燈立刻關（原本要等房間側 PIR，11-16 22:52:03 判定進臥室、22:52:31 才關，晚 28 秒）；頂樓 2 位以上家人、剛進書房 10 秒內不處理。②「書房回房間關燈AI」新增防呆 0：進書房 300 秒內且之後沒有判定進臥室／下樓時，房間側 PIR 不關燈（22:51:44 人還在書房就被 PIR 左關掉）。③書房燈開燈防呆改為剛關 5 秒內 PIR 右不重開（原 10 秒）。
+# - V4.1.7（2026-11-16，V4.5 待發布）：書房燈開燈新增防呆「書房燈剛關 5 秒內，PIR 右單獨觸發不立刻重開」（08-5J 的 enter_study 不受限）。11-16 22:51～22:52 書房燈在 2～4 秒內被關了又開兩次（回房間時 PIR 左與 PIR 右先後觸發）。PIR 右單獨觸發的開燈能力不變（使用者要求保留：回臥室後可能馬上回書房）。
 # - V4.1.6（2026-11-06）：新增「書房燈離開佐證關燈」：書房感應燈開著、進書房後攝影機又看到人（走道上走動）、之後書房側 PIR 右沒有再觸發、攝影機清空 15 秒 → 關書房燈（頂樓少於 2 位家人）。房間側 PIR 左 11-02 起故障、房門線又常漏抓，「離開書房回臥室」沒有任何訊號，書房燈要等無人檢查 3～5 分鐘才關。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
 # - V4.1.3（2026-10-10）：手機所在 AP 改讀 sensor.kenny_phone_ap_mac；其餘邏輯不變。
@@ -15,7 +16,7 @@
 # - V4.0.0：頂樓感應優化 P3 重寫。開燈：08-5J 的 enter_study 或書房 PIR 右（攝影機／iPhone AP 佐證）；關燈：離開書房回房立即關、離開書房下樓保留 3 分鐘、
 #           每分鐘無人檢查（PIR 右安靜 5 分鐘＋攝影機無人，且 iPhone 不在 5F 或已回房／下樓才關）、安靜坐著最長 60 分鐘一律關。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5G 書房燈感應AI (V4.1.7)
+- alias: 08-5G 書房燈感應AI (V4.1.8)
   id: ai_08_5g_study_motion_light
   description: >
     書房燈開燈：08-5J 判定進書房，或書房 PIR 右有動作且攝影機（iPhone 在 5F AP 時放寬到 20 分鐘）近期有人。
@@ -47,10 +48,10 @@
       entity_id: switch.shu_fang_deng
       state: "off"
     - condition: template
-      alias: "防呆：書房燈剛關 10 秒內，PIR右單獨觸發不立刻重開（08-5J 進書房事件不受限）"
+      alias: "防呆：書房燈剛關 5 秒內，PIR右單獨觸發不立刻重開（08-5J 進書房事件不受限）"
       value_template: >-
         {{ trigger.id == 'enter_study'
-           or (as_timestamp(now()) - as_timestamp(states.switch.shu_fang_deng.last_changed, 0)) >= 10 }}
+           or (as_timestamp(now()) - as_timestamp(states.switch.shu_fang_deng.last_changed, 0)) >= 5 }}
     - condition: or
       alias: "放行檢查：08-5J進書房事件 或 書房側PIR右三重過濾放行"
       conditions:
@@ -90,7 +91,7 @@
       target:
         entity_id: switch.shu_fang_deng
 
-- alias: 08-5G 書房燈關閉AI (V4.1.5)
+- alias: 08-5G 書房燈關閉AI (V4.1.8)
   id: ai_08_5g_study_light_off_v4
   description: 離開書房回臥室立即關；離開書房下樓保留 3 分鐘後關；再次進書房取消
   mode: restart
@@ -116,6 +117,12 @@
       event_type: topfloor_path
       event_data:
         path: enter_study
+    - id: model_bedroom
+      alias: "[動線事件] 模型／房門線判定進臥室 (enter_bedroom)：書房燈是感應開的就立刻關（不等房間側 PIR）"
+      trigger: event
+      event_type: topfloor_path
+      event_data:
+        path: enter_bedroom
   conditions:
     - condition: state
       alias: "全域感應防護：未處於暫停模式"
@@ -132,6 +139,18 @@
           conditions: "{{ trigger.id == 'to_bedroom' and not is_state('input_boolean.topfloor_study_auto', 'on') }}"
           sequence:
             - stop: "書房燈不是感應開的，回臥室不處理"
+        # V4.1.8：模型／房門線判定進臥室（enter_bedroom）：燈不是感應開的、燈本來就關、剛進書房 10 秒內，或頂樓還有 2 位以上家人都不處理
+        - alias: "分支 2B：進臥室判定，條件不符就略過"
+          conditions: >-
+            {% set people = ['kenny', 'jerry', 'iris', 'elay']
+                 | map('regex_replace', '^(.*)$', 'sensor.at_home_\\1_location')
+                 | map('states') | select('match', '頂樓') | list | length %}
+            {{ trigger.id == 'model_bedroom'
+               and (not is_state('input_boolean.topfloor_study_auto', 'on') or not is_state('switch.shu_fang_deng', 'on')
+                    or (as_timestamp(now()) - as_timestamp(states('input_datetime.topfloor_path_enter_study'), 0)) < 10
+                    or people >= 2) }}
+          sequence:
+            - stop: "進臥室判定但書房燈不需要關"
         - alias: "分支 3：準備下樓，倒數 3 分鐘緩衝關燈"
           conditions: "{{ trigger.id == 'to_down' }}"
           sequence:
@@ -223,7 +242,7 @@
                 message: "{{ now().strftime('%H:%M:%S') }} 書房燈判定無人（PIR 右安靜 {{ quiet_min }} 分鐘、攝影機 {{ cam_min }} 分鐘無人），已關閉"
               continue_on_error: true
 
-- alias: 08-5G 書房回房間關燈AI (V4.1.5)
+- alias: 08-5G 書房回房間關燈AI (V4.1.8)
   id: ai_08_5g_study_to_room_off
   description: >
     左側（房間）感應器觸發且是「走進房間」（剛上樓，或 120 秒內右側／書房先觸發）→ 關書房燈，並依「抵達後關樓梯燈延遲」關樓梯燈（只關感應開的）。
@@ -252,6 +271,14 @@
         {% set lp = states('input_text.topfloor_last_path') | string %}
         {% set arrived = lp.split('|')[0] == 'arrive_up' and (now_ts - ((lp.split('|')[1] | float(0)) if '|' in lp else 0)) <= 120 %}
         {{ people < 2 and (right_age <= 120 or arrived) }}
+    - condition: template
+      alias: "防呆 0（V4.1.8）：人還在書房（進書房 300 秒內、之後沒有判定進臥室或下樓）時，房間側 PIR 不關燈，改由模型／房門線的進臥室判定關"
+      value_template: >-
+        {% set e = as_timestamp(states('input_datetime.topfloor_path_enter_study'), 0) %}
+        {% set in_study = (as_timestamp(now()) - e) < 300
+             and as_timestamp(states('input_datetime.topfloor_path_bedroom'), 0) <= e
+             and as_timestamp(states('input_datetime.topfloor_path_down'), 0) <= e %}
+        {{ not in_study }}
     - condition: template
       alias: "防呆 1：書房燈剛亮 10 秒內不處理（剛進書房，房間側 PIR 會跟著觸發）"
       value_template: >-
