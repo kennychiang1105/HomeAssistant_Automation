@@ -2,11 +2,12 @@
 # 08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.14（2026-11-18，V4.5 待發布）：走道 PIR（左／右）觸發也開始分析畫面，不再只等攝影機動作／人員偵測。11-18 00:27:33 從臥室快步走進書房，00:27:35 就離開畫面，但 UniFi 偵測 00:27:35 才亮、模型第一張畫面 00:27:35.6，整段 58 張都沒有人，去向判斷落空。過去 7 天 PIR 比攝影機早觸發 128 次（平均早 2.0 秒、88 次早 1 秒以上）；攝影機沒動只有 PIR 的情況每天約 11 次，每次多分析約 6 秒。
 # - V4.3.4-beta 1（2026-10-28，測試中）：新增。頂樓攝影機有動靜（motion）或偵測到人（person_detected）就啟動 script.topfloor_cam_ai_loop：
 #   動靜期間每秒抓一張快照給模型判斷有沒有人、往哪走（上樓／下樓），動靜結束後再多看 6 秒，單次上限 60 秒。
 #   判斷結果以事件 topfloor_cam_ai 交給 08-5J頂樓動線推理AI 當證據。總開關 input_boolean.topfloor_cam_ai_enable。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5M頂樓攝影機模型分析AI (V4.3.4-beta 1)
+- alias: 08-5M頂樓攝影機模型分析AI (V4.3.14)
   id: ai_08_5m_topfloor_cam_ai
   description: 頂樓攝影機有動靜就逐秒分析畫面（模型人物偵測＋軌跡），提早判斷上樓或下樓。
   mode: single
@@ -20,6 +21,13 @@
       entity_id: binary_sensor.wu_lou_she_ying_ji_person_detected
       to: "on"
       id: person
+    # V4.3.14：走道 PIR 比 UniFi 動作／人員偵測平均早 2 秒，快步走過時只靠攝影機會來不及
+    - trigger: state
+      entity_id:
+        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_left
+        - binary_sensor.shu_fang_gan_ying_kai_guan_motion_right
+      to: "on"
+      id: pir
   conditions:
     - condition: state
       entity_id: input_boolean.topfloor_cam_ai_enable

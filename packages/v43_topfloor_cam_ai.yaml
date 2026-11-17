@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
-# 頂樓攝影機模型判斷 (V4.3.12)
+# 頂樓攝影機模型判斷 (V4.3.14)
 # 更新紀錄（統一格式）：
+# - V4.3.14（2026-11-18，V4.5 待發布）：走道 PIR（左／右）觸發也開始分析畫面，不再只等攝影機動作／人員偵測。11-18 00:27:33 從臥室快步走進書房，00:27:35 就離開畫面，但 UniFi 偵測 00:27:35 才亮、模型第一張畫面 00:27:35.6，整段 58 張都沒有人，去向判斷落空。過去 7 天 PIR 比攝影機早觸發 128 次（平均早 2.0 秒、88 次早 1 秒以上）；攝影機沒動只有 PIR 的情況每天約 11 次，每次多分析約 6 秒。script.topfloor_cam_ai_loop 的持續條件同步加入 PIR（亮著或 6 秒內剛變化）。
 # - V4.3.12（2026-11-12）：topfloor_cam_ai_loop 與 topfloor_stairs_wait_clear 當模型確認畫面有人（persons > 0）且任一盞樓梯燈未亮時，
 #   發出 topfloor_cam_person 事件供 08-5C 直接忽略剛進房防呆進行開燈。
 # - V4.3.10（2026-11-07）：新增 script.topfloor_stairs_wait_clear：08-5C 自動關樓梯燈前先抓一張快照用人物模型確認，畫面還有人就每 2 秒再看，等人消失才關（最多等 5 分鐘）；
@@ -193,7 +194,7 @@ script:
               reason: "{{ ex.get('reason', '') }}"
 
   topfloor_cam_ai_loop:
-    alias: 頂樓攝影機模型判斷AI (V4.3.12)
+    alias: 頂樓攝影機模型判斷AI (V4.3.14)
     description: 動靜期間每秒一張快照 → 人物偵測 → 累積軌跡提早判斷上樓／下樓，動靜結束後再多看 6 秒；一決定就發事件 topfloor_cam_ai。
     mode: single
     max_exceeded: silent
@@ -204,10 +205,15 @@ script:
               value_template: >-
                 {% set a = states.binary_sensor.wu_lou_she_ying_ji_motion %}
                 {% set b = states.binary_sensor.wu_lou_she_ying_ji_person_detected %}
+                {% set pl = states.binary_sensor.shu_fang_gan_ying_kai_guan_motion_left %}
+                {% set pr = states.binary_sensor.shu_fang_gan_ying_kai_guan_motion_right %}
+                {% set t = as_timestamp(now()) %}
                 {{ repeat.index < 60
                    and (a.state == 'on' or b.state == 'on'
-                        or (as_timestamp(now()) - as_timestamp(a.last_changed)) < 6
-                        or (as_timestamp(now()) - as_timestamp(b.last_changed)) < 6) }}
+                        or (t - as_timestamp(a.last_changed)) < 6
+                        or (t - as_timestamp(b.last_changed)) < 6
+                        or (pl is not none and (pl.state == 'on' or (t - as_timestamp(pl.last_changed)) < 6))
+                        or (pr is not none and (pr.state == 'on' or (t - as_timestamp(pr.last_changed)) < 6))) }}
           sequence:
             # V4.3.7 加速：拍下一張與分析上一張同時進行（管線化），改用中解析度串流快照（較快），取消每輪 0.3 秒等待；
             #   每輪約 0.45 秒（原本約 1.1～1.2 秒）。第一輪只拍照；分析結果在同一個分支內處理（平行分支的變數不會傳出來）。
