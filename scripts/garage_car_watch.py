@@ -403,13 +403,21 @@ def apply_vision(a, roi, state, out, jpg, now):
         u = (a_[2] - a_[0]) * (a_[3] - a_[1]) + (b_[2] - b_[0]) * (b_[3] - b_[1]) - inter
         return inter / u if u > 0 else 0.0
     stray = []
+    street = []
     for dd in (res.get('dets') or []):
         if dd.get('conf', 0) < 0.35 or not dd.get('box'):
             continue
         best = max((_iou(dd['box'], sl['body']) for sl in roi['slots'].values()), default=0.0)
         if best < 0.3:
+            # V4.5：鐵門開口外「馬路上」的車（畫面右上角、很小）不是進出車庫的車，不算 stray（11-17 09:13 路過的機車與對向停車擋了關門約 2 分鐘）。
+            #   條件：框左緣 ≥ 0.80、框底 ≤ 0.50、面積 < 0.012（進出中的車一定更大或更靠近畫面下方）。
+            b_ = dd['box']
+            if b_[0] >= 0.80 and b_[3] <= 0.50 and (b_[2] - b_[0]) * (b_[3] - b_[1]) < 0.012:
+                street.append({'cls': dd.get('cls'), 'conf': dd.get('conf'), 'box': b_})
+                continue
             stray.append({'cls': dd.get('cls'), 'conf': dd.get('conf'), 'box': dd['box'], 'iou': round(best, 2)})
     summary['stray_vehicles'] = stray
+    summary['street_vehicles'] = street
     # 前一張快照（--prev，約 2 秒前）→ 車輛正在動的判斷；沒有前一張就不判斷（空清單）
     mv = []
     prev_path = getattr(a, 'prev', None)
