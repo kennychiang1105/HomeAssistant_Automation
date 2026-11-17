@@ -1,7 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 08-5J頂樓動線推理AI (V4.3.7)
+# 08-5J頂樓動線推理AI (V4.3.8)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.8（2026-11-18，V4.5 待發布）：模型去向「樓梯」開始用來判下樓：模型明確往樓梯口走（位移 ≤ −0.25、至少 10 幀）、書房燈是感應開的、上一個動線是進書房或頂樓清空 → 發 leave_study_down（08-5G 保留 3 分鐘後關書房燈，回書房會取消）。11-18 01:51 從書房出來下樓，模型判往樓梯（34 幀、位移 −0.40），但樓梯跨線沒觸發、模型下樓梯原本只記錄，沒有任何下樓判定，書房燈一直亮到 01:53:52 上樓回臥室才關。11-04～11-18 回放：模型明確判往樓梯 60 次、樓梯跨線只觸發 1 次；符合新條件 36 次，原本書房燈要 17～329 秒（中位約 145 秒）才關，最長的會縮短到 3 分鐘。
 # - V4.3.7（2026-11-18，V4.5 待發布）：動線分支 7（房門線）新增「往書房走」判斷：房門線觸發時 PIR 右在 3 秒內、PIR 左在 10 秒內且 PIR 左比 PIR 右早至少 1 秒（臥室側→書房側），直接判進書房（enter_study），不再等 15 秒判回臥室。11-18 00:27:33 從臥室走去書房（PIR 左 00:27:33→PIR 右 00:27:34→房門線），坐下後攝影機與走道安靜 15 秒被判回臥室（00:27:51），08-5G 立刻關書房燈。用 11-04～11-18 的 82 次房門線判回臥室回放：符合條件 19 次，17 次之後 2 分鐘內書房有動靜或使用者確認在書房，2 次之後沒有書房動靜（可能真的回臥室，書房燈會改由無人檢查關）。
 # - V4.3.6（2026-11-09）：取消 input_select.topfloor_webhook_mode 與「原本模式」過濾條件，判斷固定為綜合模式（跨線訊號一律納入）。
 # - V4.3.4-beta 4（2026-11-06）：①「下樓開始」不再只靠攝影機：剛進書房／臥室（90 秒內）、之後沒有樓梯跨線時，攝影機看到人（走道上在書房與臥室之間走動）不判下樓（11-06 23:32 書房走回臥室，被判 down_start→down，樓梯燈跟著亮滅、書房燈沒關）；②新增 08-5J 感應器失聯檢查（書房感應開關左側 PIR 超過 72 小時沒動作，右側仍有動作 → HA 通知）。
@@ -21,14 +22,14 @@
 #           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
 #           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
 # ────────────────────────────────────────────────────────
-- alias: 08-5J頂樓動線推理AI (V4.3.7)
+- alias: 08-5J頂樓動線推理AI (V4.3.8)
   id: ai_08_5j_topfloor_path_inference
   description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
   mode: parallel
   max: 30
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.7"
+    automation_version: "V4.3.8"
     src: "{{ trigger.event.data.source if (trigger.id is defined and trigger.id == 'test' and trigger.event is defined) else (trigger.id if trigger.id is defined else 'unknown') }}"
     W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
     deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
@@ -394,6 +395,25 @@
               data:
                 path: enter_bedroom
                 evidence: "{{ ev }}（{{ ex_note }}）"
+    # ── V4.3.8：模型去向＝樓梯（明確往樓梯口走）＋書房燈是感應開的＋上一個動線是進書房／頂樓清空 → 發 leave_study_down
+    #    （樓梯跨線下樓時幾乎抓不到：11-04～11-18 模型明確判往樓梯 60 次，跨線只觸發 1 次；08-5G 收到後保留 3 分鐘再關書房燈，回書房會取消）──
+    - if:
+        - condition: template
+          alias: "模型去向：明確往樓梯（位移≤−0.25、≥10 幀）＋書房燈感應開著＋剛在書房 → 發 leave_study_down"
+          value_template: >-
+            {% set fr = ex_reason | regex_findall('共 ([0-9]+) 幀') %}
+            {% set n_fr = (fr[0] | int(0)) if fr else 0 %}
+            {% set lp = states('input_text.topfloor_last_path') | string %}
+            {% set lp_name = lp.split('|')[0] if '|' in lp else '' %}
+            {{ src == 'cam_exit' and ex_dest == 'stairs' and ex_dx <= -0.25 and n_fr >= 10
+               and lp_name in ['enter_study', 'vacant_landing']
+               and is_state('switch.shu_fang_deng', 'on')
+               and is_state('input_boolean.topfloor_study_auto', 'on') }}
+      then:
+        - action: script.topfloor_publish_path
+          data:
+            path: leave_study_down
+            evidence: "{{ ev }}（模型：{{ ex_reason }}）"
     # ── 其餘事件（依序，第一個成立者） ──
     - choose:
         - alias: "動線分支 1：離開書房回臥室 (leave_study_bedroom)"
