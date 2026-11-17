@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.4.5）
 # 更新紀錄（統一格式）：
+# - V4.5（2026-11-17，待發布）：garage_close_safety_check（V4.5）：車已駛出（車位 15 分鐘內變空）且車庫模型確認室內沒人、沒車在動／亮燈／車位以外的車時，不採用攝影機的人員／車輛／動作偵測（鐵門開著會拍到門外馬路的路人與路過的車）；garage_car_watch.py 同步不把鐵門口外馬路上（畫面右上角、很小）的車算成 stray。11-17 09:11 出門、車 09:12:32 開走，09:13:19～09:14:07 門外路人與機車讓淨空確認重判，09:15:38 才關門（原本約 09:13:40 可關）。
 # - V4.5（2026-11-16，待發布）：修復 input_datetime.garage_turn_last 永遠停在 2000-01-01：它原本只由短片備援路徑更新，V4.4.1 起即時分析接手後短片路徑不再執行；現在 script.garage_turn_rt 每一輪分析前都會寫入目前時間（短片備援的 3 秒間隔判斷不受影響）。
 # - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
 #           garage_turn_fast（短片檢查）在這個旗標開著時恢復執行；即時分析恢復正常就自動關閉旗標（V4.4.4 起即時分析開著時短片檢查完全停用，串流一掛方向燈偵測就整個失效且沒有通知）。
@@ -328,7 +329,7 @@ template:
 
 script:
   garage_close_safety_check:
-    alias: 車庫關門前淨空確認AI (V4.4.4)
+    alias: 車庫關門前淨空確認AI (V4.5)
     description: 自動關鐵門前呼叫：用車庫畫面模型（人物偵測＋車燈／煞車燈＋車身位移）加攝影機人員偵測、動作偵測、家人手機位置，確認沒人且車輛沒有要動。回傳 safe 與原因；模型無法使用時改用感測器判斷。
     mode: queued
     max: 3
@@ -366,10 +367,10 @@ script:
             {% set ns = namespace(l=[]) %}{% if model_ok %}{% for k, s in res.slots.items() %}{% if s.present and s.lights_on %}{% set ns.l = ns.l + [({'front': '前位', 'back': '後位'}.get(k, k))] %}{% endif %}{% endfor %}{% endif %}{{ ns.l | join('、') }}
           mov: >-
             {% set ns = namespace(l=[]) %}{% if model_ok %}{% for k, s in res.slots.items() %}{% if s.present and s.moved %}{% set ns.l = ns.l + [({'front': '前位', 'back': '後位'}.get(k, k))] %}{% endif %}{% endfor %}{% endif %}{{ ns.l | join('、') }}
-          cam_person: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}"
-          cam_motion: "{{ is_state('binary_sensor.g6_instant_motion', 'on') }}"
+          cam_person_raw: "{{ is_state('binary_sensor.che_ku_she_ying_ji_person_detected', 'on') }}"
+          cam_motion_raw: "{{ is_state('binary_sensor.g6_instant_motion', 'on') }}"
           # V1.1：攝影機車輛偵測（含 20 秒內剛有）與車位狀態剛變動（30 秒內／準備出門中）＝車子正在進出，不能關門
-          cam_vehicle: "{{ is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'on') or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed, 0)) < 45 }}"
+          cam_vehicle_raw: "{{ is_state('binary_sensor.che_ku_she_ying_ji_vehicle_detected', 'on') or (as_timestamp(now()) - as_timestamp(states.binary_sensor.che_ku_she_ying_ji_vehicle_detected.last_changed, 0)) < 45 }}"
           cars_moving: >-
             {% set ns = namespace(l=[]) %}{% for e in ['sensor.garage_car_luxgen_n7', 'sensor.garage_car_tesla_model3'] %}{% if (as_timestamp(now()) - as_timestamp(states[e].last_changed, 0)) < 30 or states(e) == 'departing' %}{% set ns.l = ns.l + [state_attr(e, 'friendly_name') or e] %}{% endif %}{% endfor %}{{ ns.l | join('、') }}
           # 車位在最近 3 分鐘內「變成有車」（車子在車庫內挪位置、剛倒車進來／換位置）＝車上可能還有人，車庫攝影機人員偵測看不到車裡的人
@@ -381,6 +382,17 @@ script:
                  (is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 180)
                  or (is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 180)) }}
           phone_in: "{{ not car_just_left and ('車庫' in [states('sensor.at_home_kenny_location'), states('sensor.at_home_iris_location'), states('sensor.at_home_jerry_location'), states('sensor.at_home_elay_location')]) }}"
+          # V4.5：鐵門開著時攝影機拍得到門外馬路，路人／路過的車會讓攝影機的人員／車輛／動作偵測亮起（11-17 09:13 車開走後約 2 分鐘內被路人與機車擋住，關門晚了約 2 分鐘）。
+          #   條件全部成立才不採用攝影機的人員／車輛／動作偵測：模型有正常回應且畫面室內沒人、沒有車在動／亮燈／車位以外的車、車位剛挪動都沒有，
+          #   而且有車位在最近 15 分鐘內變空（車已駛出）。手機在車庫 AP、車位剛變動（30 秒內）等其他條件照舊擋。
+          departed: >-
+            {{ (is_state('input_select.garage_slot_front', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_front.last_changed, 0)) < 900)
+               or (is_state('input_select.garage_slot_back', 'empty') and (as_timestamp(now()) - as_timestamp(states.input_select.garage_slot_back.last_changed, 0)) < 900) }}
+          cam_ignore: "{{ model_ok and n_person | int(0) == 0 and n_moving | int(0) == 0 and n_stray | int(0) == 0 and lit | trim == '' and mov | trim == '' and moved_in | trim == '' and cars_moving | trim == '' and departed }}"
+          cam_person: "{{ cam_person_raw and not cam_ignore }}"
+          cam_motion: "{{ cam_motion_raw and not cam_ignore }}"
+          cam_vehicle: "{{ cam_vehicle_raw and not cam_ignore }}"
+          cam_ignored: "{{ cam_ignore and (cam_person_raw or cam_motion_raw or cam_vehicle_raw) }}"
           reasons: >-
             {% set r = [] %}
             {% if n_person | int(0) > 0 %}{% set r = r + ['畫面辨識到有人（' ~ n_person ~ ' 人）'] %}{% endif %}
@@ -396,7 +408,7 @@ script:
             {% if moved_in | trim != '' %}{% set r = r + [moved_in ~ '剛有車輛挪動／進入（3 分鐘內），車上可能還有人'] %}{% endif %}
             {{ r | to_json }}
           rs: "{{ reasons if (reasons is iterable and reasons is not string) else (reasons | from_json([])) }}"
-          result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok} }}"
+          result: "{{ {'safe': (rs | length) == 0, 'reasons': rs, 'model': model_ok, 'cam_ignored': cam_ignored} }}"
       - stop: 淨空確認完成
         response_variable: result
 
