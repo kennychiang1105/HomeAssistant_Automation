@@ -2,6 +2,7 @@
 # 情境與狀況氣氛燈AI (V4.0.0)
 # 相容版本：Helpers V4.0.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.2.3（2026-11-18，V4.5 待發布）：修正通知閃燈後，原本亮著的白光燈被還原成橘色彩色模式：xiaomi_miot 回報給 HA 的 color_mode 一律是 rgb（rgb_color 是燈泡記住的彩色 255,176,96），scene 快照還原會照這個寫回彩色。11-18 21:38「有人即將到家」通知後，客廳燈1／燈3／客廳小燈從色溫 5025K／5208K 白光變成橘色（light.mode 2→1）。現在拍快照時另外記下原本亮著、色溫模式（light.mode=2）的燈的色溫與亮度，快照還原後再用色溫＋亮度寫回，3 秒後仍不是色溫模式的補送一次。
 # - V4.2.2（2026-10-22）：修正提醒閃燈結束後機台 LED 停在提醒色：UniFi 機台 LED／網關夜燈不回報 RGB，快照只能還原成「開」，橘／紅提醒色會留到下一次情境；現在 mood_alert 結束時依 input_text.ambient_scene_state 把機台改回目前情境色（script.ambient_scene）。
 # - V4.1.5（2026-10-11）：重要級（橘色）每次閃爍亮 0.8 秒→1.5 秒、熄滅 0.4 秒→0.8 秒（燈泡反應有延遲，原本橘色太短幾乎看不到，只看到收尾還原時的白光）；緊急級（紅色）不變。
 # - V4.1.5（2026-10-11）：修補版（僅 mood_alert）。通知同時呼叫兩次（notify_dispatch 與 announce 各一次）時，第二次排隊到第一次跑完才開始，已超過 8 秒去重窗口，會再跑一輪；
@@ -262,7 +263,7 @@ ambient_scene:
       continue_on_error: true
 
 mood_alert:
-  alias: 情境與狀況氣氛燈AI (V4.1.5)
+  alias: 情境與狀況氣氛燈AI (V4.2.3)
   description: 重要/緊急通知或廣播時以燈光提醒並恢復原狀態
   mode: queued
   max: 10
@@ -277,7 +278,7 @@ mood_alert:
       description: 測試用，略過離家/夜間情境判斷
       required: false
   variables:
-    automation_version: 'V4.1.5'
+    automation_version: 'V4.2.3'
     rank: "{{ {'important': 1, 'emergency': 2}.get(level, 0) }}"
     src: "{{ source | default('', true) | string }}"
     is_test: "{{ test | default(false) in [true, 'true'] }}"
@@ -349,6 +350,16 @@ mood_alert:
         scene_id: mood_alert_snapshot
         snapshot_entities: "{{ rgb_ok + ap_rgb_ok }}"
       continue_on_error: true
+    # V4.2.3：原本亮著且在色溫模式（light.mode = 2）的燈，另外記下色溫與亮度。
+    #   xiaomi_miot 回報給 HA 的 color_mode 一律是 rgb（rgb_color 是燈泡記住的彩色），快照還原會把白光變成橘色彩色模式
+    - variables:
+        ct_on: >-
+          {% set ns = namespace(r=[]) %}
+          {% for e in rgb_ok if is_state(e, 'on') and state_attr(e, 'light.mode') | int(0) == 2 and state_attr(e, 'light.color_temperature') | int(0) > 0 %}
+            {% set ns.r = ns.r + [{'e': e, 'k': state_attr(e, 'light.color_temperature') | int, 'b': [[state_attr(e, 'light.brightness') | int(100), 1] | max, 100] | min}] %}
+          {% endfor %}
+          {{ ns.r | to_json }}
+        ct_on_list: "{{ ct_on if (ct_on is iterable and ct_on is not string) else (ct_on | from_json([])) }}"
     # ── 閃爍：客廳 → 餐廳／車庫樓梯 → 三樓 → 四樓 → 頂樓樓梯（每區間隔 0.4 秒） ──
     - parallel:
         - action: script.mood_alert_pulse
@@ -437,6 +448,34 @@ mood_alert:
           target:
             entity_id: scene.mood_alert_snapshot
           continue_on_error: true
+        # V4.2.3：原本是白光（色溫模式）的燈改用色溫＋亮度寫回；3 秒後還沒回到色溫模式的再補送一次
+        - repeat:
+            for_each: "{{ ct_on_list }}"
+            sequence:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ repeat.item.e }}"
+                data:
+                  color_temp_kelvin: "{{ repeat.item.k }}"
+                  brightness_pct: "{{ repeat.item.b }}"
+                  transition: 0
+                continue_on_error: true
+        - if: "{{ ct_on_list | length > 0 }}"
+          then:
+            - delay: "00:00:03"
+            - repeat:
+                for_each: "{{ ct_on_list }}"
+                sequence:
+                  - if: "{{ is_state(repeat.item.e, 'on') and state_attr(repeat.item.e, 'light.mode') | int(0) != 2 }}"
+                    then:
+                      - action: light.turn_on
+                        target:
+                          entity_id: "{{ repeat.item.e }}"
+                        data:
+                          color_temp_kelvin: "{{ repeat.item.k }}"
+                          brightness_pct: "{{ repeat.item.b }}"
+                          transition: 0
+                        continue_on_error: true
         - action: "{{ 'switch.turn_on' if sw_prev == 'on' else 'switch.turn_off' }}"
           target:
             entity_id: "{{ sw_entity }}"
