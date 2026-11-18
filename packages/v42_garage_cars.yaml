@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.4.5）
 # 更新紀錄（統一格式）：
+# - V4.5（2026-11-18，待發布）：garage_close_confirmed（V4.5）拿掉「關門途中攝影機看到人或車就改回開門」：鐵門硬體一開始關就會關到底、途中送開門無效，關門途中的安全由鐵門本身的防撞負責（壓到會自動打開）。11-18 11:08:15 自動關門，11:08:21 門外機車經過觸發車輛偵測，腳本送開門並通知「已取消自動關門」，但錄影顯示門照樣關到底（11:09:22 關好）。改成等門關好（最多 70 秒）：關好回報 closed＝true，途中看到人車只寫在 note；70 秒內沒關到底（例如防撞打開）才交給重試關門。
 # - V4.5（2026-11-17，待發布）：garage_close_safety_check（V4.5）：車已駛出（車位 15 分鐘內變空）且車庫模型確認室內沒人、沒車在動／亮燈／車位以外的車時，不採用攝影機的人員／車輛／動作偵測（鐵門開著會拍到門外馬路的路人與路過的車）；garage_car_watch.py 同步不把鐵門口外馬路上（畫面右上角、很小）的車算成 stray。11-17 09:11 出門、車 09:12:32 開走，09:13:19～09:14:07 門外路人與機車讓淨空確認重判，09:15:38 才關門（原本約 09:13:40 可關）。
 # - V4.5（2026-11-16，待發布）：修復 input_datetime.garage_turn_last 永遠停在 2000-01-01：它原本只由短片備援路徑更新，V4.4.1 起即時分析接手後短片路徑不再執行；現在 script.garage_turn_rt 每一輪分析前都會寫入目前時間（短片備援的 3 秒間隔判斷不受影響）。
 # - V4.4.5（2026-11-14）：①方向燈即時分析加備援：garage_turn_rt 讀不到串流／分析程式出錯／Garage Vision add-on 連不上時，打開 input_boolean.garage_turn_rt_fault（內部）並發一則 HA 通知，
@@ -413,7 +414,7 @@ script:
         response_variable: result
 
   garage_close_confirmed:
-    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V4.4.3)
+    alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V4.5)
     description: >
       所有「自動」關鐵門都走這支：①先跑淨空確認（人／車／車燈／位移／攝影機人車偵測／車位剛變動）；②通過後用車庫攝影機喇叭廣播「車庫鐵門即將關閉，請注意安全」；
       ③等廣播播完（約 8 秒）再確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
@@ -492,35 +493,37 @@ script:
       - action: cover.close_cover
         target:
           entity_id: cover.garage
-      # 2026-11-11：關門過程中（約 20 秒）持續監看：攝影機看到人或車就立刻改回開門，交給重試關門等人車離開再關
+      # V4.5（2026-11-18）：鐵門硬體一開始關就會關到底，途中送開門無效（等於按一下遙控器，時機不對反而可能在關好後又打開）；
+      #   關門途中的安全由鐵門本身的防撞負責（壓到會自動打開）。改成等門關好（最多 70 秒），途中攝影機看到人或車只記在通知裡。
+      - variables:
+          t_close: "{{ as_timestamp(now()) }}"
       - wait_for_trigger:
-          - trigger: state
-            entity_id: binary_sensor.che_ku_she_ying_ji_person_detected
-            to: "on"
-          - trigger: state
-            entity_id: binary_sensor.che_ku_she_ying_ji_vehicle_detected
-            to: "on"
           - trigger: state
             entity_id: cover.garage
             to: "closed"
         timeout:
-          seconds: 25
+          seconds: 70
         continue_on_timeout: true
-      - if: "{{ wait.trigger is not none and wait.trigger.entity_id != 'cover.garage' and not is_state('cover.garage', 'closed') }}"
+      - variables:
+          seen: >-
+            {% set ns = namespace(r=[]) %}
+            {% for e, n in [('binary_sensor.che_ku_she_ying_ji_person_detected', '人員'), ('binary_sensor.che_ku_she_ying_ji_vehicle_detected', '車輛')] %}
+            {% if is_state(e, 'on') or as_timestamp(states[e].last_changed, 0) >= t_close %}{% set ns.r = ns.r + [n] %}{% endif %}
+            {% endfor %}
+            {{ ns.r | join('、') }}
+          note: "{{ ('關門時攝影機看到' ~ seen ~ '（鐵門開著也會拍到門外路過的人車）') if seen else '' }}"
+      - if: "{{ not is_state('cover.garage', 'closed') }}"
         then:
-          - action: cover.open_cover
-            target:
-              entity_id: cover.garage
           - action: script.turn_on
             target:
               entity_id: script.garage_gate_close_retry
           - variables:
-              result: "{{ {'closed': false, 'reasons': ['關門過程中攝影機看到人或車，已改回開門，等人車離開再關']} }}"
-          - stop: "關門過程偵測到人或車，已中止並重新開門"
+              result: "{{ {'closed': false, 'reasons': ['已下達關門但 70 秒內沒有關到底（可能防撞自動打開）' ~ (('；' ~ note) if note else '')]} }}"
+          - stop: "已下達關門但沒有關到底，交給重試關門"
             response_variable: result
       - variables:
-          result: "{{ {'closed': true, 'reasons': []} }}"
-      - stop: "已廣播並確認無人無車，下達關門"
+          result: "{{ {'closed': true, 'reasons': [], 'note': note} }}"
+      - stop: "已廣播並確認無人無車，鐵門已關好"
         response_variable: result
 
   garage_gate_close_retry:

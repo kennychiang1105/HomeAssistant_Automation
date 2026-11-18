@@ -1,8 +1,9 @@
 ﻿# [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 104-2車輛動態辨識系統AI (V4.4.3)
+# 104-2車輛動態辨識系統AI (V4.4.4)
 # 相容版本：Helpers V3.17（已確認）
 # 更新紀錄（統一格式）：
+# - V4.4.4（2026-11-18，V4.5 待發布）：配合 garage_close_confirmed（V4.5）關門途中不再送開門、改等門關好：關好的通知附上「關門時攝影機看到人／車」的附註；沒關成的標題改為「自動關門未完成」。
 # - V4.4.3（2026-11-13）：移除 repeat 淨空確認通過後多餘的第二次 garage_close_safety_check（sf2），因緊接著呼叫的 garage_close_confirmed 內部即會執行廣播前與廣播後兩次淨空確認，省去約 7～8 秒重複快照等待。
 # - V4.4.2（2026-11-11）：車牌觸發開門前的固定等待由 3 秒縮短為 1 秒（11-11 09:28 讀到車牌 09:28:48、開門指令 09:28:51、鐵門開啟中 09:28:55）；等待後仍會再確認鐵門關著才送出開門指令。
 # - V4.3.0-beta 7（2026-11-06）：自動關門不再要求離家情境（Arm Away）：車已駛出、鐵門還開著、車庫無人車動靜（再加車庫模型淨空確認、廣播、再確認）就關。原本要等全員離家＋判斷（出門後約 3～4 分鐘）才會關，11-06 09:10 出門鐵門多開了約 4.5 分鐘。
@@ -26,7 +27,7 @@
 # - V3.0 Beta 2：LPR 觸發直接視為具備憑證；取得憑證後安全等待時間統一為 2 分鐘；開門防呆 3 秒；支援 parallel 模式。
 # - V3.0 Beta 1：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 104-2車輛動態辨識系統AI (V4.4.3)
+- alias: 104-2車輛動態辨識系統AI (V4.4.4)
   id: ai_lpr_recognition
   description: >
     兩輛車（EAK8030、EBH8030）— 多 Webhook；即時門控監測；可取消式關門評估；
@@ -54,7 +55,7 @@
       to: "open"
 
   variables:
-    automation_version: "V4.4.3"
+    automation_version: "V4.4.4"
     # 來源車牌與名稱
     plate: >-
       {% if trigger.id == 't_eak8030' %}EAK8030
@@ -437,8 +438,8 @@
                                 line: false
                                 source: "104-2車輛動態辨識系統AI (V4.3.0-beta 7)"
                                 version: "{{ automation_version | default('', true) }}"
-                                title: "{{ '🤖 自動關門已執行' if (cc is mapping and cc.get('closed')) else '⛔ 已取消自動關門（廣播後確認未通過）' }} ({{ automation_version }})"
-                                message: "{{ '倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已廣播並再確認無人無車後下達關門。' if (cc is mapping and cc.get('closed')) else ('原因：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '。交給 104-3 鐵門未關處理。') }}"
+                                title: "{{ '🤖 自動關門已執行' if (cc is mapping and cc.get('closed')) else '⛔ 自動關門未完成' }} ({{ automation_version }})"
+                                message: "{{ ('倒數結束：Arm Away + 現場三重靜態確認無動靜 + 門仍開 ⇒ 已廣播並再確認無人無車後關門。' ~ (('（' ~ cc.note ~ '）') if cc.get('note') else '')) if (cc is mapping and cc.get('closed')) else ('原因：' ~ ((cc.reasons | join('、')) if (cc is mapping and cc.get('reasons')) else '無法確認') ~ '。交給 104-3 鐵門未關處理。') }}"
                         - conditions:
                             - condition: template
                               value_template: "{{ (not (auto_close_enabled | bool(false))) and (debug_on | bool(false)) }}"
