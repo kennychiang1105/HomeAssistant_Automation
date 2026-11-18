@@ -1,7 +1,8 @@
 # ────────────────────────────────────────────────────────
-# 08-5J頂樓動線推理AI (V4.3.8)
+# 08-5J頂樓動線推理AI (V4.3.9)
 # 相容版本：Helpers V4.1.0（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.9（2026-11-18，V4.5 待發布）：剛判離開書房（leave_study_down／leave_study_bedroom）60 秒內，模型去向「書房」只有消失在右邊緣（right_edge）才補發 enter_study；消失在房門口區（door_mid，x 0.60～0.86，臥室門也在這區）不再補發。11-18 10:04～10:05 兩次走出書房都判到離開，但模型在 x≈0.70 判成進書房、補發 enter_study 把 3 分鐘關燈取消，人不在書房燈卻一直亮。過去 21 天這種「離開後 5～15 秒又補發進書房」共 12 次，全部是 door_mid，其中 11 次之後燈都因為沒人而自動關掉。
 # - V4.3.8（2026-11-18，V4.5 待發布）：模型去向「樓梯」開始用來判下樓：模型明確往樓梯口走（位移 ≤ −0.25、至少 10 幀）、書房燈是感應開的、上一個動線是進書房或頂樓清空 → 發 leave_study_down（08-5G 保留 3 分鐘後關書房燈，回書房會取消）。11-18 01:51 從書房出來下樓，模型判往樓梯（34 幀、位移 −0.40），但樓梯跨線沒觸發、模型下樓梯原本只記錄，沒有任何下樓判定，書房燈一直亮到 01:53:52 上樓回臥室才關。11-04～11-18 回放：模型明確判往樓梯 60 次、樓梯跨線只觸發 1 次；符合新條件 36 次，原本書房燈要 17～329 秒（中位約 145 秒）才關，最長的會縮短到 3 分鐘。
 # - V4.3.7（2026-11-18，V4.5 待發布）：動線分支 7（房門線）新增「往書房走」判斷：房門線觸發時 PIR 右在 3 秒內、PIR 左在 10 秒內且 PIR 左比 PIR 右早至少 1 秒（臥室側→書房側），直接判進書房（enter_study），不再等 15 秒判回臥室。11-18 00:27:33 從臥室走去書房（PIR 左 00:27:33→PIR 右 00:27:34→房門線），坐下後攝影機與走道安靜 15 秒被判回臥室（00:27:51），08-5G 立刻關書房燈。用 11-04～11-18 的 82 次房門線判回臥室回放：符合條件 19 次，17 次之後 2 分鐘內書房有動靜或使用者確認在書房，2 次之後沒有書房動靜（可能真的回臥室，書房燈會改由無人檢查關）。
 # - V4.3.6（2026-11-09）：取消 input_select.topfloor_webhook_mode 與「原本模式」過濾條件，判斷固定為綜合模式（跨線訊號一律納入）。
@@ -22,14 +23,14 @@
 #           使用端：08-5C 樓梯燈、08-5G 書房燈。每次判斷寫入 logbook「頂樓動線」與 input_text.topfloor_decision_log。
 #           週報：每週一 09:00 只發 HA 通知（資訊級，不發 LINE）。
 # ────────────────────────────────────────────────────────
-- alias: 08-5J頂樓動線推理AI (V4.3.8)
+- alias: 08-5J頂樓動線推理AI (V4.3.9)
   id: ai_08_5j_topfloor_path_inference
   description: 多訊號推理頂樓動線（上樓、進出書房、回臥室、下樓、樓梯口清空），輸出 topfloor_path 事件
   mode: parallel
   max: 30
   max_exceeded: silent
   variables:
-    automation_version: "V4.3.8"
+    automation_version: "V4.3.9"
     src: "{{ trigger.event.data.source if (trigger.id is defined and trigger.id == 'test' and trigger.event is defined) else (trigger.id if trigger.id is defined else 'unknown') }}"
     W: "{{ states('input_number.topfloor_evidence_window_s') | int(12) }}"
     deb: "{{ states('input_number.topfloor_line_debounce_s') | int(3) }}"
@@ -39,6 +40,7 @@
     ex_dest: "{{ trigger.event.data.dest if (src == 'cam_exit' and trigger.event is defined) else '' }}"
     ex_dx: "{{ trigger.event.data.dx | float(0) if (src == 'cam_exit' and trigger.event is defined) else 0 }}"
     ex_reason: "{{ trigger.event.data.reason if (src == 'cam_exit' and trigger.event is defined) else '' }}"
+    ex_zone: "{{ trigger.event.data.zone if (src == 'cam_exit' and trigger.event is defined) else '' }}"
   triggers:
     - id: stairs_line
       alias: "[跨線] 4F-5F樓梯抵達跨線 (5fstairsline)"
@@ -368,8 +370,10 @@
         # 補發：進書房（書房訊號已經確認、最近 30 秒還沒有 enter_study）
         - if:
             - condition: template
-              alias: "模型去向：進書房＋書房訊號 → 補發 enter_study"
-              value_template: "{{ ex_dest == 'study' and s_study and not (lp_now == 'enter_study' and lp_age <= 30) }}"
+              alias: "模型去向：進書房＋書房訊號 → 補發 enter_study（剛離開書房 60 秒內，只有消失在右邊緣才算）"
+              value_template: >-
+                {{ ex_dest == 'study' and s_study and not (lp_now == 'enter_study' and lp_age <= 30)
+                   and not (lp_now in ['leave_study_down', 'leave_study_bedroom'] and lp_age <= 60 and ex_zone != 'right_edge') }}
           then:
             - action: input_number.increment
               target:
