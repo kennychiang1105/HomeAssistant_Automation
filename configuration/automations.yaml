@@ -3270,7 +3270,7 @@
   max_exceeded: silent
 - id: '1747918900001'
   alias: 800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境
-  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，重設鎖定（2026-11-19 起不再自動點亮樓梯燈）
+  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，重設鎖定；只有四樓樓梯開關上2的雙擊才點亮樓梯燈（2026-11-19）
   triggers:
   - trigger: event
     event_type: terncy_pressed
@@ -3333,6 +3333,20 @@
       entity_id: input_text.topfloor_debug_last_decision
     data:
       value: 手動上樓情境（按鍵雙擊）
+  - if:
+    - condition: template
+      alias: 只有四樓樓梯開關上2的雙擊才點亮樓梯燈
+      value_template: >-
+        {{ (trigger.event is defined and trigger.event.data.device_id == '058a0c17de0b49cf3795dd7f0c00aeb5')
+           or (trigger.entity_id | default('') == 'event.si_lou_lou_ti_kai_guan_shang_2_double_press') }}
+    then:
+    - action: homeassistant.turn_on
+      target:
+        entity_id:
+        - switch.ding_lou_lou_ti_deng
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+      continue_on_error: true
   - delay: '00:00:00.5'
   mode: single
   max_exceeded: silent
