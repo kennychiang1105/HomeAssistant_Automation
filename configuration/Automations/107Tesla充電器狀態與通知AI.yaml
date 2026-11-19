@@ -1,8 +1,10 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 107Tesla充電器狀態與通知AI (V4.3.0)
+# 107Tesla充電器狀態與通知AI (V4.3.2)
 # 相容版本：Helpers V3.21.1（已確認）
 # 更新紀錄（統一格式）：
+# - V4.3.2（2026-11-19，V4.5 待發布）：充電樁離線再回來（狀態 unavailable→充電中）不再重發「開始充電」通知。11-19 04:58 充電樁斷線約 2.5 分鐘，05:00:49 回來時狀態從 unavailable 變 charging_reduced，被當成新的開始充電，
+#           和 23:59 那則重複。現在這條「從 unknown／unavailable 開始充電」的路徑，必須是這次插槍後還沒充過電才通知（拔槍重插會由 107B 更新插槍時間，仍會通知）。
 # - V4.3.1（2026-11-06）：開始充電通知的車名改等車輛鎖定確認（最多 90 秒）再取，避免 Tesla 以 charging_reduced 開始時被先驗誤判成 Luxgen（11-06 05:17 Tesla 充電被通知成 Luxgen）。
 # - V4.3.0（2026-10-26）：隨 AI 4.3.0 發布統一版號（異動內容見下方 V4.2.x 條目）。
 # - V4.1.6（2026-10-15）：LINE 內文的「名稱 值」改成「名稱：值」，套用新卡片的名稱／數值排版。
@@ -32,7 +34,7 @@
 # - V3.0：功能版。新增 Tesla/Luxgen 充電狀態 HomeKit helper 與開始/完成/未充通知（系統+LINE 分級）。
 # ─────────────────────────────────────────────────────────────
 
-- alias: 107Tesla充電器狀態與通知AI (V4.3.1)
+- alias: 107Tesla充電器狀態與通知AI (V4.3.2)
   id: ai_107_tesla_charger_status_notify
   description: >-
     Tesla 充電樁狀態映射（含 Luxgen/Tesla 充電判斷）與通知。
@@ -41,7 +43,7 @@
   mode: queued
   max: 20
   variables:
-    automation_version: "V4.3.1"
+    automation_version: "V4.3.2"
     line_bot_target_user_id: "{{ states('sensor.line_bot_target_user_id') }}"
     line_title_general: "【家用充電器系統AI ({{ automation_version }})】\n一般 General 🪧"
     line_title_important: "【家用充電器系統AI ({{ automation_version }})】\n重要 Important ⚠️"
@@ -143,6 +145,8 @@
         - wait_template: "{{ is_state('input_boolean.garage_vehicle_confirmed', 'on') }}"
           timeout: "00:00:45"
           continue_on_timeout: true
+        # V4.3.2：多等 2 秒，讓 107B 先把插槍時間（tesla_charger_connected_at）寫好，再判斷「這次連接是否已充過電」
+        - delay: "00:00:02"
     - variables:
         charger_status: "{{ states('sensor.tesla_wall_connector_status') }}"
         # 這次插槍後已經開始充電過（充飽後不拔槍，狀態會退回 ready／waiting，不能再當成「沒在充電」）
@@ -292,7 +296,8 @@
                 {{ trigger.from_state is defined and trigger.from_state is not none and
                    (
                      (from_status_normalized not in (['unknown', 'unavailable', 'none'] + charging_states)
-                     or (from_status_normalized in ['unknown', 'unavailable', 'none'] and boot_age | float(0) > 180))
+                     or (from_status_normalized in ['unknown', 'unavailable', 'none'] and boot_age | float(0) > 180
+                         and not charged_this_connection))
                      or
                      (trigger.id == 'charge_start_tesla' and from_status_normalized in ['charging_reduced', 'charging (reduced)', '充電（降壓）'])
                      or
