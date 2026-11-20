@@ -1,8 +1,10 @@
 # [V4.0-beta1] 通知分級：HA 通知改用 script.notify_dispatch（資訊/一般/重要/緊急，含標題與版本號）；廣播（若有）改用 script.announce。
 # ─────────────────────────────────────────────────────────────
-# 08-5F頂樓自動上下樓情境AI (V4.0.0)
+# 08-5F頂樓自動上下樓情境AI (V4.1.7)
 # 相容版本：Helpers V3.15（已確認）
 # 更新紀錄（統一格式）：
+# - V4.1.7（2026-11-20，V4.5 待發布）：下樓疑慮保護窗（down_intent_guard，攝影機看到人 45 秒）自然結束時補判一次上樓。11-20 23:35 下樓後 4 分鐘又上樓：攝影機 23:35:29 看到人啟動保護窗，iPhone 23:36:11 連上頂樓 AP 時保護窗還剩 3 秒被擋，
+#           保護窗 23:36:14 結束後沒有任何觸發再判斷，上樓情境沒成立。新增 timer.finished 觸發（t_guard_end），僅在 iPhone 120 秒內剛連上頂樓 AP 時才放行，其餘條件（全黑、燈全關、非熟睡）沿用原上樓判斷。
 # - V4.3.6（2026-11-09）：取消 input_select.topfloor_webhook_mode，判斷固定為綜合模式（Webhook 跨線＋手機在家都可觸發）。
 # - V4.1.6（2026-10-17）：剛下樓的保護鎖（lock_after_down）90 秒縮為 45 秒；保護期間只要「確定回來」（iPhone 90 秒內連上頂樓 AP ＋ 攝影機 30 秒內看到人）就直接成立上樓情境並解除下樓鎖（原本要等鎖結束，2026-10-17 21:36 下樓補判後 20 秒就回頂樓，上樓情境晚了 1 分 40 秒）。
 # - V4.1.5（2026-10-11）：手機追蹤實體改讀 sensor.kenny_phone_tracker（person.kenny 的 source），不再讀 input_text.iphone_tracker_entity_kenny（該輔助項目已刪除；讀不到時仍退回 iphone_17_pro_max_kenny）。
@@ -20,7 +22,7 @@
 # - V3.1：移除 Apple Watch 偵測，改以 iPhone AP 單一判定；新增 AI 離家事件後複檢，若已離家或不在頂樓即同步下樓情境。
 # - V3.0：統一命名規範、欄位標準化與通知標題版本同步。
 # ─────────────────────────────────────────────────────────────
-- alias: 08-5F頂樓自動上下樓情境AI (V4.1.6)
+- alias: 08-5F頂樓自動上下樓情境AI (V4.1.7)
   id: ai_topfloor_stairs_scene
   description: >
     V2.0 版頂樓上下樓情境：整合上樓/下樓判定、保護窗、雙黏著鎖與除錯快照輸出。
@@ -61,6 +63,12 @@
         (ap_list_raw|lower|replace('
         ','')|replace(';',',')|regex_findall('[^,]+')) %} {{ iphone_ap in ap_list }}
       trigger: template
+    # V4.1.7：下樓疑慮保護窗（down_intent_guard）自然結束時補判一次上樓
+    - id: t_guard_end
+      trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.topfloor_down_intent_guard
     - id: t_ap_left_phone
       value_template: >
         {% set s1 = states('sensor.kenny_phone_tracker') %} {% set
@@ -80,9 +88,10 @@
         {% set tid = trigger.id if trigger is defined and trigger is not none and trigger.id is defined else 'unknown' %}
         {% set webhook_trigger = tid in ['t_bedroom_line', 't_studyroom_line', 't_stairs_line'] %}
         {% set sleep_silent = is_state('input_boolean.sleep_silent_active', 'on') %}
-        {{ tid == 't_leave_ai_confirmed' or
+        {% set guard_end_ok = tid != 't_guard_end' or (now() - states.sensor.kenny_phone_ap_mac.last_changed).total_seconds() <= 120 %}
+        {{ guard_end_ok and (tid == 't_leave_ai_confirmed' or
            (webhook_trigger and not sleep_silent) or
-           is_state('device_tracker.iphone_duo_kenny', 'home') }}
+           is_state('device_tracker.iphone_duo_kenny', 'home')) }}
   actions:
     - choose:
         - conditions:
