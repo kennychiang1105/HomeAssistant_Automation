@@ -662,7 +662,7 @@
         entity_id: automation.103dao_jia_qing_jing
   mode: single
 - id: '1691311960545'
-  alias: 104鐵門開關V2 (V4.0.0)
+  alias: 104鐵門開關V2 (V4.0.1)
   description: ''
   triggers: []
   conditions: []
@@ -722,61 +722,17 @@
           state: open
         sequence:
         - sequence:
-          - action: script.turn_on
-            target:
-              entity_id: script.announce
+          # V4.0.1（2026-11-23）：按鈕關門改成直接呼叫 script.announce 等廣播播完、再多等 1 秒才關門（原本 script.turn_on 不等待，廣播還沒講完門就開始關；
+          #   同一句廣播原本還寫了兩次、會連播兩遍，這裡合併成一次）
+          - action: script.announce
             data:
-              variables:
-                level: general
-                chime: false
-                message: 車庫鐵門即將關閉，請注意安全。
-                player: media_player.che_ku_she_ying_ji_speaker
-                adjust_volume: false
-          - action: tts.speak
-            metadata: {}
-            data:
-              cache: true
-              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
+              level: general
+              chime: false
               message: 車庫鐵門即將關閉，請注意安全。
-            target:
-              entity_id: tts.edge_tts
-            enabled: false
-          - action: media_player.play_media
-            target:
-              entity_id: media_player.che_ku_she_ying_ji_speaker
-            data:
-              media:
-                media_content_id: media-source://media_source/local/airport.mp3
-                media_content_type: audio/mpeg
-                metadata:
-                  title: airport.mp3
-                  thumbnail:
-                  media_class: music
-                  children_media_class:
-                  navigateIds:
-                  - {}
-                  - media_content_type: app
-                    media_content_id: media-source://media_source
-            enabled: false
-          - action: script.turn_on
-            target:
-              entity_id: script.announce
-            data:
-              variables:
-                level: general
-                chime: false
-                message: 車庫鐵門即將關閉，請注意安全。
-                player: media_player.che_ku_she_ying_ji_speaker
-                adjust_volume: false
-          - action: tts.speak
-            metadata: {}
-            data:
-              cache: true
-              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
-              message: 車庫鐵門即將關閉，請注意安全。
-            target:
-              entity_id: tts.edge_tts
-            enabled: false
+              player: media_player.che_ku_she_ying_ji_speaker
+              adjust_volume: false
+            continue_on_error: true
+          - delay: '00:00:01'
           - action: cover.close_cover
             target:
               entity_id: cover.garage
