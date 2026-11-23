@@ -445,7 +445,7 @@
       milliseconds: 0
   mode: single
 - id: '1691311960545'
-  alias: 104鐵門開關V2 (V4.0.0)
+  alias: 104鐵門開關V2 (V4.0.2)
   description: ''
   triggers: []
   conditions: []
@@ -506,68 +506,82 @@
           state: open
         sequence:
         - sequence:
-          - action: script.turn_on
+          # V4.0.2（2026-11-23）：關門＝先廣播、等廣播播完再多等 1 秒才關；廣播期間與那 1 秒內可以取消：
+          #   ① 再按一下開關（本自動化改 mode: restart，第二下進來時看到「關門進行中」旗標就取消，不關門）
+          #   ② 模型（Garage Vision）看到鐵門下方有人（script.garage_gate_person_check 廣播期間重複檢查，看到就取消）
+          # V4.0.1：直接等 script.announce 播完（原本 script.turn_on 不等待，廣播沒講完門就開始關；同一句廣播還寫了兩次）
+          - if:
+            - condition: state
+              entity_id: input_boolean.garage_btn_closing
+              state: 'on'
+            - condition: template
+              value_template: '{{ (now() - states.input_boolean.garage_btn_closing.last_changed).total_seconds() < 60 }}'
+            then:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.garage_btn_closing
+            - action: script.turn_on
+              target:
+                entity_id: script.announce
+              data:
+                variables:
+                  level: general
+                  chime: false
+                  message: 已取消關門。
+                  player: media_player.che_ku_she_ying_ji_speaker
+                  force: true
+                  adjust_volume: false
+            - stop: 關門流程進行中又按了一下，已取消關門
+          - action: input_boolean.turn_on
             target:
-              entity_id: script.announce
-            data:
-              variables:
+              entity_id: input_boolean.garage_btn_closing
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.garage_btn_person_seen
+          - parallel:
+            - action: script.announce
+              data:
                 level: general
                 chime: false
                 message: 車庫鐵門即將關閉，請注意安全。
                 player: media_player.che_ku_she_ying_ji_speaker
                 force: true
                 adjust_volume: false
-          - action: tts.speak
-            metadata: {}
-            data:
-              cache: true
-              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
-              message: 車庫鐵門即將關閉，請注意安全。
-            target:
-              entity_id: tts.edge_tts
-            enabled: false
-          - action: media_player.play_media
-            target:
-              entity_id: media_player.che_ku_she_ying_ji_speaker
-            data:
-              media:
-                media_content_id: media-source://media_source/local/airport.mp3
-                media_content_type: audio/mpeg
-                metadata:
-                  title: airport.mp3
-                  thumbnail:
-                  media_class: music
-                  children_media_class:
-                  navigateIds:
-                  - {}
-                  - media_content_type: app
-                    media_content_id: media-source://media_source
-            enabled: false
-          - action: script.turn_on
-            target:
-              entity_id: script.announce
-            data:
-              variables:
-                level: general
-                chime: false
-                message: 車庫鐵門即將關閉，請注意安全。
-                player: media_player.che_ku_she_ying_ji_speaker
-                force: true
-                adjust_volume: false
-          - action: tts.speak
-            metadata: {}
-            data:
-              cache: true
-              media_player_entity_id: media_player.che_ku_she_ying_ji_speaker
-              message: 車庫鐵門即將關閉，請注意安全。
-            target:
-              entity_id: tts.edge_tts
-            enabled: false
+              continue_on_error: true
+            - sequence:
+              - action: script.garage_gate_person_check
+                continue_on_error: true
+              - action: script.garage_gate_person_check
+                continue_on_error: true
+          - delay: '00:00:01'
+          - if:
+            - condition: state
+              entity_id: input_boolean.garage_btn_person_seen
+              state: 'on'
+            then:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.garage_btn_closing
+            - action: script.turn_on
+              target:
+                entity_id: script.announce
+              data:
+                variables:
+                  level: general
+                  chime: false
+                  message: 鐵門下方有人，已取消關門。
+                  player: media_player.che_ku_she_ying_ji_speaker
+                  force: true
+                  adjust_volume: false
+            - stop: 模型看到鐵門下方有人，已取消關門
           - action: cover.close_cover
             target:
               entity_id: cover.garage
             data: {}
-  mode: single
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.garage_btn_closing
+  mode: restart
 - id: '1691657592326'
   alias: 08-2二樓門鎖虛掩警告 (V4.0.0)
   description: ''
@@ -2930,7 +2944,7 @@
   max_exceeded: silent
 - id: '1747918900001'
   alias: 800-開關系列-12E 頂樓與四樓開關-雙擊上樓情境
-  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，點亮頂樓樓梯燈，重設鎖定
+  description: 頂樓開關下2與四樓上開關雙擊觸發上樓情境，重設鎖定；只有四樓樓梯開關上2、頂樓樓梯燈按鍵的雙擊才點亮樓梯燈（2026-11-19）
   triggers:
   - trigger: event
     event_type: terncy_pressed
@@ -2990,13 +3004,20 @@
       entity_id: input_text.topfloor_debug_last_decision
     data:
       value: 手動上樓情境（按鍵雙擊）
-  - action: homeassistant.turn_on
-    target:
-      entity_id:
-      - switch.ding_lou_lou_ti_deng
-      - light.yeelink_color5_0fb7_light
-      - light.yeelink_color5_13b8_light
-    continue_on_error: true
+  - if:
+    - condition: template
+      alias: 四樓樓梯開關上2、頂樓樓梯燈按鍵的雙擊才點亮樓梯燈
+      value_template: >-
+        {{ (trigger.event is defined and trigger.event.data.device_id in ['058a0c17de0b49cf3795dd7f0c00aeb5', 'e259d03573cd842bf05dde178ae907bf'])
+           or (trigger.entity_id | default('') in ['event.si_lou_lou_ti_kai_guan_shang_2_double_press', 'event.ding_lou_lou_ti_deng_double_press']) }}
+    then:
+    - action: homeassistant.turn_on
+      target:
+        entity_id:
+        - switch.ding_lou_lou_ti_deng
+        - light.yeelink_color5_0fb7_light
+        - light.yeelink_color5_13b8_light
+      continue_on_error: true
   - delay: '00:00:00.5'
   mode: single
   max_exceeded: silent

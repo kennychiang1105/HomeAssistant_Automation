@@ -41,6 +41,12 @@
 #   - 自動開鐵門不需要離家情境，改用嚴謹條件（見 script.garage_car_watch_run）；開門後 3 分鐘車位仍沒變空會自動關門（先確認無人）。
 # ─────────────────────────────────────────────────────────────
 input_boolean:
+  garage_btn_closing:
+    name: 車庫按鈕關門｜關門流程進行中（再按一下＝取消）
+    icon: mdi:garage-alert
+  garage_btn_person_seen:
+    name: 車庫按鈕關門｜廣播期間模型看到鐵門下方有人
+    icon: mdi:account-alert
   garage_turn_signal_enable:
     name: 車庫出門偵測｜左方向燈偵測（絕對出門訊號）
     icon: mdi:car-arrow-left
@@ -525,6 +531,41 @@ script:
           result: "{{ {'closed': true, 'reasons': [], 'note': note} }}"
       - stop: "已廣播並確認無人無車，鐵門已關好"
         response_variable: result
+
+  garage_gate_person_check:
+    alias: 鐵門下方有人檢查AI (V1.0.0)
+    description: >
+      車庫攝影機拍一張快照、問 Garage Vision 模型有沒有人站在鐵門下方（人物框中心靠右 x≥0.78 且腳底 y≥0.55＝門口到鐵門之間；
+      更小更遠的馬路路人不算）。看到就把 input_boolean.garage_btn_person_seen 打開（只開不關，由呼叫端在流程開始時關掉）。
+      給按鈕關門流程（104鐵門開關V2）廣播期間重複檢查用；不更新車位、不學習。
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - action: camera.snapshot
+        target:
+          entity_id: camera.g6_instant_high_resolution_channel
+        data:
+          filename: /config/www/snap/snap_gcur_52cd9975e2259496944fc869.jpg
+        continue_on_error: true
+      - delay: "00:00:00.5"
+      - action: shell_command.garage_car_watch
+        data:
+          gate: "--gate-recent"
+          nolearn: "--no-learn --safety"
+        response_variable: r
+        continue_on_error: true
+      - variables:
+          res: "{{ (r.stdout | from_json({})) if (r is defined and r is mapping and r.get('stdout')) else {} }}"
+          vis: "{{ res.get('vision') if (res is mapping and res.get('vision') is mapping) else {} }}"
+          plist: "{{ vis.get('persons') if (vis.get('persons') is iterable and vis.get('persons') is not string) else [] }}"
+          under: >-
+            {% set ns = namespace(n=0) %}{% for p in plist %}{% set b = p.get('box') if p is mapping else none %}{% if b is iterable and b | length == 4 and (p.get('conf', 1) | float(1)) >= 0.35 and ((b[0] | float(0)) + (b[2] | float(0))) / 2 >= 0.78 and (b[3] | float(0)) >= 0.55 %}{% set ns.n = ns.n + 1 %}{% endif %}{% endfor %}{{ ns.n }}
+      - if: "{{ under | int(0) > 0 }}"
+        then:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.garage_btn_person_seen
+      - stop: "鐵門下方人數：{{ under }}"
 
   garage_gate_close_retry:
     alias: 鐵門未關重試關門AI (V4.4.5)
