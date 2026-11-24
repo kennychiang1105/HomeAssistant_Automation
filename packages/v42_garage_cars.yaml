@@ -423,7 +423,7 @@ script:
     alias: 車庫自動關門｜廣播後再確認沒人沒車才關 (V4.5)
     description: >
       所有「自動」關鐵門都走這支：①先跑淨空確認（人／車／車燈／位移／攝影機人車偵測／車位剛變動）；②通過後用車庫攝影機喇叭廣播「車庫鐵門即將關閉，請注意安全」；
-      ③等廣播播完（約 8 秒）再確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
+      ③等廣播真正播完（直接等 script.announce 結束）再多等 1 秒、確認一次——廣播期間攝影機有人或車出現、車位狀態變動就取消；④兩次都通過才下達關門。
       回傳 closed（是否已下達關門）與 reasons（沒關的原因）。人工按鈕關門（automation.tie_men_kai_guan）不經過這裡。
     mode: single
     max_exceeded: silent
@@ -456,17 +456,17 @@ script:
               result: "{{ {'closed': false, 'reasons': (sf1.get('reasons') if (sf1 is mapping and sf1.get('reasons')) else ['無法確認淨空'])} }}"
           - stop: "廣播前淨空確認未通過"
             response_variable: result
-      - action: script.turn_on
-        target:
-          entity_id: script.announce
+      # V4.5（2026-11-23）：改成直接呼叫 script.announce 等它播完（含語音合成、喇叭開始播放到結束），再多等 1 秒；
+      #   原本 script.turn_on 不等待＋固定等 5 秒，語音合成與播放比 5 秒久，廣播還沒講完鐵門就開始關（11-23 實際發生）
+      - action: script.announce
         data:
-          variables:
-            level: general
-            chime: false
-            message: 車庫鐵門即將關閉，請注意安全。
-            player: media_player.che_ku_she_ying_ji_speaker
-            adjust_volume: false
-      - delay: "00:00:05"
+          level: general
+          chime: false
+          message: 車庫鐵門即將關閉，請注意安全。
+          player: media_player.che_ku_she_ying_ji_speaker
+          adjust_volume: false
+        continue_on_error: true
+      - delay: "00:00:01"
       - action: script.garage_close_safety_check
         response_variable: sf2
       - variables:
