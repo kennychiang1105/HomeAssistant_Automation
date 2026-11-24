@@ -1017,3 +1017,4 @@ ightarrow$ Luxgen）之歷史狀態精確識別車輛名稱。
 - **更正：#211（12E 雙擊上樓情境只有四樓上2／頂樓樓梯燈按鍵才開樓梯燈）與 #215（按鈕關門等廣播）原本改在 configuration/automations.yaml，那是沒被載入的舊副本；HA 實際載入的是根目錄 automations.yaml（configuration.yaml 的 `automation: !include automations.yaml`）。2026-11-23 起這兩項改到根目錄 automations.yaml 才真正生效。**
 - **刪除 configuration/automations.yaml（2026-11-23）**：這是沒被載入的舊副本（HA 載入的是根目錄 automations.yaml），#211／#215 因為改錯到它而沒生效；刪除避免再被誤改。自動化一律改根目錄 automations.yaml 或 configuration/Automations/ 內的檔案。
 - **車庫自動關門等廣播播完才關（garage_close_confirmed，V4.5，2026-11-23）**：原本用 script.turn_on 啟動廣播後固定等 5 秒，語音合成與播放比 5 秒久，廣播還沒講完鐵門就開始關。改成直接呼叫 script.announce 等它播完，再多等 1 秒做第二次淨空確認，確認通過才關門。
+- **05B 緊急模式通知 去重判斷改查 script.eq99（2026-11-24）**：地震腳本早已改名 eq99，05B 仍查舊名 script.99999999999999（實體引用檢查 00-2M 報不存在），導致「地震已由預警腳本通知就略過 05B 補充通知」的去重一直失效；改成 script.eq99。

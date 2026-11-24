@@ -244,7 +244,7 @@
       - sequence:
         - if:
           - condition: template
-            value_template: "{{ trigger.entity_id == 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto' and states('input_text.line_eew_remote_level')|int(0) >= 4 and state_attr('script.99999999999999', 'last_triggered') is not none and (as_timestamp(now()) - as_timestamp(state_attr('script.99999999999999', 'last_triggered'))) < 600 }}"
+            value_template: "{{ trigger.entity_id == 'input_boolean.jin_ji_mo_shi_pan_duan_kai_guan_ii_ha_auto' and states('input_text.line_eew_remote_level')|int(0) >= 4 and state_attr('script.eq99', 'last_triggered') is not none and (as_timestamp(now()) - as_timestamp(state_attr('script.eq99', 'last_triggered'))) < 600 }}"
           then:
           - stop: 地震已由地震預警腳本通知，略過 05B 自動來源補充通知，避免訊息覆蓋
         - delay:
