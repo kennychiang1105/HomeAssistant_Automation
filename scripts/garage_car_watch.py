@@ -284,6 +284,49 @@ def moving_vehicles(dets_now, dets_prev, min_conf=0.5, shift=0.015):
     return moving
 
 
+FACE_WIN = 7            # V4.5：車頭朝向投票視窗（最近幾次有判出朝向的快照）
+FACE_NEED = 5           # 停著的同一輛車，視窗內至少幾票是新朝向才改（11-19～11-26 後位 Luxgen 停著時常被單張誤判「朝內」，連續最多 5 張）
+FACE_ARRIVE_SEC = 90    # 剛到位幾秒內（停車過程）改取多數
+
+
+def stabilize_facing(out, state, now):
+    """V4.5 車頭朝向穩定化：單張快照的朝向判斷（車燈亮、有人走過時常左右跳）不直接採用。
+    每個車位保留最近 FACE_WIN 次判出的朝向：剛到位（或還沒有穩定朝向、換了另一輛已知車）取多數；
+    停著時至少 FACE_NEED 票是新朝向才改。原始判斷留在 facing_raw；這張判斷不出朝向時沿用穩定朝向。"""
+    for n, r in out['slots'].items():
+        st = state.setdefault('slots', {}).setdefault(n, {})
+        raw = r.get('facing', 'unknown')
+        r['facing_raw'] = raw
+        if not r.get('present'):
+            for k in ('face_stable', 'face_car', 'face_votes'):
+                st.pop(k, None)
+            continue
+        stable, car, idn = st.get('face_stable'), st.get('face_car'), r.get('identity', 'unknown')
+        known = idn in ('luxgen_n7', 'tesla_model3')
+        if known and car not in (None, idn):
+            st['face_votes'], stable = [], None
+        fresh = (now - st.get('arrived_ts', 0)) < FACE_ARRIVE_SEC
+        if raw in ('door', 'inside'):
+            votes = (st.get('face_votes') or []) + [raw]
+            votes = votes[-FACE_WIN:]
+            st['face_votes'] = votes
+            nd, ni = votes.count('door'), votes.count('inside')
+            if stable is None or fresh:
+                stable = raw if nd == ni and stable is None else ('door' if nd > ni else ('inside' if ni > nd else stable))
+            else:
+                other = 'inside' if stable == 'door' else 'door'
+                if votes.count(other) >= FACE_NEED:
+                    stable = other
+                elif raw != stable:
+                    r['facing_hold'] = '%s %d/%d' % (raw, votes.count(other), FACE_NEED)
+            st['face_stable'] = stable
+            if known:
+                st['face_car'] = idn
+        if stable:
+            r['facing'] = stable
+            st['facing'] = stable
+
+
 def apply_vision(a, roi, state, out, jpg, now):
     """本機 YOLO＋CLIP（Garage Vision add-on）補強：框出車、認出是哪輛車與車頭朝向、粗分車型。
     平常 vision_every 秒一次；有車燈／位移證據或身分不明時馬上多問一次。add-on 連不上就略過（保持原本的分析）。"""
@@ -739,6 +782,25 @@ def selftest():
             errors.append('車頭朝鐵門沒判出 %s' % s1)
         if (s2['identity'], s2['facing']) != ('luxgen_n7', 'inside'):
             errors.append('車頭朝內沒判出 %s' % s2)
+    # V4.5 車頭朝向穩定化：停著的 Luxgen 偶發 1～4 張「朝內」不改；連續 5 張才改；剛到位直接採用；開走後重置
+    stt = {'slots': {'back': {'arrived_ts': 0}}}
+    def fo(f, idn='luxgen_n7', pres=True, t=10000):
+        o = {'slots': {'back': {'present': pres, 'identity': idn, 'facing': f}}}
+        stabilize_facing(o, stt, t)
+        return o['slots']['back']['facing']
+    seq = [fo('door'), fo('inside'), fo('inside'), fo('door'), fo('inside'), fo('unknown', 'unknown')]
+    if seq != ['door'] * 6:
+        errors.append('朝向偶發跳動應維持 door %s' % seq)
+    fo('door')
+    fo('door'); fo('door')
+    seq = [fo('inside') for _ in range(5)]
+    if seq[:4] != ['door'] * 4 or seq[4] != 'inside':
+        errors.append('7 次中 5 次新朝向才改 %s' % seq)
+    fo('door', pres=False)
+    stt['slots']['back']['arrived_ts'] = 20000
+    got = [fo('inside', t=20010), fo('door', t=20020), fo('inside', t=20030)]
+    if got != ['inside', 'inside', 'inside']:
+        errors.append('剛到位應取多數 %s' % got)
     # 充電線：垂掛／拉向前景車的邊緣分布不同 → 能分出 hanging、to_near；沒學過的畫面回 unknown
     roi_c = dict(roi, cable=[0.0, 0.1, 0.4, 0.7])
     hang = base.copy()
@@ -897,6 +959,7 @@ def main():
     if ex:
         out['exclusive_fix'] = ex
     if not a.no_learn:
+        stabilize_facing(out, state, time.time())
         save_json(state_path, state)
     if a.csv:
         try:

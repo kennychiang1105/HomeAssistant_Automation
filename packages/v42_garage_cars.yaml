@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.4.5）
+# 車庫車輛位置與準備出門偵測（車輛動態辨識系統AI，V4.5 待發布）
 # 更新紀錄（統一格式）：
+# - V4.5（2026-11-26，待發布）：garage_car_watch.py 車頭朝向投票穩定化：停著的同一輛車要最近 7 次判斷中 5 次是新朝向才改、剛到位（90 秒內）取多數，原始判斷留在 facing_raw（11/19～11/26 後位 Luxgen 朝向跳動 78→10 次；原本車燈亮、有人走過就在朝門／朝內間跳，害方向燈開門判成「車頭朝內」）。
+# - V4.5（2026-11-26，待發布）：車從後位移到前位途中，即時分析看到方向燈／雙黃燈時不再因為車位標籤還沒跟上（後位車頭朝向在車燈亮時常誤跳成「朝內」）而判「條件不符」：畫面車位與標籤車位不同（移動中）時不看車頭朝向，garage_turn_act 新增 transit 參數；即時分析啟動條件加「前位空、後位有車」（後位車只能經過前位出門，不受後位朝向誤判影響）。11-25 11:18、11-26 11:02 都因此晚 20 幾秒才開門。
 # - V4.5（2026-11-18，待發布）：garage_close_confirmed（V4.5）拿掉「關門途中攝影機看到人或車就改回開門」：鐵門硬體一開始關就會關到底、途中送開門無效，關門途中的安全由鐵門本身的防撞負責（壓到會自動打開）。11-18 11:08:15 自動關門，11:08:21 門外機車經過觸發車輛偵測，腳本送開門並通知「已取消自動關門」，但錄影顯示門照樣關到底（11:09:22 關好）。改成等門關好（最多 70 秒）：關好回報 closed＝true，途中看到人車只寫在 note；70 秒內沒關到底（例如防撞打開）才交給重試關門。
 # - V4.5（2026-11-17，待發布）：garage_close_safety_check（V4.5）：車已駛出（車位 15 分鐘內變空）且車庫模型確認室內沒人、沒車在動／亮燈／車位以外的車時，不採用攝影機的人員／車輛／動作偵測（鐵門開著會拍到門外馬路的路人與路過的車）；garage_car_watch.py 同步不把鐵門口外馬路上（畫面右上角、很小）的車算成 stray。11-17 09:11 出門、車 09:12:32 開走，09:13:19～09:14:07 門外路人與機車讓淨空確認重判，09:15:38 才關門（原本約 09:13:40 可關）。
 # - V4.5（2026-11-16，待發布）：修復 input_datetime.garage_turn_last 永遠停在 2000-01-01：它原本只由短片備援路徑更新，V4.4.1 起即時分析接手後短片路徑不再執行；現在 script.garage_turn_rt 每一輪分析前都會寫入目前時間（短片備援的 3 秒間隔判斷不受影響）。
@@ -1090,7 +1092,7 @@ script:
                       slots: "{{ slots }}"
 
   garage_turn_rt:
-    alias: 車庫方向燈即時分析AI (V4.4.5)
+    alias: 車庫方向燈即時分析AI (V4.5)
     description: >
       車庫有人或有動靜（鐵門關著、車庫裡有車頭不是朝內的車）時，直接讀攝影機串流逐幀分析左／右方向燈與雙黃燈（scripts/garage_turn_rt.py，每次最長 45 秒、偵測到就提早結束），
       車身框跟著車子走，不依賴車位標籤。偵測到就寫入 input_text.garage_turn_rt_last 與活動紀錄；input_boolean.garage_turn_rt_open_enable 打開時才交給 script.garage_turn_act 開門
@@ -1103,10 +1105,11 @@ script:
           {{ is_state('input_boolean.garage_turn_rt_enable', 'on') and is_state('input_boolean.garage_turn_signal_enable', 'on')
              and is_state('input_boolean.garage_depart_watch_enable', 'on') and is_state('cover.garage', 'closed') }}
       - condition: template
-        alias: 車庫裡有車頭不是朝內的車
+        alias: 車庫裡有車頭不是朝內的車，或前位空、後位有車（後位車只能經過前位出門）
         value_template: >-
           {{ (not is_state('input_select.garage_slot_front', 'empty') and not is_state('input_select.garage_facing_front', 'inside'))
-             or (not is_state('input_select.garage_slot_back', 'empty') and not is_state('input_select.garage_facing_back', 'inside')) }}
+             or (not is_state('input_select.garage_slot_back', 'empty') and not is_state('input_select.garage_facing_back', 'inside'))
+             or (is_state('input_select.garage_slot_front', 'empty') and not is_state('input_select.garage_slot_back', 'empty')) }}
       - repeat:
           while:
             - condition: template
@@ -1184,8 +1187,11 @@ script:
                     car: "{{ states('input_select.garage_slot_' ~ slot) }}"
                     names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛, empty: 車位空}
                     kinds: {left: 左方向燈, right: 右方向燈, hazard: 雙黃燈, move: 從後位移到前位}
+                    # V4.5：畫面車位和標籤車位不同＝車正在移動（後位→前位），標籤的車頭朝向還沒跟上，不看朝向
+                    transit: "{{ slot0 != slot }}"
                     ok_car: >-
-                      {{ car != 'empty' and not is_state('input_select.garage_facing_' ~ slot, 'inside') and is_state('cover.garage', 'closed') }}
+                      {{ car != 'empty' and is_state('cover.garage', 'closed')
+                         and (transit or not is_state('input_select.garage_facing_' ~ slot, 'inside')) }}
                     open_on: "{{ is_state('input_boolean.garage_turn_rt_open_enable', 'on') }}"
                     note: >-
                       {{ (now().strftime('%m-%d %H:%M:%S') ~ ' ' ~ names.get(car, car) ~ '｜' ~ {'front': '前位', 'back': '後位'}.get(slot, slot)
@@ -1210,6 +1216,7 @@ script:
                         slot: "{{ slot }}"
                         kind: "{{ kind }}"
                         people: "{{ people }}"
+                        transit: "{{ transit }}"
                       continue_on_error: true
                   else:
                     - stop: "已記錄（只記錄不開門）"
@@ -1256,7 +1263,7 @@ script:
                 - stop: "已偵測到方向燈／雙黃燈"
 
   garage_turn_act:
-    alias: 車庫方向燈偵測後開門AI (V4.4.5)
+    alias: 車庫方向燈偵測後開門AI (V4.5)
     description: >
       偵測到左／右方向燈或雙黃燈後，標記準備出門並自動開鐵門（沿用原本的條件：自動開門與方向燈開門開關、5 分鐘內不重複開）。
       V4.3.16：畫面上車外還有人（還沒全部上車）先不開，記錄「等上車」；人都上車後，下一段短片仍偵測到方向燈才開。
@@ -1272,6 +1279,9 @@ script:
       people:
         description: 短片裡車外的人數（garage_turn_signal.py 的 people；-1＝模型無法判斷）
         required: false
+      transit:
+        description: V4.5：車正在後位→前位移動中（標籤的車頭朝向還沒跟上），true 時不檢查車頭朝內
+        required: false
     variables:
       car: "{{ states('input_select.garage_slot_' ~ slot) }}"
       names: {luxgen_n7: Luxgen N7, tesla_model3: Tesla Model 3, sedan: 未知房車, suv: 未知休旅車, motorcycle: 未知機車, unknown: 未知車輛}
@@ -1282,7 +1292,9 @@ script:
            and ((as_timestamp(now()) - as_timestamp(states('input_datetime.garage_depart_last_open'), 0)) > 300) }}
     sequence:
       - condition: template
-        value_template: "{{ car != 'empty' and not is_state('input_select.garage_facing_' ~ slot, 'inside') and is_state('cover.garage', 'closed') }}"
+        value_template: >-
+          {{ car != 'empty' and is_state('cover.garage', 'closed')
+             and ((transit | default(false) | string | lower) in ['true', '1'] or not is_state('input_select.garage_facing_' ~ slot, 'inside')) }}
       - action: input_datetime.set_datetime
         target:
           entity_id: "input_datetime.garage_turn_seen_{{ slot }}"
